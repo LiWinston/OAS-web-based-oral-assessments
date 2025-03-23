@@ -1,1 +1,280 @@
-# OAS-web-based-oral-assessments
+# OAS - Web Based Oral Assessments System
+
+## Overview
+
+OAS (Oral Assessment System) is a web-based platform designed for educational institutions to conduct online oral examinations efficiently. The system supports real-time audio recording, assessment, and feedback, providing a comprehensive oral evaluation experience for both teachers and students.
+
+## Client Information
+
+**University of Melbourne**
+
+- Project: ADVANCED MASTERS SOFTWARE ENGINEERING PROJECT SUBJECT SWEN90017
+- Semester: 2025 Semester 1
+- Subject Coordinator: Mansooreh Zahedi
+- Client: Hasti Samadi, CIS Melbourne 
+- Supervisor: Geela Chee
+
+## Tech Stack
+
+- Frontend: TBD
+- Backend: TBD
+- Database: TBD
+- Other Middleware: TBD
+- Hosting: TBD
+- Deployment: TBD
+
+## Team Members
+
+### Product Team
+
+<table>
+
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/yungenc">
+        <img src="https://github.com/user-attachments/assets/e01d7aea-fa37-4ea0-a41c-1cd6d2cca78f" width="100px;" alt="Product Owner"/>
+      </a>
+    </td>
+    <td>
+      <h3>Product Owner</h3>
+      <p><b>Ian Chi</b> (Student ID: 1579898)</p>
+      <p>Stakeholder Communication, Feature Prioritization, User Story Mapping</p>
+      <p><a href="https://github.com/yungenc">@yungenc</a></p>
+    </td>
+  </tr>
+
+</table>
+
+### Arch & DevOps Team
+
+<table>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/username">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Scrum Master"/>
+      </a>
+    </td>
+    <td>
+      <h3>Scrum Master</h3>
+      <p><b>Haocheng Li</b> (Student ID: 1525380)</p>
+      <p>Experienced in Agile methodologies and team coordination. Proficient in managing sprints, facilitating ceremonies, and ensuring smooth development workflow. Skilled in technical leadership and cross-team collaboration.</p>
+      <p><a href="https://github.com/lihaocheng1006">@lihaocheng1006</a></p>
+    </td>
+  </tr>
+
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/username">
+        <img src="https://github.com/user-attachments/assets/cf73c42e-f994-4def-a3f4-87677a552f02" width="100px;" alt="DevOps"/>
+      </a>
+    </td>
+    <td>
+      <h3>DevOps</h3>
+      <p><b>Yunpeng Xiong</b> (Student ID: 1513076)</p>
+      <p>Component Development, State Management</p>
+      <p><a href="https://github.com/xiongnemo">@xiongnemo</a></p>
+    </td>
+  </tr>
+</table>
+
+### Backend Dev Team
+
+<table>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/username">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Dongqiao He</b> (Student ID: 1373829)</p>
+      <p>Good at Java Backend</p>
+      <p><a href="https://github.com/username">@DongqioaHe</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/TianyunLei">
+        <img src="https://github.com/user-attachments/assets/70e3b61e-521e-47e3-965c-4748011b7a11" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Tianyun Lei</b> (Student ID: 1454701)</p>
+      <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
+      <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/LiWinston">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Yongchun Li</b> (Student ID: 1378156)</p>
+      <p>Experienced in developing web backends with Spring Boot and deploying Docker containers on Render. Looking forward to enhancing skills in complex database operations, business logic decoupling, and microservices architecture through this project.</p>
+      <p><a href="https://github.com/LiWinston">@LiWinston</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/Crystallen1">
+         <img src="https://github.com/user-attachments/assets/56245dde-5f88-4b03-9072-d2e2be92df93" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Yun Chen</b> (Student ID: 1412174)</p>
+      <p>Familiar with enterprise-level development in Spring Boot, understanding part of backend infrastructure design, and knowledgeable about Docker and Kubernetes. Looking to enhance backend infrastructure development skills, particularly in security and authentication.</p>
+      <p><a href="https://github.com/Crystallen1">@Yun Chen</a></p>
+    </td>
+  </tr>
+<tr>
+    <td width="150" align="center">
+      <a href="https://github.com/weiranxu-unimelb">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Weiran Xu</b> (Student ID: 1454343)</p>
+      <p>Experienced in backend development using Java and Spring Boot. Familiar with databases and proficient in deploying backend projects to private cloud environments such as AWS EC2. Expecting to gain skills in database optimization and to deeply explore the Spring Boot ecosystem.</p>
+      <p><a href="https://github.com/weiranxu-unimelb">@Weiran Xu</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/BENYUANWANG">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Benyuan Wang</b> (Student ID: 1492846)</p>
+      <p>Experienced in python and flask backend development, understanding of database design, and some knowledge of software testing. Want to strengthen and improve backend development capabilities and technology stacks.</p>
+      <p><a href="https://github.com/BENYUANWANG">@Benyuan Wang</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/wangxiang13">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Backend Developer</h3>
+      <p><b>Xiang Wang</b> (Student ID: 1373795)</p>
+      <p>Familiar with Java and Spring Boot web development, with an understanding of backend architecture and database design. Hope to improve my backend architecture design skills, deepen my technical understanding, and gain more enterprise-level project experience.</p>
+      <p><a href="https://github.com/wangxiang13">@wangxiang13</a></p>
+    </td>
+  </tr>
+</table>
+
+### Frontend Dev Team
+
+<table>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/yungenc">
+        <img src="https://github.com/user-attachments/assets/e01d7aea-fa37-4ea0-a41c-1cd6d2cca78f" width="100px;" alt="Frontend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Frontend Developer</h3>
+      <p><b>Ian Chi</b> (Student ID: 1579898)</p>
+      <p>Experienced in full-stack web development with proficiency in React/Next.js. Experience in payment integration efforts in commercial projects. Eager to strengthen backend architecture design skills and contribute to innovative solutions in a collaborative environment.</p>
+      <p><a href="https://github.com/yungenc">@yungenc</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/lihaocheng1006">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Frontend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Frontend Developer</h3>
+      <p><b>Haocheng Li</b> (Student ID: 1525380)</p>
+      <p>Experienced in React and Next.js development with a strong focus on AI integration. Proficient in building modern web applications and implementing AI-powered features. Looking to enhance frontend development skills and create innovative user experiences.</p>
+      <p><a href="https://github.com/lihaocheng1006">@lihaocheng1006</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/Kruase">
+        <img src="https://github.com/Kruase/image/blob/main/0115dd32ed1d94617de81dbb4afe918.jpg" width="100px;" alt="Frontend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Frontend Developer</h3>
+      <p><b>Yanqing Shi</b> (Student ID: 1511676)</p>
+      <p>Familiar with frontend programming, with frontend programming experience in Django, React, Next.js and other frameworks. I hope to further exercise my frontend development ability and improve my UI design level.</p>
+      <p><a href="https://github.com/Kruase">@Kruase</a></p>
+    </td>
+  </tr>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/YulkonFU">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Frontend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Frontend Developer</h3>
+      <p><b>Yukun Fu</b> (Student ID: 1538627)</p>
+      <p>Familiar with front-end development, have some developing experience with react and vue, hope to improve my front-end development level in this project</p>
+      <p><a href="https://github.com/YulkonFU">@YulkonFU</a></p>
+    </td>
+  </tr>
+</table>
+
+## Project Structure
+
+We will use monorepo structure for this project. The project will be divided into multiple packages, each responsible for a specific functionality. The main packages include:
+- **frontend**: Contains the source code for the frontend application.
+- **backend**: Contains the source code for the backend application.
+
+```
+OAS/
+├── frontend/           # Frontend source code
+├── backend/            # Backend source code
+├── Docs/               # Project documentation
+│   ├── Meetings/       # Meeting notes and minutes
+│   |   ├──Client/      # Client meeting
+│   |   ├── Mentor/     # Mentor meeting
+|   |   └── Team/       # Team meeting
+│   ├── Sprints/        # Sprint Artifacts & Documentations, Agile Ceremonies
+│   └── Weekly Reports/ # Weekly reports and progress updates
+├── tests/              # Test suites
+├── scripts/            # Scripts for deployment and setup
+└── README.md           # Project overview and documentation
+```
+
+## Development Setup
+
+1. Clone the repository
+
+```bash
+git clone https://github.com/SWEN90017-2025-SM1/OAS-web-based-oral-assessments
+cd OAS-web-based-oral-assessments
+```
+
+2. Install dependencies
+
+<!-- ## Project Timeline
+
+- Project Start: March 2025
+- Initial Requirements Review: TBD
+- First Prototype: TBD
+- Beta Testing: TBD
+- Final Delivery: TBD -->
+
+## Contribution Guidelines
+
+0. Make sure you use UniMelb SSO login and have access to the repository. (Either for the key you are using or git manager)
+1. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Push to the branch (`git push origin feature/AmazingFeature`)
+4. Create a Pull Request
