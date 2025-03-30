@@ -85,6 +85,30 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Microsoft Graph SDK for integrating Calendar -->
+        <dependency>
+            <!-- Include the sdk as a dependency -->
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph</artifactId>
+            <!--x-release-please-start-version-->
+            <version>6.33.0</version>
+            <!--x-release-please-end-->
+        </dependency>
+        <dependency>
+            <!-- This dependency is only needed if you are using a TokenCredential object for authentication -->
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+            <version>1.11.0</version>
+        </dependency>
+
+        <!-- SendGrid SDK for sending emails -->
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>4.9.3</version>
+        </dependency>
+
+
     </dependencies>
 
     <build>
