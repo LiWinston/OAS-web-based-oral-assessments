@@ -28,3 +28,7 @@ Temporary Items
 .apdisk
 
 # https://github.com/github/gitignore/blob/main/Global/macOS.gitignore ends here
+
+/.idea
+/.vscode
+/.cursor
