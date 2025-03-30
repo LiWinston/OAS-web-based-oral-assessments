@@ -17,6 +17,6 @@ public class TestMapperTest {
     public void testMyBatisIntegration() {
         Integer result = testMapper.testQuery();
         System.out.println("Test Query Result: " + result);
-        assertEquals(1, result, "MyBatis 测试查询失败");
+        assertEquals(1, result, "MyBatis test fail");
     }
 }
