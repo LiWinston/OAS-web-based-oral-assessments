@@ -83,7 +83,8 @@ These questions will be clearly answered in the client interview, and the projec
   Prepare structured questions in advance to ensure comprehensive requirements elicitation (See Prepare Questions in the Prepare section for details).
 
 - #### Others
-  [Record for the first client meeting (21/03/2025)](https://unimelb.zoom.us/rec/share/h8NYR-Qk0mKuzVJLqdAZBL43MP-W311jedwkJOMfseRsseMTV5g0DP1W1H6VSTGR.ro7c3XlSYSJQXTEk)
+  [*Record for the first client meeting (21/03/2025)*](https://unimelb.zoom.us/rec/share/h8NYR-Qk0mKuzVJLqdAZBL43MP-W311jedwkJOMfseRsseMTV5g0DP1W1H6VSTGR.ro7c3XlSYSJQXTEk)
+  Passcode: yi93Hn&n
 
 ---
 
@@ -96,7 +97,8 @@ These questions will be clearly answered in the client interview, and the projec
   Analyze the requirements proposed by the client to ensure the unified understanding of the requirements within the team. Identify tasks that are currently completed, in progress, and not started. Create or adjust strategy for the next step.
 
 - #### Others
-  [Record for the first team (urgent) meeting (22/03/2025)](https://unimelb.zoom.us/rec/share/VKa0QwglL76NQy8TMQ2sRZnsK3Vzc8LIFLKmHj4BpwbkwwWwofIxbjPe935WGjfC.79l0sb6OE2o61DDw)
+  [*Record for the first team (urgent) meeting (22/03/2025)*](https://unimelb.zoom.us/rec/share/VKa0QwglL76NQy8TMQ2sRZnsK3Vzc8LIFLKmHj4BpwbkwwWwofIxbjPe935WGjfC.79l0sb6OE2o61DDw)
+  Passcode: Xk3xYd?r
 
 ---
 
@@ -128,11 +130,82 @@ These questions will be clearly answered in the client interview, and the projec
 
 ---
 
+## Output of Elicitation
+
+### Stakeholders Identification
+
+#### Primary Stakeholders
+
+- **Students**
+- **Examiners (Tutors)**
+- **Administrators (Subject Coordinators)**
+- **Client (Hasti Samadi, CIS Melbourne)**
+
+#### Secondary Stakeholders
+
+- **University IT Department**
+- **Faculty Administration**
+- **University Privacy Officer**
+- **Canvas LMS Support Team**
+
+#### Tertiary Stakeholders
+
+- **Future System Maintainers**
+- **Other Academic Departments**
+
+Detailed in [*Stakeholder Analysis*](../Stakeholder_Analysis.md).
+
+---
+
+### Overall Requirements Output
+After requirement elicitation, the collected requirements are summarized in the table:
+| Req ID | User Role      | Requirement Description                                                                                              | Size   | Priority   |
+|--------|----------------|----------------------------------------------------------------------------------------------------------------------|--------|------------|
+| 1.1    | Administrator  | Upload a CSV file containing student and group information for automatic data import.                                | Medium | Must Have  |
+| 1.2    | Administrator  | Re-upload a CSV file to update student or group information to ensure data accuracy.                                   | Medium | Must Have  |
+| 1.3    | Administrator  | Preview changes before overwriting during CSV re-upload to prevent data errors.                                      | Large  | Could Have |
+| 1.4    | Administrator  | Export a Canvas-compatible CSV file for uploading assessment results to the LMS.                                     | Medium | Must Have  |
+| 2.1    | Student        | Create an account in the system to access features appropriate for the role.                                         | Small  | Must Have  |
+| 2.2    | User           | Log in securely to the system to protect user data and actions.                                                      | Small  | Must Have  |
+| 3.1    | Examiner       | View assigned assessments to know when and where to conduct them.                                                    | Small  | Must Have  |
+| 3.4    | Examiner       | Provide individual feedback for students to assess personal performance.                                             | Large  | Must Have  |
+| 5.1    | Administrator  | Define available time slots (date, time) and locations for oral assessments linked to specific assignments.            | Medium | Must Have  |
+| 6.1    | Administrator  | View and calculate total marks based on rubric components and a grading algorithm for an accurate final grade.         | Large  | Must Have  |
+
+The complete table is detailed in [*User Story*](./user_stories.md).
+The priorities are determined in accordance with MoSCoW prioritisation.
+
+---
+
+### Project Scope Definition
+
+#### In-Scope
+- **User Account Management**
+- **Assessment Configuration**
+- **Scheduling and Booking**
+- **Assessment Execution**
+- **Mark Management and Reporting**
+- **Integration with Canvas LMS**
+- **Notification System**
+- **System Security and Compliance**
+
+  
+#### Out-of-Scope
+- **Direct Integration with University Systems**
+- **Mobile Application Development**
+- **Advanced Analytics and Reporting**
+- **Automated Grading or AI-Assisted Assessment**
+- **Live Video Assessment Capabilities**
+
+Detailed in **Project Scope Statement** section from [*Project Backround*](../Project_Background.md).
+
+---
+
 ## Follow Up
 
 ### Organize & Share
-- [Project Background (Link Here)](#)  
+- [**Project Background**](../Project_Background.md)  
 Provide an overview of the project background and the initial requirements collected.
 
 - **Documentation and Analysis for Meetings or Updates**  
-[20_03 Draft Mentor & Client meeting minutes.docx](https://docs.google.com/document/d/1BrEN_26Kv2GFaYCKYCaGpbpFoAsZmLfBX2_fW6mLC80/edit?tab=t.0)
+[*20_03 Draft Mentor & Client meeting minutes.docx*](https://docs.google.com/document/d/1BrEN_26Kv2GFaYCKYCaGpbpFoAsZmLfBX2_fW6mLC80/edit?tab=t.0)
