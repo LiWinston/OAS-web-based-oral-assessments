@@ -1,6 +1,26 @@
 # Weekly Reports
 
-The weekly reports are important assessment components for the mentors. Each team member must prepare a weekly report and upload it on Github repository of the team by end of the week (i.e., latest Sunday 11:00 pm). The weekly reports should not be long (maximum 1 page), but very precise. Each report has to explicitly mention:
+This folder contains weekly progress reports from each team member, which are important assessment components for the mentors. Each report summarizes individual contributions, challenges faced, and plans for the upcoming week.
+
+## Folder Structure
+
+| **Folder** | **Description** |
+| --- | --- |
+| Week 3 | Weekly reports from all team members for the third week |
+| Week 4 | Weekly reports from all team members for the fourth week |
+
+## Report Guidelines
+
+- Each report is maximum 1 page, but very precise
+- Reports must explicitly mention:
+  - Individual achievements and deliverables for the week
+  - Time allocated to the project
+  - 2-3 key issues encountered
+  - Plans for the next week
+
+Reports follow a standardized naming convention: "<Name of member>-W<Week Number>"
+
+Each team member must prepare a weekly report and upload it on Github repository of the team by end of the week (i.e., latest Sunday 11:00 pm). The weekly reports should not be long (maximum 1 page), but very precise. Each report has to explicitly mention:
 
 • What you have done for the project during the week and what you have achieved/delivered individually
 
@@ -10,7 +30,7 @@ Specify approximately how much time you have allocated to the project during the
 
 • What you plan to do for the project next week individually
 
-Please avoid general/ cliché statements in these reports, rather highlight clearly your progress on the assigned tasks. This will help the mentors to follow up with you during the meetings and address your challenges. Please make sure to give proper title to the weekly reports based on an agreed naming convention in the group (e.g., “Name of member-W3”), and upload them in proper folder on your Github repository that can be easily found. As you are expected to provide weekly reports also for the second semester on the same repository, it would be wise to organize the folders in a way that can be differentiated between the semesters.
+Please avoid general/ cliché statements in these reports, rather highlight clearly your progress on the assigned tasks. This will help the mentors to follow up with you during the meetings and address your challenges. Please make sure to give proper title to the weekly reports based on an agreed naming convention in the group (e.g., "Name of member-W3"), and upload them in proper folder on your Github repository that can be easily found. As you are expected to provide weekly reports also for the second semester on the same repository, it would be wise to organize the folders in a way that can be differentiated between the semesters.
 
 Note1: Weekly reports will be expected to be uploaded from Week 3. No need to submit weekly reports during the semester break.
 

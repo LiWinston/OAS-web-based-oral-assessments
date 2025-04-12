@@ -51,7 +51,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/username">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Scrum Master"/>
+        <img src="https://github.com/user-attachments/assets/8c926df4-7424-4dd1-8abe-f279197c0591" width="100px;" alt="Scrum Master"/>
       </a>
     </td>
     <td>
@@ -83,7 +83,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/username">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+        <img src="https://github.com/user-attachments/assets/07343196-202e-4a71-bc02-9d6ce0779bc2" width="100px;" alt="Backend Developer"/>
       </a>
     </td>
     <td>
@@ -109,7 +109,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/LiWinston">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+        <img src="https://personal.r2.bitsleep.cn/lyc2024.jpg" width="100px;" alt="Backend Developer"/>
       </a>
     </td>
     <td>
@@ -135,7 +135,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
 <tr>
     <td width="150" align="center">
       <a href="https://github.com/weiranxu-unimelb">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+        <img src="https://personal.r2.bitsleep.cn/xwr.jpg" width="100px;" alt="Backend Developer"/>
       </a>
     </td>
     <td>
@@ -148,7 +148,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/BENYUANWANG">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+        <img src="https://github.com/user-attachments/assets/57b4df4b-e2fb-4381-ae6d-864911ab2ad2" width="100px;" alt="Backend Developer"/>
       </a>
     </td>
     <td>
@@ -161,7 +161,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/wangxiang13">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Backend Developer"/>
+        <img src="https://github.com/user-attachments/assets/941850f8-8dbc-4ccf-acef-e6467cbbc29a" width="100px;" alt="Backend Developer"/>
       </a>
     </td>
     <td>
@@ -192,7 +192,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/lihaocheng1006">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Frontend Developer"/>
+        <img src="https://github.com/user-attachments/assets/8c926df4-7424-4dd1-8abe-f279197c0591" width="100px;" alt="Frontend Developer"/>
       </a>
     </td>
     <td>
@@ -218,7 +218,7 @@ OAS (Oral Assessment System) is a web-based platform designed for educational in
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/YulkonFU">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/8/89/Portrait_Placeholder.png" width="100px;" alt="Frontend Developer"/>
+        <img src="https://github.com/user-attachments/assets/feb5e001-31d7-421b-bdff-f208ef6e4197" width="100px;" alt="Frontend Developer"/>
       </a>
     </td>
     <td>
@@ -241,14 +241,21 @@ OAS/
 ├── frontend/           # Frontend source code
 ├── backend/            # Backend source code
 ├── Docs/               # Project documentation
+│   ├── Architecture/   # Architecture diagrams and documentation
+│   ├── Design Concept/ # Design concepts and documentation
 │   ├── Meetings/       # Meeting notes and minutes
-│   |   ├──Client/      # Client meeting
-│   |   ├── Mentor/     # Mentor meeting
-|   |   └── Team/       # Team meeting
+│   |   ├── Week 1/
+│   |   ├── Week 2/
+│   |   └── ...
 │   ├── Sprints/        # Sprint Artifacts & Documentations, Agile Ceremonies
+│   |   ├── Sprint 1/
+│   |   │   ├── Agile Ceremonies/
+│   |   │   └── Discussing Collaboration Documents/
+│   |   ├── Sprint 2/
+│   |   └── ...
+│   ├── Requirement/    # Requirements for the project
 │   └── Weekly Reports/ # Weekly reports and progress updates
-├── tests/              # Test suites
-├── scripts/            # Scripts for deployment and setup
+├── .gitignore          # Git ignore rules
 └── README.md           # Project overview and documentation
 ```
 
@@ -278,3 +285,59 @@ cd OAS-web-based-oral-assessments
 2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 3. Push to the branch (`git push origin feature/AmazingFeature`)
 4. Create a Pull Request
+
+## Changelog
+
+> If you are coming from wiki, these links may not be available. Please switch back to the repo page.
+
+### Sprint 1 (2025-03-10 - 2025-03-30)
+
+- **Project Setup and Documentation**
+  - Established project repository and documentation structure
+  - Created [README](README.md) with project overview and team information
+  - Set up organizational structure for [documentation](Docs/README.md)
+  - Implemented documentation standards
+
+- **Requirements Engineering**
+  - Created detailed [user stories](Docs/Requirement/user_stories.md) and [acceptance criteria](Docs/Requirement/acceptance_criteria.md)
+  - Completed initial [stakeholder analysis](Docs/Stakeholder_Analysis.md)
+  - Documented [project scope and constraints](Docs/Project_Background.md)
+
+- **Team Organization**
+  - Established team roles and responsibilities
+  - Set up [weekly reporting process](Docs/Weekly%20Reports/README.md)
+  - Conducted initial [client](Docs/Meetings/Week%203/Week%203%20ClientMeeting%2020.03.2025.md) and [mentor](Docs/Meetings/Week%203/Week%203%20MentorMeeting%2020.03.2025.md) meetings
+
+- **Sprint Ceremonies**
+  - Completed [Sprint 1 Review](Docs/Sprints/Sprint%201/Agile%20Ceremonies/Sprint1_Review.md)
+  - Conducted [Sprint 1 Retrospective](Docs/Sprints/Sprint%201/Agile%20Ceremonies/Sprint1_Retrospective.md)
+  - Documented lessons learned and action items
+
+### Sprint 2 (2025-03-31 - 2025-04-20) [In Progress]
+
+- **Architecture and Design**
+  - Created initial [class diagram](Docs/Architecture/Class%20Diagram.svg)
+  - Developed [database schema diagram](Docs/Architecture/Database%20Diagram.svg)
+  - Designed [use case diagrams](Docs/Architecture/Use%20case%20diagram.svg)
+  - Established [technical documentation structure](Docs/Architecture/README.md)
+
+- **Technology Planning**
+  - Documented [main technology stack decisions](Docs/Design%20Concept/main_technology.md)
+  - Created [reuse plan](Docs/Design%20Concept/reuse_plan.md) for existing components and libraries
+  - Compiled [learning resources](Docs/Design%20Concept/References_to_learning_resources.md) for team development
+
+- **Research and Development**
+  - Developed [R&D plan](Docs/Sprints/Sprint%202/Discussing%20Collabration%20Documents/Research%20and%20Development%20Plan.md) with development strategy and timeline
+  - Documented technical approach and implementation methodology
+
+- **Documentation Enhancement**
+  - Added README files to all project directories
+  - Reorganized project documentation for better navigation
+  - Standardized naming conventions across documentation
+
+- **Ongoing**
+  - Regular [team](Docs/Meetings/Week%205/Week%205%20TeamMeeting%2005.04.2025.md), [mentor](Docs/Meetings/Week%205/Week%205%20MentorMeeting%2003.04.2025.md), and client meetings
+  - [Weekly progress reports](Docs/Weekly%20Reports/Week%204/README.md)
+  - Continuous refinement of requirements and architecture
+
+*Note: Sprint 2 is currently in progress, with completion scheduled for April 20, 2025.*

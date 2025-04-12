@@ -1,0 +1,1045 @@
+@startuml Class Diagram
+
+' Layout optimization settings
+' Set overall direction to left-to-right for widescreen display
+left to right direction
+
+' Use orthogonal lines to reduce line crossings
+skinparam linetype ortho
+
+' Increase distance between nodes
+skinparam nodesep 70
+skinparam ranksep 60
+
+' Colors and styles
+skinparam class {
+  BackgroundColor LightBlue
+  ArrowColor DeepSkyBlue
+  BorderColor Navy
+}
+
+' Simplify relationship line display
+skinparam groupInheritance 2
+
+package "entity" {
+  ' User-related classes
+  abstract class User {
+    - id: Long
+    - email: String
+    - password: String
+    - firstName: String
+    - lastName: String
+    - status: UserStatus
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    + getFullName(): String
+  }
+  
+  class Student extends User {
+    - studentId: String
+    - groups: List<Group>
+  }
+  
+  class Examiner extends User {
+    - examinerId: String
+    - specialization: String
+  }
+  
+  class Administrator extends User {
+    - adminId: String
+    - adminLevel: AdminLevel
+  }
+
+  enum UserStatus {
+    ACTIVE
+    INACTIVE
+    SUSPENDED
+    PENDING
+  }
+
+  enum AdminLevel {
+    SUPER_ADMIN
+    COURSE_ADMIN
+  }
+  
+  ' Course-related classes
+  class Course {
+    - id: Long
+    - code: String
+    - name: String
+    - description: String
+    - academicPeriod: AcademicPeriod
+    - students: List<Student>
+    - examiners: List<Examiner>
+    - administrators: List<Administrator>
+    - assignments: List<Assignment>
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+  }
+  
+  class AcademicPeriod {
+    - id: Long
+    - year: Integer
+    - semester: Semester
+    - startDate: LocalDate
+    - endDate: LocalDate
+    - courses: List<Course>
+  }
+  
+  enum Semester {
+    SEMESTER_1
+    SEMESTER_2
+    SUMMER_SEMESTER
+  }
+  
+  ' Assignment-related classes
+  class Assignment {
+    - id: Long
+    - name: String
+    - description: String
+    - type: AssignmentType
+    - course: Course
+    - rubric: Rubric
+    - dueDate: LocalDateTime
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - timeSlots: List<TimeSlot>
+  }
+  
+  enum AssignmentType {
+    INDIVIDUAL
+    GROUP
+  }
+  
+  ' Group-related classes
+  class Group {
+    - id: Long
+    - name: String
+    - assignment: Assignment
+    - members: List<Student>
+    - bookings: List<Booking>
+    - assessments: List<Assessment>
+  }
+  
+  ' Rubric-related classes
+  class Rubric {
+    - id: Long
+    - title: String
+    - description: String
+    - assignment: Assignment
+    - criteria: List<Criterion>
+    - totalMarks: Double
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    + calculateTotalMarks(): Double
+  }
+  
+  class Criterion {
+    - id: Long
+    - title: String
+    - description: String
+    - weight: Double
+    - markType: MarkType
+    - maxMark: Double
+    - rubric: Rubric
+    - parentCriterion: Criterion
+    - subCriteria: List<Criterion>
+    - predefinedComments: List<PredefinedComment>
+  }
+  
+  enum MarkType {
+    POINTS
+    PERCENTAGE
+    GRADE
+    PASS_FAIL
+  }
+  
+  class PredefinedComment {
+    - id: Long
+    - content: String
+    - criterion: Criterion
+    - category: CommentCategory
+  }
+  
+  enum CommentCategory {
+    POSITIVE
+    NEGATIVE
+    NEUTRAL
+    SUGGESTION
+  }
+  
+  ' Booking-related classes
+  class TimeSlot {
+    - id: Long
+    - startTime: LocalDateTime
+    - endTime: LocalDateTime
+    - venue: Venue
+    - assignment: Assignment
+    - examiner: Examiner
+    - maxBookings: Integer
+    - bookings: List<Booking>
+    - status: TimeSlotStatus
+    + isAvailable(): Boolean
+    + getRemainingCapacity(): Integer
+  }
+  
+  enum TimeSlotStatus {
+    OPEN
+    CLOSED
+    CANCELLED
+  }
+  
+  class Venue {
+    - id: Long
+    - name: String
+    - location: String
+    - capacity: Integer
+    - timeSlots: List<TimeSlot>
+  }
+  
+  class Booking {
+    - id: Long
+    - timeSlot: TimeSlot
+    - student: Student
+    - group: Group
+    - status: BookingStatus
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    + canReschedule(): Boolean
+  }
+  
+  enum BookingStatus {
+    CONFIRMED
+    CANCELLED
+    COMPLETED
+    NO_SHOW
+  }
+  
+  ' Assessment-related classes
+  class Assessment {
+    - id: Long
+    - booking: Booking
+    - examiner: Examiner
+    - student: Student
+    - group: Group
+    - assessmentDate: LocalDateTime
+    - status: AssessmentStatus
+    - marks: List<Mark>
+    - feedbacks: List<Feedback>
+    - totalMark: Double
+    - releaseDate: LocalDateTime
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    + calculateTotalMark(): Double
+  }
+  
+  enum AssessmentStatus {
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    PUBLISHED
+  }
+  
+  class Mark {
+    - id: Long
+    - assessment: Assessment
+    - criterion: Criterion
+    - value: Double
+    - comments: String
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+  }
+  
+  class Feedback {
+    - id: Long
+    - assessment: Assessment
+    - content: String
+    - type: FeedbackType
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+  }
+  
+  enum FeedbackType {
+    INDIVIDUAL
+    GROUP
+  }
+  
+  ' Notification-related classes
+  class Notification {
+    - id: Long
+    - recipient: User
+    - title: String
+    - content: String
+    - type: NotificationType
+    - status: NotificationStatus
+    - createdAt: LocalDateTime
+    - readAt: LocalDateTime
+    + markAsRead(): void
+  }
+  
+  enum NotificationType {
+    REGISTRATION
+    COURSE_ENROLLMENT
+    BOOKING_CONFIRMATION
+    BOOKING_REMINDER
+    ASSESSMENT_RESULT
+    SYSTEM
+  }
+  
+  enum NotificationStatus {
+    UNREAD
+    READ
+  }
+  
+  ' CSV import/export related classes
+  class CSVData {
+    - id: Long
+    - fileName: String
+    - fileType: CSVType
+    - uploadDate: LocalDateTime
+    - uploadedBy: Administrator
+    - content: String
+    - status: CSVStatus
+  }
+  
+  enum CSVType {
+    STUDENT_IMPORT
+    GROUP_IMPORT
+    MARK_EXPORT
+  }
+  
+  enum CSVStatus {
+    PENDING
+    PROCESSING
+    COMPLETED
+    FAILED
+  }
+
+  ' Audit log class
+  class AuditLog {
+    - id: Long
+    - user: User
+    - action: String
+    - entityType: String
+    - entityId: Long
+    - timestamp: LocalDateTime
+    - ipAddress: String
+    - details: String
+  }
+  
+  ' File storage class
+  class StoredFile {
+    - id: Long
+    - fileName: String
+    - fileType: String
+    - fileSize: Long
+    - contentType: String
+    - storageType: StorageType
+    - storageReference: String
+    - uploadDate: LocalDateTime
+    - uploadedBy: User
+    - metadata: Map<String, String>
+  }
+  
+  enum StorageType {
+    LOCAL
+    S3
+    DATABASE
+  }
+  
+  ' MongoDB document classes
+  class AssessmentRecording {
+    - id: String
+    - assessment: Assessment
+    - recordingUrl: String
+    - duration: Integer
+    - createdAt: LocalDateTime
+    - metadata: Map<String, Object>
+  }
+  
+  class AssessmentNote {
+    - id: String
+    - assessment: Assessment
+    - examiner: Examiner
+    - content: String
+    - createdAt: LocalDateTime
+    - updatedAt: LocalDateTime
+    - isPrivate: Boolean
+  }
+  
+  class FeedbackHistory {
+    - id: String
+    - assessment: Assessment
+    - feedbackVersions: List<FeedbackVersion>
+    - createdAt: LocalDateTime
+  }
+  
+  class FeedbackVersion {
+    - content: String
+    - examiner: Examiner
+    - timestamp: LocalDateTime
+    - reason: String
+  }
+}
+
+package "mapper" {
+  interface UserMapper {
+    + selectByEmail(email: String): User
+    + selectByStudentId(studentId: String): Student
+    + selectByExaminerId(examinerId: String): Examiner
+    + insert(user: User): int
+    + update(user: User): int
+    + delete(id: Long): int
+  }
+  
+  interface CourseMapper {
+    + selectByCode(code: String): Course
+    + selectByAcademicPeriod(periodId: Long): List<Course>
+    + insert(course: Course): int
+    + update(course: Course): int
+    + delete(id: Long): int
+  }
+  
+  interface AssignmentMapper {
+    + selectByCourse(courseId: Long): List<Assignment>
+    + selectByType(type: AssignmentType): List<Assignment>
+    + insert(assignment: Assignment): int
+    + update(assignment: Assignment): int
+    + delete(id: Long): int
+  }
+  
+  interface RubricMapper {
+    + selectByAssignment(assignmentId: Long): Rubric
+    + insert(rubric: Rubric): int
+    + update(rubric: Rubric): int
+    + delete(id: Long): int
+  }
+  
+  interface TimeSlotMapper {
+    + selectByAssignment(assignmentId: Long): List<TimeSlot>
+    + selectByExaminer(examinerId: Long): List<TimeSlot>
+    + selectAvailableByAssignment(assignmentId: Long): List<TimeSlot>
+    + insert(timeSlot: TimeSlot): int
+    + update(timeSlot: TimeSlot): int
+    + delete(id: Long): int
+  }
+  
+  interface BookingMapper {
+    + selectByStudent(studentId: Long): List<Booking>
+    + selectByGroup(groupId: Long): List<Booking>
+    + selectByTimeSlot(timeSlotId: Long): List<Booking>
+    + insert(booking: Booking): int
+    + update(booking: Booking): int
+    + delete(id: Long): int
+  }
+  
+  interface AssessmentMapper {
+    + selectByExaminer(examinerId: Long): List<Assessment>
+    + selectByStudent(studentId: Long): List<Assessment>
+    + selectByGroup(groupId: Long): List<Assessment>
+    + selectByStatus(status: AssessmentStatus): List<Assessment>
+    + insert(assessment: Assessment): int
+    + update(assessment: Assessment): int
+    + delete(id: Long): int
+  }
+  
+  interface NotificationMapper {
+    + selectByRecipient(recipientId: Long): List<Notification>
+    + selectByStatus(status: NotificationStatus): List<Notification>
+    + countUnreadByRecipient(recipientId: Long): Integer
+    + insert(notification: Notification): int
+    + update(notification: Notification): int
+    + delete(id: Long): int
+  }
+  
+  interface CSVDataMapper {
+    + selectByFileType(fileType: CSVType): List<CSVData>
+    + selectByStatus(status: CSVStatus): List<CSVData>
+    + insert(csvData: CSVData): int
+    + update(csvData: CSVData): int
+    + delete(id: Long): int
+  }
+  
+  interface AuditLogMapper {
+    + selectByUser(userId: Long): List<AuditLog>
+    + selectByEntityTypeAndEntityId(entityType: String, entityId: Long): List<AuditLog>
+    + insert(auditLog: AuditLog): int
+  }
+  
+  interface StoredFileMapper {
+    + selectById(id: Long): StoredFile
+    + selectByUploadedBy(userId: Long): List<StoredFile>
+    + insert(storedFile: StoredFile): int
+    + update(storedFile: StoredFile): int
+    + delete(id: Long): int
+  }
+}
+
+package "mongo.repository" {
+  interface AssessmentRecordingRepository {
+    + findByAssessmentId(assessmentId: Long): List<AssessmentRecording>
+    + save(recording: AssessmentRecording): AssessmentRecording
+    + delete(id: String): void
+  }
+  
+  interface AssessmentNoteRepository {
+    + findByAssessmentId(assessmentId: Long): List<AssessmentNote>
+    + findByExaminerId(examinerId: Long): List<AssessmentNote>
+    + save(note: AssessmentNote): AssessmentNote
+    + delete(id: String): void
+  }
+  
+  interface FeedbackHistoryRepository {
+    + findByAssessmentId(assessmentId: Long): FeedbackHistory
+    + save(history: FeedbackHistory): FeedbackHistory
+  }
+}
+
+package "service" {
+  interface UserService {
+    + createUser(userDTO: UserDTO): User
+    + updateUser(id: Long, userDTO: UserDTO): User
+    + deleteUser(id: Long): void
+    + findById(id: Long): User
+    + findByEmail(email: String): User
+    + authenticateUser(email: String, password: String): User
+  }
+  
+  interface CourseService {
+    + createCourse(courseDTO: CourseDTO): Course
+    + updateCourse(id: Long, courseDTO: CourseDTO): Course
+    + deleteCourse(id: Long): void
+    + findById(id: Long): Course
+    + findAll(): List<Course>
+    + addStudentToCourse(courseId: Long, studentId: Long): void
+    + addExaminerToCourse(courseId: Long, examinerId: Long): void
+  }
+  
+  interface AssignmentService {
+    + createAssignment(assignmentDTO: AssignmentDTO): Assignment
+    + updateAssignment(id: Long, assignmentDTO: AssignmentDTO): Assignment
+    + deleteAssignment(id: Long): void
+    + findById(id: Long): Assignment
+    + findByCourse(courseId: Long): List<Assignment>
+  }
+  
+  interface RubricService {
+    + createRubric(rubricDTO: RubricDTO): Rubric
+    + updateRubric(id: Long, rubricDTO: RubricDTO): Rubric
+    + deleteRubric(id: Long): void
+    + findById(id: Long): Rubric
+    + findByAssignment(assignmentId: Long): Rubric
+    + addCriterion(rubricId: Long, criterionDTO: CriterionDTO): Criterion
+  }
+  
+  interface BookingService {
+    + createBooking(bookingDTO: BookingDTO): Booking
+    + cancelBooking(id: Long): Booking
+    + rescheduleBooking(id: Long, newTimeSlotId: Long): Booking
+    + findById(id: Long): Booking
+    + findByStudent(studentId: Long): List<Booking>
+    + findByGroup(groupId: Long): List<Booking>
+    + canReschedule(bookingId: Long): Boolean
+  }
+  
+  interface AssessmentService {
+    + createAssessment(assessmentDTO: AssessmentDTO): Assessment
+    + updateAssessment(id: Long, assessmentDTO: AssessmentDTO): Assessment
+    + completeAssessment(id: Long): Assessment
+    + publishAssessment(id: Long, releaseDate: LocalDateTime): Assessment
+    + findById(id: Long): Assessment
+    + findByExaminer(examinerId: Long): List<Assessment>
+    + findByStudent(studentId: Long): List<Assessment>
+    + calculateTotalMark(assessmentId: Long): Double
+    + provideFeedback(assessmentId: Long, feedbackDTO: FeedbackDTO): Feedback
+    + provideMark(assessmentId: Long, markDTO: MarkDTO): Mark
+  }
+  
+  interface NotificationService {
+    + createNotification(notificationDTO: NotificationDTO): Notification
+    + sendNotification(notificationId: Long): void
+    + markAsRead(notificationId: Long): Notification
+    + findByRecipient(recipientId: Long): List<Notification>
+    + countUnreadByRecipient(recipientId: Long): Integer
+    + sendBookingConfirmation(bookingId: Long): void
+    + sendAssessmentReminder(bookingId: Long): void
+    + sendResultNotification(assessmentId: Long): void
+  }
+  
+  interface CSVService {
+    + importStudents(fileId: Long, courseId: Long): CSVData
+    + importGroups(fileId: Long, assignmentId: Long): CSVData
+    + exportMarks(assignmentId: Long): CSVData
+    + validateCSV(fileId: Long, type: CSVType): Map<String, Object>
+  }
+  
+  interface AuditService {
+    + logAction(user: User, action: String, entityType: String, entityId: Long, details: String): AuditLog
+    + findByUser(userId: Long): List<AuditLog>
+    + findByEntity(entityType: String, entityId: Long): List<AuditLog>
+  }
+  
+  interface StorageService {
+    + storeFile(file: MultipartFile, metadata: Map<String, String>, storageType: StorageType): StoredFile
+    + getFile(id: Long): Resource
+    + deleteFile(id: Long): void
+    + getFileUrl(id: Long): String
+  }
+  
+  interface AssessmentRecordingService {
+    + saveRecording(assessmentId: Long, recordingFile: MultipartFile): AssessmentRecording
+    + getRecordings(assessmentId: Long): List<AssessmentRecording>
+    + deleteRecording(id: String): void
+  }
+  
+  interface AssessmentNoteService {
+    + saveNote(assessmentId: Long, content: String, isPrivate: Boolean): AssessmentNote
+    + getNotes(assessmentId: Long, examinerId: Long): List<AssessmentNote>
+    + updateNote(id: String, content: String): AssessmentNote
+    + deleteNote(id: String): void
+  }
+  
+  interface FeedbackHistoryService {
+    + saveFeedbackVersion(assessmentId: Long, content: String, reason: String): FeedbackHistory
+    + getFeedbackHistory(assessmentId: Long): FeedbackHistory
+  }
+}
+
+package "cache" {
+  class RedisConfig {
+    + redisConnectionFactory(): RedisConnectionFactory
+    + redisTemplate(): RedisTemplate<String, Object>
+    + stringRedisTemplate(): StringRedisTemplate
+  }
+  
+  interface CacheService {
+    + set(key: String, value: Object, expiration: Duration): void
+    + get(key: String, clazz: Class<T>): T
+    + delete(key: String): void
+    + clear(): void
+  }
+  
+  class RedisCacheService implements CacheService {
+    - redisTemplate: RedisTemplate<String, Object>
+    + set(key: String, value: Object, expiration: Duration): void
+    + get(key: String, clazz: Class<T>): T
+    + delete(key: String): void
+    + clear(): void
+  }
+  
+  class CacheKeyManager {
+    + {static} USER_CACHE_PREFIX: String
+    + {static} COURSE_CACHE_PREFIX: String
+    + {static} ASSIGNMENT_CACHE_PREFIX: String
+    + {static} generateUserKey(userId: Long): String
+    + {static} generateCourseKey(courseId: Long): String
+    + {static} generateAssignmentKey(assignmentId: Long): String
+  }
+}
+
+package "mq" {
+  class RabbitMQConfig {
+    + messageConverter(): MessageConverter
+    + rabbitTemplate(): RabbitTemplate
+    + notificationQueue(): Queue
+    + emailQueue(): Queue
+    + notificationExchange(): DirectExchange
+    + notificationBinding(): Binding
+    + emailBinding(): Binding
+  }
+  
+  interface MessageProducer {
+    + sendNotificationMessage(message: NotificationMessage): void
+    + sendEmailMessage(message: EmailMessage): void
+  }
+  
+  class RabbitMessageProducer implements MessageProducer {
+    - rabbitTemplate: RabbitTemplate
+    - notificationExchange: String
+    - notificationRoutingKey: String
+    - emailRoutingKey: String
+    + sendNotificationMessage(message: NotificationMessage): void
+    + sendEmailMessage(message: EmailMessage): void
+  }
+  
+  interface MessageConsumer {
+    + processNotificationMessage(message: NotificationMessage): void
+    + processEmailMessage(message: EmailMessage): void
+  }
+  
+  class RabbitMessageConsumer implements MessageConsumer {
+    - notificationService: NotificationService
+    - emailService: EmailService
+    + processNotificationMessage(message: NotificationMessage): void
+    + processEmailMessage(message: EmailMessage): void
+  }
+  
+  class NotificationMessage {
+    - recipientId: Long
+    - title: String
+    - content: String
+    - type: NotificationType
+    - metadata: Map<String, Object>
+  }
+  
+  class EmailMessage {
+    - recipient: String
+    - subject: String
+    - templateName: String
+    - variables: Map<String, Object>
+  }
+}
+
+package "controller" {
+  class AuthController {
+    - userService: UserService
+    - jwtTokenProvider: JwtTokenProvider
+    + login(loginRequest: LoginRequest): ResponseEntity<?>
+    + register(registerRequest: RegisterRequest): ResponseEntity<?>
+    + resetPassword(resetRequest: ResetPasswordRequest): ResponseEntity<?>
+  }
+  
+  class UserController {
+    - userService: UserService
+    + getUser(id: Long): ResponseEntity<UserDTO>
+    + createUser(userDTO: UserDTO): ResponseEntity<UserDTO>
+    + updateUser(id: Long, userDTO: UserDTO): ResponseEntity<UserDTO>
+    + deleteUser(id: Long): ResponseEntity<?>
+  }
+  
+  class CourseController {
+    - courseService: CourseService
+    + getCourse(id: Long): ResponseEntity<CourseDTO>
+    + getAllCourses(): ResponseEntity<List<CourseDTO>>
+    + createCourse(courseDTO: CourseDTO): ResponseEntity<CourseDTO>
+    + updateCourse(id: Long, courseDTO: CourseDTO): ResponseEntity<CourseDTO>
+    + deleteCourse(id: Long): ResponseEntity<?>
+    + addStudent(courseId: Long, studentId: Long): ResponseEntity<?>
+  }
+  
+  class AssignmentController {
+    - assignmentService: AssignmentService
+    + getAssignment(id: Long): ResponseEntity<AssignmentDTO>
+    + getAssignmentsByCourse(courseId: Long): ResponseEntity<List<AssignmentDTO>>
+    + createAssignment(assignmentDTO: AssignmentDTO): ResponseEntity<AssignmentDTO>
+    + updateAssignment(id: Long, assignmentDTO: AssignmentDTO): ResponseEntity<AssignmentDTO>
+    + deleteAssignment(id: Long): ResponseEntity<?>
+  }
+  
+  class RubricController {
+    - rubricService: RubricService
+    + getRubric(id: Long): ResponseEntity<RubricDTO>
+    + getRubricByAssignment(assignmentId: Long): ResponseEntity<RubricDTO>
+    + createRubric(rubricDTO: RubricDTO): ResponseEntity<RubricDTO>
+    + updateRubric(id: Long, rubricDTO: RubricDTO): ResponseEntity<RubricDTO>
+    + deleteRubric(id: Long): ResponseEntity<?>
+    + addCriterion(rubricId: Long, criterionDTO: CriterionDTO): ResponseEntity<CriterionDTO>
+  }
+  
+  class BookingController {
+    - bookingService: BookingService
+    - timeSlotService: TimeSlotService
+    + getBooking(id: Long): ResponseEntity<BookingDTO>
+    + getBookingsByStudent(studentId: Long): ResponseEntity<List<BookingDTO>>
+    + getBookingsByGroup(groupId: Long): ResponseEntity<List<BookingDTO>>
+    + createBooking(bookingDTO: BookingDTO): ResponseEntity<BookingDTO>
+    + cancelBooking(id: Long): ResponseEntity<BookingDTO>
+    + rescheduleBooking(id: Long, newTimeSlotId: Long): ResponseEntity<BookingDTO>
+  }
+  
+  class TimeSlotController {
+    - timeSlotService: TimeSlotService
+    + getTimeSlot(id: Long): ResponseEntity<TimeSlotDTO>
+    + getTimeSlotsByAssignment(assignmentId: Long): ResponseEntity<List<TimeSlotDTO>>
+    + getAvailableTimeSlots(assignmentId: Long): ResponseEntity<List<TimeSlotDTO>>
+    + createTimeSlot(timeSlotDTO: TimeSlotDTO): ResponseEntity<TimeSlotDTO>
+    + updateTimeSlot(id: Long, timeSlotDTO: TimeSlotDTO): ResponseEntity<TimeSlotDTO>
+    + deleteTimeSlot(id: Long): ResponseEntity<?>
+  }
+  
+  class AssessmentController {
+    - assessmentService: AssessmentService
+    + getAssessment(id: Long): ResponseEntity<AssessmentDTO>
+    + getAssessmentsByExaminer(examinerId: Long): ResponseEntity<List<AssessmentDTO>>
+    + getAssessmentsByStudent(studentId: Long): ResponseEntity<List<AssessmentDTO>>
+    + createAssessment(assessmentDTO: AssessmentDTO): ResponseEntity<AssessmentDTO>
+    + updateAssessment(id: Long, assessmentDTO: AssessmentDTO): ResponseEntity<AssessmentDTO>
+    + completeAssessment(id: Long): ResponseEntity<AssessmentDTO>
+    + publishAssessment(id: Long, releaseDate: LocalDateTime): ResponseEntity<AssessmentDTO>
+    + provideFeedback(assessmentId: Long, feedbackDTO: FeedbackDTO): ResponseEntity<FeedbackDTO>
+    + provideMark(assessmentId: Long, markDTO: MarkDTO): ResponseEntity<MarkDTO>
+  }
+  
+  class NotificationController {
+    - notificationService: NotificationService
+    + getNotification(id: Long): ResponseEntity<NotificationDTO>
+    + getNotificationsByRecipient(recipientId: Long): ResponseEntity<List<NotificationDTO>>
+    + markAsRead(id: Long): ResponseEntity<NotificationDTO>
+    + countUnread(recipientId: Long): ResponseEntity<Integer>
+  }
+  
+  class CSVController {
+    - csvService: CSVService
+    + uploadCSV(file: MultipartFile, type: CSVType): ResponseEntity<CSVDataDTO>
+    + validateCSV(fileId: Long, type: CSVType): ResponseEntity<Map<String, Object>>
+    + importStudents(fileId: Long, courseId: Long): ResponseEntity<CSVDataDTO>
+    + importGroups(fileId: Long, assignmentId: Long): ResponseEntity<CSVDataDTO>
+    + exportMarks(assignmentId: Long): ResponseEntity<Resource>
+  }
+  
+  class AuditController {
+    - auditService: AuditService
+    + getAuditLogs(userId: Long): ResponseEntity<List<AuditLogDTO>>
+    + getEntityAuditLogs(entityType: String, entityId: Long): ResponseEntity<List<AuditLogDTO>>
+  }
+  
+  class StorageController {
+    - storageService: StorageService
+    + uploadFile(file: MultipartFile, metadata: Map<String, String>, storageType: StorageType): ResponseEntity<StoredFileDTO>
+    + getFile(id: Long): ResponseEntity<Resource>
+    + deleteFile(id: Long): ResponseEntity<?>
+  }
+  
+  class AssessmentRecordingController {
+    - assessmentRecordingService: AssessmentRecordingService
+    + uploadRecording(assessmentId: Long, file: MultipartFile): ResponseEntity<AssessmentRecordingDTO>
+    + getRecordings(assessmentId: Long): ResponseEntity<List<AssessmentRecordingDTO>>
+    + deleteRecording(id: String): ResponseEntity<?>
+  }
+  
+  class AssessmentNoteController {
+    - assessmentNoteService: AssessmentNoteService
+    + createNote(assessmentId: Long, content: String, isPrivate: Boolean): ResponseEntity<AssessmentNoteDTO>
+    + getNotes(assessmentId: Long): ResponseEntity<List<AssessmentNoteDTO>>
+    + updateNote(id: String, content: String): ResponseEntity<AssessmentNoteDTO>
+    + deleteNote(id: String): ResponseEntity<?>
+  }
+}
+
+package "utils" {
+  class JwtTokenProvider {
+    - secretKey: String
+    - validityInMilliseconds: Long
+    + createToken(username: String, roles: List<String>): String
+    + getUsername(token: String): String
+    + validateToken(token: String): Boolean
+  }
+  
+  class EmailService {
+    - javaMailSender: JavaMailSender
+    - templateEngine: TemplateEngine
+    + sendEmail(to: String, subject: String, body: String): void
+    + sendTemplateEmail(to: String, subject: String, template: String, variables: Map<String, Object>): void
+  }
+  
+  class CSVParser {
+    + parseStudents(content: String): List<StudentDTO>
+    + parseGroups(content: String): List<GroupDTO>
+    + generateMarksCSV(assessments: List<Assessment>): String
+  }
+  
+  class PasswordEncoder {
+    + encode(password: String): String
+    + matches(rawPassword: String, encodedPassword: String): Boolean
+  }
+  
+  class S3Util {
+    - s3Client: AmazonS3
+    - bucketName: String
+    + uploadFile(file: MultipartFile, key: String, metadata: Map<String, String>): String
+    + downloadFile(key: String): byte[]
+    + deleteFile(key: String): void
+    + generatePresignedUrl(key: String, expirationTime: Duration): URL
+  }
+  
+  class FileUtils {
+    + {static} generateUniqueFileName(originalFilename: String): String
+    + {static} getFileExtension(filename: String): String
+    + {static} isValidFileType(filename: String, allowedTypes: List<String>): boolean
+    + {static} getContentType(filename: String): String
+  }
+}
+
+package "integration" {
+  interface CanvasApiClient {
+    + importStudents(courseId: String): List<StudentDTO>
+    + exportGrades(courseId: String, grades: List<GradeDTO>): void
+    + createCourseAnnouncement(courseId: String, announcement: AnnouncementDTO): void
+  }
+  
+  class CanvasApiClientImpl implements CanvasApiClient {
+    - apiKey: String
+    - baseUrl: String
+    - restTemplate: RestTemplate
+    + importStudents(courseId: String): List<StudentDTO>
+    + exportGrades(courseId: String, grades: List<GradeDTO>): void
+    + createCourseAnnouncement(courseId: String, announcement: AnnouncementDTO): void
+  }
+  
+  interface ZoomApiClient {
+    + createMeeting(meetingRequest: ZoomMeetingRequest): ZoomMeetingResponse
+    + getMeeting(meetingId: String): ZoomMeetingResponse
+    + deleteMeeting(meetingId: String): void
+    + generateJoinUrl(meetingId: String, userName: String): String
+  }
+  
+  class ZoomApiClientImpl implements ZoomApiClient {
+    - apiKey: String
+    - apiSecret: String
+    - baseUrl: String
+    - restTemplate: RestTemplate
+    + createMeeting(meetingRequest: ZoomMeetingRequest): ZoomMeetingResponse
+    + getMeeting(meetingId: String): ZoomMeetingResponse
+    + deleteMeeting(meetingId: String): void
+    + generateJoinUrl(meetingId: String, userName: String): String
+  }
+  
+  class ZoomMeetingRequest {
+    - topic: String
+    - startTime: LocalDateTime
+    - duration: Integer
+    - password: String
+    - settings: ZoomMeetingSettings
+  }
+  
+  class ZoomMeetingResponse {
+    - id: String
+    - joinUrl: String
+    - password: String
+    - startUrl: String
+  }
+  
+  class ZoomMeetingSettings {
+    - waitingRoom: Boolean
+    - joinBeforeHost: Boolean
+    - autoRecording: String
+    - muteUponEntry: Boolean
+  }
+  
+  interface EmailProvider {
+    + sendEmail(to: String, subject: String, body: String): void
+    + sendTemplateEmail(to: String, subject: String, templateName: String, variables: Map<String, Object>): void
+  }
+  
+  class SendGridEmailProvider implements EmailProvider {
+    - apiKey: String
+    - fromEmail: String
+    - fromName: String
+    + sendEmail(to: String, subject: String, body: String): void
+    + sendTemplateEmail(to: String, subject: String, templateName: String, variables: Map<String, Object>): void
+  }
+}
+
+' Complete relationship section
+
+' User relationships
+User <|-- Student
+User <|-- Examiner
+User <|-- Administrator
+User "1" *-- "*" Notification
+User "*" -- "*" Course
+Student "*" -- "*" Group
+Examiner "*" -- "*" TimeSlot
+Administrator "*" -- "*" Course
+
+' Course relationships
+AcademicPeriod "1" *-- "*" Course
+Course "1" *-- "*" Assignment
+Course "*" -- "*" Student
+Course "*" -- "*" Examiner
+Course "*" -- "*" Administrator
+
+' Assignment relationships
+Assignment "1" *-- "*" Group
+Assignment "1" *-- "1" Rubric
+Assignment "1" *-- "*" TimeSlot
+Assignment "*" -- "1" Course
+
+' Rubric relationships
+Rubric "1" *-- "*" Criterion
+Criterion "1" *-- "*" PredefinedComment
+Criterion "1" *-- "*" Mark
+Criterion "*" -- "1" Rubric
+
+' Booking relationships
+TimeSlot "*" -- "1" Venue
+TimeSlot "1" *-- "*" Booking
+TimeSlot "*" -- "1" Assignment
+TimeSlot "*" -- "1" Examiner
+
+' Assessment relationships
+Assessment "*" -- "1" Booking
+Assessment "1" *-- "*" Mark
+Assessment "1" *-- "*" Feedback
+Assessment "*" -- "1" Student
+Assessment "*" -- "1" Group
+Assessment "*" -- "1" Examiner
+
+' Notification relationships
+Notification "*" -- "1" User
+
+' File storage relationships
+StoredFile "*" -- "1" User
+
+' MongoDB relationships
+AssessmentRecording "*" -- "1" Assessment
+AssessmentNote "*" -- "1" Assessment
+AssessmentNote "*" -- "1" Examiner
+FeedbackHistory "1" -- "1" Assessment
+
+' Service layer relationships
+UserService ..> UserMapper
+UserService ..> User
+CourseService ..> CourseMapper
+CourseService ..> Course
+AssignmentService ..> AssignmentMapper
+AssignmentService ..> Assignment
+RubricService ..> RubricMapper
+RubricService ..> Rubric
+BookingService ..> BookingMapper
+BookingService ..> Booking
+AssessmentService ..> AssessmentMapper
+AssessmentService ..> Assessment
+NotificationService ..> NotificationMapper
+NotificationService ..> Notification
+CSVService ..> CSVDataMapper
+CSVService ..> CSVData
+AuditService ..> AuditLogMapper
+AuditService ..> AuditLog
+StorageService ..> StoredFileMapper
+StorageService ..> StoredFile
+
+' Controller layer relationships
+AuthController ..> UserService
+AuthController ..> JwtTokenProvider
+UserController ..> UserService
+CourseController ..> CourseService
+AssignmentController ..> AssignmentService
+RubricController ..> RubricService
+BookingController ..> BookingService
+BookingController ..> TimeSlotService
+AssessmentController ..> AssessmentService
+NotificationController ..> NotificationService
+CSVController ..> CSVService
+AuditController ..> AuditService
+StorageController ..> StorageService
+AssessmentRecordingController ..> AssessmentRecordingService
+AssessmentNoteController ..> AssessmentNoteService
+
+' Cache relationships
+RedisCacheService ..> RedisConfig
+CacheService <|.. RedisCacheService
+
+' Message queue relationships
+MessageProducer <|.. RabbitMessageProducer
+MessageConsumer <|.. RabbitMessageConsumer
+RabbitMessageProducer ..> RabbitMQConfig
+RabbitMessageConsumer ..> NotificationService
+RabbitMessageConsumer ..> EmailService
+
+' Third-party integration relationships
+CanvasApiClient <|.. CanvasApiClientImpl
+ZoomApiClient <|.. ZoomApiClientImpl
+EmailProvider <|.. SendGridEmailProvider
+
+@enduml
