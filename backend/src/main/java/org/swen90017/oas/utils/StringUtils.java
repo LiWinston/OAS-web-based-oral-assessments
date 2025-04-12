@@ -31,12 +31,26 @@ public class StringUtils extends cn.hutool.core.util.StrUtil{
         for (int i = 0; i < chars.length; i++) {
             char c = chars[i];
             if (Character.isUpperCase(c)) {
-                if (i != 0) result.append("_");
+                if (i > 0 &&
+                        //Resolve the case where the first character is uppercase like ID,URL.
+                        (Character.isLowerCase(chars[i - 1]) ||
+                                //Resolve the case where the next character is lowercase like APIResponse.
+                                (i + 1 < chars.length &&
+                                        Character.isLowerCase(chars[i + 1])))) {
+                    result.append("_");
+                }
                 result.append(Character.toLowerCase(c));
             } else {
                 result.append(c);
             }
         }
         return result.toString();
+    }
+
+    public static void main(String[] args) {
+        String camelCase = "APIResponse";
+        String underscore = camelToUnderscore(camelCase);
+        System.out.println("Camel Case: " + camelCase);
+        System.out.println("Underscore Case: " + underscore);
     }
 }
