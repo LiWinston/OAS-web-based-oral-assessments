@@ -14,7 +14,7 @@ import java.util.*;
  * 
  * @author Yongchun Li
  */
-public class StringUtils extends org.apache.commons.lang3.StringUtils
+public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtils
 {
     /** Empty String */
     private static final String NULLSTR = "";
@@ -365,7 +365,7 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
      */
     public static boolean ishttp(String link)
     {
-        return StringUtils.startsWithAny(link, Constants.HTTP, Constants.HTTPS);
+        return StringUtils_ApacheLang3.startsWithAny(link, Constants.HTTP, Constants.HTTPS);
     }
 
     /**
@@ -392,20 +392,20 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
     public static final List<String> str2List(String str, String sep, boolean filterBlank, boolean trim)
     {
         List<String> list = new ArrayList<String>();
-        if (StringUtils.isEmpty(str))
+        if (StringUtils_ApacheLang3.isEmpty(str))
         {
             return list;
         }
 
         // Filter blank strings
-        if (filterBlank && StringUtils.isBlank(str))
+        if (filterBlank && StringUtils_ApacheLang3.isBlank(str))
         {
             return list;
         }
         String[] split = str.split(sep);
         for (String string : split)
         {
-            if (filterBlank && StringUtils.isBlank(string))
+            if (filterBlank && StringUtils_ApacheLang3.isBlank(string))
             {
                 continue;
             }
