@@ -114,9 +114,62 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/io.spring.javaformat/spring-javaformat-maven-plugin -->
+        <dependency>
+            <groupId>io.spring.javaformat</groupId>
+            <artifactId>spring-javaformat-maven-plugin</artifactId>
+            <version>0.0.28</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Spring AOP -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!-- SLF4J API -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
 
     </dependencies>
 
     <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>io.spring.javaformat</groupId>
+                <artifactId>spring-javaformat-maven-plugin</artifactId>
+                <version>0.0.28</version>
+                <executions>
+                    <execution>
+                        <phase>install</phase>
+                        <inherited>true</inherited>
+                        <goals>
+                            <goal>apply</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
     </build>
 </project>
