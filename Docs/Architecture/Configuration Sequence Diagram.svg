@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1100 1300">
+  <!-- Title -->
+  <text x="550" y="30" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">System Configuration Sequence Diagram - OAS</text>
+
+  <!-- Actors and Participants -->
+  <defs>
+    <symbol id="actor" viewBox="0 0 30 40">
+      <circle cx="15" cy="10" r="8" fill="white" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="18" x2="15" y2="30" stroke="black" stroke-width="1.5"/>
+      <line x1="5" y1="22" x2="25" y2="22" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="30" x2="5" y2="40" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="30" x2="25" y2="40" stroke="black" stroke-width="1.5"/>
+    </symbol>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#000"/>
+    </marker>
+  </defs>
+
+  <!-- Actors and Participants -->
+  <use x="50" y="50" width="30" height="40" xlink:href="#actor"/>
+  <text x="65" y="105" font-family="Arial" font-size="12" text-anchor="middle">Admin</text>
+  
+  <rect x="130" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="180" y="85" font-family="Arial" font-size="12" text-anchor="middle">Frontend</text>
+  
+  <rect x="250" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="310" y="85" font-family="Arial" font-size="12" text-anchor="middle">CourseCtrl</text>
+  
+  <rect x="390" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="450" y="85" font-family="Arial" font-size="12" text-anchor="middle">AssignmentCtrl</text>
+  
+  <rect x="530" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="590" y="85" font-family="Arial" font-size="12" text-anchor="middle">RubricCtrl</text>
+  
+  <rect x="670" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="730" y="85" font-family="Arial" font-size="12" text-anchor="middle">CourseSvc</text>
+  
+  <rect x="810" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="870" y="85" font-family="Arial" font-size="12" text-anchor="middle">AssignmentSvc</text>
+  
+  <rect x="950" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="1010" y="85" font-family="Arial" font-size="12" text-anchor="middle">RubricSvc</text>
+  
+  <rect x="1095" y="60" width="40" height="40" fill="#F2F2F2" stroke="#000000" rx="5" ry="5"/>
+  <text x="1115" y="85" font-family="Arial" font-size="12" text-anchor="middle">DB</text>
+
+  <!-- Lifelines -->
+  <line x1="65" y1="110" x2="65" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="180" y1="110" x2="180" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="310" y1="110" x2="310" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="450" y1="110" x2="450" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="590" y1="110" x2="590" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="730" y1="110" x2="730" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="870" y1="110" x2="870" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1010" y1="110" x2="1010" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1115" y1="110" x2="1115" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+
+  <!-- Section: Configure Academic Period -->
+  <rect x="50" y="130" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="150" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Configure Academic Period</text>
+
+  <!-- Sequence for Configure Academic Period -->
+  <line x1="65" y1="180" x2="180" y2="180" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="122" y="175" font-family="Arial" font-size="10" text-anchor="middle">Access academic period config</text>
+  
+  <line x1="180" y1="200" x2="310" y2="200" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="245" y="195" font-family="Arial" font-size="10" text-anchor="middle">getAcademicPeriods()</text>
+  
+  <line x1="310" y1="220" x2="730" y2="220" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="520" y="215" font-family="Arial" font-size="10" text-anchor="middle">getAllAcademicPeriods()</text>
+  
+  <line x1="730" y1="240" x2="1115" y2="240" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="922" y="235" font-family="Arial" font-size="10" text-anchor="middle">Query academic periods</text>
+  
+  <line x1="1115" y1="260" x2="730" y2="260" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="922" y="255" font-family="Arial" font-size="10" text-anchor="middle">Return periods</text>
+  
+  <line x1="730" y1="280" x2="310" y2="280" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="520" y="275" font-family="Arial" font-size="10" text-anchor="middle">AcademicPeriod DTOs</text>
+  
+  <line x1="310" y1="300" x2="180" y2="300" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="245" y="295" font-family="Arial" font-size="10" text-anchor="middle">AcademicPeriod DTOs</text>
+  
+  <line x1="180" y1="320" x2="65" y2="320" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="122" y="315" font-family="Arial" font-size="10" text-anchor="middle">Display academic periods</text>
+  
+  <line x1="65" y1="340" x2="180" y2="340" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="122" y="335" font-family="Arial" font-size="10" text-anchor="middle">Create new academic period</text>
+  
+  <line x1="180" y1="360" x2="310" y2="360" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="245" y="355" font-family="Arial" font-size="10" text-anchor="middle">createAcademicPeriod(periodDTO)</text>
+  
+  <!-- Note for periodDTO -->
+  <rect x="320" y="370" width="160" height="70" fill="#FFFFCC" stroke="#999999"/>
+  <text x="330" y="385" font-family="Arial" font-size="10">periodDTO contains:</text>
+  <text x="330" y="400" font-family="Arial" font-size="10">- Year</text>
+  <text x="330" y="415" font-family="Arial" font-size="10">- Semester</text>
+  <text x="330" y="430" font-family="Arial" font-size="10">- Start date</text>
+  <text x="330" y="445" font-family="Arial" font-size="10">- End date</text>
+  
+  <line x1="310" y1="460" x2="730" y2="460" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="520" y="455" font-family="Arial" font-size="10" text-anchor="middle">createAcademicPeriod(periodDTO)</text>
+  
+  <line x1="730" y1="480" x2="1115" y2="480" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="922" y="475" font-family="Arial" font-size="10" text-anchor="middle">Insert period</text>
+  
+  <line x1="1115" y1="500" x2="730" y2="500" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="922" y="495" font-family="Arial" font-size="10" text-anchor="middle">Insert successful</text>
+  
+  <line x1="730" y1="520" x2="310" y2="520" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="520" y="515" font-family="Arial" font-size="10" text-anchor="middle">AcademicPeriod DTO</text>
+  
+  <line x1="310" y1="540" x2="180" y2="540" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="245" y="535" font-family="Arial" font-size="10" text-anchor="middle">AcademicPeriod DTO</text>
+  
+  <line x1="180" y1="560" x2="65" y2="560" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="122" y="555" font-family="Arial" font-size="10" text-anchor="middle">Show created period</text>
+
+  <!-- Section: Configure Assignment -->
+  <rect x="50" y="590" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="610" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Configure Assignment</text>
+
+  <!-- Sequence for Configure Assignment -->
+  <line x1="65" y1="640" x2="180" y2="640" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="122" y="635" font-family="Arial" font-size="10" text-anchor="middle">Create new assignment</text>
+  
+  <line x1="180" y1="660" x2="450" y2="660" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="315" y="655" font-family="Arial" font-size="10" text-anchor="middle">createAssignment(assignmentDTO)</text>
+  
+  <!-- Note for assignmentDTO -->
+  <rect x="460" y="670" width="160" height="70" fill="#FFFFCC" stroke="#999999"/>
+  <text x="470" y="685" font-family="Arial" font-size="10">assignmentDTO contains:</text>
+  <text x="470" y="700" font-family="Arial" font-size="10">- Name</text>
+  <text x="470" y="715" font-family="Arial" font-size="10">- Description</text>
+  <text x="470" y="730" font-family="Arial" font-size="10">- Type (GROUP/INDIVIDUAL)</text>
+  <text x="470" y="745" font-family="Arial" font-size="10">- Course ID</text>
+  
+  <line x1="450" y1="760" x2="870" y2="760" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="660" y="755" font-family="Arial" font-size="10" text-anchor="middle">createAssignment(assignmentDTO)</text>
+  
+  <line x1="870" y1="780" x2="1115" y2="780" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="992" y="775" font-family="Arial" font-size="10" text-anchor="middle">Insert assignment</text>
+  
+  <line x1="1115" y1="800" x2="870" y2="800" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="992" y="795" font-family="Arial" font-size="10" text-anchor="middle">Insert successful</text>
+  
+  <line x1="870" y1="820" x2="450" y2="820" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="660" y="815" font-family="Arial" font-size="10" text-anchor="middle">Assignment DTO</text>
+  
+  <line x1="450" y1="840" x2="180" y2="840" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="315" y="835" font-family="Arial" font-size="10" text-anchor="middle">Assignment DTO</text>
+  
+  <line x1="180" y1="860" x2="65" y2="860" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="122" y="855" font-family="Arial" font-size="10" text-anchor="middle">Show created assignment</text>
+
+  <!-- Section: Configure Rubric -->
+  <rect x="50" y="890" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="910" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Configure Rubric and Criteria</text>
+
+  <!-- Sequence for Configure Rubric -->
+  <line x1="65" y1="940" x2="180" y2="940" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="122" y="935" font-family="Arial" font-size="10" text-anchor="middle">Create rubric for assignment</text>
+  
+  <line x1="180" y1="960" x2="590" y2="960" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="385" y="955" font-family="Arial" font-size="10" text-anchor="middle">createRubric(rubricDTO)</text>
+  
+  <!-- Note for rubricDTO -->
+  <rect x="600" y="970" width="160" height="60" fill="#FFFFCC" stroke="#999999"/>
+  <text x="610" y="985" font-family="Arial" font-size="10">rubricDTO contains:</text>
+  <text x="610" y="1000" font-family="Arial" font-size="10">- Title</text>
+  <text x="610" y="1015" font-family="Arial" font-size="10">- Description</text>
+  <text x="610" y="1030" font-family="Arial" font-size="10">- Assignment ID</text>
+  
+  <line x1="590" y1="1050" x2="1010" y2="1050" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="800" y="1045" font-family="Arial" font-size="10" text-anchor="middle">createRubric(rubricDTO)</text>
+  
+  <line x1="1010" y1="1070" x2="1115" y2="1070" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1062" y="1065" font-family="Arial" font-size="10" text-anchor="middle">Insert rubric</text>
+  
+  <line x1="1115" y1="1090" x2="1010" y2="1090" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="1062" y="1085" font-family="Arial" font-size="10" text-anchor="middle">Insert successful</text>
+  
+  <line x1="1010" y1="1110" x2="590" y2="1110" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="800" y="1105" font-family="Arial" font-size="10" text-anchor="middle">Rubric DTO</text>
+  
+  <line x1="590" y1="1130" x2="180" y2="1130" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="385" y="1125" font-family="Arial" font-size="10" text-anchor="middle">Rubric DTO</text>
+  
+  <line x1="180" y1="1150" x2="65" y2="1150" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="122" y="1145" font-family="Arial" font-size="10" text-anchor="middle">Show created rubric</text>
+  
+  <line x1="65" y1="1170" x2="180" y2="1170" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="122" y="1165" font-family="Arial" font-size="10" text-anchor="middle">Add criterion to rubric</text>
+  
+  <line x1="180" y1="1190" x2="590" y2="1190" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="385" y="1185" font-family="Arial" font-size="10" text-anchor="middle">addCriterion(rubricId, criterionDTO)</text>
+  
+  <!-- Note for criterionDTO -->
+  <rect x="600" y="1200" width="160" height="80" fill="#FFFFCC" stroke="#999999"/>
+  <text x="610" y="1215" font-family="Arial" font-size="10">criterionDTO contains:</text>
+  <text x="610" y="1230" font-family="Arial" font-size="10">- Title</text>
+  <text x="610" y="1245" font-family="Arial" font-size="10">- Description</text>
+  <text x="610" y="1260" font-family="Arial" font-size="10">- Weight</text>
+  <text x="610" y="1275" font-family="Arial" font-size="10">- Mark type</text>
+  <text x="610" y="1290" font-family="Arial" font-size="10">- Max mark</text>
+</svg>
