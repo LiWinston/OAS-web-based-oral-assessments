@@ -2,7 +2,7 @@ package org.swen90017.oas.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
-import org.swen90017.oas.entity.TestE;
+import org.swen90017.oas.entity.Test;
 @Mapper
-public interface TestEMapper extends BaseMapper<TestE> {
+public interface TestEMapper extends BaseMapper<Test> {
 }
