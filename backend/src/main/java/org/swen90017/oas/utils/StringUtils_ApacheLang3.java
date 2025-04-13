@@ -14,6 +14,10 @@ import java.util.*;
  * 
  * @author Yongchun Li
  */
+//TODO: Avoid using variable-length arguments (varargs).
+//TODO: Utility classes must have a private constructor to prevent instantiation.
+//TODO: Some methods do not match their descriptions and need to be updated.
+//TODO: The two string utility classes should be merged.
 public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtils
 {
     /** Empty String */
@@ -723,5 +727,10 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
         } catch (JsonProcessingException e) {
             return "{\"error\": \"Failed to convert to JSON\"}";
         }
+    }
+
+    public static void main(String[] args) {
+        String result = convertToCamelCase("test_string");
+        System.out.println(result);
     }
 }

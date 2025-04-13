@@ -14,6 +14,7 @@ import java.util.Set;
  *
  * @author Yongchun Li
  */
+//TODO: most method are duplicated with cn.hutool.core.util.Convert, but the object convert we need still not implemented
 public class Convert
 {
     /**

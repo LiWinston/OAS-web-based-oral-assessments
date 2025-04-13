@@ -1,10 +1,11 @@
-package org.swen90017.oas.constant;
+package org.swen90017.oas.enums;
 
 /**
  * Operation Type
  *
  * @author Yongchun Li
  */
+//TODO: base Alibaba Java Coding Guidelines, need to add Enum fields
 public enum OperationType {
     /**
      * Other

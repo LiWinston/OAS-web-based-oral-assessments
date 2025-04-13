@@ -23,10 +23,16 @@ public @interface Log {
     /**
      * Operation type
      */
-    String operType() default "";
+    String operType() default "";//TODO: create enum for operation type
 
     /**
      * Whether to save the request parameters
      */
     boolean isSaveRequestData() default true;
+
+    /**
+     * Whether to save the response parameters
+     */
+    public boolean isSaveResponseData() default true;
+
 } 
