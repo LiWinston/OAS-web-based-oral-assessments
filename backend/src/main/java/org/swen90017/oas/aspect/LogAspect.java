@@ -32,6 +32,16 @@ import org.swen90017.oas.utils.StringUtils;
 public class LogAspect {
     private static final Logger log = LoggerFactory.getLogger(LogAspect.class);
 
+    // ANSI color codes for console output
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_BOLD = "\u001B[1m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+    private static final String ANSI_YELLOW = "\u001B[33m";
+    private static final String ANSI_BLUE = "\u001B[34m";
+    private static final String ANSI_PURPLE = "\u001B[35m";
+    private static final String ANSI_CYAN = "\u001B[36m";
+    
     /**
      * Configure pointcut
      */
@@ -115,24 +125,52 @@ public class LogAspect {
                 requestParams = getRequestParams(joinPoint, request);
             }
             
-            // Output log record
+            // Color for method based on request type
+            String methodColor = ANSI_BLUE;
+            if ("GET".equalsIgnoreCase(requestMethod)) {
+                methodColor = ANSI_GREEN;
+            } else if ("POST".equalsIgnoreCase(requestMethod)) {
+                methodColor = ANSI_BLUE;
+            } else if ("PUT".equalsIgnoreCase(requestMethod)) {
+                methodColor = ANSI_YELLOW;
+            } else if ("DELETE".equalsIgnoreCase(requestMethod)) {
+                methodColor = ANSI_RED;
+            } else if ("PATCH".equalsIgnoreCase(requestMethod)) {
+                methodColor = ANSI_PURPLE;
+            }
+            
+            // Color for execution time based on performance
+            String timeColor = ANSI_GREEN;
+            if (time > 500) {
+                timeColor = ANSI_YELLOW;
+            } else if (time > 2000) {
+                timeColor = ANSI_RED;
+            }
+            
+            // Create decorative output
             StringBuilder logBuilder = new StringBuilder();
-            logBuilder.append("\n========== Request Log Begin ==========\n");
-            logBuilder.append("Module: ").append(module).append("\n");
-            logBuilder.append("Operation: ").append(operType).append("\n");
-            logBuilder.append("IP: ").append(ipAddr).append("\n");
-            logBuilder.append("URL: ").append(requestUrl).append("\n");
-            logBuilder.append("HTTP Method: ").append(requestMethod).append("\n");
-            logBuilder.append("User-Agent: ").append(userAgent).append("\n");
-            logBuilder.append("Class Method: ").append(joinPoint.getSignature().getDeclaringTypeName())
+            String separator = ANSI_YELLOW + "┌────────────────────────────────────────────────────────────────────────────────┐" + ANSI_RESET;
+            String line = ANSI_YELLOW + "│" + ANSI_RESET;
+            String bottomSeparator = ANSI_YELLOW + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
+            String midSeparator = ANSI_YELLOW + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET;
+            
+            logBuilder.append("\n").append(separator).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_YELLOW).append("📋 REQUEST LOG").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(module).append(ANSI_RESET).append("\n");
+            logBuilder.append(midSeparator).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(operType).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(ipAddr).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(requestUrl).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(methodColor).append(requestMethod).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User-Agent:").append(ANSI_RESET).append(" ").append(userAgent).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
                     .append(".").append(joinPoint.getSignature().getName()).append("\n");
             
             if (StringUtils.isNotEmpty(requestParams)) {
-                logBuilder.append("Request Parameters: ").append(requestParams).append("\n");
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
             }
             
-            logBuilder.append("Execution Time: ").append(time).append(" ms\n");
-            logBuilder.append("========== Request Log End ==========");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Exec Time:").append(ANSI_RESET).append("  ").append(timeColor).append(time).append(" ms").append(ANSI_RESET).append("\n");
+            logBuilder.append(bottomSeparator);
             
             log.info(logBuilder.toString());
             
@@ -181,23 +219,29 @@ public class LogAspect {
                 requestParams = getRequestParams(joinPoint, request);
             }
             
-            // Build exception log
+            // Create decorative output for exception
             StringBuilder logBuilder = new StringBuilder();
-            logBuilder.append("\n========== Exception Log Begin ==========\n");
-            logBuilder.append("Module: ").append(module).append("\n");
-            logBuilder.append("Operation: ").append(operType).append("\n");
-            logBuilder.append("IP: ").append(ipAddr).append("\n");
-            logBuilder.append("URL: ").append(requestUrl).append("\n");
-            logBuilder.append("HTTP Method: ").append(requestMethod).append("\n");
-            logBuilder.append("Class Method: ").append(joinPoint.getSignature().getDeclaringTypeName())
+            String separator = ANSI_RED + "┌────────────────────────────────────────────────────────────────────────────────┐" + ANSI_RESET;
+            String line = ANSI_RED + "│" + ANSI_RESET;
+            String bottomSeparator = ANSI_RED + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
+            String midSeparator = ANSI_RED + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET;
+            
+            logBuilder.append("\n").append(separator).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_RED).append("❌ EXCEPTION").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(module).append(ANSI_RESET).append("\n");
+            logBuilder.append(midSeparator).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(operType).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(ipAddr).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(requestUrl).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(requestMethod).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
                     .append(".").append(joinPoint.getSignature().getName()).append("\n");
             
             if (StringUtils.isNotEmpty(requestParams)) {
-                logBuilder.append("Request Parameters: ").append(requestParams).append("\n");
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
             }
             
-            logBuilder.append("Exception: ").append(e.getMessage()).append("\n");
-            logBuilder.append("========== Exception Log End ==========");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Exception:").append(ANSI_RESET).append("  ").append(ANSI_RED).append(e.getMessage()).append(ANSI_RESET).append("\n");
+            logBuilder.append(bottomSeparator);
             
             log.error(logBuilder.toString(), e);
             

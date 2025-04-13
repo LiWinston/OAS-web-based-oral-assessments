@@ -31,6 +31,16 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
      */
     private static final String REQUEST_ID_HEADER = "X-Request-ID";
     
+    // ANSI color codes for console output
+    private static final String ANSI_RESET = "\u001B[0m";
+    private static final String ANSI_BOLD = "\u001B[1m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_GREEN = "\u001B[32m";
+    private static final String ANSI_YELLOW = "\u001B[33m";
+    private static final String ANSI_BLUE = "\u001B[34m";
+    private static final String ANSI_PURPLE = "\u001B[35m";
+    private static final String ANSI_CYAN = "\u001B[36m";
+    
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -86,24 +96,40 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             // Build request URL
             String url = uri + (queryString != null ? "?" + queryString : "");
             
-            // Output request log
-            StringBuilder logBuilder = new StringBuilder();
-            logBuilder.append("\n=== Request Start ===\n");
-            logBuilder.append("Request ID: ").append(requestId).append("\n");
-            logBuilder.append("Method: ").append(method).append("\n");
-            logBuilder.append("URL: ").append(url).append("\n");
-            logBuilder.append("Client IP: ").append(client).append("\n");
-            logBuilder.append("User-Agent: ").append(userAgent).append("\n");
+            // Apply color to method based on HTTP method
+            String coloredMethod = method;
+            if ("GET".equalsIgnoreCase(method)) {
+                coloredMethod = ANSI_GREEN + method + ANSI_RESET;
+            } else if ("POST".equalsIgnoreCase(method)) {
+                coloredMethod = ANSI_BLUE + method + ANSI_RESET;
+            } else if ("PUT".equalsIgnoreCase(method)) {
+                coloredMethod = ANSI_YELLOW + method + ANSI_RESET;
+            } else if ("DELETE".equalsIgnoreCase(method)) {
+                coloredMethod = ANSI_RED + method + ANSI_RESET;
+            } else if ("PATCH".equalsIgnoreCase(method)) {
+                coloredMethod = ANSI_PURPLE + method + ANSI_RESET;
+            }
             
-            // Record request headers (optional, can be commented out if the information volume is too large)
-            // logBuilder.append("Headers: ").append(StringUtils.toJsonString(ServletUtils.getHeaderMap(request))).append("\n");
+            // Output request log with decorative elements and colors
+            StringBuilder logBuilder = new StringBuilder();
+            String separator = ANSI_CYAN + "┌────────────────────────────────────────────────────────────────────────────────┐" + ANSI_RESET;
+            String line = ANSI_CYAN + "│" + ANSI_RESET;
+            String bottomSeparator = ANSI_CYAN + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
+            
+            logBuilder.append("\n").append(separator).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_BLUE).append("🔔 INCOMING REQUEST").append(ANSI_RESET).append(" [").append(requestId).append("]").append("\n");
+            logBuilder.append(ANSI_CYAN + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("    ").append(coloredMethod).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("       ").append(url).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Client IP:").append(ANSI_RESET).append(" ").append(client).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User-Agent:").append(ANSI_RESET).append(" ").append(userAgent).append("\n");
             
             // If it's a GET request, record request parameters
             if ("GET".equalsIgnoreCase(method)) {
-                logBuilder.append("Parameters: ").append(ServletUtils.getParamMap(request)).append("\n");
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(ServletUtils.getParamMap(request)).append("\n");
             }
             
-            logBuilder.append("=== Request Info End ===");
+            logBuilder.append(bottomSeparator);
             log.info(logBuilder.toString());
         } catch (Exception e) {
             log.error("Error logging request details", e);
@@ -120,14 +146,37 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
      */
     private void logResponseDetails(HttpServletRequest request, HttpServletResponse response, long duration, String requestId) {
         try {
-            // Output response log
+            // Get status color based on response status
+            String statusColor = ANSI_GREEN;
+            int status = response.getStatus();
+            if (status >= 400 && status < 500) {
+                statusColor = ANSI_YELLOW;
+            } else if (status >= 500) {
+                statusColor = ANSI_RED;
+            }
+            
+            // Format duration with color based on response time
+            String durationColor = ANSI_GREEN;
+            if (duration > 500) {
+                durationColor = ANSI_YELLOW;
+            } else if (duration > 2000) {
+                durationColor = ANSI_RED;
+            }
+            
+            // Output response log with decorative elements and colors
             StringBuilder logBuilder = new StringBuilder();
-            logBuilder.append("\n=== Response Info ===\n");
-            logBuilder.append("Request ID: ").append(requestId).append("\n");
-            logBuilder.append("URI: ").append(request.getRequestURI()).append("\n");
-            logBuilder.append("Status: ").append(response.getStatus()).append("\n");
-            logBuilder.append("Duration: ").append(duration).append(" ms\n");
-            logBuilder.append("=== Response End ===");
+            String separator = ANSI_PURPLE + "┌────────────────────────────────────────────────────────────────────────────────┐" + ANSI_RESET;
+            String line = ANSI_PURPLE + "│" + ANSI_RESET;
+            String bottomSeparator = ANSI_PURPLE + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
+            
+            logBuilder.append("\n").append(separator).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_PURPLE).append("📤 OUTGOING RESPONSE").append(ANSI_RESET).append(" [").append(requestId).append("]").append("\n");
+            logBuilder.append(ANSI_PURPLE + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URI:").append(ANSI_RESET).append("      ").append(request.getRequestURI()).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Status:").append(ANSI_RESET).append("   ").append(statusColor).append(status).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Duration:").append(ANSI_RESET).append(" ").append(durationColor).append(duration).append(" ms").append(ANSI_RESET).append("\n");
+            logBuilder.append(bottomSeparator);
+            
             log.info(logBuilder.toString());
         } catch (Exception e) {
             log.error("Error logging response details", e);
