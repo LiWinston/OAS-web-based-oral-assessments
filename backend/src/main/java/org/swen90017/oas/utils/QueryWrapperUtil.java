@@ -72,6 +72,12 @@ public class QueryWrapperUtil {
                 case NOT_LIKE:
                     wrapper.notLike(columnName, value);
                     break;
+                case IS_NULL:
+                    wrapper.isNull(columnName);
+                    break;
+                case IS_NOT_NULL:
+                    wrapper.isNotNull(columnName);
+                    break;
                 default:
                     break;
             }

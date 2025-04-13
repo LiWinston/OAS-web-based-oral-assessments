@@ -8,7 +8,10 @@ public enum QueryType {
     GREATER_THAN(" > "),
     GREATER_THAN_OR_EQUAL_TO(" >= "),
     LESS_THAN(" < "),
-    LESS_THAN_OR_EQUAL_TO(" <= ");
+    LESS_THAN_OR_EQUAL_TO(" <= "),
+    IS_NULL(" IS NULL "),
+    IS_NOT_NULL(" IS NOT NULL ");
+
     private final String symbol;
 
     QueryType(String symbol) {
