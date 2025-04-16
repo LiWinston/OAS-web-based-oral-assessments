@@ -12,7 +12,7 @@ import java.util.*;
 /**
  * String Utility Class
  * 
- * @author Yongchun Li
+ * @author Yongchun Li, Benyuan Wang
  */
 //TODO: Avoid using variable-length arguments (varargs).
 //TODO: Utility classes must have a private constructor to prevent instantiation.
@@ -20,6 +20,10 @@ import java.util.*;
 //TODO: The two string utility classes should be merged.
 public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtils
 {
+    private StringUtils_ApacheLang3() {
+        // Prevent instantiation
+    }
+
     /** Empty String */
     private static final String NULLSTR = "";
 
@@ -30,10 +34,11 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     private static final char ASTERISK = '*';
 
     /**
-     * Get non-null parameter value
-     * 
-     * @param value defaultValue Value to judge
-     * @return value Return value
+     * Returns the given value if not null, otherwise returns the default value.
+     *
+     * @param value the value to check
+     * @param defaultValue the fallback value if value is null
+     * @return value if not null, otherwise defaultValue
      */
     public static <T> T nvl(T value, T defaultValue)
     {
@@ -290,12 +295,13 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     }
 
     /**
-     * Find the substring between the first occurrence of 'open' and the last occurrence of 'close'
-     * 
-     * @param str String to extract from
-     * @param open Opening string
-     * @param close Closing string
-     * @return Extracted result
+     * Returns the substring between the first occurrence of 'open' and the last occurrence of 'close'.
+     * If either is not found or invalid, returns an empty string.
+     *
+     * @param str the string to search
+     * @param open the opening delimiter
+     * @param close the closing delimiter
+     * @return the extracted substring, or empty string if not found
      */
     public static String substringBetweenLast(final String str, final String open, final String close)
     {
@@ -473,52 +479,39 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     }
 
     /**
-     * Convert camelCase to under_score naming
+     * Converts a camelCase string to an underscore_case string.
+     *
+     * Example:
+     * <pre>
+     *   "camelCase" -> "camel_case"
+     *   "TestString" -> "test_string"
+     * </pre>
+     *
+     * @param str the camelCase input string.
+     * @return the resulting underscore_case string. If the input is null or empty, it returns the input as is.
      */
-    public static String toUnderScoreCase(String str)
-    {
-        if (str == null)
-        {
-            return null;
+    public static String camelToUnderscore(String str) {
+        if (str == null || str.isEmpty()) return str;
+        StringBuilder result = new StringBuilder();
+        char[] chars = str.toCharArray();
+
+        for (int i = 0; i < chars.length; i++) {
+            char c = chars[i];
+            if (Character.isUpperCase(c)) {
+                if (i > 0 &&
+                        //Resolve the case where the first character is uppercase like ID,URL.
+                        (Character.isLowerCase(chars[i - 1]) ||
+                                //Resolve the case where the next character is lowercase like APIResponse.
+                                (i + 1 < chars.length &&
+                                        Character.isLowerCase(chars[i + 1])))) {
+                    result.append("_");
+                }
+                result.append(Character.toLowerCase(c));
+            } else {
+                result.append(c);
+            }
         }
-        StringBuilder sb = new StringBuilder();
-        // Whether the previous character is uppercase
-        boolean preCharIsUpperCase = true;
-        // Whether the current character is uppercase
-        boolean curreCharIsUpperCase = true;
-        // Whether the next character is uppercase
-        boolean nexteCharIsUpperCase = true;
-        for (int i = 0; i < str.length(); i++)
-        {
-            char c = str.charAt(i);
-            if (i > 0)
-            {
-                preCharIsUpperCase = Character.isUpperCase(str.charAt(i - 1));
-            }
-            else
-            {
-                preCharIsUpperCase = false;
-            }
-
-            curreCharIsUpperCase = Character.isUpperCase(c);
-
-            if (i < (str.length() - 1))
-            {
-                nexteCharIsUpperCase = Character.isUpperCase(str.charAt(i + 1));
-            }
-
-            if (preCharIsUpperCase && curreCharIsUpperCase && !nexteCharIsUpperCase)
-            {
-                sb.append(SEPARATOR);
-            }
-            else if ((i != 0 && !preCharIsUpperCase) && curreCharIsUpperCase)
-            {
-                sb.append(SEPARATOR);
-            }
-            sb.append(Character.toLowerCase(c));
-        }
-
-        return sb.toString();
+        return result.toString();
     }
 
     /**
@@ -544,12 +537,13 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     }
 
     /**
-     * Convert camelCase to under_score naming
-     * 
-     * @param name Original string with camelCase naming
-     * @return Converted string with under_score naming
+     * Converts an under_score string to PascalCase format.
+     * Example: "user_name" → "UserName"
+     *
+     * @param name the original under_score string
+     * @return the converted PascalCase string
      */
-    public static String convertToCamelCase(String name)
+    public static String toPascalCase(String name)
     {
         StringBuilder result = new StringBuilder();
         // Quick check
@@ -580,10 +574,11 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     }
 
     /**
-     * CamelCase naming
-     * 
-     * @param s Original string
-     * @return CamelCase naming string
+     * Converts an under_score string to camelCase format.
+     * Example: "user_name" → "userName"
+     *
+     * @param s the original under_score string
+     * @return the converted camelCase string
      */
     public static String toCamelCase(String s)
     {
@@ -712,7 +707,6 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
 
     /**
      * Convert object to JSON string
-     * Convert object to JSON string
      *
      * @param object Object
      * @return JSON string JSON string
@@ -730,7 +724,7 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     }
 
     public static void main(String[] args) {
-        String result = convertToCamelCase("test_string");
+        String result = toPascalCase("test_string");
         System.out.println(result);
     }
 }
