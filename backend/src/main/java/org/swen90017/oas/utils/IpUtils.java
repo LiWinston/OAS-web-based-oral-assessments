@@ -157,7 +157,7 @@ public class IpUtils
      */
     private static boolean internalIp(byte[] addr)
     {
-        if (StringUtils_ApacheLang3.isNull(addr) || addr.length < 2)
+        if (StringUtils.isNull(addr) || addr.length < 2)
         {
             return true;
         }
@@ -320,7 +320,7 @@ public class IpUtils
      */
     public static boolean isUnknown(String checkString)
     {
-        return StringUtils_ApacheLang3.isEmpty(checkString) || HttpRequestConstants.HEADER_UNKNOWN.equalsIgnoreCase(checkString);
+        return StringUtils.isEmpty(checkString) || HttpRequestConstants.HEADER_UNKNOWN.equalsIgnoreCase(checkString);
     }
 
     /**
@@ -331,7 +331,7 @@ public class IpUtils
      */
     public static boolean isIP(String ip)
     {
-        return StringUtils_ApacheLang3.isNotEmpty(ip) && ip.matches(REGX_IP);
+        return StringUtils.isNotEmpty(ip) && ip.matches(REGX_IP);
     }
 
     /**
@@ -342,7 +342,7 @@ public class IpUtils
      */
     public static boolean isIpWildCard(String ip)
     {
-        return StringUtils_ApacheLang3.isNotEmpty(ip) && ip.matches(REGX_IP_WILDCARD);
+        return StringUtils.isNotEmpty(ip) && ip.matches(REGX_IP_WILDCARD);
     }
 
     /**
@@ -376,7 +376,7 @@ public class IpUtils
      */
     public static boolean isIPSegment(String ipSeg)
     {
-        return StringUtils_ApacheLang3.isNotEmpty(ipSeg) && ipSeg.matches(REGX_IP_SEG);
+        return StringUtils.isNotEmpty(ipSeg) && ipSeg.matches(REGX_IP_SEG);
     }
 
     /**
@@ -440,7 +440,7 @@ public class IpUtils
      */
     public static boolean isValidIpFormat(String ip)
     {
-        if (StringUtils_ApacheLang3.isEmpty(ip))
+        if (StringUtils.isEmpty(ip))
         {
             return false;
         }
@@ -460,7 +460,7 @@ public class IpUtils
      */
     public static boolean isValidCidr(String cidr)
     {
-        if (StringUtils_ApacheLang3.isEmpty(cidr))
+        if (StringUtils.isEmpty(cidr))
         {
             return false;
         }

@@ -11,11 +11,9 @@ import java.util.List;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.NumberFormat;
-import java.util.Set;
 
 /**
  * Type Converter
@@ -82,7 +80,7 @@ public class Convert
         }
 
         final String valueStr = toStr(value, null);
-        return StringUtils_ApacheLang3.isEmpty(valueStr) ? defaultValue : valueStr.charAt(0);
+        return StringUtils.isEmpty(valueStr) ? defaultValue : valueStr.charAt(0);
     }
 
     /**
@@ -122,7 +120,7 @@ public class Convert
             return ((Number) value).byteValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -173,7 +171,7 @@ public class Convert
             return ((Number) value).shortValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -220,7 +218,7 @@ public class Convert
             return (Number) value;
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -271,7 +269,7 @@ public class Convert
             return ((Number) value).intValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -329,7 +327,7 @@ public class Convert
      */
     public static Integer[] toIntArray(String split, String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new Integer[] {};
         }
@@ -352,7 +350,7 @@ public class Convert
      */
     public static Long[] toLongArray(String split, String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new Long[] {};
         }
@@ -374,7 +372,7 @@ public class Convert
      */
     public static String[] toStrArray(String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new String[] {};
         }
@@ -417,7 +415,7 @@ public class Convert
             return ((Number) value).longValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -469,7 +467,7 @@ public class Convert
             return ((Number) value).doubleValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -521,7 +519,7 @@ public class Convert
             return ((Number) value).floatValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -568,7 +566,7 @@ public class Convert
             return (Boolean) value;
         }
         String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -626,7 +624,7 @@ public class Convert
             return myE;
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -677,7 +675,7 @@ public class Convert
             return BigInteger.valueOf((Long) value);
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -736,7 +734,7 @@ public class Convert
             return new BigDecimal((Integer) value);
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -841,7 +839,7 @@ public class Convert
      */
     public static String str(byte[] bytes, String charset)
     {
-        return str(bytes, StringUtils_ApacheLang3.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset));
+        return str(bytes, StringUtils.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset));
     }
 
     /**

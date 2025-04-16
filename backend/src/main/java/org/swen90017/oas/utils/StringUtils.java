@@ -18,9 +18,9 @@ import java.util.*;
 //TODO: Utility classes must have a private constructor to prevent instantiation.
 //TODO: Some methods do not match their descriptions and need to be updated.
 //TODO: The two string utility classes should be merged.
-public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtils
+public class StringUtils extends org.apache.commons.lang3.StringUtils
 {
-    private StringUtils_ApacheLang3() {
+    private StringUtils() {
         // Prevent instantiation
     }
 
@@ -375,7 +375,7 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
      */
     public static boolean ishttp(String link)
     {
-        return StringUtils_ApacheLang3.startsWithAny(link, Constants.HTTP, Constants.HTTPS);
+        return StringUtils.startsWithAny(link, Constants.HTTP, Constants.HTTPS);
     }
 
     /**
@@ -402,20 +402,20 @@ public class StringUtils_ApacheLang3 extends org.apache.commons.lang3.StringUtil
     public static final List<String> str2List(String str, String sep, boolean filterBlank, boolean trim)
     {
         List<String> list = new ArrayList<String>();
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return list;
         }
 
         // Filter blank strings
-        if (filterBlank && StringUtils_ApacheLang3.isBlank(str))
+        if (filterBlank && StringUtils.isBlank(str))
         {
             return list;
         }
         String[] split = str.split(sep);
         for (String string : split)
         {
-            if (filterBlank && StringUtils_ApacheLang3.isBlank(string))
+            if (filterBlank && StringUtils.isBlank(string))
             {
                 continue;
             }
