@@ -1,0 +1,26 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: backend
+
+  datasource:
+    url: jdbc:mysql://localhost:3307/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: swen90017_user
+    password: 90017
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  redis:
+    host: 54.206.56.77
+    port: 6379
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: org.swen90017.oas.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.baomidou.mybatisplus: DEBUG
