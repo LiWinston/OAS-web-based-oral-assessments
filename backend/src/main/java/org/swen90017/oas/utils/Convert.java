@@ -1,20 +1,27 @@
 package org.swen90017.oas.utils;
 
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
+import org.springframework.util.CollectionUtils;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.NumberFormat;
-import java.util.Set;
 
 /**
  * Type Converter
  *
- * @author Yongchun Li
+ * @author Yongchun Li, Benyuan Wang
  */
 //TODO: most method are duplicated with cn.hutool.core.util.Convert, but the object convert we need still not implemented
+@Slf4j
 public class Convert
 {
     /**
@@ -73,7 +80,7 @@ public class Convert
         }
 
         final String valueStr = toStr(value, null);
-        return StringUtils_ApacheLang3.isEmpty(valueStr) ? defaultValue : valueStr.charAt(0);
+        return StringUtils.isEmpty(valueStr) ? defaultValue : valueStr.charAt(0);
     }
 
     /**
@@ -113,7 +120,7 @@ public class Convert
             return ((Number) value).byteValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -164,7 +171,7 @@ public class Convert
             return ((Number) value).shortValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -211,7 +218,7 @@ public class Convert
             return (Number) value;
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -262,7 +269,7 @@ public class Convert
             return ((Number) value).intValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -320,7 +327,7 @@ public class Convert
      */
     public static Integer[] toIntArray(String split, String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new Integer[] {};
         }
@@ -343,7 +350,7 @@ public class Convert
      */
     public static Long[] toLongArray(String split, String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new Long[] {};
         }
@@ -365,7 +372,7 @@ public class Convert
      */
     public static String[] toStrArray(String str)
     {
-        if (StringUtils_ApacheLang3.isEmpty(str))
+        if (StringUtils.isEmpty(str))
         {
             return new String[] {};
         }
@@ -408,7 +415,7 @@ public class Convert
             return ((Number) value).longValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -460,7 +467,7 @@ public class Convert
             return ((Number) value).doubleValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -512,7 +519,7 @@ public class Convert
             return ((Number) value).floatValue();
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -559,7 +566,7 @@ public class Convert
             return (Boolean) value;
         }
         String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -617,7 +624,7 @@ public class Convert
             return myE;
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -668,7 +675,7 @@ public class Convert
             return BigInteger.valueOf((Long) value);
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -727,7 +734,7 @@ public class Convert
             return new BigDecimal((Integer) value);
         }
         final String valueStr = toStr(value, null);
-        if (StringUtils_ApacheLang3.isEmpty(valueStr))
+        if (StringUtils.isEmpty(valueStr))
         {
             return defaultValue;
         }
@@ -832,7 +839,7 @@ public class Convert
      */
     public static String str(byte[] bytes, String charset)
     {
-        return str(bytes, StringUtils_ApacheLang3.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset));
+        return str(bytes, StringUtils.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset));
     }
 
     /**
@@ -889,131 +896,54 @@ public class Convert
         return charset.decode(data).toString();
     }
 
-    // ----------------------------------------------------------------------- 全角半角转换
     /**
-     * Half-width to full-width
+     * Convert a single Java object to another type by copying properties.
      *
-     * @param input String.
-     * @return Full-width character string.
+     * @param object Source object
+     * @param classOfT Target class
+     * @return New object of target type
      */
-    public static String toSBC(String input)
-    {
-        return toSBC(input, null);
+    public static <T> T convertObject(Object object, Class<T> classOfT) {
+        if (object == null) return null;
+
+
+        T t = null;
+
+        try {
+            t = classOfT.getDeclaredConstructor().newInstance();
+        } catch (InstantiationException e) {
+            throw new RuntimeException(e);
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+        // TODO: Replace this with custom BusinessException class implementation and define a CommonErrors enum or class with standard error codes/messages
+        BeanUtils.copyProperties(object, t);
+        return t;
+
     }
 
     /**
-     * Half-width to full-width
+     * Convert a list of objects to a list of another type.
      *
-     * @param input String
-     * @param notConvertSet Characters that are not replaced
-     * @return Full-width character string.
+     * @param list Source list
+     * @param classOfT Target class
+     * @return List of converted objects
      */
-    public static String toSBC(String input, Set<Character> notConvertSet)
-    {
-        char[] c = input.toCharArray();
-        for (int i = 0; i < c.length; i++)
-        {
-            if (null != notConvertSet && notConvertSet.contains(c[i]))
-            {
-                // Skip characters that are not replaced
-                continue;
-            }
+    public static <T> List<T> convertList(List<?> list, Class<T> classOfT) {
+        List<T> newList = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) return newList;
 
-            if (c[i] == ' ')
-            {
-                c[i] = '\u3000';
-            }
-            else if (c[i] < '\177')
-            {
-                c[i] = (char) (c[i] + 65248);
-
-            }
+        for (Object item : list) {
+            newList.add(convertObject(item, classOfT));
         }
-        return new String(c);
+        return newList;
     }
 
-    /**
-     * Full-width to half-width
-     *
-     * @param input String.
-     * @return Half-width character string
-     */
-    public static String toDBC(String input)
-    {
-        return toDBC(input, null);
-    }
 
-    /**
-     * Replace full-width with half-width
-     *
-     * @param text Text
-     * @param notConvertSet Characters that are not replaced
-     * @return Replaced character
-     */
-    public static String toDBC(String text, Set<Character> notConvertSet)
-    {
-        char[] c = text.toCharArray();
-        for (int i = 0; i < c.length; i++)
-        {
-            if (null != notConvertSet && notConvertSet.contains(c[i]))
-            {
-                // Skip characters that are not replaced
-                continue;
-            }
 
-            if (c[i] == '\u3000')
-            {
-                c[i] = ' ';
-            }
-            else if (c[i] > '\uFF00' && c[i] < '\uFF5F')
-            {
-                c[i] = (char) (c[i] - 65248);
-            }
-        }
-        return new String(c);
-    }
 
-    /**
-     * Convert digit amount to uppercase Chinese
-     *
-     * @param n Number
-     * @return Chinese uppercase number
-     */
-    public static String digitUppercase(double n)
-    {
-        String[] fraction = { "角", "分" };
-        String[] digit = { "零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖" };
-        String[][] unit = { { "元", "万", "亿" }, { "", "拾", "佰", "仟" } };
-
-        String head = n < 0 ? "负" : "";
-        n = Math.abs(n);
-
-        String s = "";
-        for (int i = 0; i < fraction.length; i++)
-        {
-            // Optimize double calculation precision loss problem
-            BigDecimal nNum = new BigDecimal(n);
-            BigDecimal decimal = new BigDecimal(10);
-            BigDecimal scale = nNum.multiply(decimal).setScale(2, RoundingMode.HALF_EVEN);
-            double d = scale.doubleValue();
-            s += (digit[(int) (Math.floor(d * Math.pow(10, i)) % 10)] + fraction[i]).replaceAll("(零.)+", "");
-        }
-        if (s.length() < 1)
-        {
-            s = "整";
-        }
-        int integerPart = (int) Math.floor(n);
-
-        for (int i = 0; i < unit[0].length && integerPart > 0; i++)
-        {
-            String p = "";
-            for (int j = 0; j < unit[1].length && n > 0; j++)
-            {
-                p = digit[integerPart % 10] + unit[1][j] + p;
-                integerPart = integerPart / 10;
-            }
-            s = p.replaceAll("(零.)*零$", "").replaceAll("^$", "零") + unit[0][i] + s;
-        }
-        return head + s.replaceAll("(零.)*零元", "元").replaceFirst("(零.)+", "").replaceAll("(零.)+", "零").replaceAll("^整$", "零元整");
-    }
 }

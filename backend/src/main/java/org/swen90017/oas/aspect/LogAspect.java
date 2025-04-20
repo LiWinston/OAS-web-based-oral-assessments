@@ -20,7 +20,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.utils.IpUtils;
 import org.swen90017.oas.utils.ServletUtils;
-import org.swen90017.oas.utils.StringUtils_ApacheLang3;
+import org.swen90017.oas.utils.StringUtils;
 
 /**
  * Operation log recording processing aspect
@@ -116,10 +116,10 @@ public class LogAspect {
             String userAgent = request.getHeader("User-Agent");
             
             // Get module name
-            String module = StringUtils_ApacheLang3.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
+            String module = StringUtils.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
             
             // Get operation type
-            String operType = StringUtils_ApacheLang3.isEmpty(logAnnotation.operType()) ? "" : logAnnotation.operType();
+            String operType = StringUtils.isEmpty(logAnnotation.operType()) ? "" : logAnnotation.operType();
             
             // Record method parameters
             String requestParams = "";
@@ -167,7 +167,7 @@ public class LogAspect {
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
                     .append(".").append(joinPoint.getSignature().getName()).append("\n");
             
-            if (StringUtils_ApacheLang3.isNotEmpty(requestParams)) {
+            if (StringUtils.isNotEmpty(requestParams)) {
                 logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
             }
             
@@ -210,10 +210,10 @@ public class LogAspect {
             String ipAddr = IpUtils.getIpAddr(request);
             
             // Get module name
-            String module = StringUtils_ApacheLang3.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
+            String module = StringUtils.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
             
             // Get operation type
-            String operType = StringUtils_ApacheLang3.isEmpty(logAnnotation.operType()) ? "" : logAnnotation.operType();
+            String operType = StringUtils.isEmpty(logAnnotation.operType()) ? "" : logAnnotation.operType();
             
             // Record method parameters
             String requestParams = "";
@@ -238,7 +238,7 @@ public class LogAspect {
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
                     .append(".").append(joinPoint.getSignature().getName()).append("\n");
             
-            if (StringUtils_ApacheLang3.isNotEmpty(requestParams)) {
+            if (StringUtils.isNotEmpty(requestParams)) {
                 logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
             }
             
@@ -280,7 +280,7 @@ public class LogAspect {
         if ("GET".equalsIgnoreCase(requestMethod)) {
             Map<String, String> paramMap = ServletUtils.getParamMap(request);
             if (!paramMap.isEmpty()) {
-                params.append(StringUtils_ApacheLang3.toJsonString(paramMap));
+                params.append(StringUtils.toJsonString(paramMap));
             }
         } 
         // Process POST/PUT request parameters
@@ -291,7 +291,7 @@ public class LogAspect {
                     // JSON format request body
                     try {
                         String bodyStr = ServletUtils.getBodyString(request);
-                        if (StringUtils_ApacheLang3.isNotEmpty(bodyStr)) {
+                        if (StringUtils.isNotEmpty(bodyStr)) {
                             params.append(bodyStr);
                         }
                     } catch (Exception e) {
@@ -301,7 +301,7 @@ public class LogAspect {
                     // Form data
                     Map<String, String> paramMap = ServletUtils.getParamMap(request);
                     if (!paramMap.isEmpty()) {
-                        params.append(StringUtils_ApacheLang3.toJsonString(paramMap));
+                        params.append(StringUtils.toJsonString(paramMap));
                     }
                 } else if (contentType.contains("multipart/form-data")) {
                     // File upload form

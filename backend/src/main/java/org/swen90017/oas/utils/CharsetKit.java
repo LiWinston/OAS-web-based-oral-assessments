@@ -32,7 +32,7 @@ public class CharsetKit
      */
     public static Charset charset(String charset)
     {
-        return StringUtils_ApacheLang3.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset);
+        return StringUtils.isEmpty(charset) ? Charset.defaultCharset() : Charset.forName(charset);
     }
 
     /**
@@ -68,7 +68,7 @@ public class CharsetKit
             destCharset = StandardCharsets.UTF_8;
         }
 
-        if (StringUtils_ApacheLang3.isEmpty(source) || srcCharset.equals(destCharset))
+        if (StringUtils.isEmpty(source) || srcCharset.equals(destCharset))
         {
             return source;
         }
