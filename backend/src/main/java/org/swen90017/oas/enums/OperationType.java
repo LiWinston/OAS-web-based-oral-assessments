@@ -2,73 +2,89 @@ package org.swen90017.oas.enums;
 
 /**
  * Operation Type
+ * With Field Name And Description
  *
  * @author Yongchun Li
  */
-//TODO: base Alibaba Java Coding Guidelines, need to add Enum fields
 public enum OperationType {
     /**
      * Other
      */
-    OTHER,
+    OTHER(0, "Other"),
 
     /**
      * Insert
      */
-    INSERT,
+    INSERT(1, "Insert"),
 
     /**
      * Update
      */
-    UPDATE,
+    UPDATE(2, "Update"),
 
     /**
      * Delete
      */
-    DELETE,
+    DELETE(3, "Delete"),
 
     /**
      * Query/Select
      */
-    SELECT,
+    SELECT(4, "Select"),
 
     /**
      * Grant
      */
-    GRANT,
+    GRANT(5, "Grant"),
 
     /**
      * Export
      */
-    EXPORT,
+    EXPORT(6, "Export"),
 
     /**
      * Import
      */
-    IMPORT,
+    IMPORT(7, "Import"),
 
     /**
      * Force logout
      */
-    FORCE_LOGOUT,
+    FORCE_LOGOUT(8, "Force Logout"),
 
     /**
      * Generate code
      */
-    GENERATE_CODE,
+    GENERATE_CODE(9, "Generate Code"),
 
     /**
      * Clean data
      */
-    CLEAN,
+    CLEAN(10, "Clean Data"),
 
     /**
      * Upload
      */
-    UPLOAD,
+    UPLOAD(11, "Upload"),
 
     /**
      * Download
      */
-    DOWNLOAD
-} 
+    DOWNLOAD(12, "Download");
+
+    private final int code;
+    private final String description;
+
+    OperationType(int code, String description) {
+        this.code = code;
+        this.description = description;
+    }
+
+    public int getCode() {
+        return code;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+}
