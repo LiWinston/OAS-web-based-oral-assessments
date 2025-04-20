@@ -4,6 +4,7 @@ package org.swen90017.oas.utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -14,11 +15,13 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.NumberFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Type Converter
  *
- * @author Yongchun Li, Benyuan Wang
+ * @author Yongchun Li, Benyuan Wang, Xiang Wang
  */
 //TODO: most method are duplicated with cn.hutool.core.util.Convert, but the object convert we need still not implemented
 @Slf4j
@@ -943,7 +946,190 @@ public class Convert
         return newList;
     }
 
+    /**
+     * Convert string to Date with validation and multiple format attempts.
+     * More flexible than simple date conversion.
+     *
+     * @param dateStr Date string to convert
+     * @param defaultValue Default value if conversion fails
+     * @param formats Array of date formats to try
+     * @return Converted Date or default value
+     */
+    public static Date toDateWithMultiFormat(String dateStr, Date defaultValue, String... formats) {
+        if (StringUtils.isEmpty(dateStr)) {
+            return defaultValue;
+        }
+        
+        if (formats == null || formats.length == 0) {
+            // Default formats to try
+            formats = new String[] {
+                "yyyy-MM-dd HH:mm:ss",
+                "yyyy-MM-dd",
+                "yyyy/MM/dd HH:mm:ss",
+                "yyyy/MM/dd",
+                "dd-MM-yyyy HH:mm:ss",
+                "dd-MM-yyyy",
+                "dd/MM/yyyy HH:mm:ss",
+                "dd/MM/yyyy",
+                "yyyyMMdd"
+            };
+        }
+        
+        String trimmed = dateStr.trim();
+        
+        for (String format : formats) {
+            try {
+                SimpleDateFormat sdf = new SimpleDateFormat(format);
+                sdf.setLenient(false); // Strict mode for validation
+                return sdf.parse(trimmed);
+            } catch (Exception e) {
+                // Try next format
+                continue;
+            }
+        }
+        
+        log.warn("Failed to parse date '{}' with any of the provided formats", dateStr);
+        return defaultValue;
+    }
 
+    /**
+     * Convert string to Date with default formats.
+     *
+     * @param dateStr Date string to convert
+     * @return Converted Date or null if conversion fails
+     */
+    public static Date toDateWithMultiFormat(String dateStr) {
+        return toDateWithMultiFormat(dateStr, null);
+    }
 
+    /**
+     * Perform type-safe conversion with runtime type verification.
+     * Throws exception instead of returning default value when type cannot be safely converted.
+     *
+     * @param <T> Target type
+     * @param value Value to convert
+     * @param targetType Target type class
+     * @return Converted value
+     * @throws IllegalArgumentException if conversion cannot be safely performed
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T toTypeSafe(Object value, Class<T> targetType) {
+        if (value == null) {
+            return null;
+        }
+        
+        // Same type - no conversion needed
+        if (targetType.isInstance(value)) {
+            return (T) value;
+        }
+        
+        // Special handling for primitive types and their wrappers
+        if (targetType == Integer.class || targetType == int.class) {
+            if (value instanceof Number) {
+                long longValue = ((Number) value).longValue();
+                if (longValue > Integer.MAX_VALUE || longValue < Integer.MIN_VALUE) {
+                    throw new IllegalArgumentException("Value " + value + " out of range for " + targetType.getName());
+                }
+                return (T) Integer.valueOf(((Number) value).intValue());
+            } else {
+                Integer result = toInt(value, null);
+                if (result == null) {
+                    throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+                }
+                return (T) result;
+            }
+        } else if (targetType == Long.class || targetType == long.class) {
+            if (value instanceof Number) {
+                return (T) Long.valueOf(((Number) value).longValue());
+            } else {
+                Long result = toLong(value, null);
+                if (result == null) {
+                    throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+                }
+                return (T) result;
+            }
+        } else if (targetType == Double.class || targetType == double.class) {
+            if (value instanceof Number) {
+                return (T) Double.valueOf(((Number) value).doubleValue());
+            } else {
+                Double result = toDouble(value, null);
+                if (result == null) {
+                    throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+                }
+                return (T) result;
+            }
+        } else if (targetType == Float.class || targetType == float.class) {
+            if (value instanceof Number) {
+                double doubleValue = ((Number) value).doubleValue();
+                if (doubleValue > Float.MAX_VALUE || doubleValue < -Float.MAX_VALUE) {
+                    throw new IllegalArgumentException("Value " + value + " out of range for " + targetType.getName());
+                }
+                return (T) Float.valueOf(((Number) value).floatValue());
+            } else {
+                Float result = toFloat(value, null);
+                if (result == null) {
+                    throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+                }
+                return (T) result;
+            }
+        } else if (targetType == Boolean.class || targetType == boolean.class) {
+            Boolean result = toBool(value, null);
+            if (result == null) {
+                throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+            }
+            return (T) result;
+        } else if (targetType == String.class) {
+            return (T) toStr(value);
+        } else if (targetType == BigDecimal.class) {
+            BigDecimal result = toBigDecimal(value, null);
+            if (result == null) {
+                throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+            }
+            return (T) result;
+        } else if (targetType == BigInteger.class) {
+            BigInteger result = toBigInteger(value, null);
+            if (result == null) {
+                throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+            }
+            return (T) result;
+        } else if (targetType.isEnum()) {
+            @SuppressWarnings("rawtypes")
+            Class<? extends Enum> enumClass = targetType.asSubclass(Enum.class);
+            @SuppressWarnings("rawtypes")
+            Enum result = toEnum(enumClass, value, null);
+            if (result == null) {
+                throw new IllegalArgumentException("Cannot convert " + value + " to enum " + targetType.getName());
+            }
+            return (T) result;
+        } else if (targetType == Date.class) {
+            if (value instanceof Date) {
+                return (T) value;
+            } else if (value instanceof java.time.temporal.Temporal) {
+                // Convert from java.time types to java.util.Date
+                if (value instanceof java.time.LocalDateTime) {
+                    return (T) Date.from(((java.time.LocalDateTime) value)
+                        .atZone(java.time.ZoneId.systemDefault()).toInstant());
+                } else if (value instanceof java.time.LocalDate) {
+                    return (T) Date.from(((java.time.LocalDate) value)
+                        .atStartOfDay().atZone(java.time.ZoneId.systemDefault()).toInstant());
+                } else if (value instanceof java.time.Instant) {
+                    return (T) Date.from((java.time.Instant) value);
+                }
+            } else if (value instanceof String) {
+                Date result = toDateWithMultiFormat((String) value, null);
+                if (result == null) {
+                    throw new IllegalArgumentException("Cannot convert " + value + " to " + targetType.getName());
+                }
+                return (T) result;
+            } else if (value instanceof Number) {
+                // Assume timestamp in milliseconds
+                return (T) new Date(((Number) value).longValue());
+            }
+        }
+        
+        // If we reach here, we couldn't convert
+        throw new IllegalArgumentException("No converter available from " + 
+            value.getClass().getName() + " to " + targetType.getName());
+    }
 
 }
