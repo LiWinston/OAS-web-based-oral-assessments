@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.swen90017.oas.annotation.Log;
-import org.swen90017.oas.constant.OperationType;
+import org.swen90017.oas.enums.OperationType;
 import org.swen90017.oas.utils.IpUtils;
 import org.swen90017.oas.utils.ServletUtils;
 
