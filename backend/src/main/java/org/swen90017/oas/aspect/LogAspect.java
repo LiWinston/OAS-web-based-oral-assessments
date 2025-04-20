@@ -133,7 +133,7 @@ public class LogAspect {
 
             // Database log
             SysOperLog operLog = new SysOperLog();
-            operLog.setStatus(e == null ? BusinessStatus.SUCCESS.ordinal() : BusinessStatus.FAIL.ordinal());
+            operLog.setStatus(e == null ? BusinessStatus.SUCCESS.getCode() : BusinessStatus.FAIL.getCode());
             
             // Request URL
             String ip = IpUtils.getIpAddr();
@@ -183,13 +183,13 @@ public class LogAspect {
      */
     public void getControllerMethodDescription(JoinPoint joinPoint, Log log, SysOperLog operLog, Object jsonResult) throws Exception {
         // Set business type
-        operLog.setBusinessType(log.businessType().ordinal());
+        operLog.setBusinessType(log.businessType().getCode());
         
         // Set title
         operLog.setTitle(log.module());
         
         // Set operator type
-        operLog.setOperatorType(log.operatorType().ordinal());
+        operLog.setOperatorType(log.operatorType().getCode());
         
         // Whether to save request data
         if (log.isSaveRequestData()) {

@@ -7,60 +7,91 @@ public enum BusinessType {
     /**
      * Other operations
      */
-    OTHER,
+    OTHER(0, "Other operation"),
 
     /**
      * Insert operation
      */
-    INSERT,
+    INSERT(1, "Insert operation"),
 
     /**
      * Update operation
      */
-    UPDATE,
+    UPDATE(2, "Update operation"),
 
     /**
      * Delete operation
      */
-    DELETE,
+    DELETE(3, "Delete operation"),
 
     /**
      * Query operation
      */
-    QUERY,
+    QUERY(4, "Query operation"),
     
     /**
      * Grant permissions
      */
-    GRANT,
+    GRANT(5, "Grant permissions"),
 
     /**
      * Export data
      */
-    EXPORT,
+    EXPORT(6, "Export data"),
 
     /**
      * Import data
      */
-    IMPORT,
+    IMPORT(7, "Import data"),
     
     /**
      * Booking operation
      */
-    BOOKING,
+    BOOKING(8, "Booking operation"),
     
     /**
      * Cancel booking
      */
-    CANCEL_BOOKING,
+    CANCEL_BOOKING(9, "Cancel booking"),
     
     /**
      * Assessment operation
      */
-    ASSESSMENT,
+    ASSESSMENT(10, "Assessment operation"),
     
     /**
      * Feedback operation
      */
-    FEEDBACK
+    FEEDBACK(11, "Feedback operation");
+    
+    private final int code;
+    private final String info;
+    
+    BusinessType(int code, String info) {
+        this.code = code;
+        this.info = info;
+    }
+    
+    public int getCode() {
+        return code;
+    }
+    
+    public String getInfo() {
+        return info;
+    }
+    
+    /**
+     * Get BusinessType by code value
+     *
+     * @param code Code value
+     * @return BusinessType enum
+     */
+    public static BusinessType getByCode(int code) {
+        for (BusinessType type : values()) {
+            if (type.getCode() == code) {
+                return type;
+            }
+        }
+        return OTHER;
+    }
 } 
