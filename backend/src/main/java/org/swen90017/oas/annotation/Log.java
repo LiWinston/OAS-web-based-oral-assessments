@@ -6,10 +6,11 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+import org.swen90017.oas.enums.BusinessType;
+import org.swen90017.oas.enums.OperatorType;
+
 /**
- * Custom operation log recording annotation
- *
- * @author Yongchun Li
+ * Custom operation log annotation
  */
 @Target({ElementType.PARAMETER, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -21,18 +22,27 @@ public @interface Log {
     String module() default "";
 
     /**
-     * Operation type
+     * Business operation type
      */
-    String operType() default "";//TODO: create enum for operation type
+    BusinessType businessType() default BusinessType.OTHER;
 
     /**
-     * Whether to save the request parameters
+     * Operator type
+     */
+    OperatorType operatorType() default OperatorType.OTHER;
+
+    /**
+     * Whether to save request data
      */
     boolean isSaveRequestData() default true;
 
     /**
-     * Whether to save the response parameters
+     * Whether to save response data
      */
-    public boolean isSaveResponseData() default true;
-
+    boolean isSaveResponseData() default true;
+    
+    /**
+     * Parameter names to exclude from the log
+     */
+    String[] excludeParamNames() default {};
 } 
