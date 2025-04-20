@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:mysql://54.206.56.77:3306/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    username: remote_user
+    password: 123456Aszxc!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+# Logging Configuration
+logging:
+  level:
+    org.swen90017.oas: debug
+    org.springframework: info 

@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: backend
+  profiles:
+    active: dev
 
   datasource:
     url: jdbc:mysql://localhost:3307/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
