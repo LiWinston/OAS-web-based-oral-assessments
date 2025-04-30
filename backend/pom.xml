@@ -99,7 +99,7 @@
             <!-- This dependency is only needed if you are using a TokenCredential object for authentication -->
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
-            <version>1.11.0</version>
+            <version>1.12.2</version>
         </dependency>
 
         <!-- SendGrid SDK for sending emails -->
