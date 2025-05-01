@@ -153,6 +153,13 @@
             <version>2.14.2</version>
         </dependency>
 
+        <!-- Reactor Core for reactive programming -->
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+            <version>3.4.24</version>
+        </dependency>
+
     </dependencies>
 
     <build>

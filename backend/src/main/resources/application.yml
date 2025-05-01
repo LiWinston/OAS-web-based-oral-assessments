@@ -45,3 +45,5 @@ logging:
     file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p [%X{traceId}] ${PID:- } --- [%t] %-40.40logger{39} : %m%n%wEx"
   file:
     name: ./logs/oas-application.log
+    # Ensure file logs use UTF-8 encoding
+    charset: UTF-8
