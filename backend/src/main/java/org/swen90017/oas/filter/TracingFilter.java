@@ -33,6 +33,16 @@ public class TracingFilter extends OncePerRequestFilter {
      */
     private static final String TRACE_ID_HEADER = "X-Trace-ID";
     
+    /**
+     * Maximum trace ID length to prevent abuse
+     */
+    private static final int MAX_TRACE_ID_LENGTH = 64;
+    
+    /**
+     * Valid trace ID pattern (alphanumeric and hyphens)
+     */
+    private static final String TRACE_ID_PATTERN = "^[a-zA-Z0-9-]+$";
+    
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -65,19 +75,45 @@ public class TracingFilter extends OncePerRequestFilter {
     
     /**
      * Get trace ID from request header or generate a new one
+     * 
+     * NOTE: This method accepts client-provided trace IDs for distributed tracing across services.
+     * This is useful in microservice architectures where a request travels through multiple services
+     * and we want to maintain the same trace ID throughout the entire request chain.
      *
      * @param request HTTP request
-     * @return Trace ID
+     * @return Trace ID - from request header (if valid) or newly generated
      */
     private String getOrGenerateTraceId(HttpServletRequest request) {
         // Try to get trace ID from request header
         String traceId = request.getHeader(TRACE_ID_HEADER);
         
-        // If not found, generate a new one
-        if (!StringUtils.hasText(traceId)) {
-            traceId = TraceUtils.generateTraceId();
+        // Validate client-provided trace ID
+        if (StringUtils.hasText(traceId)) {
+            // Check if trace ID meets requirements
+            if (isValidTraceId(traceId)) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Using client-provided trace ID: {}", traceId);
+                }
+                return traceId;
+            } else {
+                log.warn("Rejecting invalid client-provided trace ID: {}", traceId);
+                // Fall through to generate a new one
+            }
         }
         
-        return traceId;
+        // Generate a new trace ID if not provided or invalid
+        return TraceUtils.generateTraceId();
+    }
+    
+    /**
+     * Validate a trace ID
+     * 
+     * @param traceId Trace ID to validate
+     * @return true if valid, false otherwise
+     */
+    private boolean isValidTraceId(String traceId) {
+        return traceId != null && 
+               traceId.length() <= MAX_TRACE_ID_LENGTH && 
+               traceId.matches(TRACE_ID_PATTERN);
     }
 } 
