@@ -313,7 +313,19 @@ public class LogAspect {
     }
     
     /**
-     * Parameter array to string
+     * Parameter array to string conversion with sensitive data filtering
+     * 
+     * The filtering process works in two complementary layers:
+     * 1. Object-level filtering: Using isFilterObject() to completely exclude certain object types
+     *    (MultipartFile, HttpServletRequest, HttpServletResponse, BindingResult)
+     * 2. Field-level filtering: For objects that pass the first filter, sensitive fields are masked
+     *    based on both:
+     *    - Dynamic excludeParamNames from the Log annotation
+     *    - Static EXCLUDE_PROPERTIES (password, oldPassword, etc.)
+     * 
+     * @param paramsArray Array of parameter objects to be processed
+     * @param excludeParamNames Names of parameters to exclude/mask in the output
+     * @return String representation of parameters with sensitive data masked
      */
     private String argsArrayToString(Object[] paramsArray, String[] excludeParamNames) {
         StringBuilder params = new StringBuilder();
@@ -321,7 +333,19 @@ public class LogAspect {
             for (Object o : paramsArray) {
                 if (o != null && !isFilterObject(o)) {
                     try {
-                        params.append(JSON.toJSONString(o)).append(" ");
+                        String jsonStr = JSON.toJSONString(o);
+                        // Filter sensitive information based on excludeParamNames
+                        if (excludeParamNames != null && excludeParamNames.length > 0) {
+                            // Use regex replacement for excludeParamNames
+                            for (String excludeName : excludeParamNames) {
+                                jsonStr = jsonStr.replaceAll("\"" + excludeName + "\"\\s*:\\s*\"[^\"]*\"", "\"" + excludeName + "\":\"******\"");
+                            }
+                        }
+                        // Also check EXCLUDE_PROPERTIES for additional sensitive fields
+                        for (String excludeProp : EXCLUDE_PROPERTIES) {
+                            jsonStr = jsonStr.replaceAll("\"" + excludeProp + "\"\\s*:\\s*\"[^\"]*\"", "\"" + excludeProp + "\":\"******\"");
+                        }
+                        params.append(jsonStr).append(" ");
                     } catch (Exception e) {
                         // Ignore
                     }
