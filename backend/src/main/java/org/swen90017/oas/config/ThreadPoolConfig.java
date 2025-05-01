@@ -4,6 +4,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -14,16 +15,20 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 public class ThreadPoolConfig {
     // Core thread pool size
-    private int corePoolSize = 10;
+    @Value("${spring.thread-pool.default.core-pool-size:10}")
+    private int corePoolSize;
 
     // Maximum thread pool size
-    private int maxPoolSize = 50;
+    @Value("${spring.thread-pool.default.max-pool-size:50}")
+    private int maxPoolSize;
 
     // Queue size
-    private int queueCapacity = 200;
+    @Value("${spring.thread-pool.default.queue-capacity:200}")
+    private int queueCapacity;
 
     // Idle thread alive time
-    private int keepAliveSeconds = 300;
+    @Value("${spring.thread-pool.default.keep-alive-seconds:300}")
+    private int keepAliveSeconds;
 
     @Bean(name = "threadPoolTaskExecutor")
     public ThreadPoolTaskExecutor threadPoolTaskExecutor() {

@@ -17,6 +17,19 @@ spring:
     host: 54.206.56.77
     port: 6379
 
+  # Thread pool configuration
+  thread-pool:
+    # Default thread pool configuration
+    default:
+      core-pool-size: 10
+      max-pool-size: 50
+      queue-capacity: 200
+      keep-alive-seconds: 300
+    # possible to add more
+    # other-pool:
+    #   core-pool-size: 5
+    #   ...
+
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   type-aliases-package: org.swen90017.oas.entity
