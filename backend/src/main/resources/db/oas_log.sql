@@ -20,8 +20,10 @@ CREATE TABLE `sys_oper_log` (
   `error_msg` varchar(2000) DEFAULT '' COMMENT 'Error message',
   `oper_time` datetime DEFAULT NULL COMMENT 'Operation time',
   `cost_time` bigint(20) DEFAULT '0' COMMENT 'Execution time (ms)',
+  `trace_id` varchar(64) DEFAULT '' COMMENT 'Trace ID for request tracking',
   PRIMARY KEY (`oper_id`),
   KEY `idx_sys_oper_log_bt` (`business_type`),
   KEY `idx_sys_oper_log_s` (`status`),
-  KEY `idx_sys_oper_log_ot` (`oper_time`)
+  KEY `idx_sys_oper_log_ot` (`oper_time`),
+  KEY `idx_sys_oper_log_tid` (`trace_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='Operation log table'; 

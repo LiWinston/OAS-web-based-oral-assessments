@@ -85,4 +85,8 @@ public class SysOperLog implements Serializable {
     /** Execution time (ms) */
     @TableField("cost_time")
     private Long costTime;
+    
+    /** Trace ID for request tracking */
+    @TableField("trace_id")
+    private String traceId;
 } 

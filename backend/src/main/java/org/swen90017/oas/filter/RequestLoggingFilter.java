@@ -1,7 +1,6 @@
 package org.swen90017.oas.filter;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -15,9 +14,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.swen90017.oas.utils.IpUtils;
 import org.swen90017.oas.utils.ServletUtils;
+import org.swen90017.oas.utils.TraceContext;
+import org.swen90017.oas.utils.TraceUtils;
 
 /**
  * Global request logging filter
+ * Works with TracingFilter to provide request/response logging with trace IDs
  *
  * @author Yongchun Li
  */
@@ -25,11 +27,6 @@ import org.swen90017.oas.utils.ServletUtils;
 @Order(1)
 public class RequestLoggingFilter extends OncePerRequestFilter {
     private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
-    
-    /**
-     * Request ID header name
-     */
-    private static final String REQUEST_ID_HEADER = "X-Request-ID";
     
     // ANSI color codes for console output
     private static final String ANSI_RESET = "\u001B[0m";
@@ -45,46 +42,31 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         
-        // Record request start time
-        long startTime = System.currentTimeMillis();
-        
-        // Generate request ID
-        String requestId = generateRequestId();
-        
-        // Add request ID to response header
-        response.setHeader(REQUEST_ID_HEADER, requestId);
+        // Get trace ID (already set by TracingFilter thanks to TTL)
+        String traceId = TraceUtils.getTraceId();
         
         try {
             // Record request log
-            logRequestDetails(request, requestId);
+            logRequestDetails(request, traceId);
             
             // Continue processing the request
             filterChain.doFilter(request, response);
         } finally {
-            // Calculate request processing time
-            long duration = System.currentTimeMillis() - startTime;
+            // Get duration from TraceContext (automatically propagated by TTL)
+            long duration = TraceContext.current().getDuration();
             
             // Record response log
-            logResponseDetails(request, response, duration, requestId);
+            logResponseDetails(request, response, duration, traceId);
         }
-    }
-    
-    /**
-     * Generate unique request ID
-     *
-     * @return Request ID
-     */
-    private String generateRequestId() {
-        return UUID.randomUUID().toString().replace("-", "");
     }
     
     /**
      * Record request details
      *
      * @param request   Request
-     * @param requestId Request ID
+     * @param traceId   Trace ID
      */
-    private void logRequestDetails(HttpServletRequest request, String requestId) {
+    private void logRequestDetails(HttpServletRequest request, String traceId) {
         try {
             // Record request information
             String method = request.getMethod();
@@ -117,7 +99,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             String bottomSeparator = ANSI_CYAN + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
             
             logBuilder.append("\n").append(separator).append("\n");
-            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_BLUE).append("🔔 INCOMING REQUEST").append(ANSI_RESET).append(" [").append(requestId).append("]").append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_BLUE).append("🔔 INCOMING REQUEST").append(ANSI_RESET).append(" [").append(traceId).append("]").append("\n");
             logBuilder.append(ANSI_CYAN + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET).append("\n");
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("    ").append(coloredMethod).append("\n");
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("       ").append(url).append("\n");
@@ -142,9 +124,9 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
      * @param request   Request
      * @param response  Response
      * @param duration  Processing time
-     * @param requestId Request ID
+     * @param traceId   Trace ID
      */
-    private void logResponseDetails(HttpServletRequest request, HttpServletResponse response, long duration, String requestId) {
+    private void logResponseDetails(HttpServletRequest request, HttpServletResponse response, long duration, String traceId) {
         try {
             // Get status color based on response status
             String statusColor = ANSI_GREEN;
@@ -170,7 +152,7 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
             String bottomSeparator = ANSI_PURPLE + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
             
             logBuilder.append("\n").append(separator).append("\n");
-            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_PURPLE).append("📤 OUTGOING RESPONSE").append(ANSI_RESET).append(" [").append(requestId).append("]").append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_PURPLE).append("📤 OUTGOING RESPONSE").append(ANSI_RESET).append(" [").append(traceId).append("]").append("\n");
             logBuilder.append(ANSI_PURPLE + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET).append("\n");
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URI:").append(ANSI_RESET).append("      ").append(request.getRequestURI()).append("\n");
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Status:").append(ANSI_RESET).append("   ").append(statusColor).append(status).append(ANSI_RESET).append("\n");

@@ -28,6 +28,7 @@ import org.swen90017.oas.utils.IpUtils;
 import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.utils.ServletUtils;
 import org.swen90017.oas.utils.StringUtils;
+import org.swen90017.oas.utils.TraceUtils;
 
 import com.alibaba.fastjson2.JSON;
 
@@ -93,6 +94,9 @@ public class LogAspect {
     public Object doAround(ProceedingJoinPoint joinPoint) throws Throwable {
         // Start time
         long startTime = System.currentTimeMillis();
+        
+        // Ensure trace ID is set for this operation (with TTL support)
+        String traceId = TraceUtils.getOrGenerateTraceId();
         
         // Execute method
         Object result = joinPoint.proceed();
@@ -210,6 +214,9 @@ public class LogAspect {
      */
     protected void handleLog(final JoinPoint joinPoint, Log controllerLog, final Exception e, Object jsonResult) {
         try {
+            // Get trace ID for this operation (TTL handles thread propagation automatically)
+            String traceId = TraceUtils.getTraceId();
+            
             OperationInfo info = getOperationInfo(joinPoint);
             if (info == null) {
                 return;
@@ -218,6 +225,11 @@ public class LogAspect {
             // Database log
             SysOperLog operLog = new SysOperLog();
             operLog.setStatus(e == null ? BusinessStatus.SUCCESS.getCode() : BusinessStatus.FAIL.getCode());
+            
+            // Set trace ID for this operation
+            if (StringUtils.isNotBlank(traceId)) {
+                operLog.setTraceId(traceId);
+            }
             
             // Request URL
             operLog.setOperIp(info.ipAddr);

@@ -1,5 +1,6 @@
 package org.swen90017.oas.config;
 
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -9,8 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import com.alibaba.ttl.threadpool.TtlExecutors;
+
 /**
- * Thread pool configuration
+ * Thread pool configuration with TransmittableThreadLocal (TTL) support
  */
 @Configuration
 public class ThreadPoolConfig {
@@ -31,7 +34,7 @@ public class ThreadPoolConfig {
     private int keepAliveSeconds;
 
     @Bean(name = "threadPoolTaskExecutor")
-    public ThreadPoolTaskExecutor threadPoolTaskExecutor() {
+    public Executor threadPoolTaskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(corePoolSize);
         executor.setMaxPoolSize(maxPoolSize);
@@ -39,15 +42,23 @@ public class ThreadPoolConfig {
         executor.setKeepAliveSeconds(keepAliveSeconds);
         // Rejection policy: Caller runs the task in the caller's thread
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
-        return executor;
+        
+        // Initialize the executor
+        executor.initialize();
+        
+        // Wrap with TTL for automatic context propagation
+        return TtlExecutors.getTtlExecutor(executor);
     }
 
     /**
-     * Scheduled thread pool for executing timed tasks
+     * Scheduled thread pool for executing timed tasks, wrapped with TTL
      */
     @Bean(name = "scheduledExecutorService")
     protected ScheduledExecutorService scheduledExecutorService() {
-        return new ScheduledThreadPoolExecutor(corePoolSize,
-                new ThreadPoolExecutor.CallerRunsPolicy());
+        ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(corePoolSize);
+        executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
+        
+        // Wrap with TTL for automatic context propagation
+        return TtlExecutors.getTtlScheduledExecutorService(executor);
     }
 } 
