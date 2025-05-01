@@ -25,10 +25,13 @@ spring:
       max-pool-size: 50
       queue-capacity: 200
       keep-alive-seconds: 300
-    # possible to add more
-    # other-pool:
-    #   core-pool-size: 5
-    #   ...
+    # Async task executor configuration
+    async:
+      core-pool-size: 5
+      max-pool-size: 10
+      queue-capacity: 100
+      keep-alive-seconds: 60
+      thread-name-prefix: Async-
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
