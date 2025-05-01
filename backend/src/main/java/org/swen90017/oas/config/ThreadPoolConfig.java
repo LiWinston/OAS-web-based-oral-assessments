@@ -32,6 +32,10 @@ public class ThreadPoolConfig {
     // Idle thread alive time
     @Value("${spring.thread-pool.default.keep-alive-seconds:300}")
     private int keepAliveSeconds;
+    
+    // Thread name prefix for default pool
+    @Value("${spring.thread-pool.default.thread-name-prefix:DefaultTask-}")
+    private String threadNamePrefix;
 
     @Bean(name = "threadPoolTaskExecutor")
     public Executor threadPoolTaskExecutor() {
@@ -40,6 +44,8 @@ public class ThreadPoolConfig {
         executor.setMaxPoolSize(maxPoolSize);
         executor.setQueueCapacity(queueCapacity);
         executor.setKeepAliveSeconds(keepAliveSeconds);
+        // Set thread name prefix
+        executor.setThreadNamePrefix(threadNamePrefix);
         // Rejection policy: Caller runs the task in the caller's thread
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         
@@ -56,6 +62,10 @@ public class ThreadPoolConfig {
     @Bean(name = "scheduledExecutorService")
     protected ScheduledExecutorService scheduledExecutorService() {
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(corePoolSize);
+        executor.setThreadFactory(r -> {
+            Thread t = new Thread(r, "Scheduled-" + r.hashCode());
+            return t;
+        });
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         
         // Wrap with TTL for automatic context propagation

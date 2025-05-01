@@ -25,6 +25,7 @@ spring:
       max-pool-size: 50
       queue-capacity: 200
       keep-alive-seconds: 300
+      thread-name-prefix: DefaultTask-
     # Async task executor configuration
     async:
       core-pool-size: 5
