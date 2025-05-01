@@ -118,6 +118,89 @@ public class LogAspect {
     }
     
     /**
+     * Class to hold operation information
+     */
+    private static class OperationInfo {
+        private HttpServletRequest request;
+        private Log logAnnotation;
+        private String username;
+        private String userRole;
+        private String requestMethod;
+        private String requestUrl;
+        private String ipAddr;
+        private String userAgent;
+        private String module;
+        private String businessType;
+        private String requestParams;
+        private String className;
+        private String methodName;
+        
+        public String getFullMethodName() {
+            return className + "." + methodName;
+        }
+    }
+    
+    /**
+     * Get common operation information from JoinPoint
+     * 
+     * @param joinPoint JoinPoint
+     * @return OperationInfo object containing all common information
+     */
+    private OperationInfo getOperationInfo(JoinPoint joinPoint) {
+        try {
+            // Get HttpServletRequest
+            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+            if (attributes == null) {
+                return null;
+            }
+            
+            HttpServletRequest request = attributes.getRequest();
+            
+            // Get operation log annotation information
+            Log logAnnotation = getLogAnnotation(joinPoint);
+            if (logAnnotation == null) {
+                return null;
+            }
+            
+            OperationInfo info = new OperationInfo();
+            info.request = request;
+            info.logAnnotation = logAnnotation;
+            
+            // Get current logged-in user information
+            info.username = SecurityUtils.getUsername();
+            info.userRole = SecurityUtils.getUserRole();
+            
+            // Record request information
+            info.requestMethod = request.getMethod();
+            info.requestUrl = ServletUtils.getFullRequestUrl(request);
+            info.ipAddr = IpUtils.getIpAddr();
+            info.userAgent = request.getHeader("User-Agent");
+            
+            // Get module name
+            info.module = StringUtils.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
+            
+            // Get operation type
+            info.businessType = logAnnotation.businessType().toString();
+            
+            // Record method parameters
+            if (logAnnotation.isSaveRequestData()) {
+                info.requestParams = getRequestParams(joinPoint, request);
+            } else {
+                info.requestParams = "";
+            }
+            
+            // Method information
+            info.className = joinPoint.getSignature().getDeclaringTypeName();
+            info.methodName = joinPoint.getSignature().getName();
+            
+            return info;
+        } catch (Exception ex) {
+            log.error("Failed to get operation info", ex);
+            return null;
+        }
+    }
+    
+    /**
      * Handle log recording
      * 
      * @param joinPoint  Join point
@@ -127,34 +210,32 @@ public class LogAspect {
      */
     protected void handleLog(final JoinPoint joinPoint, Log controllerLog, final Exception e, Object jsonResult) {
         try {
-            // Get current user
-            String username = SecurityUtils.getUsername();
-            String userRole = SecurityUtils.getUserRole();
-
+            OperationInfo info = getOperationInfo(joinPoint);
+            if (info == null) {
+                return;
+            }
+            
             // Database log
             SysOperLog operLog = new SysOperLog();
             operLog.setStatus(e == null ? BusinessStatus.SUCCESS.getCode() : BusinessStatus.FAIL.getCode());
             
             // Request URL
-            String ip = IpUtils.getIpAddr();
-            operLog.setOperIp(ip);
-            operLog.setOperUrl(StringUtils.substring(ServletUtils.getRequest().getRequestURI(), 0, 255));
+            operLog.setOperIp(info.ipAddr);
+            operLog.setOperUrl(StringUtils.substring(info.request.getRequestURI(), 0, 255));
             
             // Set operator info
-            operLog.setOperName(username);
-            operLog.setOperRole(userRole);
+            operLog.setOperName(info.username);
+            operLog.setOperRole(info.userRole);
 
             if (e != null) {
                 operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
             }
             
             // Set method name
-            String className = joinPoint.getTarget().getClass().getName();
-            String methodName = joinPoint.getSignature().getName();
-            operLog.setMethod(className + "." + methodName + "()");
+            operLog.setMethod(info.getFullMethodName() + "()");
             
             // Set request method
-            operLog.setRequestMethod(ServletUtils.getRequest().getMethod());
+            operLog.setRequestMethod(info.requestMethod);
             
             // Handle annotation parameters
             getControllerMethodDescription(joinPoint, controllerLog, operLog, jsonResult);
@@ -289,52 +370,22 @@ public class LogAspect {
      */
     private void recordRequestLog(JoinPoint joinPoint, long time) {
         try {
-            // Get HttpServletRequest
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes == null) {
+            OperationInfo info = getOperationInfo(joinPoint);
+            if (info == null) {
                 return;
-            }
-            
-            HttpServletRequest request = attributes.getRequest();
-            
-            // Get operation log annotation information
-            Log logAnnotation = getLogAnnotation(joinPoint);
-            if (logAnnotation == null) {
-                return;
-            }
-            
-            // Get current logged-in user information
-            String username = SecurityUtils.getUsername();
-            
-            // Record request information
-            String requestMethod = request.getMethod();
-            String requestUrl = ServletUtils.getFullRequestUrl(request);
-            String ipAddr = IpUtils.getIpAddr();
-            String userAgent = request.getHeader("User-Agent");
-            
-            // Get module name
-            String module = StringUtils.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
-            
-            // Get operation type
-            String businessType = logAnnotation.businessType().toString();
-            
-            // Record method parameters
-            String requestParams = "";
-            if (logAnnotation.isSaveRequestData()) {
-                requestParams = getRequestParams(joinPoint, request);
             }
             
             // Color for method based on request type
             String methodColor = ANSI_BLUE;
-            if ("GET".equalsIgnoreCase(requestMethod)) {
+            if ("GET".equalsIgnoreCase(info.requestMethod)) {
                 methodColor = ANSI_GREEN;
-            } else if ("POST".equalsIgnoreCase(requestMethod)) {
+            } else if ("POST".equalsIgnoreCase(info.requestMethod)) {
                 methodColor = ANSI_BLUE;
-            } else if ("PUT".equalsIgnoreCase(requestMethod)) {
+            } else if ("PUT".equalsIgnoreCase(info.requestMethod)) {
                 methodColor = ANSI_YELLOW;
-            } else if ("DELETE".equalsIgnoreCase(requestMethod)) {
+            } else if ("DELETE".equalsIgnoreCase(info.requestMethod)) {
                 methodColor = ANSI_RED;
-            } else if ("PATCH".equalsIgnoreCase(requestMethod)) {
+            } else if ("PATCH".equalsIgnoreCase(info.requestMethod)) {
                 methodColor = ANSI_PURPLE;
             }
             
@@ -354,23 +405,22 @@ public class LogAspect {
             String midSeparator = ANSI_YELLOW + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET;
             
             logBuilder.append("\n").append(separator).append("\n");
-            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_YELLOW).append("📋 REQUEST LOG").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(module).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_YELLOW).append("📋 REQUEST LOG").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(info.module).append(ANSI_RESET).append("\n");
             logBuilder.append(midSeparator).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(businessType).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(info.businessType).append("\n");
             
-            if (StringUtils.isNotEmpty(username)) {
-                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User:").append(ANSI_RESET).append("       ").append(username).append("\n");
+            if (StringUtils.isNotEmpty(info.username)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User:").append(ANSI_RESET).append("       ").append(info.username).append("\n");
             }
             
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(ipAddr).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(requestUrl).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(methodColor).append(requestMethod).append(ANSI_RESET).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User-Agent:").append(ANSI_RESET).append(" ").append(userAgent).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
-                    .append(".").append(joinPoint.getSignature().getName()).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(info.ipAddr).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(info.requestUrl).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(methodColor).append(info.requestMethod).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User-Agent:").append(ANSI_RESET).append(" ").append(info.userAgent).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(info.getFullMethodName()).append("\n");
             
-            if (StringUtils.isNotEmpty(requestParams)) {
-                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
+            if (StringUtils.isNotEmpty(info.requestParams)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(info.requestParams).append("\n");
             }
             
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Exec Time:").append(ANSI_RESET).append("  ").append(timeColor).append(time).append(" ms").append(ANSI_RESET).append("\n");
@@ -390,38 +440,9 @@ public class LogAspect {
      */
     private void recordExceptionLog(JoinPoint joinPoint, Exception e) {
         try {
-            // Get HttpServletRequest
-            ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-            if (attributes == null) {
+            OperationInfo info = getOperationInfo(joinPoint);
+            if (info == null) {
                 return;
-            }
-            
-            HttpServletRequest request = attributes.getRequest();
-            
-            // Get operation log annotation information
-            Log logAnnotation = getLogAnnotation(joinPoint);
-            if (logAnnotation == null) {
-                return;
-            }
-            
-            // Get current logged-in user information
-            String username = SecurityUtils.getUsername();
-            
-            // Record request information
-            String requestMethod = request.getMethod();
-            String requestUrl = ServletUtils.getFullRequestUrl(request);
-            String ipAddr = IpUtils.getIpAddr();
-            
-            // Get module name
-            String module = StringUtils.isEmpty(logAnnotation.module()) ? "" : logAnnotation.module();
-            
-            // Get operation type
-            String businessType = logAnnotation.businessType().toString();
-            
-            // Record method parameters
-            String requestParams = "";
-            if (logAnnotation.isSaveRequestData()) {
-                requestParams = getRequestParams(joinPoint, request);
             }
             
             // Create decorative output for exception
@@ -432,22 +453,21 @@ public class LogAspect {
             String midSeparator = ANSI_RED + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET;
             
             logBuilder.append("\n").append(separator).append("\n");
-            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_RED).append("❌ EXCEPTION").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(module).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(ANSI_RED).append("❌ EXCEPTION").append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(info.module).append(ANSI_RESET).append("\n");
             logBuilder.append(midSeparator).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(businessType).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(info.businessType).append("\n");
             
-            if (StringUtils.isNotEmpty(username)) {
-                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User:").append(ANSI_RESET).append("       ").append(username).append("\n");
+            if (StringUtils.isNotEmpty(info.username)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User:").append(ANSI_RESET).append("       ").append(info.username).append("\n");
             }
             
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(ipAddr).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(requestUrl).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(requestMethod).append("\n");
-            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(joinPoint.getSignature().getDeclaringTypeName())
-                    .append(".").append(joinPoint.getSignature().getName()).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(info.ipAddr).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(info.requestUrl).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(info.requestMethod).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(info.getFullMethodName()).append("\n");
             
-            if (StringUtils.isNotEmpty(requestParams)) {
-                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(requestParams).append("\n");
+            if (StringUtils.isNotEmpty(info.requestParams)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(info.requestParams).append("\n");
             }
             
             logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Exception:").append(ANSI_RESET).append("  ").append(ANSI_RED).append(e.getMessage()).append(ANSI_RESET).append("\n");
