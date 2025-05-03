@@ -139,6 +139,13 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
+        <!-- For Security Filter -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.10.0</version>
+        </dependency>
+
         <!-- Alibaba Fastjson2 -->
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
