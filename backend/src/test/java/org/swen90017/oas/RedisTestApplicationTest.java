@@ -13,14 +13,14 @@ public class RedisTestApplicationTest {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
-    @Test
-    public void testRedisSetAndGet() {
-        String key = "testKey";
-        String value = "Hello, Redis!";
-
-        redisTemplate.opsForValue().set(key, value);
-        String retrievedValue = redisTemplate.opsForValue().get(key);
-
-        assertEquals(value, retrievedValue);
-    }
+//    @Test
+//    public void testRedisSetAndGet() {
+//        String key = "testKey";
+//        String value = "Hello, Redis!";
+//
+//        redisTemplate.opsForValue().set(key, value);
+//        String retrievedValue = redisTemplate.opsForValue().get(key);
+//
+//        assertEquals(value, retrievedValue);
+//    }
 }

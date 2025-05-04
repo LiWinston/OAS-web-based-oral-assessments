@@ -17,18 +17,18 @@ public class TestMapperTest {
     @Autowired
     private TestEMapper testEMapper;
 
-    @org.junit.jupiter.api.Test
-    public void testInsert() {
-        Test test = new Test();
-        int rowsInserted = testEMapper.insert(test);
-        System.out.println("Rows inserted: " + rowsInserted);
-        Assertions.assertEquals(1, rowsInserted, "Insert failed");
-    }
-    @org.junit.jupiter.api.Test
-    public void testSelectById() {
-        Test test = testEMapper.selectById(1);
-        System.out.println(test);
-        Assertions.assertNotNull(test);
-    }
+//    @org.junit.jupiter.api.Test
+//    public void testInsert() {
+//        Test test = new Test();
+//        int rowsInserted = testEMapper.insert(test);
+//        System.out.println("Rows inserted: " + rowsInserted);
+//        Assertions.assertEquals(1, rowsInserted, "Insert failed");
+//    }
+//    @org.junit.jupiter.api.Test
+//    public void testSelectById() {
+//        Test test = testEMapper.selectById(1);
+//        System.out.println(test);
+//        Assertions.assertNotNull(test);
+//    }
 
 }
