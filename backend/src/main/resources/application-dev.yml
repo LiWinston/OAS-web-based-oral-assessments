@@ -9,4 +9,4 @@ spring:
 logging:
   level:
     org.swen90017.oas: debug
-    org.springframework: info 
+    org.springframework: info

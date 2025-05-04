@@ -1,9 +1,10 @@
 package org.swen90017.oas.utils;
 
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
+import org.swen90017.oas.common.CommonError;
+import org.swen90017.oas.exception.BusinessException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -909,24 +910,16 @@ public class Convert
     public static <T> T convertObject(Object object, Class<T> classOfT) {
         if (object == null) return null;
 
-
         T t = null;
 
         try {
             t = classOfT.getDeclaredConstructor().newInstance();
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (InvocationTargetException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            throw new BusinessException(CommonError.CONVERSION_ERROR);
         }
-        // TODO: Replace this with custom BusinessException class implementation and define a CommonErrors enum or class with standard error codes/messages
+
         BeanUtils.copyProperties(object, t);
         return t;
-
     }
 
     /**

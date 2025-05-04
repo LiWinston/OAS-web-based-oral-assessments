@@ -136,6 +136,21 @@ public class Constants {
     public static final String JWT_AUTHORITIES = "authorities";
 
     /**
+     * Access Token Type
+     */
+    public static final String TOKEN_TYPE_ACCESS = "access";
+    
+    /**
+     * Refresh Token Type
+     */
+    public static final String TOKEN_TYPE_REFRESH = "refresh";
+    
+    /**
+     * Token Type Claim Name
+     */
+    public static final String JWT_TOKEN_TYPE = "token_type";
+
+    /**
      * Resource Mapping Path Prefix
      */
     public static final String RESOURCE_PREFIX = "/profile";

@@ -8,10 +8,14 @@ spring:
     active: dev
 
   datasource:
-    url: jdbc:mysql://localhost:3307/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3307/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false
     username: swen90017_user
     password: 90017
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    time-zone: "Australia/Melbourne"
+    date-format: yyyy-MM-dd HH:mm:ss
 
   redis:
     host: 54.206.56.77
@@ -51,3 +55,10 @@ logging:
     name: ./logs/oas-application.log
     # Ensure file logs use UTF-8 encoding
     charset: UTF-8
+
+token:
+  secret: jfNxVkcV8ESLUZBobgwoMawGDtVGlzt/r+ytDFPnU2iQpgw9q0CqzYbl+GIiX6Ct8ZJGMgrgqs10QCjV2H3e9g==
+  # Access token validity period (in minutes)
+  expireTime: 15
+  # Refresh token validity period (in days)
+  refreshExpireTime: 30
