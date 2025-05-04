@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAS Project Client Meeting</title>
+    <style>
+        /* ====== Base Styles ====== */
+        :root {
+            --primary-color: #1a3d7c;
+            --secondary-color: #f0f6ff;
+            --accent-color: #ff8c00;
+            --text-color: #333333;
+            --light-text: #ffffff;
+            --background-color: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.1);
+            --transition-speed: 0.3s;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background-color: var(--background-color);
+            line-height: 1.6;
+            overflow: hidden;
+        }
+        
+        /* ====== Typography ====== */
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+        
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 0.8rem;
+            color: var(--primary-color);
+        }
+        
+        h3 {
+            font-size: 1.8rem;
+            margin-bottom: 0.6rem;
+            color: var(--primary-color);
+        }
+        
+        p, li {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        span {
+            font-size: 1.4rem;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .subtitle {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            opacity: 0.8;
+            margin-bottom: 1rem;
+        }
+        
+        .emphasis {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        
+        /* ====== Layout ====== */
+        .slide-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            padding: 3rem;
+            overflow-y: auto;
+            background-color: var(--background-color);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            z-index: 1;
+        }
+        
+        .slide-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        .slide-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .slide-footer {
+            margin-top: auto;
+            padding-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+        
+        /* ====== Components ====== */
+        .logo {
+            height: 50px;
+            width: auto;
+        }
+        
+        .slide-number {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-btn {
+            background-color: var(--primary-color);
+            color: var(--light-text);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform var(--transition-speed), background-color var(--transition-speed);
+            box-shadow: 0 2px 10px var(--shadow-color);
+        }
+        
+        .nav-btn:hover {
+            background-color: var(--accent-color);
+            transform: scale(1.1);
+        }
+        
+        .nav-btn:focus {
+            outline: 3px solid var(--accent-color);
+        }
+        
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 5px;
+            background-color: var(--accent-color);
+            z-index: 100;
+            transition: width var(--transition-speed);
+        }
+        
+        /* ====== Title Slide ====== */
+        .title-slide {
+            background: linear-gradient(135deg, var(--primary-color), #0a1f40);
+            color: var(--light-text);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .title-slide h1 {
+            color: var(--light-text);
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .title-slide .subtitle {
+            color: var(--light-text);
+            font-size: 1.5rem;
+            margin-bottom: 3rem;
+            opacity: 0.9;
+        }
+        
+        .presenter-info {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            max-width: 600px;
+        }
+        
+        /* ====== Agenda Slide ====== */
+        .agenda-list {
+            list-style-type: none;
+        }
+        
+        .agenda-list li {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: baseline;
+        }
+        
+        .agenda-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-right: 1rem;
+            min-width: 3rem;
+        }
+        
+        .agenda-time {
+            color: var(--accent-color);
+            margin-left: 1rem;
+            font-weight: bold;
+        }
+        
+        /* ====== Content Slides ====== */
+        .two-column {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        
+        .column {
+            flex: 1;
+        }
+        
+        .content-box {
+            background-color: var(--secondary-color);
+            font-size: 1.2rem;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px var(--shadow-color);
+        }
+        
+        .highlight-box {
+            border-left: 5px solid var(--accent-color);
+            padding-left: 1rem;
+            margin: 1.5rem 0;
+        }
+        
+        .bullet-list {
+            list-style-type: none;
+            padding-left: 1.5rem;
+        }
+        
+        .bullet-list li {
+            position: relative;
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+        }
+        
+        .bullet-list li:before {
+            content: "•";
+            color: var(--accent-color);
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        
+        .sub-bullet {
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .sub-bullet:before {
+            content: "◦" !important;
+            font-size: 1rem !important;
+        }
+        
+        /* ====== Responsive Styles ====== */
+        @media (max-width: 768px) {
+            .slide {
+                padding: 1.5rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            h2 {
+                font-size: 1.6rem;
+            }
+            
+            h3 {
+                font-size: 1.3rem;
+            }
+            
+            p, li {
+                font-size: 1rem;
+            }
+            
+            .two-column {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .navigation {
+                bottom: 1rem;
+                right: 1rem;
+            }
+            
+            .nav-btn {
+                width: 40px;
+                height: 40px;
+            }
+        }
+        
+        /* ====== Print Styles ====== */
+        @media print {
+            .slide {
+                opacity: 1 !important;
+                visibility: visible !important;
+                position: relative;
+                page-break-after: always;
+                height: auto;
+            }
+            
+            .navigation, .progress-bar {
+                display: none;
+            }
+            
+            .slide-container {
+                height: auto;
+                overflow: visible;
+            }
+            
+            body {
+                overflow: visible;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <!-- Slide Container -->
+    <div class="slide-container" id="slideContainer">
+        <!-- Slide 1: Agenda -->
+        <section class="slide active" id="slide1" aria-labelledby="slide1-heading">
+            <div class="slide-header">
+                <h2 id="slide1-heading">Meeting Agenda</h2>
+            </div>
+            
+            <div class="slide-content">
+                <ul class="agenda-list">
+                    <li>
+                        <span class="agenda-number">01</span>
+                        <span>Team Progress</span>
+                        <span class="agenda-time">(10 min)</span>
+                    </li>
+                    <li>
+                        <span class="agenda-number">02</span>
+                        <span>Project Scope Review</span>
+                        <span class="agenda-time">(20 min)</span>
+                    </li>
+                    <li>
+                        <span class="agenda-number">03</span>
+                        <span>User Stories & Acceptance Criteria</span>
+                        <span class="agenda-time">(25 min)</span>
+                    </li>
+                    <li>
+                        <span class="agenda-number">04</span>
+                        <span>Prototype Demonstration</span>
+                        <span class="agenda-time">(25 min)</span>
+                    </li>
+                    <li>
+                        <span class="agenda-number">05</span>
+                        <span>API Discussion & Integration Approach</span>
+                        <span class="agenda-time">(10 min)</span>
+                    </li>
+                    <li>
+                        <span class="agenda-number">06</span>
+                        <span>Questions & Next Steps</span>
+                        <span class="agenda-time">(10 min)</span>
+                    </li>
+                </ul>
+                
+                <div class="highlight-box">
+                    <p><strong>Total Duration:</strong> ~100 minutes</p>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 1</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 2: Team Progress -->
+        <section class="slide" id="slide2" aria-labelledby="slide2-heading">
+            <div class="slide-header">
+                <h2 id="slide2-heading">Team Progress</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="content-box">
+                    <h3>Project Organization & Documentation</h3>
+                    <ul class="bullet-list">
+                        <li>Established GitHub repository and documentation structure</li>
+                        <li>Created detailed user stories and acceptance criteria</li>
+                        <li>Completed stakeholder analysis and project scope documentation</li>
+                    </ul>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Team Structure & Communication</h3>
+                        <ul class="bullet-list">
+                            <li>Weekly standups (Thursday 9-10am)</li>
+                            <li>Weekly team meetings (Saturday 2-4pm)</li>
+                            <li>Agile ceremonies in place (Sprint Planning, Review, Retrospective)</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>Current Sprint Status</h3>
+                        <ul class="bullet-list">
+                            <li>Sprint 2 (Weeks 5-8) in progress</li>
+                            <li>Focused on architecture design and prototype development</li>
+                            <li>Technology stack decisions finalized</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 2</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 3: Project Scope Overview -->
+        <section class="slide" id="slide3" aria-labelledby="slide3-heading">
+            <div class="slide-header">
+                <h2 id="slide3-heading">Project Scope - Overview</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <p>The Oral Assessment System (OAS) will streamline the entire oral assessment lifecycle</p>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <div class="content-box">
+                            <h3>Core Problem</h3>
+                            <p>Current practices for managing oral assessments are manual, fragmented, and inefficient</p>
+                        </div>
+                        
+                        <div class="content-box">
+                            <h3>Vision</h3>
+                            <p>Create a unified platform to manage oral assessments from scheduling through to feedback delivery</p>
+                        </div>
+                    </div>
+                    
+                    <div class="column">
+                        <div class="content-box">
+                            <h3>Key Goals</h3>
+                            <ul class="bullet-list">
+                                <li>Streamline scheduling and booking process</li>
+                                <li>Support structured feedback with customizable rubrics</li>
+                                <li>Automate mark aggregation</li>
+                                <li>Enable seamless integration with Canvas</li>
+                                <li>Enhance user experience with role-based interfaces</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-box">
+                    <h3>Stakeholders</h3>
+                    <p>Students, Examiners, and Administrators</p>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 3</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 4: In-Scope Features (1/2) -->
+        <section class="slide" id="slide4" aria-labelledby="slide4-heading">
+            <div class="slide-header">
+                <h2 id="slide4-heading">Project Scope - In-Scope Features (1/2)</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="content-box">
+                    <h3>1. User Account Management</h3>
+                    <ul class="bullet-list">
+                        <li>Creation and management of user accounts (students, examiners, administrators)</li>
+                        <li>Secure authentication and role-based access control</li>
+                    </ul>
+                </div>
+                
+                <div class="content-box">
+                    <h3>2. Assessment Configuration</h3>
+                    <ul class="bullet-list">
+                        <li>Setup of academic periods (year, semester, subject)</li>
+                        <li>Creation of assignments with individual or group designations</li>
+                        <li>Configuration of customizable marking rubrics with hierarchical criteria</li>
+                    </ul>
+                </div>
+                
+                <div class="content-box">
+                    <h3>3. Scheduling and Booking</h3>
+                    <ul class="bullet-list">
+                        <li>Administrator definition of assessment time slots and venues</li>
+                        <li>Student booking of assessment slots (individual or group)</li>
+                        <li>Examiner self-assignment to assessment slots</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 4</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 5: In-Scope Features (2/2) -->
+        <section class="slide" id="slide5" aria-labelledby="slide5-heading">
+            <div class="slide-header">
+                <h2 id="slide5-heading">Project Scope - In-Scope Features (2/2)</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="content-box">
+                    <h3>4. Assessment Execution</h3>
+                    <ul class="bullet-list">
+                        <li>Interface for examiners to view their assessment schedule</li>
+                        <li>Tools for recording individual and group feedback</li>
+                        <li>Support for predefined comments to ensure consistent feedback</li>
+                        <li>Capability to save draft assessments and submit final marks</li>
+                    </ul>
+                </div>
+                
+                <div class="content-box">
+                    <h3>5. Mark Management and Reporting</h3>
+                    <ul class="bullet-list">
+                        <li>Calculation and aggregation of marks based on rubric components</li>
+                        <li>Control over when results are visible to students</li>
+                        <li>Student access to their marks and feedback after release</li>
+                        <li>Import/Export Canvas compatible data format (csv)</li>
+                    </ul>
+                </div>
+                
+                <div class="content-box">
+                    <h3>6. Integration, Notifications & Security</h3>
+                    <ul class="bullet-list">
+                        <li>Import/export of student and group data via CSV files</li>
+                        <li>Email confirmations and reminders</li>
+                        <li>Privacy policy agreement and audit logging</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 5</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 6: Out-of-Scope Items -->
+        <section class="slide" id="slide6" aria-labelledby="slide6-heading">
+            <div class="slide-header">
+                <h2 id="slide6-heading">Project Scope - Out-of-Scope Items</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <p>The following items are explicitly excluded from the project scope:</p>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column">
+                        <div class="content-box">
+                            <h3>1. Direct Integration with University Systems</h3>
+                            <ul class="bullet-list">
+                                <li>No direct API integration with university student management systems</li>
+                                <li>No single sign-on (SSO) integration with university authentication systems</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="content-box">
+                            <h3>2. Mobile Application Development</h3>
+                            <p>The system will be web-based with responsive design, but no dedicated mobile apps will be developed</p>
+                        </div>
+                        
+                        <div class="content-box">
+                            <h3>3. Advanced Analytics and Reporting</h3>
+                            <p>While basic reporting will be included, advanced analytics and data visualization tools are out of scope</p>
+                        </div>
+                    </div>
+                    
+                    <div class="column">
+                        <div class="content-box">
+                            <h3>4. Automated Grading or AI-Assisted Assessment</h3>
+                            <p>The system will not include AI tools for automated assessment or grading assistance</p>
+                        </div>
+                        
+                        <div class="content-box">
+                            <h3>5. Live Video Assessment Capabilities</h3>
+                            <p>The platform will not include built-in video conferencing for remote assessments</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 6</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 7: User Personas -->
+        <section class="slide" id="slide7" aria-labelledby="slide7-heading">
+            <div class="slide-header">
+                <h2 id="slide7-heading">User Personas</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Administrator: Sarah Chen (45)</h3>
+                        <p><strong>Role:</strong> Senior Teaching Fellow & Subject Coordinator</p>
+                        <p><strong>Needs:</strong></p>
+                        <ul class="bullet-list">
+                            <li>Efficient setup and configuration</li>
+                            <li>Standardized marking processes</li>
+                            <li>Canvas csv data file integration</li>
+                        </ul>
+                        <p><strong>Pain Points:</strong></p>
+                        <ul class="bullet-list">
+                            <li>Manual data handling</li>
+                            <li>Complex scheduling coordination</li>
+                            <li>Mark consolidation errors</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column">
+                        <div class="content-box">
+                            <h3>Examiner: Dr. Ben Carter (32)</h3>
+                            <p><strong>Role:</strong> PhD Candidate & Sessional Tutor</p>
+                            <p><strong>Needs:</strong></p>
+                            <ul class="bullet-list">
+                                <li>Clear assessment schedule</li>
+                                <li>Efficient marking interface</li>
+                                <li>Consistent feedback tools</li>
+                            </ul>
+                            <p><strong>Pain Points:</strong></p>
+                            <ul class="bullet-list">
+                                <li>Time pressure during assessments</li>
+                                <li>Clunky marking interfaces</li>
+                                <li>Scheduling conflicts</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="content-box">
+                            <h3>Student: Chloe Nguyen (20)</h3>
+                            <p><strong>Role:</strong> 2nd Year Bachelor of Science Student</p>
+                            <p><strong>Needs:</strong> Easy booking, clear information, timely access to results</p>
+                            <p><strong>Pain Points:</strong> Booking rush, group coordination, unclear feedback</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 7</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 8: Key User Stories - Administrator -->
+        <section class="slide" id="slide8" aria-labelledby="slide8-heading">
+            <div class="slide-header">
+                <h2 id="slide8-heading">Key User Stories - Administrator</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <p><strong>As an administrator, I want to:</strong></p>
+                </div>
+                
+                <div class="content-box">
+                    <ul class="bullet-list">
+                        <li>Upload a CSV file containing students and group information so that I can import data automatically and easily</li>
+                        <li>Create specific assignments linked to subjects, designating them as individual or group based so that the booking and marking process aligns with the assignment type</li>
+                        <li>Create and manage fully customizable marking rubrics associated with specific assignments so that examiners can follow a standardized assessment approach</li>
+                        <li>Define available time slots and venues/locations for oral assessments linked to specific assignments so that students have a structured schedule to book from</li>
+                        <li>View and calculate total marks based on rubric components and algorithm so that the final grade is accurate</li>
+                    </ul>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Critical Requirements</h3>
+                        <ul class="bullet-list">
+                            <li>CSV import/export compatibility with Canvas</li>
+                            <li>Flexible rubric creation with hierarchical criteria</li>
+                            <li>Automated mark calculation and aggregation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>High-Value Features</h3>
+                        <ul class="bullet-list">
+                            <li>Error handling during data import/export</li>
+                            <li>Ability to preview changes before updates</li>
+                            <li>Control over result visibility timing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 8</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 9: Key User Stories - Examiner -->
+        <section class="slide" id="slide9" aria-labelledby="slide9-heading">
+            <div class="slide-header">
+                <h2 id="slide9-heading">Key User Stories - Examiner</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <p><strong>As an examiner, I want to:</strong></p>
+                </div>
+                
+                <div class="content-box">
+                    <ul class="bullet-list">
+                        <li>See my assigned assessment schedule so that I know when and where to conduct assessments</li>
+                        <li>Have a user-friendly marking interface with minimal page navigation so that I can focus on the assessment rather than the tool</li>
+                        <li>Provide feedback for individual students and group components so that performance is assessed appropriately</li>
+                        <li>Select from pre-defined comments when providing feedback so that I can give consistent feedback efficiently</li>
+                        <li>Input marks for each criterion defined in the rubric (both group and individual criteria) so that I can record my evaluation</li>
+                        <li>Assign myself to available time slots for assessments I am responsible for so that I can build my examination schedule</li>
+                    </ul>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Critical Requirements</h3>
+                        <ul class="bullet-list">
+                            <li>Intuitive marking interface with minimal clicks</li>
+                            <li>Ability to save progress during marking</li>
+                            <li>Clear distinction between individual and group assessment</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>High-Value Features</h3>
+                        <ul class="bullet-list">
+                            <li>Pre-defined comment library</li>
+                            <li>Assessment schedule reminders</li>
+                            <li>Independent marking capability</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 9</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 10: Key User Stories - Student -->
+        <section class="slide" id="slide10" aria-labelledby="slide10-heading">
+            <div class="slide-header">
+                <h2 id="slide10-heading">Key User Stories - Student</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="highlight-box">
+                    <p><strong>As a student, I want to:</strong></p>
+                </div>
+                
+                <div class="content-box">
+                    <ul class="bullet-list">
+                        <li>View the available time slots and venues specifically for my assigned oral assessment so that I can choose a suitable appointment</li>
+                        <li>Book an assessment slot for myself (for individual assessments) so that I can secure my preferred time</li>
+                        <li>See my group members so that I know who I am working with</li>
+                        <li>Book one available time slot for the entire group (as any member) so that the group secures an assessment time efficiently</li>
+                        <li>Reschedule my booking if needed (excluding 24 hours before the appointment) so that I can adjust for unexpected circumstances</li>
+                        <li>View my final marks and any associated feedback after they have been released so that I can understand my performance</li>
+                    </ul>
+                </div>
+                
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Critical Requirements</h3>
+                        <ul class="bullet-list">
+                            <li>Clear visibility of available time slots</li>
+                            <li>Group booking capabilities</li>
+                            <li>Ability to view assessment results</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>High-Value Features</h3>
+                        <ul class="bullet-list">
+                            <li>Email confirmations and reminders</li>
+                            <li>Rescheduling capabilities with time restrictions</li>
+                            <li>Mobile-responsive interface</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 10</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 11: Use Cases Overview -->
+        <section class="slide" id="slide11" aria-labelledby="slide11-heading">
+            <div class="slide-header">
+                <h2 id="slide11-heading">Use Cases Overview</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Main Use Cases</h3>
+                        <ul class="bullet-list">
+                            <li>UC01: Register and Onboard Users</li>
+                            <li>UC02: Authenticate and Manage Accounts</li>
+                            <li>UC03: Book / Edit Slot</li>
+                            <li>UC04: View Group Info & Schedule</li>
+                            <li>UC05: Receive Notifications</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>Academic Use Cases</h3>
+                        <ul class="bullet-list">
+                            <li>UC06: Claim Timeslot</li>
+                            <li>UC07: Submit Marks & Feedback</li>
+                            <li>UC08: Export Marks and Feedback</li>
+                            <li>UC09: Assessment Structure Configuration</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="content-box">
+                    <h3>Use Case Mapping</h3>
+                    <p>Each use case is mapped to specific user stories to ensure complete coverage of requirements:</p>
+                    <ul class="bullet-list">
+                        <li>UC01 (Register and Onboard Users) maps to User Stories 1.1, 1.2, 1.3, 2.1.1, 2.1.2, 2.1.3</li>
+                        <li>UC03 (Book / Edit Slot) maps to User Stories 5.3, 5.4, 5.5, 5.6, 5.7</li>
+                        <li>UC07 (Submit Marks & Feedback) maps to User Stories 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 11</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 12: Prototype Demo -->
+        <section class="slide" id="slide12" aria-labelledby="slide12-heading">
+            <div class="slide-header">
+                <h2 id="slide12-heading">Prototype Demonstration</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="content-box">
+                    <h3>Current Prototype Focus</h3>
+                    <ul class="bullet-list">
+                        <li>Core user flows for Admin, Examiner, and Student roles</li>
+                        <li>Booking system implementation</li>
+                        <li>Assessment marking interface</li>
+                        <li>Canvas integration approach</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight-box">
+                    <p><strong>Key features to demonstrate:</strong></p>
+                    <ul class="bullet-list" style="display: flex; flex-wrap: wrap;">
+                        <li style="flex: 0 0 50%;">Administrator setup of assessment</li>
+                        <li style="flex: 0 0 50%;">Student booking process</li>
+                        <li style="flex: 0 0 50%;">Examiner marking interface</li>
+                        <li style="flex: 0 0 50%;">Results publication workflow</li>
+                    </ul>
+                    <p style="margin-top: 1rem;"><em>Live demonstration to follow</em></p>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 12</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+        <!-- Slide 13: API Integration Approach -->
+<section class="slide" id="slide13" aria-labelledby="slide13-heading">
+    <div class="slide-header">
+        <h2 id="slide13-heading">API Discussion: Booking System Integration</h2>
+    </div>
+    
+    <div class="slide-content">
+        <div class="highlight-box">
+            <p>We've evaluated several integration options for the booking system component:</p>
+        </div>
+        
+        <div class="two-column">
+            <div class="column">
+                <div class="content-box">
+                    <h3>Commercial SaaS APIs</h3>
+                    <p><strong>Examples:</strong> Nylas, Cronofy</p>
+                    <ul class="bullet-list">
+                        <li>Robust, CRUD-enabled Calendar APIs</li>
+                        <li>Enterprise features and SLAs</li>
+                        <li>Pricing based on usage metrics</li>
+                    </ul>
+                    <p><strong>Considerations:</strong> Cost, third-party data hosting</p>
+                </div>
+            </div>
+            
+            <div class="column">
+                <div class="content-box">
+                    <h3>Self-Hosted Open Source</h3>
+                    <p><strong>Examples:</strong> Cal.com, Easy!Appointments</p>
+                    <ul class="bullet-list">
+                        <li>Comprehensive features including group bookings</li>
+                        <li>Full data control through self-hosting</li>
+                        <li>Requires technical expertise for maintenance</li>
+                    </ul>
+                    <p><strong>Considerations:</strong> Maintenance burden, licensing</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-box">
+            <h3>Custom In-House Development</h3>
+            <ul class="bullet-list">
+                <li>Maximum control and customization</li>
+                <li>Integration with existing university systems</li>
+                <li>Highest development cost and time investment</li>
+            </ul>
+            <p><strong>Considerations:</strong> Development resource availability, timeline</p>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <div class="slide-number">Slide 13</div>
+        <div>University of Melbourne | OAS Project</div>
+    </div>
+</section>
+
+<!-- Slide 14: Our API Recommendation -->
+<section class="slide" id="slide14" aria-labelledby="slide14-heading">
+    <div class="slide-header">
+        <h2 id="slide14-heading">Our Booking System Recommendation</h2>
+    </div>
+    
+    <div class="slide-content">
+        <div class="highlight-box">
+            <p>After thorough analysis of options, we have a clear recommendation:</p>
+        </div>
+        
+        <div class="content-box">
+            <h3>Our Recommendation</h3>
+            <p>Based on our analysis, we recommend implementing a custom solution based on Cal.com:</p>
+            <ul class="bullet-list">
+                <li>Cal.com offers both a paid hosted version and open-source code</li>
+                <li>To save costs and enable customization, we propose developing our own implementation based on Cal.com's open-source codebase</li>
+                <li>Cal.com's technology stack (React, PostgreSQL) aligns perfectly with our project's technology stack</li>
+                <li>This approach provides full control over data while leveraging an established booking system architecture</li>
+            </ul>
+            <p><em>We can discuss implementation details and resource requirements during today's meeting</em></p>
+        </div>
+        
+        <div class="two-column">
+            <div class="column content-box">
+                <h3>Key Benefits</h3>
+                <ul class="bullet-list">
+                    <li>Full data ownership and control</li>
+                    <li>Customizable to university-specific needs</li>
+                    <li>Cost-effective compared to SaaS options</li>
+                </ul>
+            </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="slide-footer">
+        <div class="slide-number">Slide 14</div>
+        <div>University of Melbourne | OAS Project</div>
+    </div>
+</section>
+        
+        <!-- Slide 15: Project Timeline -->
+        <section class="slide" id="slide15" aria-labelledby="slide15-heading">
+            <div class="slide-header">
+                <h2 id="slide15-heading">Project Timeline</h2>
+            </div>
+            
+            <div class="slide-content">
+                <div class="two-column">
+                    <div class="column content-box">
+                        <h3>Sprint 1 (Completed)</h3>
+                        <ul class="bullet-list">
+                            <li>Project Scope Documentation</li>
+                            <li>Feature Definition Documentation</li>
+                            <li>User Stories and Acceptance Criteria</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="column content-box">
+                        <h3>Sprint 2 (Current)</h3>
+                        <ul class="bullet-list">
+                            <li>Design Concept Documentation</li>
+                            <li>Prototype Development</li>
+                            <li>Architecture Design</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="content-box">
+                    <h3>Next Steps</h3>
+                    <ul class="bullet-list">
+                        <li>Finalize requirements based on today's feedback</li>
+                        <li>Complete prototype refinements</li>
+                        <li>Begin implementation of core features (focusing on admin workflow)</li>
+                    </ul>
+                </div>
+                
+                <div class="highlight-box">
+                    <p><strong>Estimate Deliverables Timeline:</strong></p>
+                    <ul class="bullet-list" style="display: flex; flex-wrap: wrap;">
+                        <li style="flex: 0 0 100%;">End of June: Minimum viable product with admin user flow and essential booking features</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="slide-footer">
+                <div class="slide-number">Slide 15</div>
+                <div>University of Melbourne | OAS Project</div>
+            </div>
+        </section>
+        
+    
+    <!-- Navigation Buttons -->
+    <div class="navigation" aria-label="Slide Navigation">
+        <button id="prevBtn" class="nav-btn" aria-label="Previous Slide">←</button>
+        <button id="nextBtn" class="nav-btn" aria-label="Next Slide">→</button>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const slideContainer = document.getElementById('slideContainer');
+            const slides = document.querySelectorAll('.slide');
+            const progressBar = document.getElementById('progressBar');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            
+            let currentSlide = 0;
+            
+            // Initialize progress bar
+            updateProgressBar();
+            
+            function showSlide(index) {
+                if (index < 0) index = 0;
+                if (index >= slides.length) index = slides.length - 1;
+                
+                slides.forEach(slide => {
+                    slide.classList.remove('active');
+                    slide.setAttribute('aria-hidden', 'true');
+                });
+                
+                slides[index].classList.add('active');
+                slides[index].setAttribute('aria-hidden', 'false');
+                
+                currentSlide = index;
+                updateProgressBar();
+                
+                // Update slide number in footer for all slides
+                slides.forEach((slide, i) => {
+                    const slideNumberElement = slide.querySelector('.slide-number');
+                    if (slideNumberElement) {
+                        slideNumberElement.textContent = 'Slide ' + (i + 1);
+                    }
+                });
+            }
+            
+            function updateProgressBar() {
+                const progress = ((currentSlide + 1) / slides.length) * 100;
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // Button navigation
+            prevBtn.addEventListener('click', () => {
+                showSlide(currentSlide - 1);
+            });
+            
+            nextBtn.addEventListener('click', () => {
+                showSlide(currentSlide + 1);
+            });
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === ' ') {
+                    e.preventDefault();
+                    showSlide(currentSlide + 1);
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    showSlide(currentSlide - 1);
+                } else if (e.key >= '1' && e.key <= '9') {
+                    const slideNumber = parseInt(e.key) - 1;
+                    if (slideNumber < slides.length) {
+                        showSlide(slideNumber);
+                    }
+                }
+            });
+            
+            // Touch navigation
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            slideContainer.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, false);
+            
+            slideContainer.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, false);
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                if (touchEndX < touchStartX - swipeThreshold) {
+                    // Swipe left (next)
+                    showSlide(currentSlide + 1);
+                } else if (touchEndX > touchStartX + swipeThreshold) {
+                    // Swipe right (previous)
+                    showSlide(currentSlide - 1);
+                }
+            }
+            
+            // Ensure first slide is active
+            showSlide(0);
+        });
+    </script>
+</body>
+</html>
