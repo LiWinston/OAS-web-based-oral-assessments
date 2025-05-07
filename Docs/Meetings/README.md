@@ -11,6 +11,7 @@ This folder contains the meeting minutes for the project.
 | Week 5     | Contains meeting minutes from Week 5 |
 | Week 6     | Contains meeting minutes from Week 6 |
 | Week 7     | Contains meeting minutes from Week 7 |
+| Week 8     | Contains meeting minutes from Week 8 |
 
 Each week folder contains minutes from different types of meetings:
 
