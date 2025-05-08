@@ -2,16 +2,17 @@
 
 ## Epics:
 
-| Epic ID | Epic Name                                  | Description                                                                                                                                                                                      |
-| ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1       | CSV IO Support (Canvas Integration)        | This epic includes the data exchange functionality with Canvas, including importing student/group CSV data and exporting assessment results (Grading and Feedback).                              |
-| 2       | User Authentication and Account Management | This epic covers the secure authentication system, user account creation, and role-based access control for students, examiners, and administrators.                                             |
-| 3       | Assessment Execution and Feedback          | This epic focuses on the examiner interface for conducting assessments, recording structured feedback, and applying customized rubrics.                                                          |
-| 4       | System Setup & Configuration               | This epic encompasses the administrative functionality for configuring assessment parameters, including creating subjects, assignments, and defining rubric and feedback structures.             |
-| 5       | Assessment Scheduling and Booking System   | This epic covers the entire scheduling flow, including administrators defining available time slots and venues, and students booking their assessment slots.                                     |
-| 6       | Mark Consolidation & Reporting Epic        | This epic covers the aggregation of marks for both group and individual components, as well as the management and reporting of the overall marking process.                                      |
-| 7       | Notification System                        | This epic handles all email notifications and alerts within the system, including registration emails, booking confirmations, assessment reminders, and other important communications to users. |
-| 8       | Securities and Compliance                  | This epic covers security features, privacy policy management, audit logging, and other compliance-related functionality to ensure data protection and system integrity.                         |
+| Epic ID | Epic Name                                  | Description                                                                                                                                                                                                        |
+| ------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1       | CSV IO Support (Canvas Integration)        | This epic includes the data exchange functionality with Canvas, including importing student/group CSV data and exporting assessment results (Grading and Feedback).                                                |
+| 2       | User Authentication and Account Management | This epic covers the secure authentication system, user account creation, and role-based access control for students, examiners, and administrators.                                                               |
+| 3       | Assessment Execution and Feedback          | This epic focuses on the examiner interface for conducting assessments, recording structured feedback, and applying customized rubrics.                                                                            |
+| 4       | System Setup & Configuration               | This epic encompasses the administrative functionality for configuring assessment parameters, including creating subjects, assignments, and defining rubric and feedback structures.                               |
+| 5       | Assessment Scheduling and Booking System   | This epic covers the entire scheduling flow, including administrators defining available time slots and venues, and students booking their assessment slots.                                                       |
+| 6       | Mark Consolidation & Reporting Epic        | This epic covers the aggregation of marks for both group and individual components, as well as the management and reporting of the overall marking process.                                                        |
+| 7       | Notification System                        | This epic handles all email notifications and alerts within the system, including registration emails, booking confirmations, assessment reminders, and other important communications to users.                   |
+| 8       | Securities and Compliance                  | This epic covers security features, privacy policy management, audit logging, and other compliance-related functionality to ensure data protection and system integrity.                                           |
+| 9       | Super Admin Management                     | This epic covers the functionality specific to the Super Admin role (at website/school level), including managing Course Admin access, system-wide course visibility, and maintaining high-level system oversight. |
 
 ## MoSCoW Priority:
 
@@ -37,6 +38,7 @@
 | Students             | University of Melbourne students who use the system to book and attend oral assessments, view their results, and manage their assessment schedules. |
 | Examiners            | Academic staff or tutors responsible for conducting oral assessments, providing feedback, and assigning marks to student performances.              |
 | Administrators       | Administrative staff who manage the system setup, configure assessments, process results, and maintain user accounts and system functionality.      |
+| Super Administrators | Highest level administrators who control access to the system for Course Administrators and maintain system-wide oversight.                         |
 | Non-Registered Users | Potential users who haven't yet created an account in the system but need to register to access its features.                                       |
 | Registered Users     | Users who have already created accounts and can log in to access system features based on their roles.                                              |
 
@@ -128,3 +130,13 @@
 | ---------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | ---------- | ---------------------------------------------------------------------------- |
 | System Security and Auditing | 8.1           | As a student, I want to agree to a privacy policy so that I understand how my data is used within the system                                           | Medium | Must Have  | Essential for legal compliance and transparent data handling                 |
 | System Security and Auditing | 8.2           | As an administrator, I want to maintain an audit log of significant actions so that there is accountability and transparency in the assessment process | Large  | Could Have | Provides important security and accountability features for system integrity |
+
+## Epic 9: Super Admin Management
+
+| Epic                   | User Story ID | User Story                                                                                                                                                                                 | Size   | Priority  | Justification                                                             |
+| ---------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ | --------- | ------------------------------------------------------------------------- |
+| Super Admin Management | 9.1           | As a Super Admin, I want to securely log into the system so that I can perform my administrative duties with appropriate access control                                                    | Small  | Must Have | Essential security feature required for this new administrative role      |
+| Super Admin Management | 9.2           | As a Super Admin, I want to manually create accounts for Course Admins based on email requests so that I can control who has Course Admin privileges in the system                         | Medium | Must Have | Core function of the Super Admin role as specified in client meeting      |
+| Super Admin Management | 9.3           | As a Super Admin, I want to view a read-only list of all courses across the system (with basic details like course name, admin, semester) so that I can maintain oversight of system usage | Medium | Must Have | Essential oversight function required by client                           |
+| Super Admin Management | 9.4           | As a Super Admin, I want to grant or revoke system access for Course Admins so that I can manage who can create and manage courses in the system                                           | Medium | Must Have | Critical security and access control feature                              |
+| Super Admin Management | 9.5           | As a Super Admin, I want to view and manage a list of all Course Admins in the system so that I can monitor who has course creation privileges                                             | Medium | Must Have | Supports the Super Admin's role in maintaining system security and access |
