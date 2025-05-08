@@ -21,7 +21,7 @@ public class DeploymentTimeController {
     @GetMapping("/deploy-time")
     public String getDeploymentTime() {
         String formatted = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                .withZone(ZoneId.systemDefault())
+                .withZone(ZoneId.of("Australia/Sydney"))
                 .format(deploymentTime);
         return "Last deployment is at: " + formatted;
     }
