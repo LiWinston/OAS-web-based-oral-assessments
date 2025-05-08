@@ -117,20 +117,16 @@ sudo docker run -d -p 8081:8081 --name oas-app my-springboot-app
 9. Post Deployment Verification
 
 9.1 Check Container Status
-
 sudo docker ps
 
 9.2 View Container Logs
-
 sudo docker logs -f oas-app
 
 9.3 Open Firewall Port
-
 sudo ufw allow 8081/tcp
 
 9.4 Access Application
-
-http://<server-ip>:8081
+http://45.113.232.163:8081
 
 
 
