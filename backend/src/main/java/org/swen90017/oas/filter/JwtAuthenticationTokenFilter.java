@@ -42,11 +42,6 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Skip validation for token refresh request
-        if (requestURI.equals("/deploy-time")) {
-            chain.doFilter(request, response);
-            return;
-        }
         
         // Get Authorization header
         String authHeader = request.getHeader("Authorization");
