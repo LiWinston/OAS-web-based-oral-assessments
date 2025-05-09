@@ -35,5 +35,4 @@
 
 1. Adopt proposed improvement for the following sprints
 2. Complete the remaining tasks that need modification for Sprint 2
-3. Open the blocked issues
-4. Validate the system design
+3. Open the blocked tests to validate the system design
