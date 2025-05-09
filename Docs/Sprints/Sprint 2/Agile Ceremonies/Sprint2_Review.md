@@ -56,10 +56,11 @@
 
 ## Key Decisions
 
-1. Refactor Admin Roles: Implement the two-tier admin structure (Super Admin, Course Admin) with appropriate access controls and views
-2. Update CSV Handling: Move student/group CSV import/update functionality to the assignment level. Ensure overwriting/updating works correctly
-3. Change Assignment Types: Implement the 'Mixed' assignment type alongside 'Individual' and 'Group'
-4. API: Build the booking/scheduling system entirely in-house
+1. Refactor Admin Roles: Change the system admin role structure from a single admin role to two admin roles (Super Admin and Course Admin)
+2. Update CSV Handling: Move student/group CSV import/update functionality to the assignment level instead of course level
+3. Change Assignment Types: Add 'Mixed' assignment type instead of just two types of 'Individual' and 'Group'
+4. API: Build the booking/scheduling system entirely in-house instead of completely relying on third-party APIs
+5. Comment Library Function：Due to potential concurrency issues with the overall comment library, we will first implement only the specific criteria comment library. The overall comment library will require further confirmation later.
 
 ## Next Steps
 
