@@ -1,0 +1,280 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1300 1800">
+  <!-- Title -->
+  <text x="650" y="30" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">Mark Consolidation Sequence Diagram - OAS</text>
+
+  <!-- Actors and Participants -->
+  <defs>
+    <symbol id="actor" viewBox="0 0 30 40">
+      <circle cx="15" cy="10" r="8" fill="white" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="18" x2="15" y2="30" stroke="black" stroke-width="1.5"/>
+      <line x1="5" y1="22" x2="25" y2="22" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="30" x2="5" y2="40" stroke="black" stroke-width="1.5"/>
+      <line x1="15" y1="30" x2="25" y2="40" stroke="black" stroke-width="1.5"/>
+    </symbol>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#000"/>
+    </marker>
+  </defs>
+
+  <!-- Actors and Participants -->
+  <use x="50" y="50" width="30" height="40" xlink:href="#actor"/>
+  <text x="65" y="105" font-family="Arial" font-size="12" text-anchor="middle">Admin</text>
+  
+  <use x="150" y="50" width="30" height="40" xlink:href="#actor"/>
+  <text x="165" y="105" font-family="Arial" font-size="12" text-anchor="middle">Examiner</text>
+  
+  <rect x="230" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="280" y="85" font-family="Arial" font-size="12" text-anchor="middle">Frontend</text>
+  
+  <rect x="350" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="410" y="85" font-family="Arial" font-size="12" text-anchor="middle">AssessmentCtrl</text>
+  
+  <rect x="490" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="550" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVCtrl</text>
+  
+  <rect x="630" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="690" y="85" font-family="Arial" font-size="12" text-anchor="middle">AssessmentSvc</text>
+  
+  <rect x="770" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="830" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVSvc</text>
+  
+  <rect x="910" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="970" y="85" font-family="Arial" font-size="12" text-anchor="middle">NotifSvc</text>
+  
+  <rect x="1050" y="60" width="120" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="1110" y="85" font-family="Arial" font-size="12" text-anchor="middle">CanvasAPI</text>
+  
+  <rect x="1190" y="60" width="60" height="40" fill="#F2F2F2" stroke="#000000" rx="5" ry="5"/>
+  <text x="1220" y="85" font-family="Arial" font-size="12" text-anchor="middle">DB</text>
+
+  <!-- Lifelines -->
+  <line x1="65" y1="110" x2="65" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="165" y1="110" x2="165" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="280" y1="110" x2="280" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="410" y1="110" x2="410" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="550" y1="110" x2="550" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="690" y1="110" x2="690" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="830" y1="110" x2="830" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="970" y1="110" x2="970" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1110" y1="110" x2="1110" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1220" y1="110" x2="1220" y2="1750" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+
+  <!-- Section: Review Assessment Results -->
+  <rect x="50" y="130" width="1200" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="650" y="150" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Review Assessment Results</text>
+
+  <!-- Sequence for Review Assessment Results -->
+  <line x1="65" y1="180" x2="280" y2="180" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="175" font-family="Arial" font-size="10" text-anchor="middle">Log in and access results page</text>
+  
+  <line x1="280" y1="200" x2="410" y2="200" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="195" font-family="Arial" font-size="10" text-anchor="middle">getAssessmentsByStatus(COMPLETED)</text>
+  
+  <line x1="410" y1="220" x2="690" y2="220" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="550" y="215" font-family="Arial" font-size="10" text-anchor="middle">findByStatus(COMPLETED)</text>
+  
+  <line x1="690" y1="240" x2="1220" y2="240" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="235" font-family="Arial" font-size="10" text-anchor="middle">Query completed assessments</text>
+  
+  <line x1="1220" y1="260" x2="690" y2="260" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="255" font-family="Arial" font-size="10" text-anchor="middle">Return assessment list</text>
+  
+  <line x1="690" y1="280" x2="410" y2="280" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="550" y="275" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTOs</text>
+  
+  <line x1="410" y1="300" x2="280" y2="300" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="295" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTOs</text>
+  
+  <line x1="280" y1="320" x2="65" y2="320" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="315" font-family="Arial" font-size="10" text-anchor="middle">Display completed assessments</text>
+
+  <line x1="65" y1="340" x2="280" y2="340" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="335" font-family="Arial" font-size="10" text-anchor="middle">View specific assessment</text>
+  
+  <line x1="280" y1="360" x2="410" y2="360" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="355" font-family="Arial" font-size="10" text-anchor="middle">getAssessment(assessmentId)</text>
+  
+  <line x1="410" y1="380" x2="690" y2="380" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="550" y="375" font-family="Arial" font-size="10" text-anchor="middle">findById(assessmentId)</text>
+  
+  <line x1="690" y1="400" x2="1220" y2="400" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="395" font-family="Arial" font-size="10" text-anchor="middle">Query assessment details</text>
+  
+  <line x1="1220" y1="420" x2="690" y2="420" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="415" font-family="Arial" font-size="10" text-anchor="middle">Return assessment with marks</text>
+  
+  <line x1="690" y1="440" x2="410" y2="440" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="550" y="435" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTO</text>
+  
+  <line x1="410" y1="460" x2="280" y2="460" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="455" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTO</text>
+  
+  <line x1="280" y1="480" x2="65" y2="480" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="475" font-family="Arial" font-size="10" text-anchor="middle">Display assessment details and marks</text>
+
+  <!-- Section: Publish Assessment Results -->
+  <rect x="50" y="510" width="1200" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="650" y="530" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Publish Assessment Results</text>
+
+  <!-- Sequence for Publish Assessment Results -->
+  <line x1="65" y1="560" x2="280" y2="560" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="555" font-family="Arial" font-size="10" text-anchor="middle">Publish selected assessment</text>
+  
+  <line x1="280" y1="580" x2="410" y2="580" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="575" font-family="Arial" font-size="10" text-anchor="middle">publishAssessment(assessmentId, releaseDate)</text>
+  
+  <line x1="410" y1="600" x2="690" y2="600" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="550" y="595" font-family="Arial" font-size="10" text-anchor="middle">publishAssessment(assessmentId, releaseDate)</text>
+  
+  <line x1="690" y1="620" x2="1220" y2="620" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="615" font-family="Arial" font-size="10" text-anchor="middle">Update status=PUBLISHED</text>
+  
+  <line x1="1220" y1="640" x2="690" y2="640" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="635" font-family="Arial" font-size="10" text-anchor="middle">Update successful</text>
+  
+  <line x1="690" y1="660" x2="970" y2="660" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="830" y="655" font-family="Arial" font-size="10" text-anchor="middle">sendResultNotification(assessmentId)</text>
+  
+  <line x1="970" y1="680" x2="1220" y2="680" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1095" y="675" font-family="Arial" font-size="10" text-anchor="middle">Insert notification</text>
+  
+  <line x1="1220" y1="700" x2="970" y2="700" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="1095" y="695" font-family="Arial" font-size="10" text-anchor="middle">Insert successful</text>
+  
+  <line x1="970" y1="720" x2="690" y2="720" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="830" y="715" font-family="Arial" font-size="10" text-anchor="middle">Notification sent</text>
+  
+  <line x1="690" y1="740" x2="410" y2="740" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="550" y="735" font-family="Arial" font-size="10" text-anchor="middle">Published assessment DTO</text>
+  
+  <line x1="410" y1="760" x2="280" y2="760" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="755" font-family="Arial" font-size="10" text-anchor="middle">Published assessment DTO</text>
+  
+  <line x1="280" y1="780" x2="65" y2="780" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="775" font-family="Arial" font-size="10" text-anchor="middle">Display assessment published</text>
+
+  <!-- Section: Consolidate Group and Individual Marks -->
+  <rect x="50" y="810" width="1200" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="650" y="830" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Consolidate Group and Individual Marks</text>
+
+  <!-- Sequence for Consolidate Marks -->
+  <line x1="65" y1="860" x2="280" y2="860" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="855" font-family="Arial" font-size="10" text-anchor="middle">Request to consolidate group marks</text>
+  
+  <line x1="280" y1="880" x2="410" y2="880" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="875" font-family="Arial" font-size="10" text-anchor="middle">getAssessmentsByAssignment(assignmentId)</text>
+  
+  <line x1="410" y1="900" x2="690" y2="900" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="550" y="895" font-family="Arial" font-size="10" text-anchor="middle">findByAssignment(assignmentId)</text>
+  
+  <line x1="690" y1="920" x2="1220" y2="920" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="915" font-family="Arial" font-size="10" text-anchor="middle">Query all assessments for assignment</text>
+  
+  <line x1="1220" y1="940" x2="690" y2="940" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="935" font-family="Arial" font-size="10" text-anchor="middle">Return assessment list</text>
+  
+  <line x1="690" y1="960" x2="410" y2="960" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="550" y="955" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTOs</text>
+  
+  <line x1="410" y1="980" x2="280" y2="980" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="975" font-family="Arial" font-size="10" text-anchor="middle">Assessment DTOs</text>
+  
+  <line x1="280" y1="1000" x2="280" y2="1020" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="2,2"/>
+  <text x="340" y="1010" font-family="Arial" font-size="10" text-anchor="left">Process and organize by group</text>
+  
+  <!-- Note for frontend processing -->
+  <rect x="290" y="1030" width="180" height="40" fill="#FFFFCC" stroke="#999999"/>
+  <text x="300" y="1050" font-family="Arial" font-size="10">Frontend consolidates data,</text>
+  <text x="300" y="1065" font-family="Arial" font-size="10">showing group and individual marks</text>
+  
+  <line x1="280" y1="1080" x2="65" y2="1080" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="1075" font-family="Arial" font-size="10" text-anchor="middle">Display consolidated mark report</text>
+
+  <!-- Section: Export Marks to CSV -->
+  <rect x="50" y="1110" width="1200" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="650" y="1130" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Export Marks to CSV</text>
+
+  <!-- Sequence for Export to CSV -->
+  <line x1="65" y1="1160" x2="280" y2="1160" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="1155" font-family="Arial" font-size="10" text-anchor="middle">Request to export marks</text>
+  
+  <line x1="280" y1="1180" x2="550" y2="1180" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="415" y="1175" font-family="Arial" font-size="10" text-anchor="middle">exportMarks(assignmentId)</text>
+  
+  <line x1="550" y1="1200" x2="830" y2="1200" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="690" y="1195" font-family="Arial" font-size="10" text-anchor="middle">exportMarks(assignmentId)</text>
+  
+  <line x1="830" y1="1220" x2="690" y2="1220" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="760" y="1215" font-family="Arial" font-size="10" text-anchor="middle">findByAssignment(assignmentId)</text>
+  
+  <line x1="690" y1="1240" x2="1220" y2="1240" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="1235" font-family="Arial" font-size="10" text-anchor="middle">Query all assessments</text>
+  
+  <line x1="1220" y1="1260" x2="690" y2="1260" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="1255" font-family="Arial" font-size="10" text-anchor="middle">Return assessment list</text>
+  
+  <line x1="690" y1="1280" x2="830" y2="1280" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="760" y="1275" font-family="Arial" font-size="10" text-anchor="middle">Assessment list</text>
+  
+  <line x1="830" y1="1300" x2="830" y2="1320" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="2,2"/>
+  <text x="890" y="1310" font-family="Arial" font-size="10" text-anchor="left">Generate CSV content</text>
+  
+  <line x1="830" y1="1340" x2="1220" y2="1340" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1025" y="1335" font-family="Arial" font-size="10" text-anchor="middle">Save CSV data</text>
+  
+  <line x1="1220" y1="1360" x2="830" y2="1360" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="1025" y="1355" font-family="Arial" font-size="10" text-anchor="middle">Save successful</text>
+  
+  <line x1="830" y1="1380" x2="550" y2="1380" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="690" y="1375" font-family="Arial" font-size="10" text-anchor="middle">CSV resource</text>
+  
+  <line x1="550" y1="1400" x2="280" y2="1400" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="415" y="1395" font-family="Arial" font-size="10" text-anchor="middle">CSV file download</text>
+  
+  <line x1="280" y1="1420" x2="65" y2="1420" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="1415" font-family="Arial" font-size="10" text-anchor="middle">Download CSV file</text>
+
+  <!-- Section: Import to Canvas -->
+  <rect x="50" y="1450" width="1200" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="650" y="1470" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Import Marks to Canvas</text>
+
+  <!-- Sequence for Import to Canvas -->
+  <line x1="65" y1="1500" x2="280" y2="1500" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="1495" font-family="Arial" font-size="10" text-anchor="middle">Request to import to Canvas</text>
+  
+  <line x1="280" y1="1520" x2="550" y2="1520" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="415" y="1515" font-family="Arial" font-size="10" text-anchor="middle">importToCanvas(assignmentId)</text>
+  
+  <line x1="550" y1="1540" x2="830" y2="1540" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="690" y="1535" font-family="Arial" font-size="10" text-anchor="middle">importToCanvas(assignmentId)</text>
+  
+  <line x1="830" y1="1560" x2="690" y2="1560" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="760" y="1555" font-family="Arial" font-size="10" text-anchor="middle">findByAssignment(assignmentId)</text>
+  
+  <line x1="690" y1="1580" x2="1220" y2="1580" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="955" y="1575" font-family="Arial" font-size="10" text-anchor="middle">Query all assessments</text>
+  
+  <line x1="1220" y1="1600" x2="690" y2="1600" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="955" y="1595" font-family="Arial" font-size="10" text-anchor="middle">Return assessment list</text>
+  
+  <line x1="690" y1="1620" x2="830" y2="1620" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="760" y="1615" font-family="Arial" font-size="10" text-anchor="middle">Assessment list</text>
+  
+  <line x1="830" y1="1640" x2="830" y2="1660" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="2,2"/>
+  <text x="890" y="1650" font-family="Arial" font-size="10" text-anchor="left">Convert to Canvas format</text>
+  
+  <line x1="830" y1="1680" x2="1110" y2="1680" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="970" y="1675" font-family="Arial" font-size="10" text-anchor="middle">exportGrades(courseId, grades)</text>
+  
+  <line x1="1110" y1="1700" x2="830" y2="1700" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="970" y="1695" font-family="Arial" font-size="10" text-anchor="middle">Import successful</text>
+  
+  <line x1="830" y1="1720" x2="550" y2="1720" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="690" y="1715" font-family="Arial" font-size="10" text-anchor="middle">Import result</text>
+  
+  <line x1="550" y1="1740" x2="280" y2="1740" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="415" y="1735" font-family="Arial" font-size="10" text-anchor="middle">Import result</text>
+  
+  <line x1="280" y1="1760" x2="65" y2="1760" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="1755" font-family="Arial" font-size="10" text-anchor="middle">Display Canvas import success</text>
+</svg>
