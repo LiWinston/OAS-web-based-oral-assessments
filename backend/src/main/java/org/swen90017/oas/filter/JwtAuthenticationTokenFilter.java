@@ -41,6 +41,7 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
             chain.doFilter(request, response);
             return;
         }
+
         
         // Get Authorization header
         String authHeader = request.getHeader("Authorization");

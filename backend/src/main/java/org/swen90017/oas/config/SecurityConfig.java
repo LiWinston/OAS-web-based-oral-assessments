@@ -88,6 +88,7 @@ public class SecurityConfig {
           .authorizeHttpRequests(auth -> auth
               // Public endpoints
               .antMatchers("/login", "/register").permitAll()
+              .antMatchers("/deploy-time","/favicon.ico").permitAll()
               .antMatchers(HttpMethod.POST, "/token/refresh").permitAll()
               .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
