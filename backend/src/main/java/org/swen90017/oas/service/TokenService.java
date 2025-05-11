@@ -197,8 +197,4 @@ public class TokenService {
     private Date convertToDate(LocalDateTime localDateTime) {
         return Date.from(localDateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
-
-    public Long getAccessTokenExpireTime() {
-        return (long) accessTokenExpireTime * 60;
-    }
-}
+} 

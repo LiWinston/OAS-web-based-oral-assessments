@@ -37,7 +37,6 @@ public class TokenController {
             response.setAccessToken(tokens.get("accessToken"));
             response.setRefreshToken(tokens.get("refreshToken"));
             response.setTokenType("Bearer");
-            response.setExpiresIn(tokenService.getAccessTokenExpireTime());
             
             return Result.success(response);
         } catch (IllegalArgumentException e) {
