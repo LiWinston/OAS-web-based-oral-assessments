@@ -3,7 +3,7 @@ package org.swen90017.oas.utils;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.text.csv.*;
 import org.swen90017.oas.common.BusinessError;
-import org.swen90017.oas.dto.request.StudentCSVDTO;
+import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.exception.BusinessException;
 
 import java.io.*;
@@ -77,11 +77,11 @@ public class CSVUtils {
     public static void main(String[] args) {
         File file = new File("/Users/chenyun/Downloads/Student List(in).csv");
         try (InputStream inputStream = new FileInputStream(file)) {
-            List<StudentCSVDTO> students = readCsv(inputStream, StudentCSVDTO.class);
+            List<StudentCSVRequestDTO> students = readCsv(inputStream, StudentCSVRequestDTO.class);
             System.out.println("Import success：");
             students.forEach(System.out::println);
 
-            String csvOutput = writeCsv(students, StudentCSVDTO.class);
+            String csvOutput = writeCsv(students, StudentCSVRequestDTO.class);
             System.out.println("Exported CSV content:");
             System.out.println(csvOutput);
 
