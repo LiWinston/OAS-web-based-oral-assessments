@@ -14,7 +14,7 @@ The team discussed the outcomes of Sprint 2 and outlined the objectives for Spri
 
 - **Sprint 3 Overview:**
 
-  - Duration: 2 weeks (April 28, 2025 - May 11, 2025)
+  - Duration: 2 weeks (May 4, 2025 - May 18, 2025)
   - Goal: Update requirements documentation based on client feedback and begin implementation of core system components (backend)
 
 - **Documentation Updates:**
