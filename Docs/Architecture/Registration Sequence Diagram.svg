@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1100 1300">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 1300">
   <!-- Title -->
-  <text x="550" y="30" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">User Registration and Import Sequence Diagram - OAS</text>
+  <text x="600" y="30" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">User Registration and Import Sequence Diagram - OAS (Updated)</text>
 
   <!-- Actors and Participants -->
   <defs>
@@ -18,192 +18,196 @@
 
   <!-- Actors and Participants -->
   <use x="50" y="50" width="30" height="40" xlink:href="#actor"/>
-  <text x="65" y="105" font-family="Arial" font-size="12" text-anchor="middle">Admin</text>
+  <text x="65" y="105" font-family="Arial" font-size="12" text-anchor="middle">SuperAdmin</text>
   
-  <use x="1000" y="50" width="30" height="40" xlink:href="#actor"/>
-  <text x="1015" y="105" font-family="Arial" font-size="12" text-anchor="middle">Student</text>
+  <use x="150" y="50" width="30" height="40" xlink:href="#actor"/>
+  <text x="165" y="105" font-family="Arial" font-size="12" text-anchor="middle">CourseAdmin</text>
   
-  <rect x="150" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="200" y="85" font-family="Arial" font-size="12" text-anchor="middle">Frontend</text>
+  <use x="1100" y="50" width="30" height="40" xlink:href="#actor"/>
+  <text x="1115" y="105" font-family="Arial" font-size="12" text-anchor="middle">Student</text>
   
-  <rect x="280" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="330" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVCtrl</text>
+  <rect x="230" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="280" y="85" font-family="Arial" font-size="12" text-anchor="middle">Frontend</text>
   
-  <rect x="410" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="460" y="85" font-family="Arial" font-size="12" text-anchor="middle">UserCtrl</text>
+  <rect x="360" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="410" y="85" font-family="Arial" font-size="12" text-anchor="middle">UserCtrl</text>
   
-  <rect x="540" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="590" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVSvc</text>
+  <rect x="490" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="540" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVCtrl</text>
   
-  <rect x="670" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="720" y="85" font-family="Arial" font-size="12" text-anchor="middle">UserSvc</text>
+  <rect x="620" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="670" y="85" font-family="Arial" font-size="12" text-anchor="middle">UserSvc</text>
   
-  <rect x="800" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
-  <text x="850" y="85" font-family="Arial" font-size="12" text-anchor="middle">EmailSvc</text>
+  <rect x="750" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="800" y="85" font-family="Arial" font-size="12" text-anchor="middle">CSVSvc</text>
   
-  <rect x="930" y="60" width="40" height="40" fill="#F2F2F2" stroke="#000000" rx="5" ry="5"/>
-  <text x="950" y="85" font-family="Arial" font-size="12" text-anchor="middle">DB</text>
+  <rect x="880" y="60" width="100" height="40" fill="#E6F2FF" stroke="#000000" rx="5" ry="5"/>
+  <text x="930" y="85" font-family="Arial" font-size="12" text-anchor="middle">EmailSvc</text>
+  
+  <rect x="1020" y="60" width="40" height="40" fill="#F2F2F2" stroke="#000000" rx="5" ry="5"/>
+  <text x="1040" y="85" font-family="Arial" font-size="12" text-anchor="middle">DB</text>
 
   <!-- Lifelines -->
   <line x1="65" y1="110" x2="65" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="1015" y1="110" x2="1015" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="200" y1="110" x2="200" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="330" y1="110" x2="330" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="460" y1="110" x2="460" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="590" y1="110" x2="590" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="720" y1="110" x2="720" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="850" y1="110" x2="850" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
-  <line x1="950" y1="110" x2="950" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="165" y1="110" x2="165" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1115" y1="110" x2="1115" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="280" y1="110" x2="280" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="410" y1="110" x2="410" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="540" y1="110" x2="540" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="670" y1="110" x2="670" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="800" y1="110" x2="800" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="930" y1="110" x2="930" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
+  <line x1="1040" y1="110" x2="1040" y2="1250" stroke="#CCCCCC" stroke-width="1" stroke-dasharray="5,5"/>
 
-  <!-- Section: CSV Upload -->
-  <rect x="50" y="130" width="1000" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
-  <text x="550" y="150" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">CSV Upload from Canvas</text>
+  <!-- Section: Course Admin Registration -->
+  <rect x="50" y="130" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="150" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Course Admin Registration</text>
+
+  <!-- Sequence for Course Admin Registration -->
+  <line x1="165" y1="180" x2="280" y2="180" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="222" y="175" font-family="Arial" font-size="10" text-anchor="middle">Register as Course Admin</text>
+  
+  <line x1="280" y1="200" x2="410" y2="200" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="195" font-family="Arial" font-size="10" text-anchor="middle">registerCourseAdmin(userDTO)</text>
+  
+  <line x1="410" y1="220" x2="670" y2="220" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="540" y="215" font-family="Arial" font-size="10" text-anchor="middle">createUser(userDTO, COURSE_ADMIN)</text>
+  
+  <line x1="670" y1="240" x2="1040" y2="240" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="855" y="235" font-family="Arial" font-size="10" text-anchor="middle">Create user with PENDING status</text>
+  
+  <line x1="1040" y1="260" x2="670" y2="260" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="855" y="255" font-family="Arial" font-size="10" text-anchor="middle">User created</text>
+  
+  <line x1="670" y1="280" x2="930" y2="280" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="800" y="275" font-family="Arial" font-size="10" text-anchor="middle">notifySuperAdmin(adminId)</text>
+  
+  <line x1="930" y1="300" x2="670" y2="300" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="800" y="295" font-family="Arial" font-size="10" text-anchor="middle">Notification sent</text>
+  
+  <line x1="670" y1="320" x2="410" y2="320" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="540" y="315" font-family="Arial" font-size="10" text-anchor="middle">Registration pending approval</text>
+  
+  <line x1="410" y1="340" x2="280" y2="340" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="335" font-family="Arial" font-size="10" text-anchor="middle">Registration pending</text>
+  
+  <line x1="280" y1="360" x2="165" y2="360" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="222" y="355" font-family="Arial" font-size="10" text-anchor="middle">Show pending approval message</text>
+
+  <!-- Section: Super Admin Approval -->
+  <rect x="50" y="390" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="410" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Super Admin Approval</text>
+
+  <!-- Sequence for Super Admin Approval -->
+  <line x1="65" y1="440" x2="280" y2="440" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="435" font-family="Arial" font-size="10" text-anchor="middle">Access admin management</text>
+  
+  <line x1="280" y1="460" x2="410" y2="460" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="455" font-family="Arial" font-size="10" text-anchor="middle">getPendingAdmins()</text>
+  
+  <line x1="410" y1="480" x2="670" y2="480" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="540" y="475" font-family="Arial" font-size="10" text-anchor="middle">findByStatusAndType(PENDING, COURSE_ADMIN)</text>
+  
+  <line x1="670" y1="500" x2="1040" y2="500" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="855" y="495" font-family="Arial" font-size="10" text-anchor="middle">Query pending admins</text>
+  
+  <line x1="1040" y1="520" x2="670" y2="520" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="855" y="515" font-family="Arial" font-size="10" text-anchor="middle">Return pending admins</text>
+  
+  <line x1="670" y1="540" x2="410" y2="540" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="540" y="535" font-family="Arial" font-size="10" text-anchor="middle">Admin user DTOs</text>
+  
+  <line x1="410" y1="560" x2="280" y2="560" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="555" font-family="Arial" font-size="10" text-anchor="middle">Admin user DTOs</text>
+  
+  <line x1="280" y1="580" x2="65" y2="580" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="575" font-family="Arial" font-size="10" text-anchor="middle">Display pending admins</text>
+  
+  <line x1="65" y1="600" x2="280" y2="600" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="172" y="595" font-family="Arial" font-size="10" text-anchor="middle">Approve admin account</text>
+  
+  <line x1="280" y1="620" x2="410" y2="620" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="345" y="615" font-family="Arial" font-size="10" text-anchor="middle">approveAdmin(adminId)</text>
+  
+  <line x1="410" y1="640" x2="670" y2="640" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="540" y="635" font-family="Arial" font-size="10" text-anchor="middle">updateUserStatus(adminId, ACTIVE)</text>
+  
+  <line x1="670" y1="660" x2="1040" y2="660" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="855" y="655" font-family="Arial" font-size="10" text-anchor="middle">Update user status</text>
+  
+  <line x1="1040" y1="680" x2="670" y2="680" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="855" y="675" font-family="Arial" font-size="10" text-anchor="middle">Update successful</text>
+  
+  <line x1="670" y1="700" x2="930" y2="700" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="800" y="695" font-family="Arial" font-size="10" text-anchor="middle">sendApprovalEmail(email)</text>
+  
+  <line x1="930" y1="720" x2="670" y2="720" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="800" y="715" font-family="Arial" font-size="10" text-anchor="middle">Email sent</text>
+  
+  <line x1="670" y1="740" x2="410" y2="740" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="540" y="735" font-family="Arial" font-size="10" text-anchor="middle">Admin approved</text>
+  
+  <line x1="410" y1="760" x2="280" y2="760" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="345" y="755" font-family="Arial" font-size="10" text-anchor="middle">Admin approved</text>
+  
+  <line x1="280" y1="780" x2="65" y2="780" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="172" y="775" font-family="Arial" font-size="10" text-anchor="middle">Show approval confirmation</text>
+
+  <!-- Section: CSV Upload and Student Import -->
+  <rect x="50" y="810" width="1100" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
+  <text x="600" y="830" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">CSV Upload and Student Import (Course Admin)</text>
 
   <!-- Sequence for CSV Upload -->
-  <line x1="65" y1="180" x2="200" y2="180" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="132" y="175" font-family="Arial" font-size="10" text-anchor="middle">Upload CSV from Canvas</text>
+  <line x1="165" y1="860" x2="280" y2="860" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="222" y="855" font-family="Arial" font-size="10" text-anchor="middle">Upload CSV from Canvas</text>
   
-  <line x1="200" y1="200" x2="330" y2="200" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="265" y="195" font-family="Arial" font-size="10" text-anchor="middle">uploadCSV(file, STUDENT_IMPORT)</text>
+  <line x1="280" y1="880" x2="540" y2="880" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="875" font-family="Arial" font-size="10" text-anchor="middle">uploadCSV(file, STUDENT_IMPORT)</text>
   
-  <line x1="330" y1="220" x2="590" y2="220" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="460" y="215" font-family="Arial" font-size="10" text-anchor="middle">validateCSV(file, STUDENT_IMPORT)</text>
+  <line x1="540" y1="900" x2="800" y2="900" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="670" y="895" font-family="Arial" font-size="10" text-anchor="middle">validateCSV(file, STUDENT_IMPORT)</text>
   
-  <line x1="590" y1="240" x2="950" y2="240" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="770" y="235" font-family="Arial" font-size="10" text-anchor="middle">Store CSV data</text>
+  <line x1="800" y1="920" x2="1040" y2="920" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="920" y="915" font-family="Arial" font-size="10" text-anchor="middle">Store CSV data</text>
   
-  <line x1="950" y1="260" x2="590" y2="260" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="770" y="255" font-family="Arial" font-size="10" text-anchor="middle">CSV record created</text>
+  <line x1="1040" y1="940" x2="800" y2="940" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="920" y="935" font-family="Arial" font-size="10" text-anchor="middle">CSV record created</text>
   
-  <line x1="590" y1="280" x2="590" y2="300" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="2,2"/>
-  <text x="650" y="290" font-family="Arial" font-size="10" text-anchor="left">Validate CSV format</text>
+  <line x1="800" y1="960" x2="540" y2="960" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="670" y="955" font-family="Arial" font-size="10" text-anchor="middle">Validation results</text>
   
-  <line x1="590" y1="320" x2="330" y2="320" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="460" y="315" font-family="Arial" font-size="10" text-anchor="middle">Validation results</text>
+  <line x1="540" y1="980" x2="280" y2="980" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="410" y="975" font-family="Arial" font-size="10" text-anchor="middle">Display validation results</text>
   
-  <line x1="330" y1="340" x2="200" y2="340" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="265" y="335" font-family="Arial" font-size="10" text-anchor="middle">Display validation results</text>
+  <line x1="280" y1="1000" x2="165" y2="1000" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="222" y="995" font-family="Arial" font-size="10" text-anchor="middle">Show validation status</text>
   
-  <line x1="200" y1="360" x2="65" y2="360" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="132" y="355" font-family="Arial" font-size="10" text-anchor="middle">Show validation status</text>
-
-  <!-- Section: Import Students -->
-  <rect x="50" y="390" width="1000" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
-  <text x="550" y="410" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Import Students</text>
-
-  <!-- Sequence for Import Students -->
-  <line x1="65" y1="440" x2="200" y2="440" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="132" y="435" font-family="Arial" font-size="10" text-anchor="middle">Confirm import</text>
+  <line x1="165" y1="1020" x2="280" y2="1020" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="222" y="1015" font-family="Arial" font-size="10" text-anchor="middle">Confirm import</text>
   
-  <line x1="200" y1="460" x2="330" y2="460" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="265" y="455" font-family="Arial" font-size="10" text-anchor="middle">importStudents(fileId, courseId)</text>
+  <line x1="280" y1="1040" x2="540" y2="1040" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="410" y="1035" font-family="Arial" font-size="10" text-anchor="middle">importStudents(fileId, courseId)</text>
   
-  <line x1="330" y1="480" x2="590" y2="480" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="460" y="475" font-family="Arial" font-size="10" text-anchor="middle">importStudents(fileId, courseId)</text>
+  <line x1="540" y1="1060" x2="800" y2="1060" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="670" y="1055" font-family="Arial" font-size="10" text-anchor="middle">importStudents(fileId, courseId)</text>
   
-  <line x1="590" y1="500" x2="950" y2="500" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="770" y="495" font-family="Arial" font-size="10" text-anchor="middle">Retrieve CSV data</text>
+  <!-- Note for courseScopeCheck -->
+  <rect x="810" y="1070" width="200" height="50" fill="#FFFFCC" stroke="#999999"/>
+  <text x="820" y="1090" font-family="Arial" font-size="10">Validates that the course belongs</text>
+  <text x="820" y="1105" font-family="Arial" font-size="10">to the Course Admin</text>
   
-  <line x1="950" y1="520" x2="590" y2="520" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="770" y="515" font-family="Arial" font-size="10" text-anchor="middle">Return CSV data</text>
+  <line x1="800" y1="1140" x2="1040" y2="1140" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="920" y="1135" font-family="Arial" font-size="10" text-anchor="middle">Process student imports</text>
   
-  <line x1="590" y1="540" x2="720" y2="540" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="655" y="535" font-family="Arial" font-size="10" text-anchor="middle">processStudentRecords(records)</text>
+  <line x1="1040" y1="1160" x2="800" y2="1160" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="920" y="1155" font-family="Arial" font-size="10" text-anchor="middle">Students imported</text>
   
-  <line x1="720" y1="560" x2="950" y2="560" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="835" y="555" font-family="Arial" font-size="10" text-anchor="middle">Check existing users</text>
+  <line x1="800" y1="1180" x2="540" y2="1180" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="670" y="1175" font-family="Arial" font-size="10" text-anchor="middle">Import results</text>
   
-  <line x1="950" y1="580" x2="720" y2="580" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="835" y="575" font-family="Arial" font-size="10" text-anchor="middle">Return existing users</text>
-
-  <!-- Loop Fragment for Student Records -->
-  <rect x="100" y="600" width="900" height="200" fill="none" stroke="#999999" stroke-dasharray="5,2"/>
-  <text x="120" y="615" font-family="Arial" font-size="10">loop</text>
-  <text x="150" y="615" font-family="Arial" font-size="10">[For each student record]</text>
+  <line x1="540" y1="1200" x2="280" y2="1200" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="410" y="1195" font-family="Arial" font-size="10" text-anchor="middle">Import summary</text>
   
-  <!-- Alternative Fragment -->
-  <rect x="120" y="630" width="860" height="150" fill="none" stroke="#999999" stroke-dasharray="5,2"/>
-  <path d="M 120 650 L 980 650" stroke="#999999" stroke-dasharray="1,1"/>
-  <text x="140" y="645" font-family="Arial" font-size="10">alt</text>
-  <text x="170" y="645" font-family="Arial" font-size="10">[User doesn't exist]</text>
-  
-  <!-- User doesn't exist -->
-  <line x1="720" y1="670" x2="950" y2="670" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="835" y="665" font-family="Arial" font-size="10" text-anchor="middle">Create new user</text>
-  
-  <line x1="950" y1="690" x2="720" y2="690" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="835" y="685" font-family="Arial" font-size="10" text-anchor="middle">User created</text>
-  
-  <line x1="720" y1="710" x2="850" y2="710" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="785" y="705" font-family="Arial" font-size="10" text-anchor="middle">sendRegistrationEmail(email)</text>
-  
-  <path d="M 120 730 L 980 730" stroke="#999999" stroke-dasharray="1,1"/>
-  <text x="170" y="725" font-family="Arial" font-size="10">[User exists]</text>
-  
-  <!-- User exists -->
-  <line x1="720" y1="750" x2="950" y2="750" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="835" y="745" font-family="Arial" font-size="10" text-anchor="middle">Add to course</text>
-  
-  <line x1="720" y1="770" x2="850" y2="770" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="785" y="765" font-family="Arial" font-size="10" text-anchor="middle">sendEnrollmentEmail(email)</text>
-
-  <!-- End of import process -->
-  <line x1="590" y1="820" x2="330" y2="820" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="460" y="815" font-family="Arial" font-size="10" text-anchor="middle">Import results</text>
-  
-  <line x1="330" y1="840" x2="200" y2="840" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="265" y="835" font-family="Arial" font-size="10" text-anchor="middle">Import summary</text>
-  
-  <line x1="200" y1="860" x2="65" y2="860" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="132" y="855" font-family="Arial" font-size="10" text-anchor="middle">Show import results</text>
-
-  <!-- Section: Student Registration -->
-  <rect x="50" y="890" width="1000" height="30" fill="#EEEEEE" stroke="#CCCCCC"/>
-  <text x="550" y="910" font-family="Arial" font-size="14" text-anchor="middle" font-weight="bold">Student Registration</text>
-
-  <!-- Sequence for Student Registration -->
-  <line x1="1015" y1="940" x2="850" y2="940" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="932" y="935" font-family="Arial" font-size="10" text-anchor="middle">Receive email</text>
-  
-  <line x1="1015" y1="960" x2="200" y2="960" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="607" y="955" font-family="Arial" font-size="10" text-anchor="middle">Click registration link</text>
-  
-  <line x1="200" y1="980" x2="460" y2="980" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="330" y="975" font-family="Arial" font-size="10" text-anchor="middle">verifyToken(token)</text>
-  
-  <line x1="460" y1="1000" x2="720" y2="1000" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="590" y="995" font-family="Arial" font-size="10" text-anchor="middle">verifyToken(token)</text>
-  
-  <line x1="720" y1="1020" x2="950" y2="1020" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="835" y="1015" font-family="Arial" font-size="10" text-anchor="middle">Validate token</text>
-  
-  <line x1="950" y1="1040" x2="720" y2="1040" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="835" y="1035" font-family="Arial" font-size="10" text-anchor="middle">Token valid</text>
-  
-  <line x1="720" y1="1060" x2="200" y2="1060" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="460" y="1055" font-family="Arial" font-size="10" text-anchor="middle">Token validation result</text>
-  
-  <line x1="200" y1="1080" x2="1015" y2="1080" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="607" y="1075" font-family="Arial" font-size="10" text-anchor="middle">Show password setup form</text>
-  
-  <line x1="1015" y1="1100" x2="200" y2="1100" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="607" y="1095" font-family="Arial" font-size="10" text-anchor="middle">Set password</text>
-  
-  <line x1="200" y1="1120" x2="460" y2="1120" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="330" y="1115" font-family="Arial" font-size="10" text-anchor="middle">setPassword(userId, password)</text>
-  
-  <line x1="460" y1="1140" x2="720" y2="1140" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="590" y="1135" font-family="Arial" font-size="10" text-anchor="middle">setPassword(userId, password)</text>
-  
-  <line x1="720" y1="1160" x2="950" y2="1160" stroke="#000000" stroke-width="1.5" marker-end="url(#arrow)"/>
-  <text x="835" y="1155" font-family="Arial" font-size="10" text-anchor="middle">Update user password</text>
-  
-  <line x1="950" y1="1180" x2="720" y2="1180" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="835" y="1175" font-family="Arial" font-size="10" text-anchor="middle">Update successful</text>
-  
-  <line x1="720" y1="1200" x2="200" y2="1200" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="460" y="1195" font-family="Arial" font-size="10" text-anchor="middle">Password update result</text>
-  
-  <line x1="200" y1="1220" x2="1015" y2="1220" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
-  <text x="607" y="1215" font-family="Arial" font-size="10" text-anchor="middle">Show login success and redirect to dashboard</text>
+  <line x1="280" y1="1220" x2="165" y2="1220" stroke="#000000" stroke-width="1.5" stroke-dasharray="5,2" marker-end="url(#arrow)"/>
+  <text x="222" y="1215" font-family="Arial" font-size="10" text-anchor="middle">Show import results</text>
 </svg>
