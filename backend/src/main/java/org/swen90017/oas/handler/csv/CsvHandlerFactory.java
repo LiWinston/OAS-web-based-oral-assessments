@@ -13,6 +13,7 @@ public class CsvHandlerFactory {
 
     static {
         handlers.put("student", new StudentCsvHandler());
+        handlers.put("group", new GroupCsvHandler());
     }
 
     @SuppressWarnings("unchecked")
