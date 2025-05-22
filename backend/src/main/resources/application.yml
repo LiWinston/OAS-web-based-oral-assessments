@@ -6,6 +6,15 @@ spring:
     name: backend
   profiles:
     active: dev
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: use_your_own_to_test@gmail.com
+    password: use_your_own_to_test
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
 
   datasource:
     url: jdbc:mysql://localhost:3307/testdb?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false
@@ -62,3 +71,5 @@ token:
   expireTime: 15
   # Refresh token validity period (in days)
   refreshExpireTime: 30
+
+
