@@ -68,3 +68,10 @@ CREATE TABLE sys_user_role (
                                role_id BIGINT,
                                PRIMARY KEY(user_id, role_id)
 );
+
+CREATE TABLE sys_student (
+                             user_id BIGINT PRIMARY KEY,
+                             token VARCHAR(255),
+                             student_number VARCHAR(50) UNIQUE,
+                             FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
+);

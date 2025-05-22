@@ -6,8 +6,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
+import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
+import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
+import org.swen90017.oas.service.EmailService;
+import org.swen90017.oas.service.StudentService;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,11 +21,24 @@ import java.util.List;
 public class CsvController {
     @Autowired
     private CsvService csvService;
+    @Autowired
+    private StudentService studentService;
+    @Autowired
+    private EmailService emailService;
 
     @PostMapping("/import")
     public Result importCsv(@RequestParam("file") MultipartFile file,
                             @RequestParam("type") String type) throws IOException {
         List<?> result = csvService.importCsv(file.getInputStream(), type);
+        if (result == null || result.isEmpty()) {
+            return Result.error(BusinessError.CSV_READ_FAILED);
+        }
+        if ("student".equalsIgnoreCase(type)) {
+            List<StudentCSVRequestDTO> studentDTOs = (List<StudentCSVRequestDTO>) result;
+            List<SysStudent> sysStudents = studentService.inviteStudent(studentDTOs);
+            emailService.sendActivationEmail(sysStudents);
+            return Result.success(sysStudents);
+        }
         return Result.success(result);
     }
 }

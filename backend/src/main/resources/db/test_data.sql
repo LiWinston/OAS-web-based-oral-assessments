@@ -23,3 +23,9 @@ INSERT INTO sys_user_role (user_id, role_id) VALUES
  (3, 2),  -- carol as Student (but status = banned)
  (4, 3),  -- dave as Examiner
  (5, 3);  -- eve as Examiner
+
+-- Insert into sys_student
+INSERT INTO sys_student (user_id, token, student_number)
+VALUES
+    (2, 'token_bob_abc123', 'S2025001'),  -- bob: activated sysStudent
+    (3, 'token_carol_xyz45', 'S2025002'); -- carol: not activated (maybe pending approval)
