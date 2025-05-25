@@ -107,7 +107,7 @@ By implementing this solution, the project will improve the overall efficiency, 
       </a>
     </td>
     <td>
-      <h3>DevOps</h3>
+      <h3>DevOps (Backend Leader, from 2nd May)</h3>
       <p><b>Yunpeng Xiong</b> (Student ID: 1513076)</p>
       <p>Component Development, State Management</p>
       <p><a href="https://github.com/xiongnemo">@xiongnemo</a></p>
