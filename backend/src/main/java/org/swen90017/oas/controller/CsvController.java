@@ -8,10 +8,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
+import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.EmailService;
+import org.swen90017.oas.service.GroupService;
 import org.swen90017.oas.service.StudentService;
 import org.swen90017.oas.utils.TransactionUtil;
 
@@ -26,6 +28,8 @@ public class CsvController {
     private StudentService studentService;
     @Autowired
     private EmailService emailService;
+    @Autowired
+    private GroupService groupService;
 
     @PostMapping("/import")
     public Result importCsv(@RequestParam("file") MultipartFile file,
@@ -42,8 +46,16 @@ public class CsvController {
                 return invited;
             });
             return Result.success(sysStudents);
+        } else if ("group".equalsIgnoreCase(type)) {
+            List<GroupCSVRequestDTO> groupDTOs = (List<GroupCSVRequestDTO>) result;
+            List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
+                List<SysStudent> invited = groupService.importGroupData(groupDTOs);
+                emailService.sendActivationEmail(invited);
+                return invited;
+            });
+            return Result.success(sysStudents);
+        } else {
+            return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
-
-        return Result.success(result);
     }
 }

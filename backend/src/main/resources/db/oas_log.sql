@@ -75,3 +75,17 @@ CREATE TABLE sys_student (
                              student_number VARCHAR(50) UNIQUE,
                              FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
 );
+CREATE TABLE sys_group (
+                           group_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                           group_name VARCHAR(100) NOT NULL,
+                           canvas_group_id VARCHAR(50) UNIQUE,
+                           create_time DATETIME,
+                           creator BIGINT
+);
+CREATE TABLE sys_student_group (
+                                   user_id BIGINT NOT NULL,
+                                   group_id BIGINT NOT NULL,
+                                   PRIMARY KEY (user_id, group_id),
+                                   FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE,
+                                   FOREIGN KEY (group_id) REFERENCES sys_group(group_id) ON DELETE CASCADE
+);
