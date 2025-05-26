@@ -18,7 +18,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendActivationEmail(List<SysStudent> sysStudents) {
         for (SysStudent s : sysStudents) {
             SimpleMailMessage message = new SimpleMailMessage();
-            String emailAddress = s.getStudentNumber()+"@student.unimelb.edu.au";
+            String emailAddress = s.getSisUserId()+"@student.unimelb.edu.au";
             message.setTo(emailAddress);
             message.setSubject("Account Activation");
             message.setText("Click the link to activate: https://example.com/activate?token=" + s.getToken());

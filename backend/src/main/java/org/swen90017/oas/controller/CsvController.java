@@ -13,6 +13,7 @@ import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.StudentService;
+import org.swen90017.oas.utils.TransactionUtil;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,10 +36,14 @@ public class CsvController {
         }
         if ("student".equalsIgnoreCase(type)) {
             List<StudentCSVRequestDTO> studentDTOs = (List<StudentCSVRequestDTO>) result;
-            List<SysStudent> sysStudents = studentService.inviteStudent(studentDTOs);
-            emailService.sendActivationEmail(sysStudents);
+            List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
+                List<SysStudent> invited = studentService.inviteStudent(studentDTOs);
+                emailService.sendActivationEmail(invited);
+                return invited;
+            });
             return Result.success(sysStudents);
         }
+
         return Result.success(result);
     }
 }

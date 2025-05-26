@@ -8,4 +8,5 @@ public class SysStudent{
     private Long userId;
     private String token;
     private String studentNumber;
+    private String sisUserId;
 }

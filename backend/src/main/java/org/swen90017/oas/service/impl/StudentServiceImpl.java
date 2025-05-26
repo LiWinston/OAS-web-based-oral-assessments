@@ -46,28 +46,30 @@ public class StudentServiceImpl implements StudentService {
     public List<SysStudent> inviteStudent(List<StudentCSVRequestDTO> studentDTOs) {
         log.info("Inviting {} students from CSV request", studentDTOs.size());
 
-        List<StudentQuery> queries = studentDTOs.stream().map(dto -> {
-            StudentQuery q = new StudentQuery();
-            q.setStudentId(dto.getStudentId());
-            return q;
-        }).collect(Collectors.toList());
-
-        log.debug("Built {} StudentQuery objects for checking duplicates", queries.size());
-
-        List<String> existingStudentIds = queries.stream()
-                .flatMap(query -> {
-                    QueryWrapper<SysStudent> wrapper = QueryWrapperUtil.build(query, SysStudent.class);
-                    List<SysStudent> matched = sysStudentMapper.selectList(wrapper);
-                    log.debug("StudentQuery {} matched {} students", query, matched.size());
-                    return matched.stream();
-                })
-                .map(SysStudent::getStudentNumber)
+        List<String> studentIds = studentDTOs.stream()
+                .map(StudentCSVRequestDTO::getStudentId)
+                .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList());
 
-        log.info("Found {} existing student records", existingStudentIds.size());
+        log.debug("Built {} studentId(s) for duplicate checking", studentIds.size());
+        List<SysStudent> matchedStudents = new ArrayList<>();
+        if (!studentIds.isEmpty()) {
+            QueryWrapper<SysStudent> wrapper = new QueryWrapper<>();
+            wrapper.in("student_number", studentIds);
+            matchedStudents = sysStudentMapper.selectList(wrapper);
+            log.debug("Matched {} existing students from database", matchedStudents.size());
+        }
 
-        Set<String> existingSet = new HashSet<>(existingStudentIds);
+        List<String> existingStudentNumbers = matchedStudents.stream()
+                .map(SysStudent::getStudentNumber)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        log.debug("Found {} existing student numbers in the database", existingStudentNumbers.size());
+
+        Set<String> existingSet = new HashSet<>(existingStudentNumbers);
 
         List<StudentCSVRequestDTO> toInsert = studentDTOs.stream()
                 .filter(dto -> !existingSet.contains(dto.getStudentId()))
@@ -107,6 +109,7 @@ public class StudentServiceImpl implements StudentService {
 
             SysStudent sysStudent = new SysStudent();
             sysStudent.setStudentNumber(dto.getStudentId());
+            sysStudent.setSisUserId(dto.getSisLoginId());
             sysStudent.setUserId(user.getUserId());
             sysStudent.setToken(token);
             sysStudents.add(sysStudent);
