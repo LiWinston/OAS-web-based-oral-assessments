@@ -1,9 +1,13 @@
 package org.swen90017.oas.dto.response;
 
+import lombok.Data;
+
+import java.io.Serializable;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class StudentCSVResponseDTO {
+@Data
+public class StudentCSVResponseDTO implements Serializable {
     private String student;
     private String id;
     private String sisUserId;

@@ -10,11 +10,11 @@ VALUES
 -- Insert users
 INSERT INTO sys_user (user_name, password, status, create_time, creator, update_time, updater)
 VALUES
-('alice', 'password1', '0', NOW(), 0, NOW(), 0),
-('bob',   'password2', '0', NOW(), 0, NOW(), 0),
-('carol', 'password3', '1', NOW(), 0, NOW(), 0),
-('dave',  'password4', '0', NOW(), 0, NOW(), 0),
-('eve',   'password5', '0', NOW(), 0, NOW(), 0);
+('alice', '$2a$10$REeMr6fg50aEBJRpqJG1QuPrurqFidjYfzhYfZ9toTkVA0PgHtWTG', '0', NOW(), 0, NOW(), 0),
+('bob',   '$2a$10$liJ1qH4061vxB/JmjRxvVeXUuaJQYlNTNiAQOaspruC2rGEzRDzgW', '0', NOW(), 0, NOW(), 0),
+('carol', '$2a$10$gFqVnerIx5aoZ.4452ky2OKHH830YFKfJGFwxqQ.6VmwoJJK3PuUm', '1', NOW(), 0, NOW(), 0),
+('dave',  '$2a$10$tWWreAK7JL2ujswTc4HQUeYpCf1Tn15tQI7cAYZLpaE5JbCuVm7AK', '0', NOW(), 0, NOW(), 0),
+('eve',   '$2a$10$1BoyqSeqgJq9TfEGeziObeP2.PHrhPUvDUFPNA1evgK72Q1iX9Yrq', '0', NOW(), 0, NOW(), 0);
 
 -- Associate users with roles (assuming AUTO_INCREMENT starts at 1)
 INSERT INTO sys_user_role (user_id, role_id) VALUES

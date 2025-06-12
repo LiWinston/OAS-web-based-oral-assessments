@@ -27,7 +27,7 @@ CREATE TABLE `sys_oper_log` (
     KEY `idx_sys_oper_log_ot` (`oper_time`),
     KEY `idx_sys_oper_log_tid` (`trace_id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='Operation log table';
-
+DROP TABLE IF EXISTS `sys_refresh_token`;
 CREATE TABLE sys_refresh_token (
                                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                                    user_id BIGINT NOT NULL,
@@ -40,6 +40,7 @@ CREATE TABLE sys_refresh_token (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='refresh_token';
 
 -- user table
+DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE sys_user (
                           user_id BIGINT PRIMARY KEY AUTO_INCREMENT,
                           user_name VARCHAR(50) UNIQUE NOT NULL,
@@ -52,6 +53,7 @@ CREATE TABLE sys_user (
 );
 
 -- role table
+DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE sys_role (
                           role_id BIGINT PRIMARY KEY AUTO_INCREMENT,
                           role_name VARCHAR(50) UNIQUE NOT NULL,
@@ -63,18 +65,21 @@ CREATE TABLE sys_role (
 );
 
 -- user-role association table
+DROP TABLE IF EXISTS `sys_user_role`;
 CREATE TABLE sys_user_role (
                                user_id BIGINT,
                                role_id BIGINT,
                                PRIMARY KEY(user_id, role_id)
 );
-
+DROP TABLE IF EXISTS `sys_student`;
 CREATE TABLE sys_student (
                              user_id BIGINT PRIMARY KEY,
                              token VARCHAR(255),
                              student_number VARCHAR(50) UNIQUE,
+                             sis_user_id VARCHAR(128) UNIQUE,
                              FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
 );
+DROP TABLE IF EXISTS `sys_group`;
 CREATE TABLE sys_group (
                            group_id BIGINT PRIMARY KEY AUTO_INCREMENT,
                            group_name VARCHAR(100) NOT NULL,
@@ -82,6 +87,8 @@ CREATE TABLE sys_group (
                            create_time DATETIME,
                            creator BIGINT
 );
+DROP TABLE IF EXISTS `sys_student_group`;
+
 CREATE TABLE sys_student_group (
                                    user_id BIGINT NOT NULL,
                                    group_id BIGINT NOT NULL,
