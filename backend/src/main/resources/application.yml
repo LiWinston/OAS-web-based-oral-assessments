@@ -18,7 +18,7 @@ spring:
       mail.smtp.starttls.enable: true
 
   datasource:
-    url: jdbc:mysql://localhost:3307/swen90017_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false
+    url: jdbc:mysql://172.17.0.2:3306/swen90017_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&useLegacyDatetimeCode=false
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
