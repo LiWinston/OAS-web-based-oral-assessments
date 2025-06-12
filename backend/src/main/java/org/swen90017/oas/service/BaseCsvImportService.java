@@ -5,9 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.swen90017.oas.entity.SysRole;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.entity.SysUserRole;
+import org.swen90017.oas.enums.UserRole;
+import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysStudentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.SysUserRoleMapper;
@@ -30,6 +33,8 @@ public class BaseCsvImportService {
     private SysStudentMapper sysStudentMapper;
     @Autowired
     private SysUserRoleMapper sysUserRoleMapper;
+    @Autowired
+    private SysRoleMapper sysRoleMapper;
 
     /**
      * Generic student import logic
@@ -125,13 +130,30 @@ public class BaseCsvImportService {
      * Create user role relationships
      */
     private void createUserRoles(List<SysUser> users) {
-        Long roleId = 2L; // TODO: get role id from role table
+        Long studentRoleId = getStudentRoleId();
         List<SysUserRole> userRoles = users.stream()
-                .map(user -> new SysUserRole(user.getUserId(), roleId))
+                .map(user -> new SysUserRole(user.getUserId(), studentRoleId))
                 .collect(Collectors.toList());
 
         sysUserRoleMapper.batchInsert(userRoles);
         log.info("Inserted {} user-role mappings into sys_user_role table", userRoles.size());
+    }
+
+    /**
+     * Get student role ID from database
+     */
+    private Long getStudentRoleId() {
+        QueryWrapper<SysRole> wrapper = new QueryWrapper<>();
+        wrapper.eq("role_key", UserRole.STUDENT.code());
+        SysRole studentRole = sysRoleMapper.selectOne(wrapper);
+        
+        if (studentRole == null) {
+            log.error("Student role not found in database with role_key: {}", UserRole.STUDENT.code());
+            throw new RuntimeException("Student role not found in database");
+        }
+        
+        log.debug("Found student role with ID: {}", studentRole.getRoleId());
+        return studentRole.getRoleId();
     }
 
     /**

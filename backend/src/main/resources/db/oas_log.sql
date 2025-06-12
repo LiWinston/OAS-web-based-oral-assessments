@@ -8,7 +8,7 @@ CREATE TABLE `sys_oper_log` (
     `business_type` int(2) DEFAULT '0' COMMENT 'Business type (0=Other,1=Insert,2=Update,3=Delete,4=Query,5=Grant,6=Export,7=Import,8=Booking,9=Cancel Booking,10=Assessment,11=Feedback)',
     `method` varchar(100) DEFAULT '' COMMENT 'Method name',
     `request_method` varchar(10) DEFAULT '' COMMENT 'Request method',
-    `operator_type` int(1) DEFAULT '0' COMMENT 'Operator type (0=Other,1=Admin,2=Examiner,3=Student)',
+    `operator_type` int(1) DEFAULT '0' COMMENT 'Operator type (0=Other,1=Admin,2=Examiner,3=Student,4=Super Admin)',
     `oper_name` varchar(50) DEFAULT '' COMMENT 'Operator name',
     `oper_role` varchar(50) DEFAULT '' COMMENT 'Operator role',
     `oper_url` varchar(255) DEFAULT '' COMMENT 'Request URL',

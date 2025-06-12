@@ -5,7 +5,9 @@ INSERT INTO sys_role (role_name, role_key, create_time, creator, update_time, up
 VALUES
 ('Administrator', 'ROLE_ADMIN', NOW(), 0, NOW(), 0),
 ('Student',          'ROLE_STUDENT',  NOW(), 0, NOW(), 0),
-('Examiner',         'ROLE_EXAMINER', NOW(), 0, NOW(), 0);
+('Examiner',         'ROLE_EXAMINER', NOW(), 0, NOW(), 0),
+('SUPERAdministrator', 'ROLE_SUPER_ADMIN', NOW(), 0, NOW(), 0);
+
 
 -- Insert users
 INSERT INTO sys_user (user_name, password, status, create_time, creator, update_time, updater)
