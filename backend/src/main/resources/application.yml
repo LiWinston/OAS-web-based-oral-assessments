@@ -62,3 +62,18 @@ token:
   secret: ${JWT_SECRET}
   expireTime: 15
   refreshExpireTime: 30
+
+# CORS Configuration
+cors:
+  # Allowed frontend domains; must be changed to actual frontend domains in production
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:63342}
+  # Whether to allow credentials (e.g., cookies, Authorization headers)
+  allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
+  # Preflight request cache duration (in seconds)
+  max-age: ${CORS_MAX_AGE:3600}
+  # Allowed HTTP methods
+  allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS,PATCH,HEAD}
+  # Allowed request headers
+  allowed-headers: ${CORS_ALLOWED_HEADERS:Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers,X-Trace-ID,X-CSRF-TOKEN}
+  # Response headers exposed to the frontend
+  exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization,Content-Disposition,X-Trace-ID,Access-Control-Allow-Origin,Access-Control-Allow-Credentials}
