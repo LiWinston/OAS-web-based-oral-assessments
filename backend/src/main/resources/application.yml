@@ -65,8 +65,8 @@ token:
 
 # CORS Configuration
 cors:
-  # Allowed frontend domains; must be changed to actual frontend domains in production
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:63342}
+  # Allowed frontend domains; uses CORS_ALLOWED_ORIGINS env var or defaults to localhost
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001}
   # Whether to allow credentials (e.g., cookies, Authorization headers)
   allow-credentials: ${CORS_ALLOW_CREDENTIALS:true}
   # Preflight request cache duration (in seconds)

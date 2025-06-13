@@ -41,9 +41,9 @@ public class SecurityConfig {
      */
     @Autowired
     private JwtAuthenticationEntryPoint unauthorizedHandler;
-
+    
     /**
-     * CORS configuration source
+     * CORS configuration source from CorsConfig
      */
     @Autowired
     private CorsConfigurationSource corsConfigurationSource;
@@ -82,11 +82,11 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
       http
+          // Enable CORS with configuration from CorsConfig
+          .cors(cors -> cors.configurationSource(corsConfigurationSource))
+          
           // Disable CSRF for REST API
           .csrf(csrf -> csrf.disable())
-
-          // Enable CORS with custom configuration
-          .cors(cors -> cors.configurationSource(corsConfigurationSource))
 
           // Exception handling
           .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
@@ -102,7 +102,7 @@ public class SecurityConfig {
               .antMatchers(HttpMethod.POST, "/token/refresh").permitAll()
               .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
-              // Handle preflight OPTIONS requests
+              // Allow OPTIONS requests for CORS preflight
               .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               // Authenticated endpoints
               .anyRequest().authenticated()
