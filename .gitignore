@@ -202,6 +202,4 @@ temp/
 CLAUDE.md
 .claude/settings.local.json
 frontend/.env.example
-frontend/package-lock.json
-frontend/package.json
 frontend/.claude/settings.local.json
