@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examiner Dashboard | OAS</title>
+  <!-- External CSS Libraries -->
+<!-- External CSS Libraries -->
+<link rel="stylesheet" href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" />
+<!-- Alternative: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" /> -->
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+<!-- Alternative: <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" /> -->
+
+<!-- Google Fonts - keep as is -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Custom Variables */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #4f46e5;
+      --tertiary: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --light: #f3f4f6;
+      --dark: #1f2937;
+      --text-dark: #1f2937;
+      --text-light: #f9fafb;
+      --bg-light: #ffffff;
+      --bg-dark: #111827;
+      --card-light: #ffffff;
+      --card-dark: #1f2937;
+    }
+
+    /* Light/Dark mode transitions */
+    body,
+    .sidebar,
+    .dashboard-card,
+    .header,
+    .sidebar-link,
+    input,
+    select,
+    button,
+    textarea {
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Dark mode variables */
+    .dark {
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-dark: #2563eb;
+      --secondary: #6366f1;
+      --light: #212529;
+      --dark: #f8f9fa;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    /* Dark mode scrollbar */
+    .dark ::-webkit-scrollbar-track {
+      background: #2d3748;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #4a5568;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #718096;
+    }
+
+    /* Custom Element Styles */
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--light);
+      color: var(--text-dark);
+    }
+
+    .dark body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+    }
+
+    .dashboard-card {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      border: 1px solid var(--light);
+    }
+
+    .dark .dashboard-card {
+      background-color: var(--card-dark);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      border-color: #374151;
+    }
+
+    .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .dark .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Form controls */
+    .form-control {
+      @apply rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2;
+    }
+
+    /* Calendar styles */
+    .calendar-day {
+      @apply h-28 p-1 border border-gray-200 dark:border-gray-700 overflow-hidden hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-10 transition-colors;
+    }
+
+    .calendar-day .date {
+      @apply text-xs text-gray-500 dark:text-gray-400 mb-1;
+    }
+
+    .assessment-tag {
+      @apply text-xs p-1 mb-1 rounded truncate block;
+    }
+
+    .assessment-tag.upcoming {
+      @apply bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 text-blue-800 dark:text-blue-200;
+    }
+
+    .assessment-tag.active {
+      @apply bg-green-100 dark:bg-green-900 dark:bg-opacity-30 text-green-800 dark:text-green-200;
+    }
+
+    .assessment-tag.completed {
+      @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200;
+    }
+
+    /* Status badge styles */
+    .status-badge {
+      @apply px-2 py-1 rounded-full text-xs font-medium mr-2;
+    }
+
+    .status-upcoming {
+      @apply bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200;
+    }
+
+    .status-active {
+      @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+    }
+
+    .status-completed {
+      @apply bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200;
+    }
+
+    .status-overdue {
+      @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+    }
+
+    /* Stats counter */
+    .stats-card {
+      @apply p-5 rounded-lg flex items-start;
+    }
+
+    .stats-icon {
+      @apply w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0;
+    }
+  </style>
+</head>
+
+<body class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" x-data="{ 
+      darkMode: false, 
+      sidebarOpen: true, 
+      notificationsOpen: false
+    }">
+  <!-- Main container -->
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <!-- Sidebar navigation -->
+    <aside
+      class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800 z-20"
+      :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}" id="sidebar">
+      <!-- Logo and system name -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">OAS</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Examiner</span>
+        </div>
+        <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+          @click="sidebarOpen = false" aria-label="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Navigation links -->
+      <nav class="py-4">
+        <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          Main
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium">
+          <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+        </a>
+        <a href="examiner-schedule-page.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-calendar-alt mr-2"></i> Schedule
+        </a>
+        <a href="examiner-assessment-page.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-clipboard-check mr-2"></i> Assessment
+        </a>
+        <a href="examiner-history-page.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-chart-bar mr-2"></i> Results
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-comment-dots mr-2"></i> Comment Library
+        </a>
+
+        <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          Help
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-question-circle mr-2"></i> Documentation
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-headset mr-2"></i> Support
+        </a>
+      </nav>
+
+      <!-- Version info -->
+      <div class="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Oral Assessment System v1.2.0
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <div class="flex-1 flex flex-col">
+      <!-- Top header with user info and actions -->
+      <header class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6">
+        <!-- Mobile menu toggle -->
+        <div class="flex items-center">
+          <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = true" aria-label="Open sidebar">
+            <i class="fas fa-bars"></i>
+          </button>
+
+          <!-- Search box -->
+          <div class="ml-4 md:ml-6 relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </span>
+            <input type="text" placeholder="Search assignments, students..."
+              class="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none"
+              aria-label="Search" />
+          </div>
+        </div>
+
+        <!-- Right side - user profile, notifications, etc. -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark mode toggle -->
+          <button @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            aria-label="Toggle dark mode">
+            <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+            <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+          </button>
+
+          <!-- Notifications -->
+          <div class="relative">
+            <button @click="notificationsOpen = !notificationsOpen"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+              aria-label="Notifications">
+              <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+              <span
+                class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white">
+                3
+              </span>
+            </button>
+
+            <!-- Notifications dropdown -->
+            <div x-show="notificationsOpen" @click.away="notificationsOpen = false"
+              class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+              x-cloak>
+              <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 class="text-sm font-semibold">Notifications</h3>
+                <a href="#" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  Mark all as read
+                </a>
+              </div>
+
+              <!-- Notification items -->
+              <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div class="flex items-start">
+                    <div
+                      class="flex-shrink-0 h-8 w-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center text-red-500 dark:text-red-300">
+                      <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white">Urgent: Feedback needed</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">5 assessments due today require your feedback.
+                      </p>
+                      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Just now</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div class="flex items-start">
+                    <div
+                      class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-500 dark:text-blue-300">
+                      <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white">Schedule updated</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">New assessment scheduled for tomorrow at 2:30
+                        PM.</p>
+                      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">1 hour ago</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <div class="flex items-start">
+                    <div
+                      class="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-500 dark:text-green-300">
+                      <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p class="text-sm font-medium text-gray-900 dark:text-white">Assessment guidelines updated</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">New rubric for COMP90082 is now available.</p>
+                      <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Yesterday</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="px-4 py-2 text-center">
+                <a href="#" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  View all notifications
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- User profile -->
+          <div class="relative">
+            <button
+              class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="User profile">
+              <img src="/api/placeholder/32/32" alt="Examiner Profile" class="w-8 h-8 rounded-full" />
+              <div class="hidden md:block text-left">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Dr. Emma Thompson
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Examiner
+                </div>
+              </div>
+              <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main content -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900">
+        <!-- Welcome section -->
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+            Welcome back, Dr. Thompson!
+          </h1>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            Here's what's happening with your assessments today. You have 3 upcoming assessments.
+          </p>
+        </div>
+
+        <!-- Alert section -->
+        <div
+          class="mb-6 bg-amber-50 dark:bg-amber-900 dark:bg-opacity-20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 flex items-start">
+          <div class="text-amber-500 dark:text-amber-400 mr-3 mt-0.5">
+            <i class="fas fa-exclamation-circle text-xl"></i>
+          </div>
+          <div>
+            <h3 class="font-medium text-amber-800 dark:text-amber-300">Attention Required</h3>
+            <p class="text-sm text-amber-700 dark:text-amber-200 mt-1">
+              5 assessments from last week need feedback to be submitted by tomorrow.
+              <a href="#" class="text-blue-600 dark:text-blue-400 hover:underline ml-1">
+                Review now
+              </a>
+            </p>
+          </div>
+        </div>
+
+        <!-- Stats section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <!-- Today's Assessments -->
+          <div class="dashboard-card">
+            <div class="stats-card bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 border-radius">
+              <div class="stats-icon bg-blue-100 dark:bg-blue-800">
+                <i class="fas fa-calendar-day text-blue-600 dark:text-blue-400"></i>
+              </div>
+              <div class="">
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Today's Assessments</h3>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">3</div>
+                <div class="flex items-center mt-1 text-xs">
+                  <span class="text-green-600 dark:text-green-400">
+                    <i class="fas fa-arrow-up mr-1"></i> 2 more
+                  </span>
+                  <span class="text-gray-500 dark:text-gray-400 ml-1">than yesterday</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending Feedback -->
+          <div class="dashboard-card">
+            <div class="stats-card bg-red-50 dark:bg-red-900 dark:bg-opacity-20">
+              <div class="stats-icon bg-red-100 dark:bg-red-800">
+                <i class="fas fa-clipboard-list text-red-600 dark:text-red-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Pending Feedback</h3>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">8</div>
+                <div class="text-xs text-red-600 dark:text-red-400 mt-1">
+                  <i class="fas fa-exclamation-circle mr-1"></i> 5 due today
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Total Completed -->
+          <div class="dashboard-card">
+            <div class="stats-card bg-green-50 dark:bg-green-900 dark:bg-opacity-20">
+              <div class="stats-icon bg-green-100 dark:bg-green-800">
+                <i class="fas fa-check-circle text-green-600 dark:text-green-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Completed This Week</h3>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">12</div>
+                <div class="flex items-center mt-1 text-xs">
+                  <span class="text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-chart-line mr-1"></i> 85% completion rate
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Students Assessed -->
+          <div class="dashboard-card">
+            <div class="stats-card bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20">
+              <div class="stats-icon bg-purple-100 dark:bg-purple-800">
+                <i class="fas fa-users text-purple-600 dark:text-purple-400"></i>
+              </div>
+              <div>
+                <h3 class="text-sm text-gray-500 dark:text-gray-400">Students Assessed</h3>
+                <div class="text-2xl font-bold text-gray-900 dark:text-white mt-1">48</div>
+                <div class="flex items-center mt-1 text-xs">
+                  <span class="text-gray-500 dark:text-gray-400">
+                    <i class="fas fa-graduation-cap mr-1"></i> Across 5 courses
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Today's Schedule -->
+        <div class="dashboard-card mb-6">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              <i class="fas fa-calendar-day text-blue-600 dark:text-blue-400 mr-2"></i> Today's Schedule
+            </h2>
+            <a href="examiner-schedule-page.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              View Full Schedule
+            </a>
+          </div>
+
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Assessment 1 -->
+            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div class="md:flex md:justify-between md:items-center">
+                <div class="mb-3 md:mb-0">
+                  <div class="flex items-center">
+                    <span class="status-badge status-upcoming">Upcoming</span>
+                    <span class="font-medium">Project Proposal Presentation</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    COMP90082 - Software Project Management
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-clock text-gray-400 mr-2"></i>
+                    <span>10:30 AM - 11:00 AM</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                    <span>Room 405, Engineering Building</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-user-friends text-gray-400 mr-2"></i>
+                    <span>Group #12</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex justify-end">
+                <a href="examiner-assessment-page.html"
+                  class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+                  Start Assessment
+                </a>
+              </div>
+            </div>
+
+            <!-- Assessment 2 -->
+            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div class="md:flex md:justify-between md:items-center">
+                <div class="mb-3 md:mb-0">
+                  <div class="flex items-center">
+                    <span class="status-badge status-upcoming">Upcoming</span>
+                    <span class="font-medium">Mid-Semester Project Update</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    INFO30005 - Web Information Technologies
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-clock text-gray-400 mr-2"></i>
+                    <span>2:00 PM - 2:30 PM</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                    <span>Room 203, ICT Building</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-user-friends text-gray-400 mr-2"></i>
+                    <span>Group #5</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex justify-end">
+                <a href="examiner-assessment-page.html"
+                  class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+                  Start Assessment
+                </a>
+              </div>
+            </div>
+
+            <!-- Assessment 3 -->
+            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div class="md:flex md:justify-between md:items-center">
+                <div class="mb-3 md:mb-0">
+                  <div class="flex items-center">
+                    <span class="status-badge status-upcoming">Upcoming</span>
+                    <span class="font-medium">Individual Reflection</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    INFO20003 - Database Systems
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-clock text-gray-400 mr-2"></i>
+                    <span>4:15 PM - 4:30 PM</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-map-marker-alt text-gray-400 mr-2"></i>
+                    <span>Online (Zoom)</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-user text-gray-400 mr-2"></i>
+                    <span>Michelle Zhang</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex justify-end">
+                <a href="#" class="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md">
+                  Join Online
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pending Feedback -->
+        <div class="dashboard-card mb-6">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              <i class="fas fa-exclamation-circle text-red-500 dark:text-red-400 mr-2"></i> Pending Feedback
+            </h2>
+            <div class="text-sm text-red-600 dark:text-red-400">
+              5 due today
+            </div>
+          </div>
+
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <!-- Pending 1 -->
+            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div class="md:flex md:justify-between md:items-center">
+                <div class="mb-3 md:mb-0">
+                  <div class="flex items-center">
+                    <span class="status-badge status-overdue">Due Today</span>
+                    <span class="font-medium">Project Proposal Presentation</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    COMP90082 - Group #10
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
+                    <span>Assessment Date: Apr 8, 2025</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-chart-pie text-gray-400 mr-2"></i>
+                    <span>Scoring completed: 70%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex justify-end">
+                <a href="#" class="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md">
+                  Complete Feedback
+                </a>
+              </div>
+            </div>
+
+            <!-- Pending 2 -->
+            <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <div class="md:flex md:justify-between md:items-center">
+                <div class="mb-3 md:mb-0">
+                  <div class="flex items-center">
+                    <span class="status-badge status-overdue">Due Today</span>
+                    <span class="font-medium">Mid-Semester Project Update</span>
+                  </div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    INFO30005 - Group #3</span>
+                  </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-6">
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-calendar-alt text-gray-400 mr-2"></i>
+                    <span>Assessment Date: Apr 10, 2025</span>
+                  </div>
+                  <div class="flex items-center text-sm">
+                    <i class="fas fa-chart-pie text-gray-400 mr-2"></i>
+                    <span>Scoring completed: 100%</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-3 flex justify-end">
+                <a href="#" class="px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md">
+                  Complete Feedback
+                </a>
+              </div>
+            </div>
+
+            <!-- More button -->
+            <div class="p-4 text-center">
+              <a href="#" class="text-blue-600 dark:text-blue-400 hover:underline text-sm">
+                View all 8 pending feedback items
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- This Week Calendar -->
+        <div class="dashboard-card">
+          <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+              <i class="fas fa-calendar-week text-purple-600 dark:text-purple-400 mr-2"></i> This Week
+            </h2>
+            <a href="examiner-schedule-page.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+              Monthly View
+            </a>
+          </div>
+
+          <div class="p-4">
+            <div class="grid grid-cols-7 gap-1">
+              <!-- Calendar header -->
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Mon</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Tue</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Wed</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Thu</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Fri</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Sat</div>
+              <div class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1">Sun</div>
+
+              <!-- Calendar days -->
+              <div class="calendar-day">
+                <div class="date">10</div>
+                <div class="assessment-tag completed">COMP90082 #8 (9:30)</div>
+                <div class="assessment-tag completed">INFO30005 #2 (11:15)</div>
+              </div>
+              <div class="calendar-day">
+                <div class="date">11</div>
+                <div class="assessment-tag completed">INFO20003 #1 (13:45)</div>
+              </div>
+              <div class="calendar-day">
+                <div class="date">12</div>
+                <div class="assessment-tag completed">COMP90082 #9 (10:00)</div>
+                <div class="assessment-tag completed">INFO30005 #4 (14:30)</div>
+              </div>
+              <div
+                class="calendar-day bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10 border-blue-200 dark:border-blue-800">
+                <div class="date font-medium text-blue-600 dark:text-blue-400">13 (Today)</div>
+                <div class="assessment-tag upcoming">COMP90082 #12 (10:30)</div>
+                <div class="assessment-tag upcoming">INFO30005 #5 (14:00)</div>
+                <div class="assessment-tag upcoming">INFO20003 #6 (16:15)</div>
+              </div>
+              <div class="calendar-day">
+                <div class="date">14</div>
+                <div class="assessment-tag upcoming">COMP90082 #15 (9:00)</div>
+                <div class="assessment-tag upcoming">COMP90082 #16 (10:00)</div>
+              </div>
+              <div class="calendar-day">
+                <div class="date">15</div>
+                <div class="assessment-tag upcoming">INFO30005 #7 (11:30)</div>
+              </div>
+              <div class="calendar-day">
+                <div class="date">16</div>
+                <!-- No assessments scheduled -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <!-- Footer -->
+      <footer
+        class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400">
+        &copy; 2025 Oral Assessment System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <!-- AlpineJS for interactivity -->
+  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+</body>
+
+</html>

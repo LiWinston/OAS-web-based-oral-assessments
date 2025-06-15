@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Enhanced Assessment Rubric</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Base styles */
+      body {
+        font-family: "Inter", sans-serif;
+      }
+
+      /* Table-style Rubric */
+      .rubric-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+
+      .rubric-table th {
+        background-color: #f9fafb;
+        color: #4b5563;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .rubric-table td {
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        border-bottom: 1px solid #e5e7eb;
+        vertical-align: top;
+      }
+
+      /* Grid-style ratings */
+      .rating-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        overflow: hidden;
+      }
+
+      .rating-cell {
+        padding: 0.75rem;
+        text-align: center;
+        border-right: 1px solid #e5e7eb;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+      }
+
+      .rating-cell:last-child {
+        border-right: none;
+      }
+
+      .rating-cell:hover {
+        background-color: #f3f4f6;
+      }
+
+      .rating-cell.selected {
+        background-color: #eff6ff;
+        color: #1e40af;
+        font-weight: 500;
+      }
+
+      .rating-value {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .rating-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+      }
+
+      /* Comment section */
+      .comment-section {
+        padding: 1rem;
+        background-color: #f9fafb;
+        border-top: 1px solid #e5e7eb;
+        display: none;
+      }
+
+      .comment-section.active {
+        display: block;
+      }
+
+      /* Selection indicator */
+      .selection-indicator {
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 10px solid transparent;
+        border-right: 10px solid transparent;
+        border-bottom: 10px solid #e5e7eb;
+        display: none;
+      }
+
+      .rating-cell.selected .selection-indicator {
+        display: block;
+      }
+
+      /* Comment toggle button */
+      .comment-toggle {
+        background-color: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .comment-toggle:hover {
+        background-color: #f3f4f6;
+      }
+
+      .comment-toggle.active {
+        background-color: #eff6ff;
+        color: #1e40af;
+      }
+
+      /* Predefined comments section */
+      .predefined-comments {
+        margin-top: 0.5rem;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease-in-out;
+      }
+
+      .predefined-comments.active {
+        max-height: 500px;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+      }
+
+      .predefined-comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .comment-chips {
+        display: grid;
+        grid-template-columns: repeat(1, 1fr);
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      @media (min-width: 640px) {
+        .comment-chips {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      .comment-chip {
+        padding: 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .comment-chip:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .comment-chip-admin {
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+      }
+
+      .comment-chip-examiner {
+        background-color: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+      }
+
+      .comment-chip-personal {
+        background-color: #fef3c7;
+        border: 1px solid #fcd34d;
+        color: #92400e;
+      }
+
+      .comment-icon {
+        margin-right: 0.5rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+      }
+
+      .comment-legend {
+        display: flex;
+        justify-content: flex-start;
+        gap: 1rem;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+      }
+
+      .predefined-comments-toggle {
+        background: none;
+        border: none;
+        color: #2563eb;
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+      }
+
+      .predefined-comments-toggle:hover {
+        background-color: #eff6ff;
+      }
+
+      .predefined-comments-toggle i {
+        transition: transform 0.2s;
+      }
+
+      .predefined-comments-toggle.active i {
+        transform: rotate(180deg);
+      }
+
+      .save-to-library {
+        display: flex;
+        align-items: center;
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+      }
+
+      .save-to-library input {
+        margin-right: 0.5rem;
+      }
+
+      .comment-section-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 0.75rem;
+      }
+
+      .comment-action-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 0.375rem;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background-color: #2563eb;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #1d4ed8;
+      }
+
+      .comment-level-heading {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #4b5563;
+        margin-bottom: 0.25rem;
+      }
+
+      .comment-level-description {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-bottom: 0.5rem;
+      }
+
+      /* Saved comment display */
+      .saved-comment-display {
+        margin-top: 0.5rem;
+        font-size: 0.75rem;
+        color: #4b5563;
+        padding: 0.375rem 0.5rem;
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.25rem;
+        max-height: 3.5rem;
+        overflow-y: auto;
+        word-break: break-word;
+      }
+
+      .saved-comment-label {
+        display: block;
+        font-size: 0.675rem;
+        font-weight: 500;
+        color: #6b7280;
+        margin-bottom: 0.125rem;
+      }
+
+      /* Notification toast */
+      .toast {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        padding: 0.75rem 1rem;
+        background-color: #d1fae5;
+        border-left: 4px solid #10b981;
+        border-radius: 0.25rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 50;
+        transform: translateY(100%);
+        opacity: 0;
+        transition: transform 0.3s, opacity 0.3s;
+      }
+
+      .toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      .toast-icon {
+        color: #10b981;
+      }
+
+      .toast-message {
+        font-size: 0.875rem;
+        color: #065f46;
+        font-weight: 500;
+      }
+    </style>
+  </head>
+
+  <body class="p-6 bg-gray-100">
+    <table class="rubric-table mb-6 bg-white">
+      <thead>
+        <tr>
+          <th width="20%">Criteria</th>
+          <th width="60%">Rating Levels</th>
+          <th width="20%">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Content & Structure Criteria -->
+        <tr class="criteria-row" id="criteria-1">
+          <td>
+            <div class="font-medium">Content & Structure</div>
+            <div class="text-sm text-gray-500 mt-1">
+              Thoroughness and organization of presented material
+            </div>
+          </td>
+          <td>
+            <div class="rating-grid">
+              <div class="rating-cell" data-value="1" data-criteria="content">
+                <div class="rating-value">Poor</div>
+                <div class="rating-description">Incomplete, disorganized</div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="2" data-criteria="content">
+                <div class="rating-value">Fair</div>
+                <div class="rating-description">
+                  Basic coverage, weak structure
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div
+                class="rating-cell selected"
+                data-value="3"
+                data-criteria="content"
+              >
+                <div class="rating-value">Good</div>
+                <div class="rating-description">
+                  Solid content, clear structure
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="4" data-criteria="content">
+                <div class="rating-value">Very Good</div>
+                <div class="rating-description">
+                  Comprehensive, well-structured
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="5" data-criteria="content">
+                <div class="rating-value">Excellent</div>
+                <div class="rating-description">
+                  Exceptional, perfectly structured
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+            </div>
+
+            <!-- Enhanced Comment Section -->
+            <div class="mt-3">
+              <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700"
+                  >Criterion-specific comment</label
+                >
+                <button
+                  class="predefined-comments-toggle"
+                  data-criteria="content"
+                >
+                  Show predefined comments
+                  <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+              </div>
+
+              <textarea
+                id="comment-content"
+                class="w-full p-2 border border-gray-300 rounded resize-none mt-1"
+                rows="2"
+                placeholder="Add your comment here..."
+              >
+The presentation has a good overall structure with logical flow between sections.</textarea
+              >
+
+              <div class="save-to-library">
+                <input
+                  type="checkbox"
+                  id="save-to-library-content"
+                  class="save-checkbox"
+                />
+                <label for="save-to-library-content"
+                  >Save comment to library for reuse at this rating level only
+                  (will be available to all examiners)</label
+                >
+              </div>
+
+              <!-- Predefined Comments Section -->
+              <div
+                id="predefined-comments-content"
+                class="predefined-comments bg-gray-50 rounded-md mt-2 px-3"
+              >
+                <div class="predefined-comment-header">
+                  <div>
+                    <div class="comment-level-heading">
+                      Predefined Comments for "Good" Level
+                    </div>
+                    <div class="comment-level-description">
+                      Click on a comment to add it to your feedback
+                    </div>
+                  </div>
+                </div>
+
+                <div class="comment-chips">
+                  <!-- Admin-defined comments -->
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Well-structured presentation with good content coverage"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >Well-structured presentation with good content
+                      coverage</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="The presentation follows a logical order with appropriate transitions"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >The presentation follows a logical order with appropriate
+                      transitions</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Content is sufficient and addresses key requirements"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >Content is sufficient and addresses key
+                      requirements</span
+                    >
+                  </div>
+
+                  <!-- Examiner-added comments -->
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="Good balance between technical details and high-level concepts"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >Good balance between technical details and high-level
+                      concepts</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="The organization makes it easy to follow the main points"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >The organization makes it easy to follow the main
+                      points</span
+                    >
+                  </div>
+
+                  <!-- My Saved Comments (initially empty - will be populated by JS) -->
+                  <div
+                    id="personal-comments-content-3"
+                    class="personal-comments-container"
+                  >
+                    <!-- Personal comments will be inserted here -->
+                  </div>
+                </div>
+
+                <div class="comment-legend">
+                  <div class="legend-item">
+                    <i class="fas fa-shield-alt text-blue-600 mr-1"></i>
+                    <span>Admin-defined</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-comment text-green-600 mr-1"></i>
+                    <span>Examiner-added</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-star text-yellow-600 mr-1"></i>
+                    <span>My saved</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="comment-section-actions">
+                <button
+                  class="comment-action-btn btn-primary save-comment-btn"
+                  data-criteria="content"
+                >
+                  Save Comment
+                </button>
+              </div>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <input
+                type="number"
+                class="w-16 p-1 border border-gray-300 rounded text-center"
+                value="3"
+              />
+              <span>/ 5 pts</span>
+            </div>
+            <!-- Saved Comment Display -->
+            <div id="saved-comment-content" class="mt-3">
+              <!-- Will be populated by JS when comment is saved -->
+            </div>
+          </td>
+        </tr>
+
+        <!-- Clarity & Communication Criteria -->
+        <tr class="criteria-row" id="criteria-2">
+          <td>
+            <div class="font-medium">Clarity & Communication</div>
+            <div class="text-sm text-gray-500 mt-1">
+              Effectiveness in conveying complex ideas
+            </div>
+          </td>
+          <td>
+            <div class="rating-grid">
+              <div class="rating-cell" data-value="1" data-criteria="clarity">
+                <div class="rating-value">Poor</div>
+                <div class="rating-description">
+                  Unclear, difficult to follow
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="2" data-criteria="clarity">
+                <div class="rating-value">Fair</div>
+                <div class="rating-description">
+                  Sometimes clear, inconsistent
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div
+                class="rating-cell selected"
+                data-value="3"
+                data-criteria="clarity"
+              >
+                <div class="rating-value">Good</div>
+                <div class="rating-description">
+                  Mostly clear, effective communication
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="4" data-criteria="clarity">
+                <div class="rating-value">Very Good</div>
+                <div class="rating-description">
+                  Clear, highly effective communication
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="5" data-criteria="clarity">
+                <div class="rating-value">Excellent</div>
+                <div class="rating-description">
+                  Exceptionally clear, engaging presentation
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+            </div>
+
+            <!-- Enhanced Comment Section -->
+            <div class="mt-3">
+              <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700"
+                  >Criterion-specific comment</label
+                >
+                <button
+                  class="predefined-comments-toggle"
+                  data-criteria="clarity"
+                >
+                  Show predefined comments
+                  <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+              </div>
+
+              <textarea
+                id="comment-clarity"
+                class="w-full p-2 border border-gray-300 rounded resize-none mt-1"
+                rows="2"
+                placeholder="Add your comment here..."
+              ></textarea>
+
+              <div class="save-to-library">
+                <input
+                  type="checkbox"
+                  id="save-to-library-clarity"
+                  class="save-checkbox"
+                />
+                <label for="save-to-library-clarity"
+                  >Save comment to library for reuse at this rating level only
+                  (will be available to all examiners)</label
+                >
+              </div>
+
+              <!-- Predefined Comments Section -->
+              <div
+                id="predefined-comments-clarity"
+                class="predefined-comments bg-gray-50 rounded-md mt-2 px-3"
+              >
+                <div class="predefined-comment-header">
+                  <div>
+                    <div class="comment-level-heading">
+                      Predefined Comments for "Good" Level
+                    </div>
+                    <div class="comment-level-description">
+                      Click on a comment to add it to your feedback
+                    </div>
+                  </div>
+                </div>
+
+                <div class="comment-chips">
+                  <!-- Admin-defined comments -->
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Clear explanations of technical concepts"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span>Clear explanations of technical concepts</span>
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Communication is effective though occasionally could be more concise"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >Communication is effective though occasionally could be
+                      more concise</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Good use of examples to illustrate key points"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span>Good use of examples to illustrate key points</span>
+                  </div>
+
+                  <!-- Examiner-added comments -->
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="Technical terminology used correctly and explained adequately"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >Technical terminology used correctly and explained
+                      adequately</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="Mostly confident delivery with good articulation"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >Mostly confident delivery with good articulation</span
+                    >
+                  </div>
+
+                  <!-- My Saved Comments (initially empty - will be populated by JS) -->
+                  <div
+                    id="personal-comments-clarity-3"
+                    class="personal-comments-container"
+                  >
+                    <!-- Personal comments will be inserted here -->
+                  </div>
+                </div>
+
+                <div class="comment-legend">
+                  <div class="legend-item">
+                    <i class="fas fa-shield-alt text-blue-600 mr-1"></i>
+                    <span>Admin-defined</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-comment text-green-600 mr-1"></i>
+                    <span>Examiner-added</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-star text-yellow-600 mr-1"></i>
+                    <span>My saved</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="comment-section-actions">
+                <button
+                  class="comment-action-btn btn-primary save-comment-btn"
+                  data-criteria="clarity"
+                >
+                  Save Comment
+                </button>
+              </div>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <input
+                type="number"
+                class="w-16 p-1 border border-gray-300 rounded text-center"
+                value="3"
+              />
+              <span>/ 5 pts</span>
+            </div>
+            <!-- Saved Comment Display -->
+            <div id="saved-comment-clarity" class="mt-3">
+              <!-- Will be populated by JS when comment is saved -->
+            </div>
+          </td>
+        </tr>
+
+        <!-- Technical Demonstration Criteria -->
+        <tr class="criteria-row" id="criteria-3">
+          <td>
+            <div class="font-medium">Technical Demonstration</div>
+            <div class="text-sm text-gray-500 mt-1">
+              Quality and execution of project demonstration
+            </div>
+          </td>
+          <td>
+            <div class="rating-grid">
+              <div class="rating-cell" data-value="1" data-criteria="technical">
+                <div class="rating-value">Poor</div>
+                <div class="rating-description">
+                  Failed or severely limited demo
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="2" data-criteria="technical">
+                <div class="rating-value">Fair</div>
+                <div class="rating-description">
+                  Basic demo with significant issues
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="3" data-criteria="technical">
+                <div class="rating-value">Good</div>
+                <div class="rating-description">
+                  Effective demo with minor issues
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div
+                class="rating-cell selected"
+                data-value="4"
+                data-criteria="technical"
+              >
+                <div class="rating-value">Very Good</div>
+                <div class="rating-description">
+                  Smooth demo with no significant issues
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+              <div class="rating-cell" data-value="5" data-criteria="technical">
+                <div class="rating-value">Excellent</div>
+                <div class="rating-description">
+                  Flawless, impressive demonstration
+                </div>
+                <div class="selection-indicator"></div>
+              </div>
+            </div>
+
+            <!-- Enhanced Comment Section -->
+            <div class="mt-3">
+              <div class="flex justify-between items-center">
+                <label class="block text-sm font-medium text-gray-700"
+                  >Criterion-specific comment</label
+                >
+                <button
+                  class="predefined-comments-toggle"
+                  data-criteria="technical"
+                >
+                  Show predefined comments
+                  <i class="fas fa-chevron-down ml-1"></i>
+                </button>
+              </div>
+
+              <textarea
+                id="comment-technical"
+                class="w-full p-2 border border-gray-300 rounded resize-none mt-1"
+                rows="2"
+                placeholder="Add your comment here..."
+              >
+The technical demonstration was very well executed with only minor transitional issues. All key features were clearly demonstrated.</textarea
+              >
+
+              <div class="save-to-library">
+                <input
+                  type="checkbox"
+                  id="save-to-library-technical"
+                  class="save-checkbox"
+                />
+                <label for="save-to-library-technical"
+                  >Save comment to library for reuse at this rating level only
+                  (will be available to all examiners)</label
+                >
+              </div>
+
+              <!-- Predefined Comments Section -->
+              <div
+                id="predefined-comments-technical"
+                class="predefined-comments bg-gray-50 rounded-md mt-2 px-3"
+              >
+                <div class="predefined-comment-header">
+                  <div>
+                    <div class="comment-level-heading">
+                      Predefined Comments for "Very Good" Level
+                    </div>
+                    <div class="comment-level-description">
+                      Click on a comment to add it to your feedback
+                    </div>
+                  </div>
+                </div>
+
+                <div class="comment-chips">
+                  <!-- Admin-defined comments -->
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Demonstration showcased all key functionality effectively"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >Demonstration showcased all key functionality
+                      effectively</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Very smooth demo flow with only minor hiccups"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span>Very smooth demo flow with only minor hiccups</span>
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-admin"
+                    data-comment="Well-prepared with logical progression through features"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-shield-alt"></i
+                    ></span>
+                    <span
+                      >Well-prepared with logical progression through
+                      features</span
+                    >
+                  </div>
+
+                  <!-- Examiner-added comments -->
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="Handled unexpected questions about implementation details confidently"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >Handled unexpected questions about implementation details
+                      confidently</span
+                    >
+                  </div>
+                  <div
+                    class="comment-chip comment-chip-examiner"
+                    data-comment="Demonstrated a strong understanding of both frontend and backend components"
+                  >
+                    <span class="comment-icon"
+                      ><i class="fas fa-comment"></i
+                    ></span>
+                    <span
+                      >Demonstrated a strong understanding of both frontend and
+                      backend components</span
+                    >
+                  </div>
+
+                  <!-- My Saved Comments (initially empty - will be populated by JS) -->
+                  <div
+                    id="personal-comments-technical-4"
+                    class="personal-comments-container"
+                  >
+                    <!-- Personal comments will be inserted here -->
+                  </div>
+                </div>
+
+                <div class="comment-legend">
+                  <div class="legend-item">
+                    <i class="fas fa-shield-alt text-blue-600 mr-1"></i>
+                    <span>Admin-defined</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-comment text-green-600 mr-1"></i>
+                    <span>Examiner-added</span>
+                  </div>
+                  <div class="legend-item">
+                    <i class="fas fa-star text-yellow-600 mr-1"></i>
+                    <span>My saved</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="comment-section-actions">
+                <button
+                  class="comment-action-btn btn-primary save-comment-btn"
+                  data-criteria="technical"
+                >
+                  Save Comment
+                </button>
+              </div>
+            </div>
+          </td>
+          <td class="text-center">
+            <div class="flex items-center justify-center space-x-2">
+              <input
+                type="number"
+                class="w-16 p-1 border border-gray-300 rounded text-center"
+                value="4"
+              />
+              <span>/ 5 pts</span>
+            </div>
+            <!-- Saved Comment Display -->
+            <div id="saved-comment-technical" class="mt-3">
+              <!-- Will be populated by JS when comment is saved -->
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast">
+      <span class="toast-icon"><i class="fas fa-check-circle"></i></span>
+      <span class="toast-message">Comment saved successfully!</span>
+    </div>
+
+    <script>
+      // Sample predefined comments data
+      const predefinedComments = {
+        content: {
+          1: [
+            {
+              text: "Content is severely lacking and disorganized",
+              source: "admin",
+            },
+            {
+              text: "Presentation lacks clear structure and critical content",
+              source: "admin",
+            },
+            {
+              text: "Major content gaps with no logical flow",
+              source: "examiner",
+            },
+          ],
+          2: [
+            { text: "Basic content coverage but lacks depth", source: "admin" },
+            {
+              text: "Presentation structure needs significant improvement",
+              source: "admin",
+            },
+            {
+              text: "Some required topics covered but organization is weak",
+              source: "examiner",
+            },
+          ],
+          3: [
+            {
+              text: "Well-structured presentation with good content coverage",
+              source: "admin",
+            },
+            {
+              text: "The presentation follows a logical order with appropriate transitions",
+              source: "admin",
+            },
+            {
+              text: "Content is sufficient and addresses key requirements",
+              source: "admin",
+            },
+            {
+              text: "Good balance between technical details and high-level concepts",
+              source: "examiner",
+            },
+            {
+              text: "The organization makes it easy to follow the main points",
+              source: "examiner",
+            },
+          ],
+          4: [
+            {
+              text: "Very well organized with comprehensive content",
+              source: "admin",
+            },
+            {
+              text: "Thorough coverage of the topic with clear section transitions",
+              source: "admin",
+            },
+            {
+              text: "Excellent content depth with strong supporting details",
+              source: "examiner",
+            },
+          ],
+          5: [
+            {
+              text: "Exceptionally well-structured with outstanding depth",
+              source: "admin",
+            },
+            {
+              text: "Perfect organization with comprehensive and insightful content",
+              source: "admin",
+            },
+            {
+              text: "Masterfully organized with exemplary content thoroughness",
+              source: "examiner",
+            },
+          ],
+        },
+        clarity: {
+          1: [
+            {
+              text: "Communication was unclear and difficult to follow",
+              source: "admin",
+            },
+            {
+              text: "Failed to effectively convey core concepts",
+              source: "admin",
+            },
+          ],
+          2: [
+            { text: "Explanation of ideas was inconsistent", source: "admin" },
+            {
+              text: "Some clarity issues made parts difficult to understand",
+              source: "admin",
+            },
+          ],
+          3: [
+            {
+              text: "Clear explanations of technical concepts",
+              source: "admin",
+            },
+            {
+              text: "Communication is effective though occasionally could be more concise",
+              source: "admin",
+            },
+            {
+              text: "Good use of examples to illustrate key points",
+              source: "admin",
+            },
+            {
+              text: "Technical terminology used correctly and explained adequately",
+              source: "examiner",
+            },
+            {
+              text: "Mostly confident delivery with good articulation",
+              source: "examiner",
+            },
+          ],
+          4: [
+            {
+              text: "Highly effective communication of complex ideas",
+              source: "admin",
+            },
+            {
+              text: "Very clear explanations with well-chosen examples",
+              source: "admin",
+            },
+            {
+              text: "Excellent articulation of technical concepts",
+              source: "examiner",
+            },
+          ],
+          5: [
+            {
+              text: "Exceptional clarity with engaging delivery",
+              source: "admin",
+            },
+            {
+              text: "Mastery in communicating complex concepts simply",
+              source: "admin",
+            },
+            {
+              text: "Perfect balance of technical depth and accessibility",
+              source: "examiner",
+            },
+          ],
+        },
+        technical: {
+          1: [
+            {
+              text: "Failed to demonstrate core functionality",
+              source: "admin",
+            },
+            {
+              text: "Technical demonstration had critical failures",
+              source: "admin",
+            },
+          ],
+          2: [
+            {
+              text: "Basic demo with significant technical issues",
+              source: "admin",
+            },
+            { text: "Multiple failures during demonstration", source: "admin" },
+          ],
+          3: [
+            {
+              text: "Effective demonstration with only minor issues",
+              source: "admin",
+            },
+            {
+              text: "Most features demonstrated successfully",
+              source: "admin",
+            },
+            {
+              text: "Technical implementation appears sound despite small issues",
+              source: "examiner",
+            },
+          ],
+          4: [
+            {
+              text: "Demonstration showcased all key functionality effectively",
+              source: "admin",
+            },
+            {
+              text: "Very smooth demo flow with only minor hiccups",
+              source: "admin",
+            },
+            {
+              text: "Well-prepared with logical progression through features",
+              source: "admin",
+            },
+            {
+              text: "Handled unexpected questions about implementation details confidently",
+              source: "examiner",
+            },
+            {
+              text: "Demonstrated a strong understanding of both frontend and backend components",
+              source: "examiner",
+            },
+          ],
+          5: [
+            {
+              text: "Flawless demonstration with impressive technical depth",
+              source: "admin",
+            },
+            {
+              text: "Exceptional implementation with no issues during demo",
+              source: "admin",
+            },
+            {
+              text: "Perfect execution of all features with outstanding attention to detail",
+              source: "examiner",
+            },
+          ],
+        },
+      };
+
+      // Personal saved comments storage
+      let personalComments = {
+        content: {
+          1: [],
+          2: [],
+          3: [
+            {
+              text: "The presentation has a good overall structure with logical flow between sections.",
+            },
+          ],
+          4: [],
+          5: [],
+        },
+        clarity: {
+          1: [],
+          2: [],
+          3: [],
+          4: [],
+          5: [],
+        },
+        technical: {
+          1: [],
+          2: [],
+          3: [],
+          4: [
+            {
+              text: "The technical demonstration was very well executed with only minor transitional issues. All key features were clearly demonstrated.",
+            },
+          ],
+          5: [],
+        },
+      };
+
+      // Initialize the page
+      document.addEventListener("DOMContentLoaded", function () {
+        // Initialize saved comments display
+        updateSavedCommentDisplay("content", 3);
+        updateSavedCommentDisplay("technical", 4);
+
+        // Initialize personal comments in the predefined comments sections
+        updatePersonalCommentChips("content", 3);
+        updatePersonalCommentChips("technical", 4);
+
+        // Toggle predefined comments sections
+        document
+          .querySelectorAll(".predefined-comments-toggle")
+          .forEach((button) => {
+            button.addEventListener("click", function () {
+              const criteria = this.getAttribute("data-criteria");
+              const commentsSection = document.getElementById(
+                `predefined-comments-${criteria}`
+              );
+
+              if (commentsSection.classList.contains("active")) {
+                commentsSection.classList.remove("active");
+                this.innerHTML =
+                  'Show predefined comments <i class="fas fa-chevron-down ml-1"></i>';
+              } else {
+                commentsSection.classList.add("active");
+                this.innerHTML =
+                  'Hide predefined comments <i class="fas fa-chevron-down ml-1"></i>';
+                this.classList.add("active");
+              }
+            });
+          });
+
+        // Make rating cells clickable
+        document.querySelectorAll(".rating-cell").forEach((cell) => {
+          cell.addEventListener("click", function () {
+            const criteria = this.getAttribute("data-criteria");
+            const ratingValue = parseInt(this.getAttribute("data-value"));
+
+            // Remove selected class from all siblings
+            const gridParent = this.closest(".rating-grid");
+            gridParent.querySelectorAll(".rating-cell").forEach((sibling) => {
+              sibling.classList.remove("selected");
+            });
+
+            // Add selected class to this cell
+            this.classList.add("selected");
+
+            // Update score input
+            const row = this.closest(".criteria-row");
+            const scoreInput = row.querySelector('input[type="number"]');
+            scoreInput.value = ratingValue;
+
+            // Update predefined comments for this rating level
+            updatePredefinedComments(criteria, ratingValue);
+
+            // Update personal comments for this rating level
+            updatePersonalCommentChips(criteria, ratingValue);
+          });
+        });
+
+        // Make predefined comment chips clickable
+        document.addEventListener("click", function (e) {
+          if (e.target.closest(".comment-chip")) {
+            const chip = e.target.closest(".comment-chip");
+            const commentText = chip.getAttribute("data-comment");
+            const criteria = chip
+              .closest(".predefined-comments")
+              .id.replace("predefined-comments-", "");
+            const textarea = document.getElementById(`comment-${criteria}`);
+
+            // If textarea already has text, add a new line
+            if (textarea.value.trim().length > 0) {
+              textarea.value += `\n${commentText}`;
+            } else {
+              textarea.value = commentText;
+            }
+
+            // Focus textarea and trigger input event for auto-resize
+            textarea.focus();
+            const event = new Event("input", { bubbles: true });
+            textarea.dispatchEvent(event);
+          }
+        });
+
+        // Save comment button click handlers
+        document.querySelectorAll(".save-comment-btn").forEach((button) => {
+          button.addEventListener("click", function () {
+            const criteria = this.getAttribute("data-criteria");
+            const textarea = document.getElementById(`comment-${criteria}`);
+            const saveCheckbox = document.getElementById(
+              `save-to-library-${criteria}`
+            );
+            const commentText = textarea.value.trim();
+
+            if (commentText.length === 0) {
+              showToast("Please enter a comment before saving.", "warning");
+              return;
+            }
+
+            // Get the current rating value for this criteria
+            const ratingCell = document.querySelector(
+              `.rating-cell.selected[data-criteria="${criteria}"]`
+            );
+            const ratingValue = parseInt(ratingCell.getAttribute("data-value"));
+
+            // Update saved comment display (UI only, not storage)
+            updateSavedCommentDisplay(criteria, ratingValue, commentText);
+
+            // If save to library is checked, add to personal comments
+            if (saveCheckbox.checked) {
+              // Check if this comment already exists in personal comments for this rating level
+              const existingIndex = personalComments[criteria][
+                ratingValue
+              ].findIndex((comment) => comment.text === commentText);
+
+              if (existingIndex === -1) {
+                // Add new comment to this specific rating level only
+                personalComments[criteria][ratingValue].push({
+                  text: commentText,
+                });
+
+                // Update personal comments in the predefined comments section for this rating level
+                updatePersonalCommentChips(criteria, ratingValue);
+
+                showToast(
+                  "Comment saved to your library for this rating level!",
+                  "success"
+                );
+              } else {
+                showToast(
+                  "This comment is already in your library for this rating level.",
+                  "info"
+                );
+              }
+
+              // Uncheck the save checkbox
+              saveCheckbox.checked = false;
+            } else {
+              showToast("Comment saved!", "success");
+            }
+          });
+        });
+
+        // Function to update predefined comments based on rating level
+        function updatePredefinedComments(criteria, ratingValue) {
+          // Update heading
+          const commentsSection = document.getElementById(
+            `predefined-comments-${criteria}`
+          );
+          const heading = commentsSection.querySelector(
+            ".comment-level-heading"
+          );
+          const ratingName = getRatingName(ratingValue);
+          heading.textContent = `Predefined Comments for "${ratingName}" Level`;
+
+          // Clear existing admin and examiner comments
+          const commentsContainer =
+            commentsSection.querySelector(".comment-chips");
+          commentsContainer
+            .querySelectorAll(".comment-chip-admin, .comment-chip-examiner")
+            .forEach((chip) => {
+              chip.remove();
+            });
+
+          // Add new comments for this rating level
+          if (
+            predefinedComments[criteria] &&
+            predefinedComments[criteria][ratingValue]
+          ) {
+            // Get or create the personal comments container
+            let personalCommentsContainer = document.getElementById(
+              `personal-comments-${criteria}-${ratingValue}`
+            );
+            if (!personalCommentsContainer) {
+              // Create it if it doesn't exist
+              personalCommentsContainer = document.createElement("div");
+              personalCommentsContainer.id = `personal-comments-${criteria}-${ratingValue}`;
+              personalCommentsContainer.className =
+                "personal-comments-container";
+              commentsContainer.appendChild(personalCommentsContainer);
+            }
+
+            // Add predefined comments before personal comments container
+            predefinedComments[criteria][ratingValue].forEach((comment) => {
+              const commentChip = document.createElement("div");
+              commentChip.className = `comment-chip comment-chip-${comment.source}`;
+              commentChip.setAttribute("data-comment", comment.text);
+
+              const iconSpan = document.createElement("span");
+              iconSpan.className = "comment-icon";
+              iconSpan.innerHTML =
+                comment.source === "admin"
+                  ? '<i class="fas fa-shield-alt"></i>'
+                  : '<i class="fas fa-comment"></i>';
+
+              const textSpan = document.createElement("span");
+              textSpan.textContent = comment.text;
+
+              commentChip.appendChild(iconSpan);
+              commentChip.appendChild(textSpan);
+              commentsContainer.insertBefore(
+                commentChip,
+                personalCommentsContainer
+              );
+            });
+          }
+        }
+
+        // Function to update personal comment chips
+        function updatePersonalCommentChips(criteria, ratingValue) {
+          // Get or create personal comments container for this specific rating level
+          let personalCommentsContainer = document.getElementById(
+            `personal-comments-${criteria}-${ratingValue}`
+          );
+
+          // If container doesn't exist yet, create it
+          if (!personalCommentsContainer) {
+            personalCommentsContainer = document.createElement("div");
+            personalCommentsContainer.id = `personal-comments-${criteria}-${ratingValue}`;
+            personalCommentsContainer.className = "personal-comments-container";
+
+            // Find the comment chips container to append to
+            const commentsChips = document.querySelector(
+              `#predefined-comments-${criteria} .comment-chips`
+            );
+            commentsChips.appendChild(personalCommentsContainer);
+          } else {
+            // Clear existing personal comments
+            personalCommentsContainer.innerHTML = "";
+          }
+
+          // Add personal comments for this specific rating level only
+          if (
+            personalComments[criteria][ratingValue] &&
+            personalComments[criteria][ratingValue].length > 0
+          ) {
+            // Add each personal comment
+            personalComments[criteria][ratingValue].forEach((comment) => {
+              const commentChip = document.createElement("div");
+              commentChip.className = "comment-chip comment-chip-personal";
+              commentChip.setAttribute("data-comment", comment.text);
+
+              const iconSpan = document.createElement("span");
+              iconSpan.className = "comment-icon";
+              iconSpan.innerHTML = '<i class="fas fa-star"></i>';
+
+              const textSpan = document.createElement("span");
+              textSpan.textContent = comment.text;
+
+              commentChip.appendChild(iconSpan);
+              commentChip.appendChild(textSpan);
+              personalCommentsContainer.appendChild(commentChip);
+            });
+          }
+        }
+
+        // Function to update saved comment display (UI only, not storage)
+        function updateSavedCommentDisplay(
+          criteria,
+          ratingValue,
+          commentText = null
+        ) {
+          const savedCommentContainer = document.getElementById(
+            `saved-comment-${criteria}`
+          );
+
+          // If commentText is null, try to get the current value from the textarea
+          if (commentText === null) {
+            const currentComment = document
+              .getElementById(`comment-${criteria}`)
+              .value.trim();
+            if (currentComment) {
+              commentText = currentComment;
+            } else {
+              // Clear the saved comment display if no comment exists
+              savedCommentContainer.innerHTML = "";
+              return;
+            }
+          }
+
+          if (commentText && commentText.length > 0) {
+            // Update only the display, not the storage
+            savedCommentContainer.innerHTML = `
+              <span class="saved-comment-label">Saved Comment</span>
+              <div class="saved-comment-display">
+                ${commentText}
+              </div>
+            `;
+          } else {
+            // Clear the saved comment display
+            savedCommentContainer.innerHTML = "";
+          }
+        }
+
+        // Helper function to get rating name based on value
+        function getRatingName(value) {
+          switch (value) {
+            case 1:
+              return "Poor";
+            case 2:
+              return "Fair";
+            case 3:
+              return "Good";
+            case 4:
+              return "Very Good";
+            case 5:
+              return "Excellent";
+            default:
+              return "Unknown";
+          }
+        }
+
+        // Toast notification function
+        function showToast(message, type = "success") {
+          const toast = document.getElementById("toast");
+          const toastIcon = toast.querySelector(".toast-icon i");
+          const toastMessage = toast.querySelector(".toast-message");
+
+          // Set icon and colors based on type
+          if (type === "success") {
+            toast.style.backgroundColor = "#d1fae5";
+            toast.style.borderLeftColor = "#10b981";
+            toastIcon.className = "fas fa-check-circle";
+            toastIcon.style.color = "#10b981";
+            toastMessage.style.color = "#065f46";
+          } else if (type === "warning") {
+            toast.style.backgroundColor = "#fef3c7";
+            toast.style.borderLeftColor = "#f59e0b";
+            toastIcon.className = "fas fa-exclamation-circle";
+            toastIcon.style.color = "#f59e0b";
+            toastMessage.style.color = "#92400e";
+          } else if (type === "info") {
+            toast.style.backgroundColor = "#dbeafe";
+            toast.style.borderLeftColor = "#3b82f6";
+            toastIcon.className = "fas fa-info-circle";
+            toastIcon.style.color = "#3b82f6";
+            toastMessage.style.color = "#1e40af";
+          }
+
+          // Set message
+          toastMessage.textContent = message;
+
+          // Show toast
+          toast.classList.add("show");
+
+          // Hide toast after 3 seconds
+          setTimeout(() => {
+            toast.classList.remove("show");
+          }, 3000);
+        }
+      });
+    </script>
+  </body>
+</html>

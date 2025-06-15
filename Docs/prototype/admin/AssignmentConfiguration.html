@@ -1,0 +1,2184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assignment Configuration | OAS Course Admin</title>
+  <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" />
+  <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Custom Variables */
+    :root {
+      --primary: #2563eb;
+      /* Blue-600 */
+      --primary-dark: #1d4ed8;
+      /* Blue-700 */
+      --secondary: #4f46e5;
+      /* Indigo-600 */
+      --tertiary: #8b5cf6;
+      /* Purple-500 */
+      --success: #10b981;
+      /* Emerald-500 */
+      --warning: #f59e0b;
+      /* Amber-500 */
+      --danger: #ef4444;
+      /* Red-500 */
+      --light: #f3f4f6;
+      /* Gray-100 */
+      --dark: #1f2937;
+      /* Gray-800 */
+      --text-dark: #1f2937;
+      /* Gray-800 */
+      --text-light: #f9fafb;
+      /* Gray-50 */
+      --bg-light: #ffffff;
+      --bg-dark: #111827;
+      /* Gray-900 */
+      --card-light: #ffffff;
+      --card-dark: #1f2937;
+      /* Gray-800 */
+
+      /* Teal for Mixed type */
+      --teal-100: #ccfbf1;
+      --teal-500: #14b8a6;
+      --teal-600: #0d9488;
+      --teal-700: #0f766e;
+      --teal-800: #115e59;
+      --teal-900: #134e4a;
+    }
+
+    /* Light/Dark mode transitions */
+    body,
+    .sidebar,
+    .dashboard-card,
+    .header,
+    .sidebar-link,
+    input,
+    select,
+    button,
+    textarea {
+      /* Added textarea */
+      transition: background-color 0.3s ease, color 0.3s ease,
+        border-color 0.3s ease;
+      /* Added border-color */
+    }
+
+    /* Dark mode variables */
+    .dark {
+      --primary: #3b82f6;
+      /* Blue-500 */
+      --primary-light: #60a5fa;
+      /* Blue-400 */
+      --primary-dark: #2563eb;
+      /* Blue-600 */
+      --secondary: #6366f1;
+      /* Indigo-500 */
+      --light: #374151;
+      /* Gray-700 */
+      --dark: #f9fafb;
+      /* Gray-50 */
+      --text-dark: #f9fafb;
+      --text-light: #1f2937;
+      --bg-dark: #111827;
+      /* Gray-900 */
+      --card-dark: #1f2937;
+      /* Gray-800 */
+
+      /* Teal for Mixed type in dark mode */
+      --teal-100: #134e4a;
+      /* Darker teal for bg in dark mode */
+      --teal-500: #2dd4bf;
+      /* Lighter teal for accents in dark mode */
+      --teal-700: #5eead4;
+      /* Lighter teal for text in dark mode */
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    .dark ::-webkit-scrollbar-track {
+      background: #2d3748;
+    }
+
+    .dark ::-webkit-scrollbar-thumb {
+      background: #4a5568;
+    }
+
+    .dark ::-webkit-scrollbar-thumb:hover {
+      background: #718096;
+    }
+
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--bg-light);
+      /* Use bg-light for body */
+      color: var(--text-dark);
+    }
+
+    .dark body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      /* Corrected to text-light for dark mode body text */
+    }
+
+    .dashboard-card {
+      background-color: var(--card-light);
+      border-radius: 0.5rem;
+      /* Tailwind: rounded-lg */
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      /* Tailwind: shadow-md */
+      transition: all 0.3s ease;
+      border: 1px solid #e5e7eb;
+      /* Tailwind: border-gray-200 */
+    }
+
+    .dark .dashboard-card {
+      background-color: var(--card-dark);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      border-color: #374151;
+      /* Tailwind: dark:border-gray-700 */
+    }
+
+    .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      /* Tailwind: hover:shadow-xl */
+      transform: translateY(-2px);
+    }
+
+    .dark .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .form-control {
+      border: 1px solid #d1d5db;
+      /* Tailwind: border-gray-300 */
+      border-radius: 0.375rem;
+      /* Tailwind: rounded-md */
+      padding: 0.5rem 0.75rem;
+      /* Tailwind: px-3 py-2 */
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      background-color: white;
+      /* Default light mode bg */
+    }
+
+    .dark .form-control {
+      background-color: #374151;
+      /* Tailwind: dark:bg-gray-700 */
+      border-color: #4b5563;
+      /* Tailwind: dark:border-gray-600 */
+      color: #e5e7eb;
+      /* Tailwind: dark:text-gray-200 */
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
+      /* Focus ring */
+      outline: none;
+    }
+
+    .dark .form-control:focus {
+      border-color: var(--primary-light);
+      /* Use primary-light for dark mode focus */
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    /* Assignment type indicators */
+    .assignment-type {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      padding: 0.35rem 0.75rem;
+    }
+
+    .assignment-type.individual {
+      color: #4338ca;
+      background-color: #e0e7ff;
+    }
+
+    /* Indigo */
+    .dark .assignment-type.individual {
+      color: #a5b4fc;
+      background-color: rgba(79, 70, 229, 0.2);
+    }
+
+    .assignment-type.group {
+      color: #9d174d;
+      background-color: #fce7f3;
+    }
+
+    /* Pink */
+    .dark .assignment-type.group {
+      color: #f9a8d4;
+      background-color: rgba(157, 23, 77, 0.2);
+    }
+
+    .assignment-type.mixed {
+      color: var(--teal-700);
+      background-color: var(--teal-100);
+    }
+
+    /* Teal */
+    .dark .assignment-type.mixed {
+      color: var(--teal-500);
+      background-color: var(--teal-900);
+    }
+
+    /* Cards for assignment display */
+    .assignment-card {
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .assignment-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .assignment-card.individual::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: #4f46e5;
+    }
+
+    /* Indigo */
+    .assignment-card.group::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: #db2777;
+    }
+
+    /* Pink */
+    .assignment-card.mixed::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background-color: var(--teal-500);
+    }
+
+    /* Teal */
+
+    /* Table styles */
+    .table-wrapper {
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    .table th {
+      font-weight: 500;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      background-color: #f9fafb;
+      color: #4b5563;
+      font-size: 0.875rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .dark .table th {
+      background-color: #1f2937;
+      color: #e5e7eb;
+      border-bottom: 1px solid #374151;
+    }
+
+    .table td {
+      padding: 0.75rem 1rem;
+      color: #111827;
+      vertical-align: middle;
+    }
+
+    .dark .table td {
+      color: #f9fafb;
+    }
+
+    /* Status indicators */
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+      border-radius: 9999px;
+      padding: 0.35rem 0.75rem;
+    }
+
+    .status-indicator.active {
+      color: #047857;
+      background-color: #ecfdf5;
+    }
+
+    .dark .status-indicator.active {
+      color: #6ee7b7;
+      background-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .status-indicator.upcoming {
+      color: #4f46e5;
+      background-color: #eef2ff;
+    }
+
+    .dark .status-indicator.upcoming {
+      color: #a5b4fc;
+      background-color: rgba(79, 70, 229, 0.2);
+    }
+
+    .status-indicator.archive {
+      color: #6b7280;
+      background-color: #f3f4f6;
+    }
+
+    .dark .status-indicator.archive {
+      color: #9ca3af;
+      background-color: rgba(107, 114, 128, 0.2);
+    }
+
+    /* Modal styles */
+    .modal-backdrop {
+      backdrop-filter: blur(4px);
+    }
+
+    @keyframes modal-fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-content {
+      animation: modal-fade-in 0.3s ease forwards;
+    }
+
+    /* Assignment Type Toggle in Modal */
+    .assignment-type-toggle-modal {
+      display: flex;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      background-color: #f3f4f6;
+      padding: 0.25rem;
+      width: 100%;
+    }
+
+    .dark .assignment-type-toggle-modal {
+      background-color: #374151;
+    }
+
+    .assignment-type-toggle-modal label {
+      flex: 1;
+      text-align: center;
+      padding: 0.65rem 0.75rem;
+      /* Increased padding */
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: 0.375rem;
+      transition: all 0.2s ease;
+      color: #4b5563;
+      /* Default text color */
+    }
+
+    .dark .assignment-type-toggle-modal label {
+      color: #d1d5db;
+    }
+
+    .assignment-type-toggle-modal input:checked+label {
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .assignment-type-toggle-modal input#typeIndividualModal:checked+label {
+      background-color: #e0e7ff;
+      color: #4338ca;
+    }
+
+    /* Indigo */
+    .dark .assignment-type-toggle-modal input#typeIndividualModal:checked+label {
+      background-color: #3730a3;
+      color: #c7d2fe;
+    }
+
+    .assignment-type-toggle-modal input#typeGroupModal:checked+label {
+      background-color: #fce7f3;
+      color: #be185d;
+    }
+
+    /* Pink */
+    .dark .assignment-type-toggle-modal input#typeGroupModal:checked+label {
+      background-color: #831843;
+      color: #fbcfe8;
+    }
+
+    .assignment-type-toggle-modal input#typeMixedModal:checked+label {
+      background-color: var(--teal-100);
+      color: var(--teal-700);
+    }
+
+    /* Teal */
+    .dark .assignment-type-toggle-modal input#typeMixedModal:checked+label {
+      background-color: var(--teal-800);
+      color: var(--teal-500);
+    }
+
+    .assignment-type-toggle-modal input {
+      display: none;
+    }
+
+    /* CSV Upload styling */
+    .csv-upload-box {
+      border: 2px dashed #d1d5db;
+      /* Tailwind: border-gray-300 */
+      border-radius: 0.5rem;
+      /* Tailwind: rounded-lg */
+      padding: 1.5rem;
+      /* Tailwind: p-6 */
+      text-align: center;
+      transition: border-color 0.2s ease;
+    }
+
+    .dark .csv-upload-box {
+      border-color: #4b5563;
+      /* Tailwind: dark:border-gray-600 */
+    }
+
+    .csv-upload-box:hover,
+    .csv-upload-box.dragover {
+      border-color: var(--primary);
+    }
+
+    .dark .csv-upload-box:hover,
+    .dark .csv-upload-box.dragover {
+      border-color: var(--primary-light);
+    }
+
+    .file-input-hidden {
+      width: 0.1px;
+      height: 0.1px;
+      opacity: 0;
+      overflow: hidden;
+      position: absolute;
+      z-index: -1;
+    }
+
+    .file-input-label {
+      cursor: pointer;
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      background-color: var(--primary);
+      color: white;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+
+    .file-input-label:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .dark .file-input-label {
+      background-color: var(--primary-light);
+    }
+
+    .dark .file-input-label:hover {
+      background-color: var(--primary);
+    }
+
+    /* Enhanced button styling for "Next Steps" */
+    .btn-next-step {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      /* Pushes icon to the right */
+      width: 100%;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      text-align: left;
+      border: 1px solid #e5e7eb;
+      /* Tailwind: border-gray-200 */
+      border-radius: 0.5rem;
+      /* Tailwind: rounded-lg */
+      background-color: white;
+      color: #374151;
+      /* Tailwind: text-gray-700 */
+      font-weight: 500;
+      /* Tailwind: font-medium */
+      transition: all 0.2s ease;
+    }
+
+    .dark .btn-next-step {
+      background-color: #374151;
+      /* Tailwind: dark:bg-gray-700 */
+      border-color: #4b5563;
+      /* Tailwind: dark:border-gray-600 */
+      color: #e5e7eb;
+      /* Tailwind: dark:text-gray-200 */
+    }
+
+    .btn-next-step:hover {
+      border-color: var(--primary);
+      background-color: #f9fafb;
+      /* Tailwind: bg-gray-50 */
+      color: var(--primary);
+    }
+
+    .dark .btn-next-step:hover {
+      border-color: var(--primary-light);
+      background-color: #4b5563;
+      /* Tailwind: dark:bg-gray-600 */
+      color: var(--primary-light);
+    }
+
+    .btn-next-step.active-link {
+      /* Style for active/enabled link */
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .dark .btn-next-step.active-link {
+      border-color: var(--primary-light);
+      color: var(--primary-light);
+    }
+
+    .btn-next-step:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background-color: #f3f4f6;
+      /* Tailwind: bg-gray-100 */
+    }
+
+    .dark .btn-next-step:disabled {
+      background-color: #1f2937;
+      /* Tailwind: dark:bg-gray-800 */
+    }
+
+    .btn-next-step i.fa-chevron-right {
+      transition: transform 0.2s ease;
+    }
+
+    .btn-next-step:hover i.fa-chevron-right {
+      transform: translateX(4px);
+    }
+
+    /* Modal improvements */
+    #assignmentModal {
+      overscroll-behavior: contain;
+    }
+
+    #assignmentModal .min-h-screen {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+      overflow-y: auto;
+    }
+
+    #assignmentModal .modal-content {
+      display: flex;
+      flex-direction: column;
+      max-height: 90vh;
+    }
+
+    #assignmentModal .overflow-y-auto {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Apply z-indexes to ensure header and footer are always on top */
+    #assignmentModal .sticky {
+      z-index: 10;
+    }
+
+    /* Add shadow to the fixed header and footer for visual separation */
+    #assignmentModal .sticky.top-0 {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    #assignmentModal .sticky.bottom-0 {
+      box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Ensure proper spacing for sticky elements */
+    #assignmentModal .p-6.overflow-y-auto {
+      padding-bottom: 1rem;
+    }
+  </style>
+</head>
+
+<body class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+  x-data="{ darkMode: localStorage.getItem('darkMode') === 'true', sidebarOpen: true, notificationsOpen: false, viewMode: 'table' }"
+  :class="{'dark': darkMode}" @dark-mode-toggled.window="darkMode = $event.detail">
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <aside
+      class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+      :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}" id="sidebar">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">OAS</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Admin</span>
+        </div>
+        <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+          @click="sidebarOpen = false" aria-label="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <nav class="py-4">
+        <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          MAIN
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-tachometer-alt mr-2 w-4 text-center"></i> Dashboard
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium">
+          <i class="fas fa-tasks mr-2 w-4 text-center"></i> Assignments
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-users mr-2 w-4 text-center"></i> Users
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-book mr-2 w-4 text-center"></i> Courses
+        </a>
+
+        <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          CONFIGURATION
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-cog mr-2 w-4 text-center"></i> Settings
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-bell mr-2 w-4 text-center"></i> Notifications
+        </a>
+
+        <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          HELP
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-book-open mr-2 w-4 text-center"></i> Documentation
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-headset mr-2 w-4 text-center"></i> Support
+        </a>
+      </nav>
+      <div class="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Oral Assessment System v1.3.1
+      </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col">
+      <header class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6">
+        <div class="flex items-center">
+          <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = true" aria-label="Open sidebar">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="ml-4 md:ml-0 relative">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <i class="fas fa-search text-gray-400"></i>
+            </span>
+            <input type="text" placeholder="Search assignments..."
+              class="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-400"
+              aria-label="Search" />
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+          <button
+            @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); $dispatch('dark-mode-toggled', darkMode)"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            aria-label="Toggle dark mode">
+            <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+            <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+          </button>
+          <div class="relative" x-data="{ dropdownOpen: false }">
+            <button @click="dropdownOpen = !dropdownOpen"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+              aria-label="Notifications">
+              <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+              <span
+                class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white">3</span>
+            </button>
+            <div x-show="dropdownOpen" @click.away="dropdownOpen = false"
+              class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border dark:border-gray-700 py-2 z-20 max-h-96 overflow-y-auto"
+              x-cloak>
+              <div class="px-4 py-2 border-b dark:border-gray-700">
+                <p class="text-xs">Notification 1: Assignment due soon.</p>
+              </div>
+              <div class="px-4 py-2 border-b dark:border-gray-700">
+                <p class="text-xs">
+                  Notification 2: New message from student.
+                </p>
+              </div>
+              <div class="px-4 py-2">
+                <p class="text-xs">
+                  Notification 3: System update scheduled.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="relative" x-data="{ dropdownOpen: false }">
+            <button @click="dropdownOpen = !dropdownOpen"
+              class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="User profile">
+              <img src="https://placehold.co/32x32/E0E7FF/4338CA?text=CA" alt="Course Admin"
+                class="w-8 h-8 rounded-full" />
+              <div class="hidden md:block text-left">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Dr. Eleanor Vance
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Course Admin
+                </div>
+              </div>
+              <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+            </button>
+            <div x-show="dropdownOpen" @click.away="dropdownOpen = false"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-xl border dark:border-gray-700 py-1 z-20"
+              x-cloak>
+              <a href="#"
+                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">My
+                Profile</a>
+              <a href="#"
+                class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Settings</a>
+              <hr class="border-gray-200 dark:border-gray-700 my-1" />
+              <a href="#"
+                class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 dark:hover:bg-opacity-30">Logout</a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900">
+        <div class="mb-4">
+          <nav class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+            <ol class="flex items-center space-x-2">
+              <li class="flex items-center">
+                <a href="AdministratorDashboard.html"
+                  class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center">
+                  <span class="font-bold text-blue-600 dark:text-blue-400 mr-1">OAS</span>
+                  <span class="text-sm text-gray-600 dark:text-gray-300">Dashboard</span>
+                </a>
+              </li>
+              <li class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                <a href="CourseCreation.html"
+                  class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">Courses</a>
+              </li>
+              <li class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                <span class="text-blue-600 dark:text-blue-400 font-medium" id="courseBreadcrumb">Course
+                  Assignments</span>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200" id="pageCourseTitle">
+              Software Project Management Assignments
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400" id="courseContext">
+              Configure assignments for 2025 Semester 2
+            </p>
+          </div>
+          <div class="mt-4 md:mt-0">
+            <button
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+              id="createAssignmentBtn">
+              <i class="fas fa-plus"></i>
+              <span>New Assignment</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dashboard-card p-5 mb-6">
+          <div class="flex flex-col md:flex-row md:items-center">
+            <div class="flex-1">
+              <div class="flex items-center">
+                <i class="fas fa-book text-blue-600 dark:text-blue-400 text-xl mr-3"></i>
+                <div>
+                  <h2 class="text-lg font-semibold text-gray-900 dark:text-white" id="courseTitle">
+                    Software Project Management
+                  </h2>
+                  <div class="flex flex-wrap items-center mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    <span id="courseCode">COMP90082</span>
+                    <span class="mx-2">•</span>
+                    <span id="courseYear">2025</span>
+                    <span class="mx-2">•</span>
+                    <span id="courseSemester">Semester 2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-4 md:mt-0 md:ml-4">
+              <div class="flex space-x-2">
+                <span
+                  class="px-3 py-1 text-xs rounded-full bg-green-100 dark:bg-green-700 text-green-800 dark:text-green-100">Active</span>
+                <span
+                  class="px-3 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-700 text-blue-800 dark:text-blue-100">
+                  <i class="fas fa-users mr-1"></i> 120 Students
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between mb-2">
+            <div class="flex items-center space-x-2 mb-3 md:mb-0">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white mr-4">
+                Your Assignments
+              </h2>
+              <div class="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                <button @click="viewMode = 'table'" class="px-3 py-1.5 text-sm font-medium transition-colors"
+                  :class="viewMode === 'table' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                  <i class="fas fa-list mr-1"></i> Table
+                </button>
+                <button @click="viewMode = 'card'" class="px-3 py-1.5 text-sm font-medium transition-colors"
+                  :class="viewMode === 'card' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'">
+                  <i class="fas fa-th-large mr-1"></i> Cards
+                </button>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-search text-gray-400"></i>
+                </span>
+                <input type="text" placeholder="Search assignments..."
+                  class="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500" />
+              </div>
+              <div class="relative">
+                <select
+                  class="rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8 py-2 appearance-none">
+                  <option>All Types</option>
+                  <option>Individual</option>
+                  <option>Group</option>
+                  <option>Mixed</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </div>
+              </div>
+              <div class="relative">
+                <select
+                  class="rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 pr-8 py-2 appearance-none">
+                  <option>All Status</option>
+                  <option>Active</option>
+                  <option>Active</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
+                  <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-card mb-6" x-show="viewMode === 'table'" x-cloak>
+          <div class="table-wrapper">
+            <table class="table w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Assignment</th>
+                  <th class="text-left">Type</th>
+                  <th class="text-left">Dates</th>
+                  <th class="text-left">Weight</th>
+                  <th class="text-left">Status</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="assignmentTableBody">
+                <tr
+                  class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <td class="py-3 px-4">
+                    <div class="font-medium text-gray-900 dark:text-white">
+                      Project Proposal Presentation
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Students present initial project ideas
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="assignment-type group">Group</span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="text-sm">
+                      <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-gray-400 w-4 mr-1"></i><span>Mar 10 - Mar 24, 2025</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">15%</td>
+                  <td class="py-3 px-4">
+                    <span class="status-indicator active">Active</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <div class="flex justify-end space-x-2">
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md edit-assignment-btn"
+                        title="Edit Assignment" data-assignment-id="1">
+                        <i class="fas fa-edit text-blue-600 dark:text-blue-400"></i>
+                      </button>
+                      <a href="#" class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md configure-rubric-link"
+                        title="Configure Rubric" data-assignment-id="1"><i
+                          class="fas fa-clipboard-list text-amber-600 dark:text-amber-400"></i></a>
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" title="Schedule Slots"
+                        onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                        <i class="fas fa-calendar-week text-green-600 dark:text-green-400"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr
+                  class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <td class="py-3 px-4">
+                    <div class="font-medium text-gray-900 dark:text-white">
+                      Mid-Semester Project Update
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Progress report on project development
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="assignment-type individual">Individual</span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="text-sm">
+                      <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-gray-400 w-4 mr-1"></i><span>Apr 15 - Apr 29, 2025</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">25%</td>
+                  <td class="py-3 px-4">
+                    <span class="status-indicator active">Active</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <div class="flex justify-end space-x-2">
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md edit-assignment-btn"
+                        title="Edit Assignment" data-assignment-id="2">
+                        <i class="fas fa-edit text-blue-600 dark:text-blue-400"></i>
+                      </button>
+                      <a href="#" class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md configure-rubric-link"
+                        title="Configure Rubric" data-assignment-id="2"><i
+                          class="fas fa-clipboard-list text-amber-600 dark:text-amber-400"></i></a>
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" title="Schedule Slots"
+                        onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                        <i class="fas fa-calendar-week text-green-600 dark:text-green-400"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <td class="py-3 px-4">
+                    <div class="font-medium text-gray-900 dark:text-white">
+                      Final Project Deliverable & Demo
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Group demo and individual Q&A
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="assignment-type mixed">Mixed</span>
+                  </td>
+                  <td class="py-3 px-4">
+                    <div class="text-sm">
+                      <div class="flex items-center">
+                        <i class="fas fa-calendar-alt text-gray-400 w-4 mr-1"></i><span>May 20 - Jun 05, 2025</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4">40%</td>
+                  <td class="py-3 px-4">
+                    <span class="status-indicator archive">Archive</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <div class="flex justify-end space-x-2">
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md edit-assignment-btn"
+                        title="Edit Assignment" data-assignment-id="3">
+                        <i class="fas fa-edit text-blue-600 dark:text-blue-400"></i>
+                      </button>
+                      <a href="#" class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md configure-rubric-link"
+                        title="Configure Rubric" data-assignment-id="3"><i
+                          class="fas fa-clipboard-list text-amber-600 dark:text-amber-400"></i></a>
+                      <button class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md" title="Schedule Slots"
+                        onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                        <i class="fas fa-calendar-week text-green-600 dark:text-green-400"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6" x-show="viewMode === 'card'" x-cloak>
+          <div class="assignment-card dashboard-card p-5 group group">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                Project Proposal Presentation
+              </h3>
+              <span class="assignment-type group ml-2">Group</span>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Students present initial project ideas.
+            </p>
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center text-sm">
+                <i class="fas fa-calendar-alt text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">Mar 10 - Mar 24, 2025</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-percentage text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">15% of final grade</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-info-circle text-gray-400 w-5 mr-2"></i><span
+                  class="status-indicator active">Active</span>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <button class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline edit-assignment-btn"
+                data-assignment-id="1">
+                <i class="fas fa-edit mr-1"></i> Edit
+              </button>
+              <div class="flex space-x-3">
+                <a href="#"
+                  class="text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 configure-rubric-link"
+                  title="Configure Rubric" data-assignment-id="1"><i class="fas fa-clipboard-list"></i></a>
+                <button class="text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                  title="Schedule Slots" onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                  <i class="fas fa-calendar-week"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="assignment-card dashboard-card p-5 individual group">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                Mid-Semester Project Update
+              </h3>
+              <span class="assignment-type individual ml-2">Individual</span>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Progress report on project development.
+            </p>
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center text-sm">
+                <i class="fas fa-calendar-alt text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">Apr 15 - Apr 29, 2025</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-percentage text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">25% of final grade</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-info-circle text-gray-400 w-5 mr-2"></i><span
+                  class="status-indicator active">Active</span>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <button class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline edit-assignment-btn"
+                data-assignment-id="2">
+                <i class="fas fa-edit mr-1"></i> Edit
+              </button>
+              <div class="flex space-x-3">
+                <a href="#"
+                  class="text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 configure-rubric-link"
+                  title="Configure Rubric" data-assignment-id="2"><i class="fas fa-clipboard-list"></i></a>
+                <button class="text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                  title="Schedule Slots" onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                  <i class="fas fa-calendar-week"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="assignment-card dashboard-card p-5 mixed group">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="font-semibold text-gray-900 dark:text-white">
+                Final Project Deliverable & Demo
+              </h3>
+              <span class="assignment-type mixed ml-2">Mixed</span>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Group demo and individual Q&A session.
+            </p>
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center text-sm">
+                <i class="fas fa-calendar-alt text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">May 20 - Jun 05, 2025</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-percentage text-gray-400 w-5 mr-2"></i><span
+                  class="text-gray-700 dark:text-gray-300">40% of final grade</span>
+              </div>
+              <div class="flex items-center text-sm">
+                <i class="fas fa-info-circle text-gray-400 w-5 mr-2"></i><span
+                  class="status-indicator archive">Archive</span>
+              </div>
+            </div>
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <button class="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline edit-assignment-btn"
+                data-assignment-id="3">
+                <i class="fas fa-edit mr-1"></i> Edit
+              </button>
+              <div class="flex space-x-3">
+                <a href="#"
+                  class="text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 configure-rubric-link"
+                  title="Configure Rubric" data-assignment-id="3"><i class="fas fa-clipboard-list"></i></a>
+                <button class="text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400"
+                  title="Schedule Slots" onclick="window.location.href='admin-assessment-schedule-timeslot-page.html'">
+                  <i class="fas fa-calendar-week"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div
+            class="dashboard-card p-5 create-card group border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors min-h-[220px]"
+            id="createNewAssignmentCard">
+            <div class="text-center">
+              <div
+                class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mx-auto mb-3">
+                <i class="fas fa-plus text-blue-600 dark:text-blue-400 text-lg"></i>
+              </div>
+              <h3 class="font-medium text-gray-900 dark:text-white mb-1">
+                Create New Assignment
+              </h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">
+                Add another oral assessment
+              </p>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-card p-8 mb-6 hidden" id="emptyState">
+          <div class="text-center">
+            <div
+              class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mx-auto mb-4">
+              <i class="fas fa-tasks text-blue-600 dark:text-blue-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No assignments yet
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+              Get started by creating your first assignment for this course.
+            </p>
+            <button
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              id="createFirstAssignmentBtn">
+              <i class="fas fa-plus mr-2"></i> Create First Assignment
+            </button>
+          </div>
+        </div>
+      </main>
+      <footer
+        class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400 mt-auto">
+        &copy; 2025 Oral Assessment System. All rights reserved.
+      </footer>
+    </div>
+  </div>
+
+  <div class="modal-backdrop fixed inset-0 bg-black bg-opacity-50 z-50 hidden overflow-hidden" id="assignmentModal">
+    <div class="min-h-screen w-full flex items-center justify-center p-4">
+      <div class="modal-content bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl relative"
+        style="max-height: 90vh">
+        <form id="assignmentForm" class="flex flex-col">
+          <!-- Modal Header - Fixed -->
+          <div
+            class="sticky top-0 z-10 p-6 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-t-lg">
+            <div class="flex justify-between items-center">
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white" id="modalTitle">
+                Create New Assignment
+              </h3>
+              <button id="closeModalBtn"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                type="button">
+                <i class="fas fa-times text-xl"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Modal Body - Scrollable Content -->
+          <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 166px)">
+            <div
+              class="flex items-center justify-around text-xs text-gray-500 dark:text-gray-400 mb-6 border rounded-lg p-2 dark:border-gray-700">
+              <span class="workflow-step active text-blue-600 dark:text-blue-400 font-medium"><i
+                  class="fas fa-pencil-alt mr-1"></i> Details & Type</span>
+              <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+              <span class="workflow-step"><i class="fas fa-users mr-1"></i> Participants (CSV)</span>
+              <i class="fas fa-chevron-right text-gray-300 dark:text-gray-600"></i>
+              <span class="workflow-step"><i class="fas fa-cogs mr-1"></i> Components Setup</span>
+            </div>
+
+            <!-- Form content sections -->
+            <div
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-40 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-600 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                  <i class="fas fa-info-circle text-blue-600 dark:text-blue-300"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white">
+                  Basic Information
+                </h4>
+              </div>
+              <div class="space-y-5 pl-11">
+                <div class="group">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Course</label>
+                  <div
+                    class="flex items-center bg-gray-100 dark:bg-gray-600 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-500">
+                    <div>
+                      <span class="block text-sm font-medium text-gray-900 dark:text-white"
+                        id="modalCourseName">Software Project Management</span>
+                      <span class="block text-xs text-gray-500 dark:text-gray-400" id="modalCourseDetails">COMP90082 ·
+                        2025 · Semester 2</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="group">
+                  <label for="assignmentName"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
+                    Assignment Name <span class="text-red-500">*</span>
+                  </label>
+                  <input type="text" id="assignmentName" name="assignmentName" class="form-control w-full"
+                    placeholder="Enter assignment name" required />
+                </div>
+                <div class="group">
+                  <label for="description"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                  <textarea id="description" name="description" rows="3" class="form-control w-full"
+                    placeholder="Provide a brief description..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-40 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-600 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                  <i class="fas fa-sitemap text-purple-600 dark:text-purple-300"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white">
+                  Assignment Type
+                </h4>
+              </div>
+              <div class="pl-11">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Select Type <span
+                      class="text-red-500">*</span></label>
+                  <div class="assignment-type-toggle-modal shadow-sm mb-3">
+                    <input type="radio" id="typeIndividualModal" name="assignmentType" value="individual" checked />
+                    <label for="typeIndividualModal"><i class="fas fa-user mr-1.5"></i>Individual</label>
+                    <input type="radio" id="typeGroupModal" name="assignmentType" value="group" />
+                    <label for="typeGroupModal"><i class="fas fa-users mr-1.5"></i>Group</label>
+                    <input type="radio" id="typeMixedModal" name="assignmentType" value="mixed" />
+                    <label for="typeMixedModal"><i class="fas fa-layer-group mr-1.5"></i>Mixed</label>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div
+                      class="bg-indigo-50 dark:bg-indigo-900 dark:bg-opacity-30 p-3 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                      <p class="text-xs text-indigo-700 dark:text-indigo-300">
+                        <i class="fas fa-user-circle mr-1 text-indigo-500"></i><strong>Individual:</strong> Each student
+                        is assessed
+                        separately.
+                      </p>
+                    </div>
+                    <div
+                      class="bg-pink-50 dark:bg-pink-900 dark:bg-opacity-30 p-3 rounded-lg border border-pink-100 dark:border-pink-800">
+                      <p class="text-xs text-pink-700 dark:text-pink-300">
+                        <i class="fas fa-users mr-1 text-pink-500"></i><strong>Group:</strong> Students are assessed as
+                        a
+                        team.
+                      </p>
+                    </div>
+                    <div
+                      class="bg-teal-50 dark:bg-teal-900 dark:bg-opacity-30 p-3 rounded-lg border border-teal-100 dark:border-teal-800">
+                      <p class="text-xs text-teal-700 dark:text-teal-300">
+                        <i class="fas fa-layer-group mr-1 text-teal-500"></i><strong>Mixed:</strong> Includes both group
+                        and
+                        individual components.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-40 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-600 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                  <i class="fas fa-calendar-alt text-green-600 dark:text-green-300"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white">
+                  Scheduling & Grading
+                </h4>
+              </div>
+              <div class="space-y-5 pl-11">
+                <div class="group">
+                  <label for="startDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start
+                    Date <span class="text-red-500">*</span></label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <i class="fas fa-calendar-day text-gray-400"></i>
+                    </div>
+                    <input type="date" id="startDate" name="startDate" class="form-control w-full pl-10 text-center"
+                      required />
+                  </div>
+                </div>
+                <div class="group">
+                  <label for="endDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date
+                    <span class="text-red-500">*</span></label>
+                  <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <i class="fas fa-calendar-check text-gray-400"></i>
+                    </div>
+                    <input type="date" id="endDate" name="endDate" class="form-control w-full pl-10 text-center"
+                      required />
+                  </div>
+                </div>
+                <div class="group">
+                  <label for="weight" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Weight
+                    <span class="text-red-500">*</span></label>
+                  <div class="relative">
+                    <input type="number" id="weight" name="weight" class="form-control w-full pr-8"
+                      placeholder="e.g. 25" min="0" max="100" value="25" required />
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <span class="text-gray-500 dark:text-gray-400 text-sm">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-40 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-8 h-8 rounded-full bg-sky-100 dark:bg-sky-600 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                  <i class="fas fa-file-csv text-sky-600 dark:text-sky-300"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white">
+                  Student/Group Data (CSV)
+                  <span id="csvRequiredIndicator" class="text-red-500 text-sm hidden">*Required for publish</span>
+                </h4>
+              </div>
+              <div class="pl-11 space-y-4">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Upload a CSV file with student or group information. This
+                  will overwrite existing data if a file is already uploaded
+                  for this assignment.
+                </p>
+                <div id="csvUploadArea" class="csv-upload-box">
+                  <input type="file" id="csvFile" name="csvFile" class="file-input-hidden" accept=".csv" />
+                  <label for="csvFile" class="file-input-label"><i class="fas fa-upload mr-2"></i> Choose CSV
+                    File</label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Or drag and drop here
+                  </p>
+                </div>
+                <div id="csvFileInfo" class="text-sm text-gray-700 dark:text-gray-300"></div>
+                <div id="csvUploadStatus" class="text-xs mt-1"></div>
+                <div id="existingCsvInfo"
+                  class="hidden items-center text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 p-2 rounded-md">
+                  <i class="fas fa-file-alt mr-2 text-gray-500 dark:text-gray-400"></i>
+                  <span>Currently uploaded:
+                    <strong id="existingCsvFileName" class="font-medium"></strong></span>
+                  <button type="button" id="removeCsvBtn"
+                    class="ml-auto text-xs text-red-500 hover:text-red-700 dark:hover:text-red-300 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-700"
+                    title="Remove CSV">
+                    <i class="fas fa-times-circle"></i>
+                  </button>
+                </div>
+                <div class="flex space-x-2">
+                  <button type="button" id="uploadCsvBtn"
+                    class="hidden mt-2 px-3 py-1.5 text-xs font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <i class="fas fa-check mr-1.5"></i> Confirm Upload
+                  </button>
+                  <button type="button" id="previewCsvBtn"
+                    class="hidden mt-2 px-3 py-1.5 text-xs font-medium text-sky-700 bg-sky-100 hover:bg-sky-200 dark:bg-sky-700 dark:text-sky-200 dark:hover:bg-sky-600 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500">
+                    <i class="fas fa-eye mr-1.5"></i> Preview Data (Mock)
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 dark:bg-opacity-40 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center mb-4">
+                <div
+                  class="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-600 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                  <i class="fas fa-cogs text-orange-600 dark:text-orange-300"></i>
+                </div>
+                <h4 class="text-lg font-medium text-gray-900 dark:text-white">
+                  Configure Assignment Components
+                </h4>
+              </div>
+              <div class="pl-11 space-y-2">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                  Save assignment as draft or publish to enable component
+                  configuration.
+                </p>
+                <a href="#" id="configureRubricBtn" class="btn-next-step" data-assignment-id="" disabled>
+                  <span><i class="fas fa-clipboard-list mr-2 text-amber-500"></i>
+                    Configure Rubric</span>
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+                <button type="button" id="configureTimeSlotsBtn" class="btn-next-step" disabled>
+                  <span><i class="fas fa-calendar-plus mr-2 text-cyan-500"></i>
+                    Set Up Time Slots</span>
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+                <button type="button" id="assignExaminersBtn" class="btn-next-step" disabled>
+                  <span><i class="fas fa-user-shield mr-2 text-lime-500"></i>
+                    Assign Examiners</span>
+                  <i class="fas fa-chevron-right"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg mb-6 border dark:border-gray-600">
+              <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Assignment Summary
+              </h5>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Name:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryName">-</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Type:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryType">Individual</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Weight:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryWeight">0%</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryStatus">Draft</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">Start:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryStartDate">-</span>
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">End:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryEndDate">-</span>
+                </div>
+                <div class="sm:col-span-2">
+                  <span class="text-gray-500 dark:text-gray-400">Participants CSV:</span>
+                  <span class="text-gray-900 dark:text-white ml-1 font-medium" id="summaryCsvStatus">Not uploaded</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="text-xs text-gray-500 dark:text-gray-400 italic mb-6">
+              <span class="text-red-500">*</span> Required fields
+            </div>
+          </div>
+
+          <!-- Modal Footer - Fixed -->
+          <div
+            class="sticky bottom-0 z-10 p-6 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-b-lg">
+            <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3">
+              <button type="button"
+                class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                id="cancelAssignmentBtn">
+                Cancel
+              </button>
+              <button type="submit" id="saveAssignmentBtn"
+                class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center">
+                <i class="fas fa-save mr-1.5"></i> Save Assignment
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // Initialize dark mode from localStorage
+      if (localStorage.getItem("darkMode") === "true") {
+        document.body.classList.add("dark");
+      }
+
+      // Mocked assignments data (simulating a database or state)
+      const mockAssignments = [
+        {
+          id: "1",
+          name: "Project Proposal Presentation",
+          description: "Students present initial project ideas.",
+          type: "group",
+          startDate: "2025-03-10",
+          endDate: "2025-03-24",
+          weight: "15",
+          status: "active",
+          csvFile: "proposal_groups.csv",
+        },
+        {
+          id: "2",
+          name: "Mid-Semester Project Update",
+          description: "Progress report on project development.",
+          type: "individual",
+          startDate: "2025-04-15",
+          endDate: "2025-04-29",
+          weight: "25",
+          status: "active",
+          csvFile: null,
+        }, // No CSV initially
+        {
+          id: "3",
+          name: "Final Project Deliverable & Demo",
+          description: "Group demo and individual Q&A.",
+          type: "mixed",
+          startDate: "2025-05-20",
+          endDate: "2025-06-05",
+          weight: "40",
+          status: "archive",
+          csvFile: "final_participants.csv",
+        },
+      ];
+
+      // Global state for modal
+      let isEditMode = false;
+      let currentEditingAssignmentId = null; // ID of assignment being edited
+      let currentAssignmentStatus = "active"; // Default status for new assignments
+
+      // Parse URL parameters for course context
+      const urlParams = new URLSearchParams(window.location.search);
+      const courseCodeParam = urlParams.get("course") || "COMP90082";
+      const courseYearParam = urlParams.get("year") || "2025";
+      const courseSemesterParam = urlParams.get("semester") || "2";
+
+      const semesterMap = {
+        1: "Semester 1",
+        2: "Semester 2",
+        summer: "Summer Term",
+      };
+      const semesterText =
+        semesterMap[courseSemesterParam] || courseSemesterParam;
+      const courseNames = {
+        COMP90082: "Software Project Management",
+        INFO30005: "Web Information Technologies",
+        INFO20003: "Database Systems",
+      };
+      const courseName = courseNames[courseCodeParam] || "Selected Course";
+
+      // Update UI elements with course information (e.g., breadcrumbs, titles)
+      document.getElementById("courseBreadcrumb").textContent = courseName;
+      document.getElementById(
+        "pageCourseTitle"
+      ).textContent = `${courseName} Assignments`;
+      document.getElementById(
+        "courseContext"
+      ).textContent = `Configure assignments for ${courseYearParam} ${semesterText}`;
+      document.getElementById("courseTitle").textContent = courseName;
+      document.getElementById("courseCode").textContent = courseCodeParam;
+      document.getElementById("courseYear").textContent = courseYearParam;
+      document.getElementById("courseSemester").textContent = semesterText;
+      document.title = `${courseName} Assignments | OAS Course Admin`;
+
+      // Modal elements
+      const createAssignmentBtn = document.getElementById(
+        "createAssignmentBtn"
+      );
+      const assignmentModal = document.getElementById("assignmentModal");
+      const closeModalBtn = document.getElementById("closeModalBtn");
+      const cancelAssignmentBtn = document.getElementById(
+        "cancelAssignmentBtn"
+      );
+      const modalTitleEl = document.getElementById("modalTitle");
+      const assignmentForm = document.getElementById("assignmentForm");
+      const saveAssignmentBtn = document.getElementById("saveAssignmentBtn");
+
+      // Form input elements
+      const assignmentNameInput = document.getElementById("assignmentName");
+      const descriptionInput = document.getElementById("description");
+      const weightInput = document.getElementById("weight");
+      const startDateInput = document.getElementById("startDate");
+      const endDateInput = document.getElementById("endDate");
+
+      // Summary display elements in modal
+      const summaryName = document.getElementById("summaryName");
+      const summaryType = document.getElementById("summaryType");
+      const summaryWeight = document.getElementById("summaryWeight");
+      const summaryStatus = document.getElementById("summaryStatus");
+      const summaryStartDate = document.getElementById("summaryStartDate");
+      const summaryEndDate = document.getElementById("summaryEndDate");
+      const summaryCsvStatus = document.getElementById("summaryCsvStatus");
+
+      // CSV related elements
+      const csvFileInput = document.getElementById("csvFile");
+      const csvUploadArea = document.getElementById("csvUploadArea");
+      const csvUploadStatus = document.getElementById("csvUploadStatus");
+      const csvFileInfo = document.getElementById("csvFileInfo");
+      const uploadCsvBtn = document.getElementById("uploadCsvBtn"); // "Confirm Upload" button
+      const previewCsvBtn = document.getElementById("previewCsvBtn");
+      const existingCsvInfo = document.getElementById("existingCsvInfo");
+      const existingCsvFileNameEl = document.getElementById(
+        "existingCsvFileName"
+      );
+      const removeCsvBtn = document.getElementById("removeCsvBtn");
+      const csvRequiredIndicator = document.getElementById(
+        "csvRequiredIndicator"
+      ); // Span to show "*Required for publish"
+      let uploadedCsvFile = null; // Stores the File object if a new one is selected
+      let currentAssignmentCsvName = null; // Stores name of CSV for the assignment being created/edited
+
+      // "Next Steps" buttons in modal
+      const configureRubricBtn =
+        document.getElementById("configureRubricBtn");
+      const configureTimeSlotsBtn = document.getElementById(
+        "configureTimeSlotsBtn"
+      );
+      const assignExaminersBtn =
+        document.getElementById("assignExaminersBtn");
+
+      // Function to enable/disable "Next Steps" buttons
+      function updateNextStepButtonsState(assignmentId, isSaved) {
+        const active = assignmentId && isSaved;
+        configureRubricBtn.disabled = !active;
+        // For prototype, other next step buttons remain disabled
+        configureTimeSlotsBtn.disabled = true; // !active;
+        assignExaminersBtn.disabled = true; // !active;
+
+        if (active) {
+          configureRubricBtn.href = `RubricConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}&assignmentId=${assignmentId}`;
+          configureRubricBtn.classList.add("active-link");
+          configureRubricBtn.classList.remove(
+            "opacity-50",
+            "cursor-not-allowed"
+          );
+        } else {
+          configureRubricBtn.href = "#"; // Reset href if disabled
+          configureRubricBtn.classList.remove("active-link");
+          configureRubricBtn.classList.add(
+            "opacity-50",
+            "cursor-not-allowed"
+          );
+        }
+      }
+
+      // Function to reset the modal to its default "create" state
+      function resetModalForm() {
+        assignmentForm.reset(); // Resets all form fields
+        isEditMode = false;
+        currentEditingAssignmentId = null;
+        currentAssignmentCsvName = null;
+        currentAssignmentStatus = "active"; // Default to active for new assignments
+        uploadedCsvFile = null; // Clear any staged file
+
+        csvFileInfo.innerHTML = ""; // Clear file selection info
+        csvUploadStatus.textContent = ""; // Clear CSV status messages
+        uploadCsvBtn.classList.add("hidden"); // Hide confirm upload button
+        previewCsvBtn.classList.add("hidden"); // Hide preview button
+        existingCsvInfo.classList.add("hidden"); // Hide existing CSV info
+        csvRequiredIndicator.classList.remove("hidden"); // Show CSV required indicator for new assignments
+        document.querySelector(
+          'input[name="assignmentType"][value="individual"]'
+        ).checked = true; // Default to individual type
+
+        modalTitleEl.textContent = "Create New Assignment";
+        saveAssignmentBtn.innerHTML =
+          '<i class="fas fa-save mr-1.5"></i> Save Assignment'; // Set button text
+
+        updateSummary(); // Update the summary display
+        updateNextStepButtonsState(null, false); // Disable next step buttons
+      }
+
+      // Function to populate the modal with data for editing an assignment
+      function populateModalForEdit(assignment) {
+        resetModalForm(); // Start with a clean slate, then populate
+        isEditMode = true;
+        currentEditingAssignmentId = assignment.id;
+        currentAssignmentStatus = assignment.status;
+
+        modalTitleEl.textContent = `Edit Assignment: ${assignment.name}`;
+        saveAssignmentBtn.innerHTML =
+          '<i class="fas fa-save mr-1.5"></i> Update Assignment'; // Set button text for edit mode
+
+        // Populate form fields
+        assignmentNameInput.value = assignment.name;
+        descriptionInput.value = assignment.description || "";
+        document.querySelector(
+          `input[name="assignmentType"][value="${assignment.type}"]`
+        ).checked = true;
+        startDateInput.value = assignment.startDate;
+        endDateInput.value = assignment.endDate;
+        weightInput.value = assignment.weight;
+
+        // Handle existing CSV file information
+        if (assignment.csvFile) {
+          currentAssignmentCsvName = assignment.csvFile;
+          existingCsvFileNameEl.textContent = assignment.csvFile;
+          existingCsvInfo.classList.remove("hidden");
+          previewCsvBtn.classList.remove("hidden"); // Allow preview of existing CSV
+        } else {
+          currentAssignmentCsvName = null;
+          existingCsvInfo.classList.add("hidden");
+          csvRequiredIndicator.classList.remove("hidden");
+        }
+
+        updateSummary(); // Update summary display
+        updateNextStepButtonsState(currentEditingAssignmentId, true); // Enable next step buttons for an existing assignment
+        assignmentModal.classList.remove("hidden"); // Show the modal
+        document.body.classList.add("overflow-hidden"); // Prevent background scroll
+
+        // Reset scroll position when opening modal for edit
+        setTimeout(() => {
+          const modalBody = document.querySelector(
+            "#assignmentModal .overflow-y-auto"
+          );
+          if (modalBody) modalBody.scrollTop = 0;
+        }, 10);
+      }
+
+      // Function to update the summary section in the modal
+      function updateSummary() {
+        summaryName.textContent = assignmentNameInput.value || "-";
+        const selectedTypeRadio = document.querySelector(
+          'input[name="assignmentType"]:checked'
+        );
+        summaryType.textContent = selectedTypeRadio
+          ? selectedTypeRadio.value.charAt(0).toUpperCase() +
+          selectedTypeRadio.value.slice(1)
+          : "Individual";
+        summaryWeight.textContent = `${weightInput.value || 0}%`;
+
+        // Show status
+        summaryStatus.textContent =
+          currentAssignmentStatus.charAt(0).toUpperCase() +
+          currentAssignmentStatus.slice(1);
+
+        // Helper to format dates for summary
+        const formatDateForSummary = (dateInputElement) => {
+          if (!dateInputElement.value) return "-";
+          try {
+            // Ensure date is parsed correctly, assuming input is YYYY-MM-DD
+            return new Date(
+              dateInputElement.value + "T00:00:00"
+            ).toLocaleDateString("en-GB", {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            });
+          } catch (e) {
+            return "-";
+          } // Handle invalid date input gracefully
+        };
+        summaryStartDate.textContent = formatDateForSummary(startDateInput);
+        summaryEndDate.textContent = formatDateForSummary(endDateInput);
+        // Display name of staged file if present, otherwise current assignment's CSV, or "Not uploaded"
+        summaryCsvStatus.textContent =
+          currentAssignmentCsvName ||
+          (uploadedCsvFile ? uploadedCsvFile.name : "Not uploaded");
+      }
+
+      // Add event listeners to form inputs to update summary live
+      [
+        assignmentNameInput,
+        descriptionInput,
+        weightInput,
+        startDateInput,
+        endDateInput,
+      ].forEach((el) => el?.addEventListener("input", updateSummary));
+      document
+        .querySelectorAll('input[name="assignmentType"]')
+        .forEach((el) => el.addEventListener("change", updateSummary));
+
+      // CSV Upload Logic: Drag and Drop
+      csvUploadArea.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        csvUploadArea.classList.add("dragover");
+      });
+      csvUploadArea.addEventListener("dragleave", () => {
+        csvUploadArea.classList.remove("dragover");
+      });
+      csvUploadArea.addEventListener("drop", (event) => {
+        event.preventDefault();
+        csvUploadArea.classList.remove("dragover");
+        const files = event.dataTransfer.files;
+        if (files.length > 0) {
+          csvFileInput.files = files;
+          handleCsvFile(files[0]);
+        }
+      });
+      // CSV Upload Logic: File Input Change
+      csvFileInput.addEventListener("change", (event) => {
+        handleCsvFile(event.target.files[0]);
+      });
+
+      // Function to handle a newly selected CSV file
+      function handleCsvFile(file) {
+        if (file) {
+          // If a file is selected
+          if (file.type === "text/csv" || file.name.endsWith(".csv")) {
+            // Validate type
+            uploadedCsvFile = file; // Store the staged file
+            csvFileInfo.innerHTML = `<i class="fas fa-check-circle text-green-500 mr-2"></i>Selected: <strong>${file.name
+              }</strong> (${(file.size / 1024).toFixed(2)} KB)`;
+            csvUploadStatus.textContent = ""; // Clear any previous error messages
+            uploadCsvBtn.classList.remove("hidden"); // Show "Confirm Upload" button
+            previewCsvBtn.classList.remove("hidden"); // Show "Preview" button
+            existingCsvInfo.classList.add("hidden"); // Hide info about previously uploaded CSV
+            csvRequiredIndicator.classList.add("hidden"); // Hide "required" indicator as a file is staged
+          } else {
+            // Invalid file type
+            uploadedCsvFile = null;
+            csvFileInfo.innerHTML = "";
+            csvUploadStatus.textContent =
+              "Invalid file type. Please upload a .csv file.";
+            csvUploadStatus.className =
+              "text-xs text-red-500 dark:text-red-400 mt-1";
+            uploadCsvBtn.classList.add("hidden");
+            previewCsvBtn.classList.add("hidden");
+            csvFileInput.value = ""; // Clear the invalid file from input
+            // If creating new or editing without a CSV, show "required" indicator
+            if (!currentAssignmentCsvName) {
+              csvRequiredIndicator.classList.remove("hidden");
+            }
+          }
+        } else {
+          // File deselected from input
+          uploadedCsvFile = null;
+          csvFileInfo.innerHTML = "";
+          uploadCsvBtn.classList.add("hidden");
+          previewCsvBtn.classList.add("hidden");
+          if (currentAssignmentCsvName) {
+            // If a CSV was previously associated, show its info again
+            existingCsvFileNameEl.textContent = currentAssignmentCsvName;
+            existingCsvInfo.classList.remove("hidden");
+            previewCsvBtn.classList.remove("hidden"); // Allow preview of the existing CSV
+          } else {
+            // If no CSV is now selected/exists, show "required"
+            csvRequiredIndicator.classList.remove("hidden");
+          }
+        }
+        updateSummary(); // Update summary to reflect CSV status
+      }
+
+      // Event listener for "Confirm Upload" button
+      uploadCsvBtn.addEventListener("click", () => {
+        if (uploadedCsvFile) {
+          // If a file is staged
+          // If editing and there's an old CSV, confirm overwrite
+          if (currentAssignmentCsvName && isEditMode) {
+            if (
+              !confirm(
+                `This will replace the current file "${currentAssignmentCsvName}". This change will be applied when you Save the assignment. Are you sure?`
+              )
+            ) {
+              return; // User cancelled overwrite
+            }
+          }
+          // "Confirming" means we now consider this the CSV for the assignment
+          currentAssignmentCsvName = uploadedCsvFile.name;
+          csvUploadStatus.textContent = `"${uploadedCsvFile.name}" is ready. Save the assignment to finalize the CSV change.`;
+          csvUploadStatus.className =
+            "text-xs text-green-600 dark:text-green-400 mt-1";
+          uploadCsvBtn.classList.add("hidden"); // Hide confirm button as it's "confirmed"
+
+          // Show info about the "confirmed" (but not yet saved) CSV
+          existingCsvFileNameEl.textContent = currentAssignmentCsvName;
+          existingCsvInfo.classList.remove("hidden");
+          csvFileInfo.innerHTML = ""; // Clear the "Selected: ..." message
+          // Keep uploadedCsvFile object until the assignment is actually saved
+          csvRequiredIndicator.classList.add("hidden"); // CSV is now "present"
+        } else {
+          csvUploadStatus.textContent = "Please select a CSV file first.";
+          csvUploadStatus.className =
+            "text-xs text-red-500 dark:text-red-400 mt-1";
+        }
+        updateSummary(); // Update summary
+      });
+
+      // Event listener for "Remove CSV" button
+      removeCsvBtn.addEventListener("click", () => {
+        if (
+          confirm(
+            `Are you sure you want to remove "${currentAssignmentCsvName}"? This change will be applied when you Save the assignment.`
+          )
+        ) {
+          currentAssignmentCsvName = null; // Mark for removal
+          uploadedCsvFile = null; // Clear any staged file as well
+          csvFileInput.value = ""; // Clear the actual file input
+          existingCsvInfo.classList.add("hidden"); // Hide info about removed CSV
+          csvFileInfo.innerHTML = ""; // Clear selection info
+          uploadCsvBtn.classList.add("hidden"); // Hide confirm button
+          previewCsvBtn.classList.add("hidden"); // Hide preview button
+          csvUploadStatus.textContent =
+            "CSV file will be removed upon saving the assignment.";
+          csvUploadStatus.className =
+            "text-xs text-gray-500 dark:text-gray-400 mt-1";
+          // CSV becomes required again
+          csvRequiredIndicator.classList.remove("hidden");
+        }
+        updateSummary(); // Update summary
+      });
+
+      // Event listener for "Preview CSV" button
+      previewCsvBtn.addEventListener("click", () => {
+        // Determine which file to "preview": the staged one or the one already associated with the assignment
+        const fileNameToPreview = uploadedCsvFile
+          ? uploadedCsvFile.name
+          : currentAssignmentCsvName;
+        if (fileNameToPreview) {
+          // Mock preview. In a real application, you might read the file or fetch preview data from a server.
+          const mockPreviewData = `StudentID,FullName,Group\ns123456,Alice Wonderland,Group A\ns654321,Bob The Builder,Group A\ns789012,Charlie Brown,Group B\n(Showing first 3 mock rows of ${fileNameToPreview})`;
+          alert("CSV Preview (Mock Data):\n\n" + mockPreviewData);
+        } else {
+          alert("No CSV file selected or uploaded to preview.");
+        }
+      });
+
+      // Event listener for "Create New Assignment" button on main page
+      createAssignmentBtn.addEventListener("click", function () {
+        resetModalForm(); // Ensure modal is in create mode
+        updateCourseInfoInModal(); // Set course context in modal
+        csvRequiredIndicator.classList.remove("hidden"); // CSV is required for new assignment
+        assignmentModal.classList.remove("hidden"); // Show modal
+        document.body.classList.add("overflow-hidden"); // Prevent background scroll
+
+        // Reset scroll position when opening modal
+        setTimeout(() => {
+          const modalBody = document.querySelector(
+            "#assignmentModal .overflow-y-auto"
+          );
+          if (modalBody) modalBody.scrollTop = 0;
+        }, 10);
+      });
+
+      // Function to attach event listeners to "Edit" buttons on assignments
+      function setupEditButtonListeners() {
+        document
+          .querySelectorAll(".edit-assignment-btn")
+          .forEach((button) => {
+            button.removeEventListener("click", handleEditClick); // Remove old listener to prevent duplicates
+            button.addEventListener("click", handleEditClick); // Add new listener
+          });
+      }
+
+      function handleEditClick(e) {
+        e.preventDefault();
+        const assignmentId = this.dataset.assignmentId;
+        // Find the assignment data from mock data (in real app, fetch from backend)
+        const assignmentData = mockAssignments.find(
+          (a) => a.id === assignmentId
+        );
+        if (assignmentData) {
+          populateModalForEdit(assignmentData); // Populate modal with this assignment's data
+        } else {
+          alert("Error: Assignment data not found.");
+        }
+      }
+      setupEditButtonListeners(); // Initial setup for static assignments
+
+      // Event listeners for modal close/cancel buttons
+      [closeModalBtn, cancelAssignmentBtn].forEach((el) => {
+        el.addEventListener("click", function () {
+          assignmentModal.classList.add("hidden");
+          document.body.classList.remove("overflow-hidden");
+        });
+      });
+      // Close modal if backdrop is clicked
+      assignmentModal.addEventListener("click", function (e) {
+        if (
+          e.target === assignmentModal ||
+          e.target.classList.contains("min-h-screen")
+        ) {
+          assignmentModal.classList.add("hidden");
+          document.body.classList.remove("overflow-hidden");
+        }
+      });
+
+      // Function to set course information in the modal (called when modal opens)
+      function updateCourseInfoInModal() {
+        document.getElementById("modalCourseName").textContent = courseName;
+        document.getElementById(
+          "modalCourseDetails"
+        ).textContent = `${courseCodeParam} · ${courseYearParam} · ${semesterText}`;
+      }
+
+      // Event listener for the main form submission (Save Assignment)
+      assignmentForm.addEventListener("submit", function (e) {
+        e.preventDefault(); // Prevent default form submission
+        // Basic form validation
+        const requiredFields = [
+          assignmentNameInput,
+          weightInput,
+          startDateInput,
+          endDateInput,
+        ];
+        const isValid = requiredFields.every(
+          (field) => field.value.trim() !== ""
+        );
+
+        if (!isValid) {
+          alert("Please fill in all required fields marked with *.");
+          return;
+        }
+        if (
+          startDateInput.value &&
+          endDateInput.value &&
+          new Date(endDateInput.value) < new Date(startDateInput.value)
+        ) {
+          alert("End date cannot be earlier than start date.");
+          return;
+        }
+
+        // CSV Requirement Check
+        if (!currentAssignmentCsvName) {
+          alert(
+            "A student/group CSV file is required to save this assignment. Please upload and confirm one."
+          );
+          csvRequiredIndicator.classList.remove("hidden"); // Ensure indicator is visible
+          return;
+        }
+
+        let assignmentIdToUpdate = currentEditingAssignmentId;
+        let successMessage = "";
+        let assignmentData;
+
+        if (isEditMode) {
+          // Updating an existing assignment
+          const assignmentIndex = mockAssignments.findIndex(
+            (a) => a.id === assignmentIdToUpdate
+          );
+          if (assignmentIndex > -1) {
+            mockAssignments[assignmentIndex].name = assignmentNameInput.value;
+            mockAssignments[assignmentIndex].description =
+              descriptionInput.value;
+            mockAssignments[assignmentIndex].type = document.querySelector(
+              'input[name="assignmentType"]:checked'
+            ).value;
+            mockAssignments[assignmentIndex].startDate = startDateInput.value;
+            mockAssignments[assignmentIndex].endDate = endDateInput.value;
+            mockAssignments[assignmentIndex].weight = weightInput.value;
+            mockAssignments[assignmentIndex].status = currentAssignmentStatus; // Maintain current status
+            // currentAssignmentCsvName already reflects the CSV to be saved
+            mockAssignments[assignmentIndex].csvFile =
+              currentAssignmentCsvName;
+            assignmentData = mockAssignments[assignmentIndex];
+            successMessage = `Assignment "${assignmentNameInput.value}" updated successfully!`;
+          }
+        } else {
+          // Creating a new assignment
+          assignmentIdToUpdate = `ASGN_${Date.now().toString().slice(-4)}`;
+          assignmentData = {
+            id: assignmentIdToUpdate,
+            name: assignmentNameInput.value,
+            description: descriptionInput.value,
+            type: document.querySelector(
+              'input[name="assignmentType"]:checked'
+            ).value,
+            startDate: startDateInput.value,
+            endDate: endDateInput.value,
+            weight: weightInput.value,
+            status: "active", // Default to active for new assignments
+            csvFile: currentAssignmentCsvName,
+          };
+          mockAssignments.push(assignmentData);
+          successMessage = `Assignment "${assignmentNameInput.value}" created successfully! (ID: ${assignmentIdToUpdate})`;
+        }
+
+        uploadedCsvFile = null; // Clear any staged file
+        csvFileInput.value = ""; // Clear file input
+        // TODO: Refresh assignment list on the main page to show the new/updated assignment.
+        alert(successMessage);
+        assignmentModal.classList.add("hidden"); // Close modal
+        document.body.classList.remove("overflow-hidden"); // Restore background scroll
+      });
+
+      // Link "Create New Assignment" card on main page to open modal
+      const createNewAssignmentCard = document.getElementById(
+        "createNewAssignmentCard"
+      );
+      if (createNewAssignmentCard) {
+        createNewAssignmentCard.addEventListener("click", () =>
+          createAssignmentBtn.click()
+        );
+      }
+
+      // Setup "Configure Rubric" links on main page (static links for prototype)
+      document.querySelectorAll(".configure-rubric-link").forEach((link) => {
+        link.addEventListener("click", function (e) {
+          e.preventDefault();
+          const assignId = this.dataset.assignmentId;
+          // Navigate to rubric configuration page with necessary parameters
+          window.location.href = `RubricConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}&assignmentId=${assignId}`;
+        });
+      });
+
+      // Initial setup calls
+      updateCourseInfoInModal(); // Set course details in modal once (as they don't change per assignment)
+      updateSummary(); // Initial call to set summary based on default form state
+      updateNextStepButtonsState(null, false); // Initially disable next steps
+    });
+  </script>
+</body>
+
+</html>

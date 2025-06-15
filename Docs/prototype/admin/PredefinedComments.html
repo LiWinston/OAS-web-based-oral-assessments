@@ -1,0 +1,2503 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Predefined Comments Library | OAS Admin</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --primary-light: #818cf8;
+        --secondary: #6366f1;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f8fafc;
+        --dark: #1e293b;
+        --text-dark: #1e293b;
+        --text-light: #f8fafc;
+        --text-muted: #64748b;
+        --bg-light: #ffffff;
+        --bg-dark: #0f172a;
+        --card-light: #ffffff;
+        --card-dark: #1e293b;
+        --border-light: #e2e8f0;
+        --border-dark: #334155;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --radius-sm: 0.25rem;
+        --radius: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button,
+      textarea {
+        transition: all 0.3s ease;
+      }
+
+      /* Base styles */
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--light);
+        color: var(--text-dark);
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: var(--radius-sm);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Dashboard Card */
+      .dashboard-card {
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: var(--shadow);
+        border-color: var(--border-dark);
+      }
+
+      .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        border-radius: var(--radius);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary:active {
+        transform: translateY(1px);
+      }
+
+      .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s ease;
+        font-weight: 500;
+        border-radius: var(--radius);
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary);
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .btn-outline-primary:active {
+        transform: translateY(1px);
+      }
+
+      /* Form elements */
+      .form-control {
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.15s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        outline: none;
+      }
+
+      .dark .form-control {
+        background-color: #1e293b;
+        border-color: var(--border-dark);
+        color: var(--text-light);
+      }
+
+      .dark .form-control:focus {
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+      }
+
+      /* Comment Cards */
+      .comment-card {
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+        margin-bottom: 0.75rem;
+        overflow: hidden;
+      }
+
+      .dark .comment-card {
+        background-color: var(--card-dark);
+        box-shadow: var(--shadow-sm);
+        border-color: var(--border-dark);
+      }
+
+      .comment-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+      }
+
+      /* Comment type indicators */
+      .comment-type-admin {
+        border-left: 4px solid #2563eb;
+      }
+
+      .comment-type-examiner {
+        border-left: 4px solid #059669;
+      }
+
+      /* Performance level badges */
+      .level-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius);
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .level-outstanding {
+        background-color: #d1fae5;
+        color: #065f46;
+      }
+
+      .level-verygood {
+        background-color: #dbeafe;
+        color: #1e40af;
+      }
+
+      .level-good {
+        background-color: #fef3c7;
+        color: #92400e;
+      }
+
+      .level-fair {
+        background-color: #fed7aa;
+        color: #9a3412;
+      }
+
+      .level-poor {
+        background-color: #fecaca;
+        color: #991b1b;
+      }
+
+      .dark .level-outstanding {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+
+      .dark .level-verygood {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+
+      .dark .level-good {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+      }
+
+      .dark .level-fair {
+        background-color: rgba(251, 146, 60, 0.2);
+        color: #fb923c;
+      }
+
+      .dark .level-poor {
+        background-color: rgba(239, 68, 68, 0.2);
+        color: #f87171;
+      }
+
+      /* Criteria sections */
+      .criteria-section {
+        margin-bottom: 2rem;
+      }
+
+      .criteria-header {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--secondary) 100%
+        );
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        margin-bottom: 0;
+      }
+
+      /* Filter tabs */
+      .filter-tab {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius);
+        background-color: transparent;
+        color: var(--text-muted);
+        border: 1px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-size: 0.875rem;
+        font-weight: 500;
+      }
+
+      .filter-tab:hover {
+        background-color: #f1f5f9;
+        color: var(--text-dark);
+      }
+
+      .filter-tab.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary);
+      }
+
+      .dark .filter-tab:hover {
+        background-color: #334155;
+        color: var(--text-light);
+      }
+
+      /* Modal styling */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(15, 23, 42, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        backdrop-filter: blur(4px);
+      }
+
+      .modal-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background-color: white;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 700px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: translateY(-20px) scale(0.95);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .dark .modal-content {
+        background-color: var(--card-dark);
+      }
+
+      .modal-backdrop.show .modal-content {
+        transform: translateY(0) scale(1);
+      }
+
+      /* Usage statistics */
+      .usage-stat {
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-left: 0.5rem;
+      }
+
+      /* Drag handle */
+      .drag-handle {
+        cursor: move;
+        color: var(--text-muted);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .comment-card:hover .drag-handle {
+        opacity: 1;
+      }
+
+      /* Search highlight */
+      .search-highlight {
+        background-color: #fef08a;
+        padding: 0.125rem 0.25rem;
+        border-radius: 0.125rem;
+      }
+
+      .dark .search-highlight {
+        background-color: #a16207;
+        color: #fef3c7;
+      }
+
+      /* Animations */
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .animate-slide-in {
+        animation: slideIn 0.3s ease-out;
+      }
+
+      /* Statistics cards */
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        text-align: center;
+        transition: transform 0.2s ease;
+      }
+
+      .stat-card:hover {
+        transform: translateY(-2px);
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+
+      .stat-label {
+        font-size: 0.875rem;
+        opacity: 0.9;
+      }
+
+      /* Empty state */
+      .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+      }
+
+      .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+
+      /* Validation states */
+      .form-control.is-invalid {
+        border-color: var(--danger);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+      }
+
+      .invalid-feedback {
+        display: block;
+        color: var(--danger);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+      }
+
+      /* Quick add buttons */
+      .quick-add-btn {
+        background-color: transparent;
+        border: 2px dashed var(--border-light);
+        color: var(--text-muted);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        transition: all 0.2s ease;
+        width: 100%;
+        text-align: center;
+      }
+
+      .quick-add-btn:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background-color: rgba(79, 70, 229, 0.05);
+      }
+
+      .dark .quick-add-btn {
+        border-color: var(--border-dark);
+      }
+
+      .dark .quick-add-btn:hover {
+        border-color: var(--primary-light);
+        color: var(--primary-light);
+        background-color: rgba(79, 70, 229, 0.15);
+      }
+
+      /* Comment preview in modal */
+      .comment-preview {
+        background-color: #f8fafc;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 1rem;
+        margin-top: 1rem;
+      }
+
+      .dark .comment-preview {
+        background-color: #1e293b;
+        border-color: var(--border-dark);
+      }
+
+      /* Status indicators */
+      .status-active {
+        color: var(--success);
+      }
+
+      .status-inactive {
+        color: var(--text-muted);
+      }
+
+      /* Assignment context bar */
+      .assignment-context {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+      }
+
+      .assignment-info {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .assignment-details h2 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+      }
+
+      .assignment-meta {
+        font-size: 0.875rem;
+        opacity: 0.9;
+      }
+
+      /* Course badge */
+      .course-badge {
+        background-color: rgba(255, 255, 255, 0.2);
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius);
+        font-size: 0.75rem;
+        font-weight: 500;
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ darkMode: false, sidebarOpen: true, notificationsOpen: false }"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Admin</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            MAIN
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tasks mr-2"></i> Assignments
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-users mr-2"></i> Users
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-book mr-2"></i> Courses
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            CONFIGURATION
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-cog mr-2"></i> Settings
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-comment-dots mr-2"></i> Comment Library
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-bell mr-2"></i> Notifications
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            HELP
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-book-open mr-2"></i> Documentation
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-headset mr-2"></i> Support
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Search box -->
+            <div class="ml-4 md:ml-0 relative">
+              <span
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <i class="fas fa-search text-gray-400"></i>
+              </span>
+              <input
+                type="text"
+                id="globalSearch"
+                placeholder="Search comments..."
+                class="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:border-blue-500"
+                aria-label="Search"
+              />
+            </div>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                  >2</span
+                >
+              </button>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Admin User"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Course Administrator
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    Full Access
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Breadcrumb Navigation -->
+          <div class="mb-4">
+            <nav
+              class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3"
+            >
+              <ol class="flex items-center space-x-2">
+                <li class="flex items-center">
+                  <a
+                    href="#"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center"
+                  >
+                    <span
+                      class="font-bold text-blue-600 dark:text-blue-400 mr-1"
+                      >OAS</span
+                    >
+                    <span class="text-sm text-gray-600 dark:text-gray-300"
+                      >Dashboard</span
+                    >
+                  </a>
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="#"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    >Courses</a
+                  >
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="#"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    id="assignmentBreadcrumb"
+                    >Software Project Management Assignments</a
+                  >
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="#"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    id="rubricBreadcrumb"
+                    >Final Project Rubric</a
+                  >
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <span class="text-blue-600 dark:text-blue-400 font-medium"
+                    >Comment Library</span
+                  >
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Assignment Context Bar -->
+          <div class="assignment-context">
+            <div class="assignment-info">
+              <div class="assignment-details">
+                <h2 id="assignmentTitle">Final Project Presentation & Demo</h2>
+                <div class="assignment-meta">
+                  <span id="courseInfo"
+                    >COMP90082 - Software Project Management</span
+                  >
+                  <span class="mx-2">•</span>
+                  <span id="semesterInfo">Semester 2, 2025</span>
+                  <span class="mx-2">•</span>
+                  <span>Group Assessment</span>
+                </div>
+              </div>
+              <div class="course-badge">
+                <i class="fas fa-graduation-cap mr-1"></i>
+                Active Assignment
+              </div>
+            </div>
+          </div>
+
+          <!-- Page Header -->
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between mb-6"
+          >
+            <div>
+              <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                Predefined Comments Library
+              </h1>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Manage reusable comment templates for this assignment. Comments
+                created here will be available to all examiners during the
+                assessment process for consistent and efficient feedback
+                delivery.
+              </p>
+            </div>
+
+            <div class="mt-4 md:mt-0 flex space-x-2">
+              <button
+                class="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                id="importCommentsBtn"
+              >
+                <i class="fas fa-upload"></i>
+                <span>Import</span>
+              </button>
+              <button
+                class="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                id="exportCommentsBtn"
+              >
+                <i class="fas fa-download"></i>
+                <span>Export</span>
+              </button>
+              <button
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="addCommentBtn"
+              >
+                <i class="fas fa-plus"></i>
+                <span>Add Comment</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Statistics Overview -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div
+              class="stat-card"
+              style="
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              "
+            >
+              <div class="stat-number">142</div>
+              <div class="stat-label">Total Comments</div>
+            </div>
+            <div
+              class="stat-card"
+              style="
+                background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+              "
+            >
+              <div class="stat-number">89</div>
+              <div class="stat-label">Admin Comments</div>
+            </div>
+            <div
+              class="stat-card"
+              style="
+                background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+              "
+            >
+              <div class="stat-number">53</div>
+              <div class="stat-label">Examiner Comments</div>
+            </div>
+          </div>
+
+          <!-- Filters and Controls -->
+          <div class="dashboard-card p-4 mb-6">
+            <div
+              class="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0"
+            >
+              <!-- Filter tabs -->
+              <div class="flex space-x-1">
+                <button class="filter-tab active" data-filter="all">
+                  All Comments
+                </button>
+                <button class="filter-tab" data-filter="admin">
+                  <i class="fas fa-shield-alt mr-1"></i>
+                  Admin-defined
+                </button>
+                <button class="filter-tab" data-filter="examiner">
+                  <i class="fas fa-comment mr-1"></i>
+                  Examiner-added
+                </button>
+              </div>
+
+              <!-- Sort and view options -->
+              <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                  <label
+                    for="sortBy"
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                    >Sort by:</label
+                  >
+                  <select id="sortBy" class="form-control text-sm">
+                    <option value="recent">Recently Added</option>
+                    <option value="alphabetical">Alphabetical</option>
+                    <option value="usage">Most Used</option>
+                    <option value="criterion">By Criterion</option>
+                    <option value="level">By Performance Level</option>
+                  </select>
+                </div>
+                <div
+                  class="flex border border-gray-300 dark:border-gray-600 rounded-lg"
+                >
+                  <button
+                    id="gridViewBtn"
+                    class="px-3 py-2 text-sm bg-blue-600 text-white rounded-l-lg"
+                  >
+                    <i class="fas fa-th-large"></i>
+                  </button>
+                  <button
+                    id="listViewBtn"
+                    class="px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-r-lg"
+                  >
+                    <i class="fas fa-list"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comments Content Area -->
+          <div class="space-y-6" id="commentsContent">
+            <!-- Content Organization Criterion -->
+            <div class="criteria-section">
+              <div class="criteria-header">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      Content & Organization
+                    </h2>
+                    <p class="text-sm opacity-90">
+                      Comments for content structure and organization assessment
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">32 comments</span>
+                    <button
+                      class="text-white hover:text-gray-200"
+                      onclick="openQuickAdd('content')"
+                    >
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Performance Level Sections -->
+              <div class="dashboard-card p-0">
+                <!-- Outstanding Level -->
+                <div
+                  class="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
+                  <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="level-badge level-outstanding">
+                          <i class="fas fa-star mr-1"></i>
+                          Outstanding (5 pts)
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                          8 comments
+                        </span>
+                      </div>
+                      <button
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onclick="toggleLevelComments('content-outstanding')"
+                      >
+                        <i
+                          class="fas fa-chevron-down"
+                          id="content-outstanding-icon"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="content-outstanding" class="p-4 space-y-3">
+                    <!-- Admin Comment -->
+                    <div class="comment-card comment-type-admin p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2 mb-2">
+                            <span
+                              class="text-xs font-medium text-blue-600 dark:text-blue-400"
+                            >
+                              <i class="fas fa-shield-alt mr-1"></i>
+                              Admin-defined
+                            </span>
+                            <span class="usage-stat">
+                              <i class="fas fa-chart-line mr-1"></i>
+                              Used 127 times
+                            </span>
+                          </div>
+                          <p
+                            class="text-sm text-gray-800 dark:text-gray-200 mb-2"
+                          >
+                            Exceptionally well-organized content with a clear
+                            narrative flow. The introduction effectively
+                            establishes context and the conclusion summarizes
+                            key points perfectly.
+                          </p>
+                          <div
+                            class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                          >
+                            <span class="mr-3">
+                              <i class="fas fa-clock mr-1"></i>
+                              Created 3 months ago
+                            </span>
+                            <span class="mr-3">
+                              <i class="fas fa-user mr-1"></i>
+                              Dr. Smith
+                            </span>
+                            <span class="status-active">
+                              <i class="fas fa-check-circle mr-1"></i>
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-4">
+                          <button class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                          </button>
+                          <div class="flex space-x-1">
+                            <button
+                              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit"
+                              onclick="editComment(this)"
+                            >
+                              <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button
+                              class="text-gray-400 hover:text-red-500"
+                              title="Delete"
+                              onclick="deleteComment(this)"
+                            >
+                              <i class="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Examiner Comment -->
+                    <div class="comment-card comment-type-examiner p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2 mb-2">
+                            <span
+                              class="text-xs font-medium text-green-600 dark:text-green-400"
+                            >
+                              <i class="fas fa-comment mr-1"></i>
+                              Examiner-added
+                            </span>
+                            <span class="usage-stat">
+                              <i class="fas fa-chart-line mr-1"></i>
+                              Used 43 times
+                            </span>
+                          </div>
+                          <p
+                            class="text-sm text-gray-800 dark:text-gray-200 mb-2"
+                          >
+                            Transitions between sections are seamless, guiding
+                            the audience naturally through complex ideas. The
+                            organization enhances comprehension significantly.
+                          </p>
+                          <div
+                            class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                          >
+                            <span class="mr-3">
+                              <i class="fas fa-clock mr-1"></i>
+                              Created 2 weeks ago
+                            </span>
+                            <span class="mr-3">
+                              <i class="fas fa-user mr-1"></i>
+                              Prof. Johnson
+                            </span>
+                            <span class="status-active">
+                              <i class="fas fa-check-circle mr-1"></i>
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-4">
+                          <button class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                          </button>
+                          <div class="flex space-x-1">
+                            <button
+                              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit"
+                              onclick="editComment(this)"
+                            >
+                              <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button
+                              class="text-gray-400 hover:text-red-500"
+                              title="Delete"
+                              onclick="deleteComment(this)"
+                            >
+                              <i class="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Additional Examiner Comment -->
+                    <div class="comment-card comment-type-examiner p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2 mb-2">
+                            <span
+                              class="text-xs font-medium text-green-600 dark:text-green-400"
+                            >
+                              <i class="fas fa-comment mr-1"></i>
+                              Examiner-added
+                            </span>
+                            <span class="usage-stat">
+                              <i class="fas fa-chart-line mr-1"></i>
+                              Used 18 times
+                            </span>
+                          </div>
+                          <p
+                            class="text-sm text-gray-800 dark:text-gray-200 mb-2"
+                          >
+                            The presentation demonstrates excellent structural
+                            integrity with logical progression of ideas. Each
+                            section builds naturally upon previous points.
+                          </p>
+                          <div
+                            class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                          >
+                            <span class="mr-3">
+                              <i class="fas fa-clock mr-1"></i>
+                              Created 1 week ago
+                            </span>
+                            <span class="mr-3">
+                              <i class="fas fa-user mr-1"></i>
+                              Dr. Williams
+                            </span>
+                            <span class="status-active">
+                              <i class="fas fa-check-circle mr-1"></i>
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-4">
+                          <button class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                          </button>
+                          <div class="flex space-x-1">
+                            <button
+                              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit"
+                              onclick="editComment(this)"
+                            >
+                              <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button
+                              class="text-gray-400 hover:text-red-500"
+                              title="Delete"
+                              onclick="deleteComment(this)"
+                            >
+                              <i class="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Quick Add Button -->
+                    <button
+                      class="quick-add-btn"
+                      onclick="openQuickAdd('content', 'outstanding')"
+                    >
+                      <i class="fas fa-plus mr-2"></i>
+                      Add comment for Outstanding level
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Very Good Level -->
+                <div
+                  class="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
+                  <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="level-badge level-verygood">
+                          <i class="fas fa-thumbs-up mr-1"></i>
+                          Very Good (4 pts)
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                          7 comments
+                        </span>
+                      </div>
+                      <button
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onclick="toggleLevelComments('content-verygood')"
+                      >
+                        <i
+                          class="fas fa-chevron-right"
+                          id="content-verygood-icon"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div id="content-verygood" class="p-4 space-y-3 hidden">
+                    <!-- Comments would be populated here -->
+                    <div class="comment-card comment-type-admin p-4">
+                      <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                          <div class="flex items-center space-x-2 mb-2">
+                            <span
+                              class="text-xs font-medium text-blue-600 dark:text-blue-400"
+                            >
+                              <i class="fas fa-shield-alt mr-1"></i>
+                              Admin-defined
+                            </span>
+                            <span class="usage-stat">
+                              <i class="fas fa-chart-line mr-1"></i>
+                              Used 89 times
+                            </span>
+                          </div>
+                          <p
+                            class="text-sm text-gray-800 dark:text-gray-200 mb-2"
+                          >
+                            Well-structured presentation with clear sections.
+                            Transitions generally work well though occasionally
+                            could be smoother.
+                          </p>
+                          <div
+                            class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                          >
+                            <span class="mr-3">
+                              <i class="fas fa-clock mr-1"></i>
+                              Created 2 months ago
+                            </span>
+                            <span class="mr-3">
+                              <i class="fas fa-user mr-1"></i>
+                              Dr. Smith
+                            </span>
+                            <span class="status-active">
+                              <i class="fas fa-check-circle mr-1"></i>
+                              Active
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2 ml-4">
+                          <button class="drag-handle">
+                            <i class="fas fa-grip-vertical"></i>
+                          </button>
+                          <div class="flex space-x-1">
+                            <button
+                              class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit"
+                              onclick="editComment(this)"
+                            >
+                              <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <button
+                              class="text-gray-400 hover:text-red-500"
+                              title="Delete"
+                              onclick="deleteComment(this)"
+                            >
+                              <i class="fas fa-trash-alt"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Quick Add Button -->
+                    <button
+                      class="quick-add-btn"
+                      onclick="openQuickAdd('content', 'verygood')"
+                    >
+                      <i class="fas fa-plus mr-2"></i>
+                      Add comment for Very Good level
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Other levels collapsed for brevity -->
+                <div
+                  class="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
+                  <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="level-badge level-good">
+                          <i class="fas fa-check mr-1"></i>
+                          Good (3 pts)
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                          9 comments
+                        </span>
+                      </div>
+                      <button
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onclick="toggleLevelComments('content-good')"
+                      >
+                        <i
+                          class="fas fa-chevron-right"
+                          id="content-good-icon"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="content-good" class="p-4 space-y-3 hidden"></div>
+                </div>
+
+                <div
+                  class="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
+                  <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="level-badge level-fair">
+                          <i class="fas fa-minus mr-1"></i>
+                          Fair (2 pts)
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                          5 comments
+                        </span>
+                      </div>
+                      <button
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onclick="toggleLevelComments('content-fair')"
+                      >
+                        <i
+                          class="fas fa-chevron-right"
+                          id="content-fair-icon"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="content-fair" class="p-4 space-y-3 hidden"></div>
+                </div>
+
+                <div
+                  class="border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                >
+                  <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <span class="level-badge level-poor">
+                          <i class="fas fa-times mr-1"></i>
+                          Poor (1 pt)
+                        </span>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">
+                          3 comments
+                        </span>
+                      </div>
+                      <button
+                        class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onclick="toggleLevelComments('content-poor')"
+                      >
+                        <i
+                          class="fas fa-chevron-right"
+                          id="content-poor-icon"
+                        ></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="content-poor" class="p-4 space-y-3 hidden"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Other criteria sections -->
+            <div class="criteria-section">
+              <div class="criteria-header">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      Delivery & Speaking Skills
+                    </h2>
+                    <p class="text-sm opacity-90">
+                      Comments for communication effectiveness and presentation
+                      delivery
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">28 comments</span>
+                    <button
+                      class="text-white hover:text-gray-200"
+                      onclick="openQuickAdd('delivery')"
+                    >
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-card p-0">
+                <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <i class="fas fa-chevron-down text-2xl mb-2"></i>
+                  <p>Click to expand and view delivery comments</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="criteria-section">
+              <div class="criteria-header">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-semibold">
+                      Technical Demonstration
+                    </h2>
+                    <p class="text-sm opacity-90">
+                      Comments for project demonstration and technical execution
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">25 comments</span>
+                    <button
+                      class="text-white hover:text-gray-200"
+                      onclick="openQuickAdd('technical')"
+                    >
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-card p-0">
+                <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <i class="fas fa-chevron-down text-2xl mb-2"></i>
+                  <p>
+                    Click to expand and view technical demonstration comments
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="criteria-section">
+              <div class="criteria-header">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <h2 class="text-lg font-semibold">Subject Knowledge</h2>
+                    <p class="text-sm opacity-90">
+                      Comments for domain expertise and understanding
+                      demonstration
+                    </p>
+                  </div>
+                  <div class="flex items-center space-x-4">
+                    <span class="text-sm opacity-75">22 comments</span>
+                    <button
+                      class="text-white hover:text-gray-200"
+                      onclick="openQuickAdd('knowledge')"
+                    >
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-card p-0">
+                <div class="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <i class="fas fa-chevron-down text-2xl mb-2"></i>
+                  <p>Click to expand and view subject knowledge comments</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400"
+        >
+          &copy; 2025 Oral Assessment System. All rights reserved.
+        </footer>
+      </div>
+    </div>
+
+    <!-- Add/Edit Comment Modal -->
+    <div class="modal-backdrop" id="commentModal">
+      <div class="modal-content p-0 max-w-4xl">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center">
+            <h3
+              class="text-xl font-bold text-gray-900 dark:text-white"
+              id="commentModalTitle"
+            >
+              Add Predefined Comment
+            </h3>
+            <button
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              id="closeCommentModal"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="px-6 py-4">
+          <form id="commentForm">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Left Column - Form Fields -->
+              <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label
+                      for="commentCriterion"
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Criterion <span class="text-red-500">*</span></label
+                    >
+                    <select
+                      id="commentCriterion"
+                      class="w-full form-control"
+                      required
+                    >
+                      <option value="">Select criterion...</option>
+                      <option value="content">Content & Organization</option>
+                      <option value="delivery">
+                        Delivery & Speaking Skills
+                      </option>
+                      <option value="technical">Technical Demonstration</option>
+                      <option value="knowledge">Subject Knowledge</option>
+                    </select>
+                    <div class="invalid-feedback" id="criterionError"></div>
+                  </div>
+
+                  <div>
+                    <label
+                      for="commentLevel"
+                      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >Performance Level
+                      <span class="text-red-500">*</span></label
+                    >
+                    <select
+                      id="commentLevel"
+                      class="w-full form-control"
+                      required
+                    >
+                      <option value="">Select level...</option>
+                      <option value="outstanding">Outstanding (5 pts)</option>
+                      <option value="verygood">Very Good (4 pts)</option>
+                      <option value="good">Good (3 pts)</option>
+                      <option value="fair">Fair (2 pts)</option>
+                      <option value="poor">Poor (1 pt)</option>
+                    </select>
+                    <div class="invalid-feedback" id="levelError"></div>
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    for="commentType"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Comment Type <span class="text-red-500">*</span></label
+                  >
+                  <select id="commentType" class="w-full form-control" required>
+                    <option value="">Select type...</option>
+                    <option value="admin">
+                      Admin-defined (System-wide, immediate activation)
+                    </option>
+                    <option value="examiner">
+                      Examiner-added (Available for reuse)
+                    </option>
+                  </select>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Both admin and examiner comments are immediately available
+                    for use in assessments.
+                  </div>
+                  <div class="invalid-feedback" id="typeError"></div>
+                </div>
+
+                <div>
+                  <label
+                    for="commentText"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Comment Text <span class="text-red-500">*</span></label
+                  >
+                  <textarea
+                    id="commentText"
+                    class="w-full form-control"
+                    rows="5"
+                    placeholder="Enter the comment text that will be available for selection during assessment..."
+                    required
+                  ></textarea>
+                  <div class="flex justify-between items-center mt-1">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Write clear, constructive feedback that helps students
+                      understand their performance
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <span id="commentCharCount">0</span>/500 characters
+                    </div>
+                  </div>
+                  <div class="invalid-feedback" id="textError"></div>
+                </div>
+
+                <div>
+                  <label
+                    for="commentTags"
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                    >Tags (Optional)</label
+                  >
+                  <input
+                    type="text"
+                    id="commentTags"
+                    class="w-full form-control"
+                    placeholder="e.g., structure, organization, clarity, transitions"
+                  />
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Separate multiple tags with commas. Tags help categorize and
+                    search comments.
+                  </div>
+                </div>
+
+                <div class="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="commentActive"
+                    class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                    checked
+                  />
+                  <label
+                    for="commentActive"
+                    class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    Active (available for use in assessments)
+                  </label>
+                </div>
+              </div>
+
+              <!-- Right Column - Preview -->
+              <div class="space-y-4">
+                <div>
+                  <h4
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Comment Preview
+                  </h4>
+                  <div class="comment-preview" id="commentPreview">
+                    <div class="flex items-center space-x-2 mb-2">
+                      <span class="text-xs font-medium" id="previewType">
+                        Select comment type
+                      </span>
+                      <span class="usage-stat" id="previewUsage">
+                        <i class="fas fa-chart-line mr-1"></i>
+                        New comment
+                      </span>
+                    </div>
+                    <p
+                      class="text-sm text-gray-800 dark:text-gray-200 mb-2"
+                      id="previewText"
+                    >
+                      Your comment text will appear here as you type...
+                    </p>
+                    <div
+                      class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                    >
+                      <span class="mr-3">
+                        <i class="fas fa-clock mr-1"></i>
+                        Now
+                      </span>
+                      <span class="mr-3">
+                        <i class="fas fa-user mr-1"></i>
+                        Course Administrator
+                      </span>
+                      <span class="status-active">
+                        <i class="fas fa-check-circle mr-1"></i>
+                        <span id="previewActiveStatus">Active</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Writing Guidelines
+                  </h4>
+                  <div
+                    class="bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 border border-blue-200 dark:border-blue-700 rounded-lg p-3"
+                  >
+                    <ul
+                      class="text-xs text-blue-800 dark:text-blue-300 space-y-1"
+                    >
+                      <li>
+                        <i class="fas fa-check mr-1"></i> Be specific and
+                        actionable
+                      </li>
+                      <li>
+                        <i class="fas fa-check mr-1"></i> Focus on observable
+                        behaviors
+                      </li>
+                      <li>
+                        <i class="fas fa-check mr-1"></i> Use constructive
+                        language
+                      </li>
+                      <li>
+                        <i class="fas fa-check mr-1"></i> Align with performance
+                        level expectations
+                      </li>
+                      <li>
+                        <i class="fas fa-check mr-1"></i> Consider cultural
+                        sensitivity
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div>
+                  <h4
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Similar Comments
+                  </h4>
+                  <div
+                    class="space-y-2 max-h-32 overflow-y-auto"
+                    id="similarComments"
+                  >
+                    <div
+                      class="text-xs text-gray-500 dark:text-gray-400 italic"
+                    >
+                      Similar comments will appear here as you type
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Modal Footer -->
+        <div
+          class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
+        >
+          <div class="flex justify-between items-center">
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              <i class="fas fa-info-circle mr-1"></i>
+              Comments are automatically saved to the library and become
+              available for use
+            </div>
+            <div class="flex space-x-3">
+              <button
+                type="button"
+                id="cancelCommentBtn"
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="commentForm"
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="saveCommentBtn"
+              >
+                <i class="fas fa-save mr-1"></i>
+                Save Comment
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import/Export Modal -->
+    <div class="modal-backdrop" id="importExportModal">
+      <div class="modal-content p-6 max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+          <h3
+            class="text-xl font-bold text-gray-900 dark:text-white"
+            id="importExportModalTitle"
+          >
+            Import Comments
+          </h3>
+          <button
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            id="closeImportExportModal"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div id="importContent">
+          <div class="mb-4">
+            <label
+              for="importFile"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Select CSV or JSON file to import
+            </label>
+            <input
+              type="file"
+              id="importFile"
+              accept=".csv,.json"
+              class="w-full form-control"
+            />
+          </div>
+          <div class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p class="mb-2">Supported formats:</p>
+            <ul class="list-disc list-inside space-y-1 text-xs">
+              <li>CSV: criterion, level, type, text, tags, active</li>
+              <li>JSON: Array of comment objects</li>
+            </ul>
+          </div>
+        </div>
+
+        <div id="exportContent" class="hidden">
+          <div class="mb-4">
+            <label
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+            >
+              Export Options
+            </label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input type="checkbox" class="rounded text-blue-600" checked />
+                <span class="ml-2 text-sm">Include admin-defined comments</span>
+              </label>
+              <label class="flex items-center">
+                <input type="checkbox" class="rounded text-blue-600" checked />
+                <span class="ml-2 text-sm"
+                  >Include examiner-added comments</span
+                >
+              </label>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label
+              for="exportFormat"
+              class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+            >
+              Export Format
+            </label>
+            <select id="exportFormat" class="w-full form-control">
+              <option value="csv">CSV Format</option>
+              <option value="json">JSON Format</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex justify-end space-x-3">
+          <button
+            type="button"
+            id="cancelImportExportBtn"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="confirmImportExportBtn"
+            class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <i class="fas fa-upload mr-1"></i>
+            Import
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AlpineJS for interactivity -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+      defer
+    ></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Parse URL parameters for course and assignment context
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseCodeParam = urlParams.get("course") || "COMP90082";
+        const courseYearParam = urlParams.get("year") || "2025";
+        const courseSemesterParam = urlParams.get("semester") || "2";
+        const assignmentIdParam = urlParams.get("assignmentId") || "3";
+
+        // Mock assignment data
+        const mockAssignments = [
+          {
+            id: "1",
+            name: "Project Proposal Presentation",
+            description: "Students present initial project ideas.",
+            type: "group",
+          },
+          {
+            id: "2",
+            name: "Mid-Semester Project Update",
+            description: "Progress report on project development.",
+            type: "individual",
+          },
+          {
+            id: "3",
+            name: "Final Project Presentation & Demo",
+            description:
+              "Final presentation and demonstration of the completed project.",
+            type: "mixed",
+          },
+        ];
+
+        // Get assignment data
+        const assignmentData =
+          mockAssignments.find((a) => a.id === assignmentIdParam) ||
+          mockAssignments[2];
+
+        // Map semester numbers to text
+        const semesterMap = {
+          1: "Semester 1",
+          2: "Semester 2",
+          summer: "Summer Term",
+        };
+        const semesterText =
+          semesterMap[courseSemesterParam] || courseSemesterParam;
+
+        // Map course codes to names
+        const courseNames = {
+          COMP90082: "Software Project Management",
+          INFO30005: "Web Information Technologies",
+          INFO20003: "Database Systems",
+        };
+        const courseName = courseNames[courseCodeParam] || "Selected Course";
+
+        // Update context elements
+        document.getElementById("assignmentTitle").textContent =
+          assignmentData.name;
+        document.getElementById(
+          "courseInfo"
+        ).textContent = `${courseCodeParam} - ${courseName}`;
+        document.getElementById(
+          "semesterInfo"
+        ).textContent = `${semesterText}, ${courseYearParam}`;
+
+        // Update breadcrumb links
+        const assignmentBreadcrumbLink = document.getElementById(
+          "assignmentBreadcrumb"
+        );
+        if (assignmentBreadcrumbLink) {
+          assignmentBreadcrumbLink.href = `AssignmentConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}`;
+          assignmentBreadcrumbLink.textContent = `${courseName} Assignments`;
+        }
+
+        const rubricBreadcrumb = document.getElementById("rubricBreadcrumb");
+        if (rubricBreadcrumb) {
+          rubricBreadcrumb.href = `RubricConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}&assignmentId=${assignmentIdParam}`;
+          rubricBreadcrumb.textContent = `${assignmentData.name} Rubric`;
+        }
+
+        // Modal elements
+        const commentModal = document.getElementById("commentModal");
+        const importExportModal = document.getElementById("importExportModal");
+
+        // Button elements
+        const addCommentBtn = document.getElementById("addCommentBtn");
+        const importCommentsBtn = document.getElementById("importCommentsBtn");
+        const exportCommentsBtn = document.getElementById("exportCommentsBtn");
+
+        // Modal close buttons
+        const closeCommentModal = document.getElementById("closeCommentModal");
+        const closeImportExportModal = document.getElementById(
+          "closeImportExportModal"
+        );
+        const cancelCommentBtn = document.getElementById("cancelCommentBtn");
+        const cancelImportExportBtn = document.getElementById(
+          "cancelImportExportBtn"
+        );
+
+        // Form elements
+        const commentForm = document.getElementById("commentForm");
+        const commentText = document.getElementById("commentText");
+        const commentCharCount = document.getElementById("commentCharCount");
+        const commentType = document.getElementById("commentType");
+        const commentCriterion = document.getElementById("commentCriterion");
+        const commentLevel = document.getElementById("commentLevel");
+        const commentActive = document.getElementById("commentActive");
+
+        // Preview elements
+        const previewType = document.getElementById("previewType");
+        const previewText = document.getElementById("previewText");
+        const previewActiveStatus = document.getElementById(
+          "previewActiveStatus"
+        );
+
+        // Filter functionality
+        const filterTabs = document.querySelectorAll(".filter-tab");
+        filterTabs.forEach((tab) => {
+          tab.addEventListener("click", function () {
+            filterTabs.forEach((t) => t.classList.remove("active"));
+            this.classList.add("active");
+
+            const filter = this.getAttribute("data-filter");
+            filterComments(filter);
+          });
+        });
+
+        // Search functionality
+        const globalSearch = document.getElementById("globalSearch");
+        globalSearch.addEventListener("input", function (e) {
+          const searchTerm = e.target.value.toLowerCase();
+          searchComments(searchTerm);
+        });
+
+        // View toggle functionality
+        const gridViewBtn = document.getElementById("gridViewBtn");
+        const listViewBtn = document.getElementById("listViewBtn");
+
+        gridViewBtn.addEventListener("click", function () {
+          this.classList.add("bg-blue-600", "text-white");
+          this.classList.remove("text-gray-700", "dark:text-gray-300");
+          listViewBtn.classList.remove("bg-blue-600", "text-white");
+          listViewBtn.classList.add("text-gray-700", "dark:text-gray-300");
+        });
+
+        listViewBtn.addEventListener("click", function () {
+          this.classList.add("bg-blue-600", "text-white");
+          this.classList.remove("text-gray-700", "dark:text-gray-300");
+          gridViewBtn.classList.remove("bg-blue-600", "text-white");
+          gridViewBtn.classList.add("text-gray-700", "dark:text-gray-300");
+        });
+
+        // Modal event listeners
+        addCommentBtn.addEventListener("click", function () {
+          openCommentModal();
+        });
+
+        importCommentsBtn.addEventListener("click", function () {
+          document.getElementById("importExportModalTitle").textContent =
+            "Import Comments";
+          document.getElementById("importContent").classList.remove("hidden");
+          document.getElementById("exportContent").classList.add("hidden");
+          document.getElementById("confirmImportExportBtn").innerHTML =
+            '<i class="fas fa-upload mr-1"></i> Import';
+          importExportModal.classList.add("show");
+        });
+
+        exportCommentsBtn.addEventListener("click", function () {
+          document.getElementById("importExportModalTitle").textContent =
+            "Export Comments";
+          document.getElementById("importContent").classList.add("hidden");
+          document.getElementById("exportContent").classList.remove("hidden");
+          document.getElementById("confirmImportExportBtn").innerHTML =
+            '<i class="fas fa-download mr-1"></i> Export';
+          importExportModal.classList.add("show");
+        });
+
+        // Close modal event listeners
+        [closeCommentModal, cancelCommentBtn].forEach((btn) => {
+          btn.addEventListener("click", function () {
+            commentModal.classList.remove("show");
+            clearForm();
+          });
+        });
+
+        [closeImportExportModal, cancelImportExportBtn].forEach((btn) => {
+          btn.addEventListener("click", function () {
+            importExportModal.classList.remove("show");
+          });
+        });
+
+        // Close modals when clicking outside
+        window.addEventListener("click", function (e) {
+          if (e.target === commentModal) {
+            commentModal.classList.remove("show");
+            clearForm();
+          }
+          if (e.target === importExportModal) {
+            importExportModal.classList.remove("show");
+          }
+        });
+
+        // Character count for comment text
+        commentText.addEventListener("input", function () {
+          const count = this.value.length;
+          commentCharCount.textContent = count;
+
+          if (count > 500) {
+            commentCharCount.classList.add("text-red-500");
+            this.classList.add("is-invalid");
+          } else {
+            commentCharCount.classList.remove("text-red-500");
+            this.classList.remove("is-invalid");
+          }
+
+          updatePreview();
+        });
+
+        // Real-time preview updates
+        [commentType, commentCriterion, commentLevel, commentActive].forEach(
+          (element) => {
+            element.addEventListener("change", updatePreview);
+          }
+        );
+
+        // Comment form submission
+        commentForm.addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          if (validateForm()) {
+            const formData = {
+              criterion: commentCriterion.value,
+              level: commentLevel.value,
+              type: commentType.value,
+              text: commentText.value.trim(),
+              tags: document.getElementById("commentTags").value.trim(),
+              active: commentActive.checked,
+              assignment: assignmentData.name,
+              course: courseCodeParam,
+            };
+
+            console.log("Saving comment:", formData);
+
+            commentModal.classList.remove("show");
+            clearForm();
+            showNotification(
+              "Comment saved and activated successfully!",
+              "success"
+            );
+            updateStatistics();
+          }
+        });
+
+        // Sort functionality
+        const sortBy = document.getElementById("sortBy");
+        sortBy.addEventListener("change", function () {
+          const sortOption = this.value;
+          sortComments(sortOption);
+        });
+
+        // Function to open comment modal
+        function openCommentModal(criterion = "", level = "") {
+          document.getElementById("commentModalTitle").textContent =
+            "Add Predefined Comment";
+          clearForm();
+
+          if (criterion) {
+            commentCriterion.value = criterion;
+          }
+          if (level) {
+            commentLevel.value = level;
+          }
+
+          updatePreview();
+          commentModal.classList.add("show");
+
+          setTimeout(() => {
+            if (!commentCriterion.value) {
+              commentCriterion.focus();
+            } else if (!commentLevel.value) {
+              commentLevel.focus();
+            } else {
+              commentText.focus();
+            }
+          }, 300);
+        }
+
+        // Function to open quick add with preset values
+        window.openQuickAdd = function (criterion, level = "") {
+          openCommentModal(criterion, level);
+        };
+
+        // Function to validate form
+        function validateForm() {
+          let isValid = true;
+
+          document.querySelectorAll(".form-control").forEach((el) => {
+            el.classList.remove("is-invalid");
+          });
+          document.querySelectorAll(".invalid-feedback").forEach((el) => {
+            el.textContent = "";
+          });
+
+          if (!commentCriterion.value) {
+            commentCriterion.classList.add("is-invalid");
+            document.getElementById("criterionError").textContent =
+              "Please select a criterion";
+            isValid = false;
+          }
+
+          if (!commentLevel.value) {
+            commentLevel.classList.add("is-invalid");
+            document.getElementById("levelError").textContent =
+              "Please select a performance level";
+            isValid = false;
+          }
+
+          if (!commentType.value) {
+            commentType.classList.add("is-invalid");
+            document.getElementById("typeError").textContent =
+              "Please select a comment type";
+            isValid = false;
+          }
+
+          const text = commentText.value.trim();
+          if (!text) {
+            commentText.classList.add("is-invalid");
+            document.getElementById("textError").textContent =
+              "Please enter comment text";
+            isValid = false;
+          } else if (text.length < 10) {
+            commentText.classList.add("is-invalid");
+            document.getElementById("textError").textContent =
+              "Comment must be at least 10 characters long";
+            isValid = false;
+          } else if (text.length > 500) {
+            commentText.classList.add("is-invalid");
+            document.getElementById("textError").textContent =
+              "Comment must be 500 characters or less";
+            isValid = false;
+          }
+
+          return isValid;
+        }
+
+        // Function to clear form
+        function clearForm() {
+          commentForm.reset();
+          commentActive.checked = true;
+
+          document.querySelectorAll(".form-control").forEach((el) => {
+            el.classList.remove("is-invalid");
+          });
+          document.querySelectorAll(".invalid-feedback").forEach((el) => {
+            el.textContent = "";
+          });
+
+          commentCharCount.textContent = "0";
+          updatePreview();
+        }
+
+        // Function to update preview
+        function updatePreview() {
+          const type = commentType.value;
+          const text = commentText.value.trim();
+          const active = commentActive.checked;
+
+          if (type === "admin") {
+            previewType.innerHTML =
+              '<i class="fas fa-shield-alt mr-1"></i> Admin-defined';
+            previewType.className =
+              "text-xs font-medium text-blue-600 dark:text-blue-400";
+          } else if (type === "examiner") {
+            previewType.innerHTML =
+              '<i class="fas fa-comment mr-1"></i> Examiner-added';
+            previewType.className =
+              "text-xs font-medium text-green-600 dark:text-green-400";
+          } else {
+            previewType.textContent = "Select comment type";
+            previewType.className = "text-xs font-medium text-gray-500";
+          }
+
+          previewText.textContent =
+            text || "Your comment text will appear here as you type...";
+          previewActiveStatus.textContent = active ? "Active" : "Inactive";
+        }
+
+        // Function to toggle level comments
+        window.toggleLevelComments = function (levelId) {
+          const levelDiv = document.getElementById(levelId);
+          const icon = document.getElementById(levelId + "-icon");
+
+          if (levelDiv.classList.contains("hidden")) {
+            levelDiv.classList.remove("hidden");
+            levelDiv.classList.add("animate-slide-in");
+            icon.classList.remove("fa-chevron-right");
+            icon.classList.add("fa-chevron-down");
+          } else {
+            levelDiv.classList.add("hidden");
+            icon.classList.remove("fa-chevron-down");
+            icon.classList.add("fa-chevron-right");
+          }
+        };
+
+        // Function to edit comment
+        window.editComment = function (button) {
+          const commentCard = button.closest(".comment-card");
+          const commentText = commentCard.querySelector("p").textContent;
+          const isAdmin = commentCard.classList.contains("comment-type-admin");
+
+          document.getElementById("commentModalTitle").textContent =
+            "Edit Predefined Comment";
+          document.getElementById("commentText").value = commentText;
+          document.getElementById("commentType").value = isAdmin
+            ? "admin"
+            : "examiner";
+
+          updatePreview();
+          commentModal.classList.add("show");
+        };
+
+        // Function to delete comment
+        window.deleteComment = function (button) {
+          if (
+            confirm(
+              "Are you sure you want to delete this comment? This action cannot be undone."
+            )
+          ) {
+            const commentCard = button.closest(".comment-card");
+            commentCard.remove();
+            showNotification("Comment deleted successfully", "success");
+            updateStatistics();
+          }
+        };
+
+        // Function to filter comments
+        function filterComments(filter) {
+          const commentCards = document.querySelectorAll(".comment-card");
+
+          commentCards.forEach((card) => {
+            let shouldShow = false;
+
+            if (filter === "all") {
+              shouldShow = true;
+            } else if (filter === "admin") {
+              shouldShow = card.classList.contains("comment-type-admin");
+            } else if (filter === "examiner") {
+              shouldShow = card.classList.contains("comment-type-examiner");
+            }
+
+            card.style.display = shouldShow ? "block" : "none";
+          });
+        }
+
+        // Function to search comments
+        function searchComments(searchTerm) {
+          const commentCards = document.querySelectorAll(".comment-card");
+
+          commentCards.forEach((card) => {
+            const commentText = card
+              .querySelector("p")
+              .textContent.toLowerCase();
+            const matches = commentText.includes(searchTerm);
+
+            card.style.display = matches || !searchTerm ? "block" : "none";
+          });
+        }
+
+        // Function to sort comments
+        function sortComments(sortOption) {
+          console.log("Sorting by:", sortOption);
+          showNotification(`Comments sorted by ${sortOption}`, "info");
+        }
+
+        // Function to update statistics
+        function updateStatistics() {
+          console.log("Updating statistics...");
+        }
+
+        // Function to show notifications
+        function showNotification(message, type = "info") {
+          const notification = document.createElement("div");
+          notification.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all transform translate-y-0 opacity-100 ${
+            type === "success"
+              ? "bg-green-500"
+              : type === "error"
+              ? "bg-red-500"
+              : type === "warning"
+              ? "bg-yellow-500"
+              : "bg-blue-500"
+          } text-white`;
+
+          let icon = "info-circle";
+          if (type === "success") icon = "check-circle";
+          if (type === "error") icon = "exclamation-circle";
+          if (type === "warning") icon = "exclamation-triangle";
+
+          notification.innerHTML = `
+            <div class="flex items-center">
+              <i class="fas fa-${icon} mr-2"></i>
+              <span>${message}</span>
+            </div>
+          `;
+
+          document.body.appendChild(notification);
+
+          setTimeout(() => {
+            notification.classList.add("translate-y-4", "opacity-0");
+            setTimeout(() => {
+              notification.remove();
+            }, 300);
+          }, 4000);
+        }
+
+        // Initialize drag and drop for comment reordering
+        let draggedComment = null;
+
+        document.addEventListener("dragstart", function (e) {
+          if (e.target.closest(".comment-card")) {
+            draggedComment = e.target.closest(".comment-card");
+            draggedComment.style.opacity = "0.5";
+          }
+        });
+
+        document.addEventListener("dragend", function (e) {
+          if (draggedComment) {
+            draggedComment.style.opacity = "1";
+            draggedComment = null;
+          }
+        });
+
+        document.addEventListener("dragover", function (e) {
+          e.preventDefault();
+        });
+
+        document.addEventListener("drop", function (e) {
+          e.preventDefault();
+          if (
+            draggedComment &&
+            e.target.closest(".comment-card") &&
+            e.target.closest(".comment-card") !== draggedComment
+          ) {
+            const dropTarget = e.target.closest(".comment-card");
+            const parent = dropTarget.parentNode;
+
+            const dropRect = dropTarget.getBoundingClientRect();
+            const dropY = dropRect.top + dropRect.height / 2;
+
+            if (e.clientY < dropY) {
+              parent.insertBefore(draggedComment, dropTarget);
+            } else {
+              parent.insertBefore(draggedComment, dropTarget.nextSibling);
+            }
+
+            showNotification("Comment order updated", "success");
+          }
+        });
+
+        // Make comment cards draggable
+        document.querySelectorAll(".comment-card").forEach((card) => {
+          card.draggable = true;
+        });
+      });
+    </script>
+  </body>
+</html>

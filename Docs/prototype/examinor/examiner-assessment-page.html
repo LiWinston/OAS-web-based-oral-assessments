@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Examiner Assessment | OAS</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"
+    />
+    <!-- Alternative: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" /> -->
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Alternative: <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" /> -->
+
+    <!-- Google Fonts - keep as is -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button,
+      textarea {
+        transition: background-color 0.3s ease, color 0.3s ease,
+          border-color 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      /* Form controls */
+      .form-control {
+        @apply rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2;
+      }
+
+      /* Autosave animation */
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .autosave-pulse {
+        animation: pulse 2s infinite;
+      }
+
+      /* Tab styling */
+      .tab-button {
+        @apply px-4 py-2 font-medium rounded-t-lg border-b-2 transition-colors;
+      }
+
+      .tab-button.active {
+        @apply text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400;
+      }
+
+      .tab-button:not(.active) {
+        @apply text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300;
+      }
+
+      /* Timer styling */
+      .timer {
+        @apply text-2xl font-mono font-bold;
+      }
+
+      /* Toggle switch */
+      .toggle-container {
+        width: 52px;
+        height: 26px;
+        border-radius: 13px;
+        position: relative;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+
+      .toggle-container.individual {
+        background-color: #4338ca;
+      }
+
+      .dark .toggle-container.individual {
+        background-color: #5b21b6;
+      }
+
+      .toggle-container.group {
+        background-color: #2563eb;
+      }
+
+      .dark .toggle-container.group {
+        background-color: #1d4ed8;
+      }
+
+      .toggle-circle {
+        width: 18px;
+        height: 18px;
+        background-color: white;
+        border-radius: 50%;
+        position: absolute;
+        top: 4px;
+        transition: transform 0.3s ease;
+      }
+
+      .toggle-circle.individual {
+        transform: translateX(4px);
+      }
+
+      .toggle-circle.group {
+        transform: translateX(30px);
+      }
+
+      .toggle-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        color: white;
+      }
+
+      .toggle-label.individual {
+        right: 6px;
+      }
+
+      .toggle-label.group {
+        left: 6px;
+      }
+
+      /* Rubric styles */
+      .rubric-table {
+        border-collapse: separate;
+        border-spacing: 0;
+        width: 100%;
+      }
+
+      .rubric-table th {
+        @apply bg-gray-50 dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-left;
+      }
+
+      .rubric-table td {
+        @apply px-4 py-3 border-b border-gray-200 dark:border-gray-700 text-sm;
+      }
+
+      .rubric-criteria-name {
+        @apply font-medium text-gray-900 dark:text-white;
+      }
+
+      .rubric-criteria-description {
+        @apply text-xs text-gray-500 dark:text-gray-400 mt-1;
+      }
+
+      /* Grid-style ratings */
+      .rating-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        border: 1px solid #e5e7eb;
+        @apply border-gray-200 dark:border-gray-600 rounded-md overflow-hidden;
+      }
+
+      .rating-cell {
+        @apply p-3 text-center cursor-pointer transition-all duration-200 text-sm;
+        border-right: 1px solid #e5e7eb;
+        @apply border-gray-200 dark:border-gray-600;
+      }
+
+      .rating-cell:last-child {
+        border-right: none;
+      }
+
+      .rating-cell:hover {
+        @apply bg-gray-50 dark:bg-gray-700;
+      }
+
+      .rating-cell.selected {
+        @apply bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 text-blue-800 dark:text-blue-200 font-medium;
+      }
+
+      .rating-value {
+        @apply font-semibold mb-1;
+      }
+
+      .rating-description {
+        @apply text-xs text-gray-500 dark:text-gray-400;
+      }
+
+      .rubric-points {
+        @apply font-medium text-sm flex items-center justify-between;
+      }
+
+      .rubric-points-input {
+        @apply w-16 py-1 px-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-right;
+      }
+
+      .rubric-comment-btn {
+        @apply ml-2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700;
+      }
+
+      /* Comment chips */
+      .comment-chip-container {
+        @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2;
+      }
+
+      .comment-chip {
+        @apply flex items-center px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors;
+      }
+
+      .comment-chip-positive {
+        @apply border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900 dark:bg-opacity-20;
+      }
+
+      .comment-chip-neutral {
+        @apply border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20;
+      }
+
+      .comment-chip-improvement {
+        @apply border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900 dark:bg-opacity-20;
+      }
+
+      .comment-chip-icon {
+        @apply mr-2 text-lg;
+      }
+
+      .comment-chip-icon.positive {
+        @apply text-green-500 dark:text-green-400;
+      }
+
+      .comment-chip-icon.neutral {
+        @apply text-blue-500 dark:text-blue-400;
+      }
+
+      .comment-chip-icon.improvement {
+        @apply text-amber-500 dark:text-amber-400;
+      }
+
+      .comment-chip-text {
+        @apply text-xs font-medium flex-1;
+      }
+
+      .comment-category {
+        @apply mb-3;
+      }
+
+      .comment-category-title {
+        @apply text-sm font-medium mb-2 flex items-center;
+      }
+    </style>
+  </head>
+
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ 
+      darkMode: false, 
+      sidebarOpen: true, 
+      notificationsOpen: false,
+      activeTab: 'rubric',
+      timer: 0,
+      timerRunning: false,
+      autoSaveStatus: 'saved',
+      assessmentType: 'group',
+      selectedRatings: {
+        'content': { points: 0, selected: null },
+        'clarity': { points: 0, selected: null },
+        'delivery': { points: 0, selected: null },
+        'implementation': { points: 0, selected: null },
+        'critical': { points: 0, selected: null },
+        'contribution': { points: 0, selected: null },
+        'knowledge': { points: 0, selected: null },
+        'communication': { points: 0, selected: null }
+      },
+      scoreLabels: {
+        1: 'Poor',
+        2: 'Fair',
+        3: 'Good',
+        4: 'Very Good',
+        5: 'Excellent'
+      },
+      toggleAssessmentType() {
+        this.assessmentType = this.assessmentType === 'group' ? 'individual' : 'group';
+      },
+      selectRating(criterion, rating, points) {
+        if (this.selectedRatings[criterion].selected === rating) {
+          // Deselect if already selected
+          this.selectedRatings[criterion].selected = null;
+          this.selectedRatings[criterion].points = 0;
+        } else {
+          this.selectedRatings[criterion].selected = rating;
+          this.selectedRatings[criterion].points = points;
+        }
+        this.autoSaveStatus = 'saving';
+        setTimeout(() => this.autoSaveStatus = 'saved', 1500);
+      },
+      getTotalScore() {
+        return Object.values(this.selectedRatings).reduce((sum, item) => sum + item.points, 0);
+      }
+    }"
+    :class="{'dark': darkMode}"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800 z-20"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Examiner</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Main
+          </div>
+          <a
+            href="examiner-dashboard-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="examiner-schedule-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-calendar-alt mr-2"></i> Schedule
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium"
+          >
+            <i class="fas fa-clipboard-check mr-2"></i> Assessment
+          </a>
+          <a
+            href="examiner-history-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-chart-bar mr-2"></i> Results
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-comment-dots mr-2"></i> Comment Library
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Help
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-question-circle mr-2"></i> Documentation
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-headset mr-2"></i> Support
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Course info -->
+            <div class="ml-4 md:ml-6">
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Software Project Management
+                <span class="text-xs text-gray-500 dark:text-gray-400"
+                  >COMP90082</span
+                >
+              </div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">
+                Final Project Defense
+              </div>
+            </div>
+          </div>
+
+          <!-- Timer section -->
+          <div
+            class="hidden md:flex items-center px-4 py-1 rounded-full bg-gray-100 dark:bg-gray-700"
+          >
+            <span
+              class="timer"
+              x-text="new Date(timer * 1000).toISOString().substr(14, 5)"
+              >00:00</span
+            >
+            <div class="flex ml-3 space-x-1">
+              <button
+                @click="timerRunning = !timerRunning; if (timerRunning) { timerInterval = setInterval(() => timer++, 1000); } else { clearInterval(timerInterval); }"
+                class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <i
+                  class="fas"
+                  :class="timerRunning ? 'fa-pause' : 'fa-play'"
+                ></i>
+              </button>
+              <button
+                @click="timer = 0; timerRunning = false; clearInterval(timerInterval);"
+                class="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600"
+              >
+                <i class="fas fa-redo-alt"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Auto-save status -->
+            <div
+              class="hidden md:flex items-center text-xs text-gray-500 dark:text-gray-400"
+            >
+              <span
+                x-text="autoSaveStatus === 'saving' ? 'Saving...' : 'All changes saved'"
+                :class="{'autosave-pulse': autoSaveStatus === 'saving'}"
+              ></span>
+            </div>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                >
+                  2
+                </span>
+              </button>
+
+              <!-- Notifications dropdown -->
+              <div
+                x-show="notificationsOpen"
+                @click.away="notificationsOpen = false"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                x-cloak
+              >
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                >
+                  <h3 class="text-sm font-semibold">Notifications</h3>
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Mark all as read
+                  </a>
+                </div>
+
+                <!-- Notification items -->
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div
+                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div class="flex items-start">
+                      <div
+                        class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-500 dark:text-blue-300"
+                      >
+                        <i class="fas fa-calendar-alt"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          Schedule change
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          Your next assessment has been moved to 2:30 PM
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        >
+                          10 minutes ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div class="flex items-start">
+                      <div
+                        class="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-500 dark:text-green-300"
+                      >
+                        <i class="fas fa-clipboard-check"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          New marking guidelines
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          Updated assessment criteria for COMP90082
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        >
+                          1 hour ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-2 text-center">
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    View all notifications
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Examiner Profile"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Dr. Emma Thompson
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    Examiner
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Breadcrumb -->
+          <div class="mb-4">
+            <nav
+              class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3"
+            >
+              <ol class="flex items-center space-x-2">
+                <li class="flex items-center">
+                  <a
+                    href="#"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center"
+                  >
+                    <span
+                      class="font-bold text-blue-600 dark:text-blue-400 mr-1"
+                      >OAS</span
+                    >
+                    <span class="text-sm text-gray-600 dark:text-gray-300"
+                      >Examiner</span
+                    >
+                  </a>
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="examiner-schedule-page.html"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                  >
+                    Schedule
+                  </a>
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <span class="text-blue-600 dark:text-blue-400 font-medium">
+                    Assessment
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Assessment Header and Student Info -->
+          <div class="dashboard-card p-5 mb-5">
+            <div class="md:flex md:justify-between md:items-start">
+              <!-- Left column: Assessment Session Info -->
+              <div class="mb-5 md:mb-0 md:mr-8">
+                <h1
+                  class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2"
+                >
+                  Final Project Defense
+                </h1>
+                <div class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Presentation and demonstration of completed project
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Course
+                    </div>
+                    <div class="font-medium">Software Project Management</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                      COMP90082 · 2025 · Semester 2
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Assessment Weight
+                    </div>
+                    <div class="font-medium">40% of final grade</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                      Group Presentation
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Date & Time
+                    </div>
+                    <div class="font-medium">June 10, 2025</div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                      14:30 - 15:00 (30 mins)
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Location
+                    </div>
+                    <div class="font-medium">
+                      Engineering Building, Room 405
+                    </div>
+                    <div class="text-xs text-gray-600 dark:text-gray-400">
+                      South Campus
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right column: Student/Group Info -->
+              <div class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="font-semibold text-gray-800 dark:text-gray-200">
+                    Team Innovate
+                  </h3>
+                  <span
+                    class="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"
+                  >
+                    Group #12
+                  </span>
+                </div>
+
+                <div class="space-y-2 mb-3">
+                  <div class="flex items-center">
+                    <div
+                      class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mr-2"
+                    >
+                      <img src="/api/placeholder/24/24" alt="Student 1" />
+                    </div>
+                    <div class="text-sm">
+                      <span class="font-medium">Alex Chen</span>
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >ID: 1203456</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="flex items-center">
+                    <div
+                      class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mr-2"
+                    >
+                      <img src="/api/placeholder/24/24" alt="Student 2" />
+                    </div>
+                    <div class="text-sm">
+                      <span class="font-medium">Maria Rodriguez</span>
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >ID: 1203457</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="flex items-center">
+                    <div
+                      class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mr-2"
+                    >
+                      <img src="/api/placeholder/24/24" alt="Student 3" />
+                    </div>
+                    <div class="text-sm">
+                      <span class="font-medium">David Kim</span>
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >ID: 1203458</span
+                      >
+                    </div>
+                  </div>
+
+                  <div class="flex items-center">
+                    <div
+                      class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mr-2"
+                    >
+                      <img src="/api/placeholder/24/24" alt="Student 4" />
+                    </div>
+                    <div class="text-sm">
+                      <span class="font-medium">Sarah Johnson</span>
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >ID: 1203459</span
+                      >
+                    </div>
+                  </div>
+                </div>
+
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  <span class="font-medium">Project Title:</span> Smart Campus
+                  Navigation System
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessment Tabs with Toggle Switch -->
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between border-t border-gray-200 dark:border-gray-700 mt-5 pt-4 mb-1"
+          >
+            <nav
+              class="flex space-x-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg"
+            >
+              <button
+                @click="activeTab='rubric'"
+                :class="activeTab==='rubric' ? 'bg-white text-blue-600 dark:bg-gray-700 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'"
+                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              >
+                <i class="fas fa-clipboard-list mr-2"></i> Scoring Rubric
+              </button>
+              <button
+                @click="activeTab='feedback'"
+                :class="activeTab==='feedback' ? 'bg-white text-blue-600 dark:bg-gray-700 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'"
+                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              >
+                <i class="fas fa-comment-alt mr-2"></i> Feedback
+              </button>
+              <button
+                @click="activeTab='notes'"
+                :class="activeTab==='notes' ? 'bg-white text-blue-600 dark:bg-gray-700 dark:text-blue-400 shadow-sm' : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'"
+                class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+              >
+                <i class="fas fa-sticky-note mr-2"></i> Private Notes
+              </button>
+            </nav>
+            <!-- Toggle for Individual/Group Assessment -->
+            <div class="flex items-center mt-2 md:mt-0 mb-2 md:mb-0">
+              <span
+                class="mr-2 text-sm font-medium text-indigo-600 dark:text-indigo-400"
+                :class="{ 'text-gray-500 dark:text-gray-400': assessmentType !== 'individual' }"
+                >Individual</span
+              >
+              <div
+                @click="toggleAssessmentType()"
+                class="toggle-container"
+                :class="{ 'individual': assessmentType === 'individual', 'group': assessmentType === 'group' }"
+              >
+                <div
+                  class="toggle-circle"
+                  :class="{ 'individual': assessmentType === 'individual', 'group': assessmentType === 'group' }"
+                ></div>
+                <span
+                  class="toggle-label individual"
+                  x-show="assessmentType === 'group'"
+                  >I</span
+                >
+                <span
+                  class="toggle-label group"
+                  x-show="assessmentType === 'individual'"
+                  >G</span
+                >
+              </div>
+              <span
+                class="ml-2 text-sm font-medium text-blue-600 dark:text-blue-400"
+                :class="{ 'text-gray-500 dark:text-gray-400': assessmentType !== 'group' }"
+                >Group</span
+              >
+            </div>
+          </div>
+
+          <!-- Rubric Tab - Group Assessment -->
+          <div
+            x-show="activeTab === 'rubric' && assessmentType === 'group'"
+            x-cloak
+          >
+            <div class="dashboard-card mb-6">
+              <div
+                class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+              >
+                <div>
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    <i
+                      class="fas fa-users text-blue-600 dark:text-blue-400 mr-2"
+                    ></i>
+                    Group Assessment
+                  </h2>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Evaluating the overall group performance
+                  </p>
+                </div>
+                <div class="flex items-center">
+                  <span
+                    class="text-sm font-medium text-gray-600 dark:text-gray-400 mr-2"
+                    >Total Score:</span
+                  >
+                  <span
+                    class="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-md text-sm font-medium"
+                    x-text="getTotalScore() + ' / 25'"
+                  >
+                    0 / 25
+                  </span>
+                </div>
+              </div>
+
+              <div class="p-4">
+                <!-- Rubric Instructions -->
+                <div
+                  class="mb-4 p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg text-sm border border-blue-100 dark:border-blue-800"
+                >
+                  <p class="text-blue-800 dark:text-blue-200">
+                    <i class="fas fa-info-circle mr-2"></i> Click on a rating to
+                    select it. The total score will update automatically. You
+                    can also add comments for each criterion.
+                  </p>
+                </div>
+
+                <!-- Group Rubric -->
+                <div class="overflow-x-auto">
+                  <iframe
+                    src="rubric-test.html"
+                    class="w-full h-96"
+                    style="border: none"
+                  ></iframe>
+                </div>
+              </div>
+
+              <!-- Rubric Footer -->
+              <div
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center"
+              >
+                <div class="text-sm font-medium">
+                  Total Score:
+                  <span
+                    class="text-blue-600 dark:text-blue-400"
+                    x-text="getTotalScore() + ' / 25'"
+                    >0 / 25</span
+                  >
+                </div>
+                <button
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Save Rubric
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rubric Tab - Individual Assessment -->
+          <div
+            x-show="activeTab === 'rubric' && assessmentType === 'individual'"
+            x-cloak
+          >
+            <div class="dashboard-card mb-6">
+              <div
+                class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+              >
+                <div>
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    <i
+                      class="fas fa-user text-indigo-600 dark:text-indigo-400 mr-2"
+                    ></i>
+                    Individual Assessment
+                  </h2>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Evaluating individual student contribution and performance
+                  </p>
+                </div>
+
+                <!-- Student selector -->
+                <select
+                  x-show="assessmentType==='individual'"
+                  class="form-control"
+                >
+                  <option>Alex Chen (1203456)</option>
+                  <option>Maria Rodriguez (1203457)</option>
+                  <option>David Kim (1203458)</option>
+                  <option>Sarah Johnson (1203459)</option>
+                </select>
+              </div>
+
+              <div class="p-4">
+                <!-- Rubric Instructions -->
+                <div
+                  class="mb-4 p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg text-sm border border-blue-100 dark:border-blue-800"
+                >
+                  <p class="text-blue-800 dark:text-blue-200">
+                    <i class="fas fa-info-circle mr-2"></i> Evaluate each
+                    student individually. Use the dropdown above to switch
+                    between students.
+                  </p>
+                </div>
+
+                <!-- Individual Rubric -->
+                <div class="overflow-x-auto">
+                  <iframe
+                    src="rubric-test.html"
+                    class="w-full h-96"
+                    style="border: none"
+                  ></iframe>
+                </div>
+              </div>
+
+              <!-- Rubric Footer with Student Navigation -->
+              <div
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center"
+              >
+                <div class="text-sm font-medium">
+                  Total Score:
+                  <span
+                    class="text-blue-600 dark:text-blue-400"
+                    x-text="getTotalScore() + ' / 25'"
+                    >0 / 25</span
+                  >
+                </div>
+                <div class="flex items-center space-x-3">
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    <i class="fas fa-chevron-left mr-1"></i> Previous Student
+                  </button>
+
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    Next Student <i class="fas fa-chevron-right ml-1"></i>
+                  </button>
+
+                  <button
+                    class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                  >
+                    Save Rubric
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback Tab - Group -->
+          <div
+            x-show="activeTab === 'feedback' && assessmentType === 'group'"
+            x-cloak
+          >
+            <div class="dashboard-card mb-6">
+              <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2
+                  class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                >
+                  <i
+                    class="fas fa-users text-blue-600 dark:text-blue-400 mr-2"
+                  ></i>
+                  Group Feedback
+                </h2>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                  Provide detailed feedback for the entire group
+                </p>
+              </div>
+
+              <div class="p-4">
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Written Feedback
+                  <span class="text-xs text-gray-500"
+                    >(Will be shared with all group members)</span
+                  >
+                </label>
+                <textarea
+                  class="w-full rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 px-3 py-2 h-40"
+                  placeholder="Provide detailed feedback on the group's performance..."
+                  @input="autoSaveStatus = 'saving'; setTimeout(() => autoSaveStatus = 'saved', 1500)"
+                ></textarea>
+
+                <!-- <div class="mt-6"> -->
+                <!-- <h3 class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Quick Comments <span class="text-xs text-gray-500">(Click to add)</span>
+                </h3> -->
+
+                <!-- Strengths section -->
+                <!-- <div class="comment-category">
+                  <h4 class="comment-category-title">
+                    <i class="fas fa-check-circle mr-2 text-green-500 dark:text-green-400"></i> Strengths
+                  </h4>
+                  <div class="comment-chip-container">
+                    <div class="comment-chip comment-chip-positive">
+                      <i class="fas fa-plus comment-chip-icon positive"></i>
+                      <span class="comment-chip-text">Well-organized presentation structure</span>
+                    </div>
+                    <div class="comment-chip comment-chip-positive">
+                      <i class="fas fa-plus comment-chip-icon positive"></i>
+                      <span class="comment-chip-text">Clear explanation of technical concepts</span>
+                    </div>
+                    <div class="comment-chip comment-chip-positive">
+                      <i class="fas fa-plus comment-chip-icon positive"></i>
+                      <span class="comment-chip-text">Effective use of visual aids</span>
+                    </div>
+                    <div class="comment-chip comment-chip-positive">
+                      <i class="fas fa-plus comment-chip-icon positive"></i>
+                      <span class="comment-chip-text">Strong project implementation</span>
+                    </div>
+                    <div class="comment-chip comment-chip-positive">
+                      <i class="fas fa-plus comment-chip-icon positive"></i>
+                      <span class="comment-chip-text">Good teamwork visible during presentation</span>
+                    </div>
+                  </div>
+                </div> -->
+
+                <!-- Performance section -->
+                <!-- <div class="comment-category">
+                  <h4 class="comment-category-title">
+                    <i class="fas fa-chart-line mr-2 text-blue-500 dark:text-blue-400"></i> Performance
+                  </h4>
+                  <div class="comment-chip-container">
+                    <div class="comment-chip comment-chip-neutral">
+                      <i class="fas fa-plus comment-chip-icon neutral"></i>
+                      <span class="comment-chip-text">Thorough responses to questions</span>
+                    </div>
+                    <div class="comment-chip comment-chip-neutral">
+                      <i class="fas fa-plus comment-chip-icon neutral"></i>
+                      <span class="comment-chip-text">Demonstration showcased key features well</span>
+                    </div>
+                    <div class="comment-chip comment-chip-neutral">
+                      <i class="fas fa-plus comment-chip-icon neutral"></i>
+                      <span class="comment-chip-text">Successfully completed core requirements</span>
+                    </div>
+                    <div class="comment-chip comment-chip-neutral">
+                      <i class="fas fa-plus comment-chip-icon neutral"></i>
+                      <span class="comment-chip-text">Handled technical challenges appropriately</span>
+                    </div>
+                  </div>
+                </div> -->
+
+                <!-- Areas for Improvement -->
+                <!-- <div class="comment-category">
+                  <h4 class="comment-category-title">
+                    <i class="fas fa-lightbulb mr-2 text-amber-500 dark:text-amber-400"></i> Areas for Improvement
+                  </h4>
+                  <div class="comment-chip-container">
+                    <div class="comment-chip comment-chip-improvement">
+                      <i class="fas fa-plus comment-chip-icon improvement"></i>
+                      <span class="comment-chip-text">Need to improve time management</span>
+                    </div>
+                    <div class="comment-chip comment-chip-improvement">
+                      <i class="fas fa-plus comment-chip-icon improvement"></i>
+                      <span class="comment-chip-text">Technical issues affected demonstration</span>
+                    </div>
+                    <div class="comment-chip comment-chip-improvement">
+                      <i class="fas fa-plus comment-chip-icon improvement"></i>
+                      <span class="comment-chip-text">More depth needed in analysis</span>
+                    </div>
+                    <div class="comment-chip comment-chip-improvement">
+                      <i class="fas fa-plus comment-chip-icon improvement"></i>
+                      <span class="comment-chip-text">Consider more balanced speaking roles</span>
+                    </div>
+                    <div class="comment-chip comment-chip-improvement">
+                      <i class="fas fa-plus comment-chip-icon improvement"></i>
+                      <span class="comment-chip-text">Address edge cases in implementation</span>
+                    </div>
+                  </div>
+                </div> -->
+
+                <!-- <div class="mt-3">
+                  <a href="#" class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                    <i class="fas fa-ellipsis-h mr-1"></i> View more from comment library
+                  </a>
+                </div> -->
+                <!-- </div> -->
+              </div>
+
+              <!-- Footer -->
+              <div
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end"
+              >
+                <button
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Save Feedback
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feedback Tab - Individual -->
+          <div
+            x-show="activeTab === 'feedback' && assessmentType === 'individual'"
+            x-cloak
+          >
+            <div class="dashboard-card mb-6">
+              <div
+                class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+              >
+                <div>
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    <i
+                      class="fas fa-user text-indigo-600 dark:text-indigo-400 mr-2"
+                    ></i>
+                    Individual Feedback
+                  </h2>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Provide personalized feedback for each student
+                  </p>
+                </div>
+
+                <!-- Student selector -->
+                <select class="form-control">
+                  <option>Alex Chen (1203456)</option>
+                  <option>Maria Rodriguez (1203457)</option>
+                  <option>David Kim (1203458)</option>
+                  <option>Sarah Johnson (1203459)</option>
+                </select>
+              </div>
+
+              <div class="p-4">
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Individual Feedback
+                  <span class="text-xs text-gray-500"
+                    >(Will be shared only with this student)</span
+                  >
+                </label>
+                <textarea
+                  class="w-full rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 px-3 py-2 h-40"
+                  placeholder="Provide personalized feedback for this student..."
+                  @input="autoSaveStatus = 'saving'; setTimeout(() => autoSaveStatus = 'saved', 1500)"
+                ></textarea>
+
+                <div class="mt-6">
+                  <h3
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3"
+                  >
+                    Individual Feedback Suggestions
+                    <span class="text-xs text-gray-500">(Click to add)</span>
+                  </h3>
+
+                  <!-- Strengths section -->
+                  <div class="comment-category">
+                    <h4 class="comment-category-title">
+                      <i
+                        class="fas fa-check-circle mr-2 text-green-500 dark:text-green-400"
+                      ></i>
+                      Personal Strengths
+                    </h4>
+                    <div class="comment-chip-container">
+                      <div class="comment-chip comment-chip-positive">
+                        <i class="fas fa-plus comment-chip-icon positive"></i>
+                        <span class="comment-chip-text"
+                          >Strong verbal communication</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-positive">
+                        <i class="fas fa-plus comment-chip-icon positive"></i>
+                        <span class="comment-chip-text"
+                          >Excellent technical knowledge</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-positive">
+                        <i class="fas fa-plus comment-chip-icon positive"></i>
+                        <span class="comment-chip-text"
+                          >Good handling of questions</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-positive">
+                        <i class="fas fa-plus comment-chip-icon positive"></i>
+                        <span class="comment-chip-text"
+                          >Made significant contributions</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Performance section -->
+                  <div class="comment-category">
+                    <h4 class="comment-category-title">
+                      <i
+                        class="fas fa-chart-line mr-2 text-blue-500 dark:text-blue-400"
+                      ></i>
+                      Role and Contribution
+                    </h4>
+                    <div class="comment-chip-container">
+                      <div class="comment-chip comment-chip-neutral">
+                        <i class="fas fa-plus comment-chip-icon neutral"></i>
+                        <span class="comment-chip-text"
+                          >Demonstrated leadership qualities</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-neutral">
+                        <i class="fas fa-plus comment-chip-icon neutral"></i>
+                        <span class="comment-chip-text"
+                          >Effectively supported team members</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-neutral">
+                        <i class="fas fa-plus comment-chip-icon neutral"></i>
+                        <span class="comment-chip-text"
+                          >Handled technical aspects well</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-neutral">
+                        <i class="fas fa-plus comment-chip-icon neutral"></i>
+                        <span class="comment-chip-text"
+                          >Shows clear understanding of their contribution</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Areas for Improvement -->
+                  <div class="comment-category">
+                    <h4 class="comment-category-title">
+                      <i
+                        class="fas fa-lightbulb mr-2 text-amber-500 dark:text-amber-400"
+                      ></i>
+                      Individual Development
+                    </h4>
+                    <div class="comment-chip-container">
+                      <div class="comment-chip comment-chip-improvement">
+                        <i
+                          class="fas fa-plus comment-chip-icon improvement"
+                        ></i>
+                        <span class="comment-chip-text"
+                          >Needs to work on confidence</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-improvement">
+                        <i
+                          class="fas fa-plus comment-chip-icon improvement"
+                        ></i>
+                        <span class="comment-chip-text"
+                          >Should improve technical depth</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-improvement">
+                        <i
+                          class="fas fa-plus comment-chip-icon improvement"
+                        ></i>
+                        <span class="comment-chip-text"
+                          >Could be more proactive in discussions</span
+                        >
+                      </div>
+                      <div class="comment-chip comment-chip-improvement">
+                        <i
+                          class="fas fa-plus comment-chip-icon improvement"
+                        ></i>
+                        <span class="comment-chip-text"
+                          >Work on clearer explanation of concepts</span
+                        >
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3">
+                    <a
+                      href="#"
+                      class="text-xs text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+                    >
+                      <i class="fas fa-ellipsis-h mr-1"></i> View more from
+                      comment library
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer with student navigation -->
+              <div
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center"
+              >
+                <div class="flex space-x-3">
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    <i class="fas fa-chevron-left mr-1"></i> Previous Student
+                  </button>
+
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    Next Student <i class="fas fa-chevron-right ml-1"></i>
+                  </button>
+                </div>
+
+                <button
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Save Feedback
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes Tab -->
+          <div x-show="activeTab === 'notes'" x-cloak>
+            <div class="dashboard-card">
+              <div
+                class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+              >
+                <div>
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    <i
+                      class="fas fa-sticky-note text-yellow-600 dark:text-yellow-400 mr-2"
+                    ></i>
+                    Private Notes
+                    <span class="text-xs text-gray-500 dark:text-gray-400 ml-2"
+                      >(Only Visible to and Course Coordinator)</span
+                    >
+                  </h2>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">
+                    Take private notes during the assessment session
+                  </p>
+                </div>
+                <!-- Student selector -->
+                <select
+                  x-show="assessmentType==='individual'"
+                  class="form-control"
+                >
+                  <option>Alex Chen (1203456)</option>
+                  <option>Maria Rodriguez (1203457)</option>
+                  <option>David Kim (1203458)</option>
+                  <option>Sarah Johnson (1203459)</option>
+                </select>
+              </div>
+
+              <div class="p-4">
+                <textarea
+                  class="w-full rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 px-3 py-2 h-64"
+                  placeholder="Record your personal observations, questions to ask, or notes to help with assessment (these will not be shared with students)..."
+                  @input="autoSaveStatus = 'saving'; setTimeout(() => autoSaveStatus = 'saved', 1500)"
+                ></textarea>
+
+                <div
+                  class="mt-4 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 p-3 rounded-lg text-sm border border-blue-100 dark:border-blue-800"
+                >
+                  <p class="text-blue-800 dark:text-blue-200">
+                    <i class="fas fa-info-circle mr-2"></i> These notes are
+                    private and will only be visible to you. They will not be
+                    included in the feedback shared with students or other
+                    examiners.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Footer for individual notes with student navigation -->
+              <div
+                x-show="assessmentType==='individual'"
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-between items-center"
+              >
+                <div class="flex space-x-3">
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    <i class="fas fa-chevron-left mr-1"></i> Previous Student
+                  </button>
+
+                  <button
+                    class="px-3 py-1.5 text-sm rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
+                  >
+                    Next Student <i class="fas fa-chevron-right ml-1"></i>
+                  </button>
+                </div>
+
+                <button
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Save Notes
+                </button>
+              </div>
+              <!-- Footer for group notes (only Save Notes) -->
+              <div
+                x-show="assessmentType==='group'"
+                class="p-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end"
+              >
+                <button
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+                >
+                  Save Notes
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="mt-6 flex flex-col sm:flex-row sm:justify-between">
+            <div class="mb-4 sm:mb-0">
+              <button
+                class="mr-3 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition-colors"
+              >
+                <i class="fas fa-save mr-1.5"></i> Save as Draft
+              </button>
+              <button
+                class="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition-colors"
+              >
+                <i class="fas fa-print mr-1.5"></i> Print Preview
+              </button>
+            </div>
+
+            <div class="flex">
+              <button
+                class="mr-3 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+              >
+                Complete Assessment
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400 mt-auto"
+        >
+          &copy; 2025 Oral Assessment System. All rights reserved.
+        </footer>
+      </div>
+    </div>
+
+    <!-- AlpineJS for interactivity -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+      defer
+    ></script>
+    <script>
+      function resizeIframe(iframe) {
+        try {
+          var doc = iframe.contentDocument || iframe.contentWindow.document;
+          iframe.style.height = doc.documentElement.scrollHeight + "px";
+        } catch (e) {
+          console.error("Iframe resize error:", e);
+        }
+      }
+    </script>
+  </body>
+</html>

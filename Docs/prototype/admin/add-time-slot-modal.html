@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Time Slot</title>
+  <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" />
+  <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: transparent;
+    }
+    
+    .modal-container {
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 100%;
+      max-width: 32rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    
+    /* Time picker custom styling */
+    .time-picker {
+      display: flex;
+      align-items: center;
+    }
+    
+    .time-part {
+      width: 3.5rem;
+      text-align: center;
+      border-radius: 0.375rem;
+      border: 1px solid #e5e7eb;
+      padding: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .dark .time-part {
+      border-color: #4b5563;
+      background-color: #374151;
+      color: #e5e7eb;
+    }
+    
+    .time-separator {
+      font-weight: bold;
+      padding: 0 0.25rem;
+    }
+    
+    .am-pm-toggle {
+      display: flex;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.375rem;
+      overflow: hidden;
+      margin-left: 0.5rem;
+    }
+    
+    .dark .am-pm-toggle {
+      border-color: #4b5563;
+    }
+    
+    .am-pm-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .am-pm-btn.selected {
+      background-color: #2563eb;
+      color: white;
+    }
+    
+    .dark .am-pm-btn.selected {
+      background-color: #3b82f6;
+    }
+    
+    /* Examiner selection */
+    .examiner-item {
+      transition: background-color 0.2s;
+    }
+    
+    .examiner-item:hover {
+      background-color: #f3f4f6;
+    }
+    
+    .dark .examiner-item:hover {
+      background-color: #374151;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="modal-container bg-white dark:bg-gray-800" id="addTimeSlotModal">
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200">Add New Time Slot</h3>
+      <button onclick="window.parent.closeModal('add')"
+        class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="p-4">
+      <div class="space-y-4">
+        <!-- Date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Date <span class="text-red-500">*</span>
+          </label>
+          <input type="date" id="timeSlotDate" 
+            class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        
+        <!-- Time inputs -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Start Time <span class="text-red-500">*</span>
+            </label>
+            <div class="time-picker">
+              <select id="startTimeHour" class="time-part">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9" selected>9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+              </select>
+              <span class="time-separator">:</span>
+              <select id="startTimeMinute" class="time-part">
+                <option value="00" selected>00</option>
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="45">45</option>
+              </select>
+              <div class="am-pm-toggle">
+                <span id="amButton" class="am-pm-btn selected" onclick="toggleAmPm('AM')">AM</span>
+                <span id="pmButton" class="am-pm-btn" onclick="toggleAmPm('PM')">PM</span>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Number of Sessions <span class="text-red-500">*</span>
+            </label>
+            <div class="flex items-center">
+              <button onclick="decrementSessions()" 
+                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+                <i class="fas fa-minus"></i>
+              </button>
+              <input type="number" id="sessionCount" value="3" min="1" 
+                class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+              <button onclick="incrementSessions()" 
+                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- End time (calculated) -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            End Time (calculated)
+          </label>
+          <div id="endTimeDisplay"
+            class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600">
+            10:30 AM
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Based on 30-minute sessions with 5-minute gaps
+          </p>
+        </div>
+        
+        <!-- Venue -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Venue <span class="text-red-500">*</span>
+          </label>
+          <input type="text" id="venueInput" placeholder="e.g. Engineering Building, Room 405" 
+            class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+        </div>
+        
+        <!-- Required examiners -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Required Examiners
+          </label>
+          <div class="flex items-center">
+            <button onclick="decrementExaminers()"
+              class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+              <i class="fas fa-minus"></i>
+            </button>
+            <input type="number" id="requiredExaminers" value="2" min="1" 
+              class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+            <button onclick="incrementExaminers()"
+              class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+              <i class="fas fa-plus"></i>
+            </button>
+            <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">examiners</span>
+          </div>
+        </div>
+        
+        <!-- Examiner assignment section -->
+        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex justify-between items-center mb-3">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Current Assignments</h4>
+            <div class="flex items-center space-x-2">
+              <select id="addExaminerDropdown"
+                class="hidden rounded border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-1 px-2 text-sm"></select>
+              <button id="addExaminerBtn" onclick="showAddExaminerDropdown()"
+                class="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center"
+                title="Add Examiner">
+                <i class="fas fa-plus"></i>
+            </button>
+            </div>
+          </div>
+          <div id="assignedExaminersList" class="space-y-2 max-h-48 overflow-y-auto"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+      <button onclick="window.parent.closeModal('add')"
+        class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+        Cancel
+      </button>
+      <button id="saveBtn" onclick="saveTimeSlot()"
+        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+        Add Time Slot
+      </button>
+    </div>
+  </div>
+
+  <script>
+    let amPmValue = 'AM';
+    let editMode = false;
+    let editingSlotId = null;
+    
+    function toggleAmPm(value) {
+      amPmValue = value;
+      if (value === 'AM') {
+        document.getElementById('amButton').classList.add('selected');
+        document.getElementById('pmButton').classList.remove('selected');
+      } else {
+        document.getElementById('amButton').classList.remove('selected');
+        document.getElementById('pmButton').classList.add('selected');
+      }
+      updateEndTime();
+    }
+    
+    function incrementSessions() {
+      const sessionsInput = document.getElementById('sessionCount');
+      sessionsInput.value = parseInt(sessionsInput.value) + 1;
+      updateEndTime();
+    }
+    
+    function decrementSessions() {
+      const sessionsInput = document.getElementById('sessionCount');
+      if (parseInt(sessionsInput.value) > 1) {
+        sessionsInput.value = parseInt(sessionsInput.value) - 1;
+        updateEndTime();
+      }
+    }
+    
+    function incrementExaminers() {
+      const examinersInput = document.getElementById('requiredExaminers');
+      examinersInput.value = parseInt(examinersInput.value) + 1;
+    }
+    
+    function decrementExaminers() {
+      const examinersInput = document.getElementById('requiredExaminers');
+      if (parseInt(examinersInput.value) > 1) {
+        examinersInput.value = parseInt(examinersInput.value) - 1;
+      }
+    }
+    
+    function updateEndTime() {
+      const hourInput = document.getElementById('startTimeHour');
+      const minuteInput = document.getElementById('startTimeMinute');
+      const sessionsInput = document.getElementById('sessionCount');
+      
+      let startHour = parseInt(hourInput.value);
+      const startMinute = parseInt(minuteInput.value);
+      const sessions = parseInt(sessionsInput.value);
+      
+      // Convert 12-hour to 24-hour format
+      if (amPmValue === 'PM' && startHour < 12) {
+        startHour += 12;
+      } else if (amPmValue === 'AM' && startHour === 12) {
+        startHour = 0;
+      }
+      
+      // Calculate total minutes (30 min per session, 5 min gap between)
+      const sessionLength = 30; // minutes
+      const gapTime = 5; // minutes
+      const totalSessionTime = sessions * sessionLength;
+      const totalGapTime = (sessions - 1) * gapTime;
+      const totalMinutes = totalSessionTime + totalGapTime;
+      
+      // Calculate end time
+      let endHour = startHour + Math.floor((startMinute + totalMinutes) / 60);
+      let endMinute = (startMinute + totalMinutes) % 60;
+      
+      // Convert back to 12-hour format
+      let endAmPm = 'AM';
+      if (endHour >= 12) {
+        endAmPm = 'PM';
+        if (endHour > 12) {
+          endHour -= 12;
+        }
+      }
+      if (endHour === 0) {
+        endHour = 12;
+      }
+      
+      const endTimeDisplay = document.getElementById('endTimeDisplay');
+      endTimeDisplay.textContent = `${endHour}:${endMinute.toString().padStart(2, '0')} ${endAmPm}`;
+    }
+    
+    // Examiner data
+    const allExaminers = [
+      { id: 1, name: 'Dr. Emma Thompson', assignments: 2 },
+      { id: 2, name: 'Dr. Michael Chen', assignments: 4 },
+      { id: 3, name: 'Dr. Sarah Johnson', assignments: 1 },
+      { id: 4, name: 'Dr. Jennifer Lee', assignments: 0 }
+    ];
+    let assignedExaminers = [1, 2, 3]; // default assigned examiner ids
+
+    function renderAssignedExaminers() {
+      const list = document.getElementById('assignedExaminersList');
+      list.innerHTML = '';
+      assignedExaminers.forEach(id => {
+        const examiner = allExaminers.find(e => e.id === id);
+        if (!examiner) return;
+        const row = document.createElement('div');
+        row.className = 'examiner-item flex items-center justify-between p-2 rounded-lg';
+        row.innerHTML = `
+          <div class="flex items-center">
+            <button onclick="removeExaminer(${examiner.id})" class="mr-3 text-red-500 hover:text-red-700" title="Remove">
+              <i class="fas fa-trash"></i>
+            </button>
+            <img src="/api/placeholder/24/24" class="w-6 h-6 rounded-full mr-2" alt="Examiner" />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">${examiner.name}</span>
+          </div>
+          <div class="text-xs px-2 py-0.5 rounded-full ${examiner.assignments > 2 ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'}">
+            ${examiner.assignments} assignment${examiner.assignments !== 1 ? 's' : ''}
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+
+    function removeExaminer(id) {
+      assignedExaminers = assignedExaminers.filter(eid => eid !== id);
+      renderAssignedExaminers();
+      updateAddExaminerDropdown();
+    }
+
+    function showAddExaminerDropdown() {
+      const dropdown = document.getElementById('addExaminerDropdown');
+      dropdown.classList.remove('hidden');
+      dropdown.focus();
+    }
+
+    function updateAddExaminerDropdown() {
+      const dropdown = document.getElementById('addExaminerDropdown');
+      dropdown.innerHTML = '';
+      const unassigned = allExaminers.filter(e => !assignedExaminers.includes(e.id));
+      if (unassigned.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+      }
+      dropdown.classList.remove('hidden');
+      dropdown.innerHTML = '<option value="">Select examiner...</option>' +
+        unassigned.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
+      dropdown.onchange = function () {
+        const val = parseInt(this.value);
+        if (val) {
+          assignedExaminers.push(val);
+          renderAssignedExaminers();
+          updateAddExaminerDropdown();
+          this.value = '';
+        }
+      };
+    }
+    
+    function saveTimeSlot() {
+      const date = document.getElementById('timeSlotDate').value;
+      const venue = document.getElementById('venueInput').value;
+      if (!date || !venue) {
+        alert('Please fill in all required fields');
+        return;
+      }
+      const selectedExaminers = [];
+      assignedExaminers.forEach(id => {
+        const examiner = allExaminers.find(e => e.id === id);
+        if (examiner) selectedExaminers.push(examiner.name);
+      });
+      const timeSlotData = {
+        id: editingSlotId,
+        date: date,
+        startTime: `${document.getElementById('startTimeHour').value}:${document.getElementById('startTimeMinute').value} ${amPmValue}`,
+        endTime: document.getElementById('endTimeDisplay').textContent,
+        venue: venue,
+        sessions: parseInt(document.getElementById('sessionCount').value),
+        requiredExaminers: parseInt(document.getElementById('requiredExaminers').value),
+        assignedExaminers: selectedExaminers
+      };
+      if (editMode) {
+        window.parent.updateTimeSlot(timeSlotData);
+      } else {
+      window.parent.addNewTimeSlot(timeSlotData);
+      }
+      window.parent.closeModal('add');
+    }
+    
+    // Initial render
+    document.addEventListener('DOMContentLoaded', function () {
+      renderAssignedExaminers();
+      updateAddExaminerDropdown();
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+      document.getElementById('timeSlotDate').value = formattedDate;
+      
+      // Attach event listeners for dynamic updates
+      document.getElementById('startTimeHour').addEventListener('change', updateEndTime);
+      document.getElementById('startTimeMinute').addEventListener('change', updateEndTime);
+      document.getElementById('sessionCount').addEventListener('change', updateEndTime);
+      
+      // Calculate initial end time
+      updateEndTime();
+    });
+    
+    // Receive data from parent window if editing
+    window.addEventListener('message', function (event) {
+      if (event.data && event.data.type === 'fillData') {
+        const data = event.data.timeSlotData;
+        if (data) {
+          // Fill all fields
+          document.getElementById('timeSlotDate').value = data.date;
+          const timeParts = data.startTime.split(' ');
+          const [hour, minute] = timeParts[0].split(':');
+          document.getElementById('startTimeHour').value = hour;
+          document.getElementById('startTimeMinute').value = minute;
+          toggleAmPm(timeParts[1]);
+          document.getElementById('sessionCount').value = data.sessions;
+          document.getElementById('venueInput').value = data.venue;
+          document.getElementById('requiredExaminers').value = data.requiredExaminers;
+          // If no assigned examiners, default to first two
+          if (!data.assignedExaminers || data.assignedExaminers.length === 0) {
+            assignedExaminers = allExaminers.slice(0, 2).map(e => e.id);
+          } else {
+            assignedExaminers = (data.assignedExaminers || []).map(name => {
+              const found = allExaminers.find(e => e.name === name || e.id === name.id);
+              return found ? found.id : null;
+            }).filter(Boolean);
+          }
+          renderAssignedExaminers();
+          updateAddExaminerDropdown();
+          editingSlotId = data.id || null;
+          editMode = event.data.mode === 'edit';
+          document.getElementById('saveBtn').textContent = editMode ? 'Update Time Slot' : 'Add Time Slot';
+        }
+      } else if (event.data && event.data.type === 'clear') {
+        // Reset form for add mode
+        document.getElementById('timeSlotDate').value = '';
+        document.getElementById('startTimeHour').value = '9';
+        document.getElementById('startTimeMinute').value = '00';
+        toggleAmPm('AM');
+        document.getElementById('sessionCount').value = 3;
+        document.getElementById('venueInput').value = '';
+        document.getElementById('requiredExaminers').value = 2;
+        // Assign the first two examiners by default
+        assignedExaminers = allExaminers.slice(0, 2).map(e => e.id);
+        renderAssignedExaminers();
+        updateAddExaminerDropdown();
+        editingSlotId = null;
+        editMode = false;
+        document.getElementById('saveBtn').textContent = 'Add Time Slot';
+      }
+    });
+  </script>
+</body>
+
+</html>

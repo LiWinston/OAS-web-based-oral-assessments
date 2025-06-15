@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAS - Group Details</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+       /* Sidebar Styling from previous step */
+      .sidebar {
+        background-color: #ffffff; /* White background */
+        color: #374151; /* Default text color */
+        border-right: 1px solid #e5e7eb; /* Light gray border */
+        display: flex; /* Use flex column */
+        flex-direction: column;
+        height: 100vh; /* Full height */
+      }
+      .dark .sidebar {
+        background-color: #1f2937; /* Dark background */
+        color: #d1d5db; /* Lighter text for dark mode */
+        border-right: 1px solid #374151; /* Darker border */
+      }
+      .sidebar-header span {
+         color: #2563eb; /* Blue OAS color */
+         font-weight: 700; /* Bold */
+      }
+      .sidebar-header span:last-child { /* "Student" text */
+          color: #4b5563; /* Gray text */
+          font-weight: 500; /* Medium weight */
+          margin-left: 0.5rem;
+      }
+      .dark .sidebar-header span:last-child {
+          color: #9ca3af; /* Lighter gray for dark */
+      }
+
+      .sidebar-section-title {
+          text-transform: uppercase;
+          font-size: 0.75rem; /* text-xs */
+          color: #6b7280; /* Gray-500 */
+          font-weight: 600; /* Semibold */
+          padding: 0.5rem 1rem;
+          margin-top: 1rem;
+      }
+      .dark .sidebar-section-title {
+          color: #9ca3af; /* Gray-400 */
+      }
+
+      .sidebar-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem; /* py-3 px-4 */
+        border-radius: 0.375rem; /* rounded-md */
+        font-size: 0.875rem; /* text-sm */
+        font-weight: 500; /* Medium */
+        color: #374151; /* Gray-700 */
+        transition: background-color 0.2s ease, color 0.2s ease;
+        margin: 0.25rem 0.5rem; /* Add vertical and horizontal margin */
+      }
+      .dark .sidebar-link {
+        color: #d1d5db; /* Gray-300 */
+      }
+      .sidebar-link i {
+        margin-right: 0.75rem; /* space-x-3 equivalent */
+        width: 1.25rem; /* Fixed width for icons */
+        text-align: center;
+        color: #6b7280; /* Gray-500 */
+      }
+      .dark .sidebar-link i {
+         color: #9ca3af; /* Gray-400 */
+      }
+      .sidebar-link:hover {
+        background-color: #f3f4f6; /* Gray-100 */
+        color: #1f2937; /* Gray-800 */
+      }
+      .dark .sidebar-link:hover {
+        background-color: #374151; /* Gray-700 */
+        color: #f9fafb; /* Gray-50 */
+      }
+      .sidebar-link.active {
+        background-color: #eff6ff; /* Blue-50 */
+        color: #2563eb; /* Blue-600 */
+        font-weight: 600; /* Semibold */
+      }
+      .dark .sidebar-link.active {
+        background-color: rgba(59, 130, 246, 0.2); /* Blue-500 with opacity */
+        color: #60a5fa; /* Blue-400 */
+      }
+       .sidebar-link.active i {
+         color: #2563eb; /* Blue-600 */
+       }
+       .dark .sidebar-link.active i {
+         color: #60a5fa; /* Blue-400 */
+       }
+       .sidebar-footer {
+         /* Removed absolute positioning */
+          padding: 1rem;
+          margin-top: auto; /* Push footer to bottom */
+          font-size: 0.75rem; /* text-xs */
+          color: #6b7280; /* Gray-500 */
+          text-align: center;
+          border-top: 1px solid #e5e7eb; /* Add top border */
+       }
+        .dark .sidebar-footer {
+          color: #9ca3af; /* Gray-400 */
+          border-top-color: #374151; /* Darker border */
+        }
+      /* End Sidebar Styling */
+
+      /* Light/Dark mode transitions */
+      body,
+      .dashboard-card,
+      .header,
+      input,
+      select,
+      button {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .member-card {
+        transition: all 0.3s ease;
+      }
+
+      .member-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+      }
+       .dark .member-card:hover {
+         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+       }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline {
+        border: 1px solid currentColor;
+        transition: all 0.2s ease;
+      }
+
+      .btn-outline:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      .dark .btn-outline:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+
+       .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .status-green {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+      }
+
+      .dark .status-green {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+
+      .status-blue {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+      }
+
+      .dark .status-blue {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+
+       .status-yellow {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #d97706;
+      }
+
+      .dark .status-yellow {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+      }
+
+       .assessment-card {
+           border: 1px solid #e5e7eb;
+           border-radius: 0.375rem;
+           transition: all 0.2s ease;
+       }
+        .dark .assessment-card {
+           border-color: #374151;
+        }
+        .assessment-card:hover {
+           border-color: var(--primary);
+           box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .dark .assessment-card:hover {
+           border-color: var(--primary);
+           box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+       .booking-card {
+           border: 1px solid #e5e7eb;
+           border-radius: 0.375rem;
+       }
+       .dark .booking-card {
+           border-color: #374151;
+       }
+    </style>
+  </head>
+  <body x-data="{ darkMode: false, sidebarOpen: true }" :class="{ 'dark': darkMode }">
+    <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <!-- Sidebar -->
+      <div
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="sidebar w-64 md:shadow transform md:translate-x-0 transition-transform duration-150 ease-in"
+      >
+         <!-- Sidebar Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700"> <!-- Adjusted padding & added border -->
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600">OAS</span>
+            <span class="text-lg font-medium text-gray-600 dark:text-gray-400">Student</span>
+          </div>
+          <button @click="sidebarOpen = false" class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none" aria-label="Close sidebar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="px-2 flex-grow overflow-y-auto"> <!-- Added flex-grow and overflow -->
+           <div class="sidebar-section-title">Main</div>
+           <a
+            href="student-dashboard.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+           </a>
+           <a
+            href="student-assignments.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-clipboard-list"></i>
+            <span>My Assignments</span>
+           </a>
+           <a
+            href="student-booking-board.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-calendar-check"></i>
+            <span>My Bookings</span>
+           </a>
+           <a
+            href="student-groups.html"
+            class="sidebar-link active" 
+           >
+            <i class="fas fa-users"></i>
+            <span>My Groups</span>
+           </a>
+           <a
+            href="student-results.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-poll"></i>
+            <span>My Results</span>
+           </a>
+
+           <div class="sidebar-section-title">Support</div>
+            <a
+            href="#"
+            class="sidebar-link"
+           >
+            <i class="fas fa-question-circle"></i>
+            <span>Help Center</span>
+           </a>
+           <a
+            href="student-settings.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+           </a>
+        </nav>
+
+         <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            Oral Assessment System v1.2.0
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="header bg-white dark:bg-gray-800 shadow-sm z-10 h-16 flex items-center justify-between px-4 md:px-6"> <!-- Standard header -->
+             <div class="flex items-center">
+                 <button @click="sidebarOpen = true" class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none mr-2">
+                     <i class="fas fa-bars"></i>
+                 </button>
+                 <h1 class="text-xl font-semibold text-gray-800 dark:text-white">Group Details</h1>
+             </div>
+             <div class="flex items-center space-x-4">
+                 <button
+                     @click="darkMode = !darkMode"
+                     class="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+                     aria-label="Toggle dark mode"
+                 >
+                     <svg x-show="!darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                     </svg>
+                     <svg x-show="darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none">
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                     </svg>
+                 </button>
+                 <div class="relative">
+                     <button class="flex items-center space-x-1 focus:outline-none">
+                         <img src="https://avatars.githubusercontent.com/u/35243?s=200&v=4" alt="User Avatar" class="h-8 w-8 rounded-full border border-gray-300 dark:border-gray-600"> 
+                         <span class="hidden md:inline-block text-sm text-gray-700 dark:text-gray-300 ml-2">John Smith</span>
+                         <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400 ml-1"></i>
+                     </button>
+                 </div>
+             </div>
+         </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+          <!-- Breadcrumb navigation -->
+          <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+              <ol class="flex items-center space-x-1">
+                <li>
+                  <a href="student-groups.html" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                     <i class="fas fa-users mr-1"></i> My Groups
+                  </a>
+                </li>
+                <li>
+                  <span class="text-gray-400 dark:text-gray-600 mx-1">/</span>
+                </li>
+                <li>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Group 5 - SPM
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Group Info Card -->
+          <div class="dashboard-card p-6 mb-6">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-start space-y-4 md:space-y-0">
+              <div>
+                <div class="flex items-center space-x-3 mb-2">
+                  <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Group 5</h2>
+                  <span class="status-badge status-green">
+                    <i class="fas fa-check-circle mr-1"></i> Active
+                  </span>
+                </div>
+                <p class="text-md font-medium text-gray-600 dark:text-gray-400">
+                  COMP90082 - Software Project Management
+                </p>
+                <p class="text-sm text-gray-500 dark:text-gray-500 mt-1">
+                  <span class="font-medium">Formed:</span> March 1, 2025
+                </p>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <button class="btn-primary rounded-md px-4 py-2 text-sm font-medium flex items-center space-x-1">
+                  <i class="fas fa-calendar-check mr-1"></i>
+                  <span>Book Assessment</span>
+                </button>
+                <button class="btn-outline text-gray-700 dark:text-gray-300 rounded-md px-4 py-2 text-sm font-medium flex items-center space-x-1">
+                  <i class="fas fa-envelope mr-1"></i>
+                  <span>Message Group</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabs Navigation -->
+          <div x-data="{ activeTab: 'members' }" class="mb-6">
+            <div class="border-b border-gray-200 dark:border-gray-700">
+              <nav class="flex -mb-px space-x-6">
+                <button
+                  @click="activeTab = 'members'"
+                  :class="{ 'text-blue-600 dark:text-blue-400 border-blue-500': activeTab === 'members', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-transparent': activeTab !== 'members' }"
+                  class="pb-3 px-1 border-b-2 font-medium text-sm focus:outline-none"
+                  :aria-selected="activeTab === 'members'"
+                >
+                  Members
+                </button>
+                <button
+                  @click="activeTab = 'assessments'"
+                  :class="{ 'text-blue-600 dark:text-blue-400 border-blue-500': activeTab === 'assessments', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-transparent': activeTab !== 'assessments' }"
+                  class="pb-3 px-1 border-b-2 font-medium text-sm focus:outline-none"
+                  :aria-selected="activeTab === 'assessments'"
+                >
+                  Assessments
+                </button>
+                <button
+                  @click="activeTab = 'bookings'"
+                  :class="{ 'text-blue-600 dark:text-blue-400 border-blue-500': activeTab === 'bookings', 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border-transparent': activeTab !== 'bookings' }"
+                  class="pb-3 px-1 border-b-2 font-medium text-sm focus:outline-none"
+                  :aria-selected="activeTab === 'bookings'"
+                >
+                  Bookings
+                </button>
+              </nav>
+            </div>
+
+            <!-- Members Tab -->
+            <div x-show="activeTab === 'members'" class="py-6">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Group Members (3)</h3>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Member 1 (You) -->
+                <div class="member-card dashboard-card p-4 flex items-center space-x-4 border-l-4 border-blue-500">
+                  <img
+                    src="https://avatars.githubusercontent.com/u/35243?s=200&v=4"
+                    alt="John Smith"
+                    class="h-12 w-12 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                  />
+                  <div>
+                    <div class="flex items-center">
+                      <h4 class="text-md font-medium text-gray-800 dark:text-white">John Smith</h4>
+                      <span class="ml-2 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full">You</span>
+                    </div>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">s1234567</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">john.smith@student.unimelb.edu.au</p>
+                  </div>
+                   <span class="ml-auto text-xs font-medium text-yellow-600 dark:text-yellow-400">Leader</span>
+                </div>
+
+                <!-- Member 2 -->
+                <div class="member-card dashboard-card p-4 flex items-center space-x-4">
+                  <img
+                    src="https://avatars.githubusercontent.com/u/9919?s=200&v=4"
+                    alt="Emma Johnson"
+                    class="h-12 w-12 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                  />
+                  <div>
+                    <h4 class="text-md font-medium text-gray-800 dark:text-white">Alex Thompson</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">s654321</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">a.thompson@student.unimelb.edu.au</p>
+                  </div>
+                   <span class="ml-auto text-xs font-medium text-yellow-600 dark:text-yellow-400">Leader</span>
+                </div>
+
+                <!-- Member 3 -->
+                <div class="member-card dashboard-card p-4 flex items-center space-x-4">
+                  <img
+                    src="https://avatars.githubusercontent.com/u/8247?s=200&v=4"
+                    alt="Michael Chen"
+                    class="h-12 w-12 rounded-full border-2 border-gray-300 dark:border-gray-600"
+                  />
+                  <div>
+                    <h4 class="text-md font-medium text-gray-800 dark:text-white">Maria Rodriguez</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">s765432</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-500">m.rodriguez@student.unimelb.edu.au</p>
+                  </div>
+                   <span class="ml-auto text-xs font-medium text-gray-500 dark:text-gray-400">Member</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assessments Tab -->
+            <div x-show="activeTab === 'assessments'" class="py-6" style="display: none;">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Group Assessments</h3>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <!-- Assessment Card 1 -->
+                  <div class="assessment-card bg-white dark:bg-gray-800 p-4">
+                      <div class="flex justify-between items-start mb-2">
+                          <h4 class="text-md font-medium text-gray-800 dark:text-white">Project Defense</h4>
+                          <span class="status-badge status-blue">
+                              <i class="fas fa-clock mr-1"></i> Needs Booking
+                          </span>
+                      </div>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          Final presentation and defense of the software project.
+                      </p>
+                       <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          <p><i class="fas fa-calendar-alt mr-1 w-4 text-center"></i> Assessment Period: Apr 20 - Apr 28, 2025</p>
+                          <p><i class="fas fa-percentage mr-1 w-4 text-center"></i> Weight: 40%</p>
+                      </div>
+                      <div class="mt-4 flex justify-end space-x-2">
+                          <a href="student-assignments-detail.html" class="btn-outline text-gray-700 dark:text-gray-300 rounded-md px-3 py-1 text-xs">Details</a>
+                          <a href="student-booking-slots.html" class="btn-primary rounded-md px-3 py-1 text-xs">Book Now</a>
+                      </div>
+                  </div>
+                  
+                   <!-- Assessment Card 2 -->
+                   <div class="assessment-card bg-white dark:bg-gray-800 p-4">
+                      <div class="flex justify-between items-start mb-2">
+                          <h4 class="text-md font-medium text-gray-800 dark:text-white">Mid-Project Review</h4>
+                           <span class="status-badge status-green">
+                              <i class="fas fa-check-circle mr-1"></i> Completed
+                          </span>
+                      </div>
+                      <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                          Presentation of progress and initial design.
+                      </p>
+                      <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          <p><i class="fas fa-calendar-alt mr-1 w-4 text-center"></i> Assessed: Mar 10, 2025</p>
+                          <p><i class="fas fa-percentage mr-1 w-4 text-center"></i> Weight: 15%</p>
+                      </div>
+                       <div class="mt-4 flex justify-end space-x-2">
+                          <a href="student-assignments-detail.html" class="btn-outline text-gray-700 dark:text-gray-300 rounded-md px-3 py-1 text-xs">Details</a>
+                           <a href="student-results-detail.html" class="btn-outline text-green-600 dark:text-green-400 rounded-md px-3 py-1 text-xs">View Result</a>
+                      </div>
+                  </div>
+              </div>
+            </div>
+
+            <!-- Bookings Tab -->
+            <div x-show="activeTab === 'bookings'" class="py-6" style="display: none;">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Group Bookings</h3>
+              
+              <!-- Example Booking Card (if booked) -->
+               <div class="booking-card bg-white dark:bg-gray-800 p-4 mb-4">
+                 <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                   <div>
+                     <h4 class="text-md font-medium text-gray-800 dark:text-white">Mid-Project Review</h4>
+                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                       <i class="fas fa-calendar-day mr-1"></i> March 10, 2025
+                     </p>
+                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                       <i class="fas fa-clock mr-1"></i> 14:00 - 14:30
+                     </p>
+                     <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                       <i class="fas fa-map-marker-alt mr-1"></i> Doug McDonell Building, Room 101
+                     </p>
+                   </div>
+                   <div class="flex flex-col items-end gap-2">
+                     <span class="status-badge status-green">
+                       <i class="fas fa-check-circle mr-1"></i> Completed
+                     </span>
+                     <span class="text-xs text-gray-500 dark:text-gray-400">Booked by: Alex Thompson</span>
+                   </div>
+                 </div>
+               </div>
+               
+              <!-- Placeholder if no upcoming bookings -->
+              <div class="text-center py-8 px-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <i class="fas fa-calendar-times text-4xl text-gray-400 dark:text-gray-500 mb-3"></i>
+                  <p class="text-md font-medium text-gray-700 dark:text-gray-300">No upcoming bookings found for this group.</p>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Book an assessment slot from the 'Assessments' tab.</p>
+              </div>
+              
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+  </body>
+</html> 
