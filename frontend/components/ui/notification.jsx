@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 // Notification types
@@ -24,6 +24,13 @@ export function Notification({
   const [isVisible, setIsVisible] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsExiting(true);
+    setTimeout(() => {
+      onClose?.(id);
+    }, 300);
+  }, [id, onClose]);
+
   useEffect(() => {
     // Animate in
     const timer = setTimeout(() => setIsVisible(true), 10);
@@ -37,14 +44,7 @@ export function Notification({
       clearTimeout(timer);
       clearTimeout(dismissTimer);
     };
-  }, [duration]);
-
-  const handleClose = () => {
-    setIsExiting(true);
-    setTimeout(() => {
-      onClose?.(id);
-    }, 300);
-  };
+  }, [duration, handleClose]);
 
   const getNotificationStyles = () => {
     const baseStyles = "relative flex items-start p-4 rounded-lg shadow-lg border max-w-sm transition-all duration-300 transform";

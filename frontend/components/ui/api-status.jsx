@@ -33,7 +33,6 @@ export function ApiStatusIndicator({ className = "" }) {
       backendReachable = response.ok;
     } catch (error) {
       backendReachable = false;
-      }
     }
 
     setApiStatus({
@@ -98,16 +97,16 @@ export function ApiStatusIndicator({ className = "" }) {
         </div>
 
         {/* Backend integration info */}
-        {apiStatus.isMock && (
-          <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs">
+        {!apiStatus.backendReachable && (
+          <div className="mt-2 p-2 bg-orange-50 dark:bg-orange-900/20 rounded text-xs">
             <div className="flex items-start space-x-2">
-              <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
+              <i className="fas fa-exclamation-triangle text-orange-500 mt-0.5"></i>
               <div>
-                <p className="font-medium text-blue-800 dark:text-blue-300 mb-1">
-                  Ready for Backend Integration
+                <p className="font-medium text-orange-800 dark:text-orange-300 mb-1">
+                  Backend Unavailable
                 </p>
-                <p className="text-blue-700 dark:text-blue-400">
-                  Set <code>REACT_APP_USE_MOCK_API=false</code> when Java backend is ready.
+                <p className="text-orange-700 dark:text-orange-400">
+                  Check if MySQL is running and Next.js server is started.
                 </p>
               </div>
             </div>
