@@ -6,8 +6,8 @@ This folder contains weekly progress reports from each team member, which are im
 
 | **Folder** | **Description** |
 | --- | --- |
-| Week 3 | Weekly reports from all team members for the third week |
-| Week 4 | Weekly reports from all team members for the fourth week |
+| S1 | Weekly reports from all team members for Semester 1 |
+| S2 | Weekly reports from all team members for Semester 2 |
 
 ## Report Guidelines
 
