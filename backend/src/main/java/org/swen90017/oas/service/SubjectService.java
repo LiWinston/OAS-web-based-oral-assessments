@@ -9,9 +9,11 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.SubjectDto;
 import org.swen90017.oas.entity.Semester;
 import org.swen90017.oas.entity.Subject;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SubjectMapper;
 
 import java.util.List;
@@ -92,7 +94,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         // Validate semester exists
         Semester semester = semesterService.getSemesterById(dto.getSemesterId());
         if (!semester.getIsActive()) {
-            throw new RuntimeException("Cannot create subject for inactive semester");
+            throw new BusinessException(BusinessError.SEMESTER_NOT_FOUND);
         }
 
         // Check if subject code already exists for this semester
@@ -101,13 +103,13 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
                    .eq(Subject::getSubjectCode, dto.getSubjectCode());
         
         if (subjectMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Subject " + dto.getSubjectCode() + " already exists for this semester");
+            throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
 
         // Validate admin user ID
         // In a real implementation, you would validate that the admin user exists and has admin role
         if (dto.getAdminUserId() == null || dto.getAdminUserId() <= 0) {
-            throw new RuntimeException("Valid admin user ID is required");
+            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
         }
 
         Subject subject = new Subject();
@@ -124,7 +126,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     public Subject updateSubject(Long subjectId, SubjectDto dto) {
         Subject existingSubject = subjectMapper.selectById(subjectId);
         if (existingSubject == null) {
-            throw new RuntimeException("Subject not found with ID: " + subjectId);
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
 
         // Validate semester exists
@@ -137,12 +139,12 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
                    .ne(Subject::getSubjectId, subjectId);
         
         if (subjectMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Subject " + dto.getSubjectCode() + " already exists for this semester");
+            throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
 
         // Validate admin user ID
         if (dto.getAdminUserId() == null || dto.getAdminUserId() <= 0) {
-            throw new RuntimeException("Valid admin user ID is required");
+            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
         }
 
         BeanUtils.copyProperties(dto, existingSubject, "subjectId", "createTime", "creator");
@@ -157,7 +159,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     public void deleteSubject(Long subjectId) {
         Subject subject = subjectMapper.selectById(subjectId);
         if (subject == null) {
-            throw new RuntimeException("Subject not found with ID: " + subjectId);
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
 
         // Check if there are any assignments associated with this subject
@@ -173,7 +175,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     public Subject getSubjectById(Long subjectId) {
         Subject subject = subjectMapper.selectById(subjectId);
         if (subject == null) {
-            throw new RuntimeException("Subject not found with ID: " + subjectId);
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
         return subject;
     }

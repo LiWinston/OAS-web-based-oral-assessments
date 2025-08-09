@@ -9,8 +9,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.AcademicYearDto;
 import org.swen90017.oas.entity.AcademicYear;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AcademicYearMapper;
 
 import java.util.List;
@@ -63,12 +65,12 @@ public class AcademicYearService extends ServiceImpl<AcademicYearMapper, Academi
         queryWrapper.eq(AcademicYear::getYearValue, dto.getYearValue());
         
         if (academicYearMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Academic year " + dto.getYearValue() + " already exists");
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_ALREADY_EXISTS);
         }
 
         // Validate date range
         if (!dto.getStartDate().isBefore(dto.getEndDate())) {
-            throw new RuntimeException("Start date must be before end date");
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_DATE_INVALID);
         }
 
         AcademicYear academicYear = new AcademicYear();
@@ -85,7 +87,7 @@ public class AcademicYearService extends ServiceImpl<AcademicYearMapper, Academi
     public AcademicYear updateAcademicYear(Long yearId, AcademicYearDto dto) {
         AcademicYear existingYear = academicYearMapper.selectById(yearId);
         if (existingYear == null) {
-            throw new RuntimeException("Academic year not found with ID: " + yearId);
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_NOT_FOUND);
         }
 
         // Check if year value already exists (excluding current record)
@@ -94,12 +96,12 @@ public class AcademicYearService extends ServiceImpl<AcademicYearMapper, Academi
                    .ne(AcademicYear::getYearId, yearId);
         
         if (academicYearMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Academic year " + dto.getYearValue() + " already exists");
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_ALREADY_EXISTS);
         }
 
         // Validate date range
         if (!dto.getStartDate().isBefore(dto.getEndDate())) {
-            throw new RuntimeException("Start date must be before end date");
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_DATE_INVALID);
         }
 
         BeanUtils.copyProperties(dto, existingYear, "yearId", "createTime", "creator");
@@ -114,7 +116,7 @@ public class AcademicYearService extends ServiceImpl<AcademicYearMapper, Academi
     public void deleteAcademicYear(Long yearId) {
         AcademicYear academicYear = academicYearMapper.selectById(yearId);
         if (academicYear == null) {
-            throw new RuntimeException("Academic year not found with ID: " + yearId);
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_NOT_FOUND);
         }
 
         // Check if there are any semesters associated with this academic year
@@ -130,7 +132,7 @@ public class AcademicYearService extends ServiceImpl<AcademicYearMapper, Academi
     public AcademicYear getAcademicYearById(Long yearId) {
         AcademicYear academicYear = academicYearMapper.selectById(yearId);
         if (academicYear == null) {
-            throw new RuntimeException("Academic year not found with ID: " + yearId);
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_NOT_FOUND);
         }
         return academicYear;
     }

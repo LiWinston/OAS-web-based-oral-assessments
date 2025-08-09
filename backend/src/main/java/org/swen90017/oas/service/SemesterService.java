@@ -8,9 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.SemesterDto;
 import org.swen90017.oas.entity.AcademicYear;
 import org.swen90017.oas.entity.Semester;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SemesterMapper;
 
 import java.util.List;
@@ -73,7 +75,7 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
         // Validate academic year exists
         AcademicYear academicYear = academicYearService.getAcademicYearById(dto.getAcademicYearId());
         if (!academicYear.getIsActive()) {
-            throw new RuntimeException("Cannot create semester for inactive academic year");
+            throw new BusinessException(BusinessError.ACADEMIC_YEAR_NOT_FOUND);
         }
 
         // Check if semester code already exists for this academic year
@@ -82,18 +84,18 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
                    .eq(Semester::getSemesterCode, dto.getSemesterCode());
         
         if (semesterMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Semester " + dto.getSemesterCode() + " already exists for this academic year");
+            throw new BusinessException(BusinessError.SEMESTER_ALREADY_EXISTS);
         }
 
         // Validate date range
         if (!dto.getStartDate().isBefore(dto.getEndDate())) {
-            throw new RuntimeException("Start date must be before end date");
+            throw new BusinessException(BusinessError.SEMESTER_DATE_INVALID);
         }
 
         // Validate semester dates are within academic year dates
         if (dto.getStartDate().isBefore(academicYear.getStartDate()) || 
             dto.getEndDate().isAfter(academicYear.getEndDate())) {
-            throw new RuntimeException("Semester dates must be within academic year range");
+            throw new BusinessException(BusinessError.SEMESTER_DATE_OUT_OF_RANGE);
         }
 
         Semester semester = new Semester();
@@ -110,7 +112,7 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
     public Semester updateSemester(Long semesterId, SemesterDto dto) {
         Semester existingSemester = semesterMapper.selectById(semesterId);
         if (existingSemester == null) {
-            throw new RuntimeException("Semester not found with ID: " + semesterId);
+            throw new BusinessException(BusinessError.SEMESTER_NOT_FOUND);
         }
 
         // Validate academic year exists
@@ -123,18 +125,18 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
                    .ne(Semester::getSemesterId, semesterId);
         
         if (semesterMapper.selectCount(queryWrapper) > 0) {
-            throw new RuntimeException("Semester " + dto.getSemesterCode() + " already exists for this academic year");
+            throw new BusinessException(BusinessError.SEMESTER_ALREADY_EXISTS);
         }
 
         // Validate date range
         if (!dto.getStartDate().isBefore(dto.getEndDate())) {
-            throw new RuntimeException("Start date must be before end date");
+            throw new BusinessException(BusinessError.SEMESTER_DATE_INVALID);
         }
 
         // Validate semester dates are within academic year dates
         if (dto.getStartDate().isBefore(academicYear.getStartDate()) || 
             dto.getEndDate().isAfter(academicYear.getEndDate())) {
-            throw new RuntimeException("Semester dates must be within academic year range");
+            throw new BusinessException(BusinessError.SEMESTER_DATE_OUT_OF_RANGE);
         }
 
         BeanUtils.copyProperties(dto, existingSemester, "semesterId", "createTime", "creator");
@@ -149,7 +151,7 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
     public void deleteSemester(Long semesterId) {
         Semester semester = semesterMapper.selectById(semesterId);
         if (semester == null) {
-            throw new RuntimeException("Semester not found with ID: " + semesterId);
+            throw new BusinessException(BusinessError.SEMESTER_NOT_FOUND);
         }
 
         // Check if there are any subjects associated with this semester
@@ -165,7 +167,7 @@ public class SemesterService extends ServiceImpl<SemesterMapper, Semester> {
     public Semester getSemesterById(Long semesterId) {
         Semester semester = semesterMapper.selectById(semesterId);
         if (semester == null) {
-            throw new RuntimeException("Semester not found with ID: " + semesterId);
+            throw new BusinessException(BusinessError.SEMESTER_NOT_FOUND);
         }
         return semester;
     }
