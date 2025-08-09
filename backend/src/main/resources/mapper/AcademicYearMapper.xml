@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.swen90017.oas.mapper.AcademicYearMapper">
+
+    <!-- AcademicYear Mapper XML -->
+    <!-- Currently using MyBatis-Plus BaseMapper methods -->
+    <!-- Custom SQL queries can be added here if needed -->
+
+</mapper>
