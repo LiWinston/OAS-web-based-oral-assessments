@@ -1,5 +1,6 @@
 package org.swen90017.oas.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -51,17 +52,29 @@ public class SysUserServiceImpl implements ISysUserService {
         return userMapper.selectByUserName(username);
     }
 
+    public SysUser selectUserByEmail(String email){
+        return userMapper.selectOne(
+                new QueryWrapper<SysUser>()
+                        .eq("email", email)
+        );
+    }
+
+    @Override
+    public void logout() {
+
+    }
+
     /**
      * Get login user entity
      *
-     * @param username Username
+     * @param email Username
      * @param password Password
      * @return Login user entity
      */
     @Override
-    public LoginUser getLoginUser(String username, String password) {
+    public LoginUser getLoginUser(String email, String password) {
         // Find user by username
-        SysUser user = selectUserByUserName(username);
+        SysUser user = selectUserByEmail(email);
         if (user == null) {
             throw new UsernameNotFoundException("Username or password is incorrect");
         }
@@ -91,6 +104,7 @@ public class SysUserServiceImpl implements ISysUserService {
         loginUser.setUsername(user.getUserName());
         loginUser.setPassword(user.getPassword());
         loginUser.setStatus(user.getStatus());
+        loginUser.setEmail(user.getEmail());
         if (role != null) {
             loginUser.setRole(role.getRoleKey());
         }
@@ -101,14 +115,14 @@ public class SysUserServiceImpl implements ISysUserService {
     /**
      * User login
      *
-     * @param username Username
+     * @param email Username
      * @param password Password
      * @return Login response data
      */
     @Override
-    public LoginResponseDTO login(String username, String password) {
+    public LoginResponseDTO login(String email, String password) {
         // Process login to get user information
-        LoginUser loginUser = getLoginUser(username, password);
+        LoginUser loginUser = getLoginUser(email, password);
         
         // Generate access token
         String accessToken = tokenService.createAccessToken(loginUser);
@@ -121,6 +135,7 @@ public class SysUserServiceImpl implements ISysUserService {
         response.setUserId(loginUser.getUserId());
         response.setUsername(loginUser.getUsername());
         response.setRole(loginUser.getRole());
+        response.setEmail(loginUser.getEmail());
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken.getToken());
         response.setExpiresIn((long) accessTokenExpireTime * 60);

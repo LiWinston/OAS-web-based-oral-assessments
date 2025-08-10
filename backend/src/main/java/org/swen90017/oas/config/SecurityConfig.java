@@ -115,6 +115,9 @@ public class SecurityConfig {
       // Add JWT filter before the UsernamePasswordAuthenticationFilter
       http.addFilterBefore(authenticationTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
+       // Disable default Spring Security logout handling so our REST /logout controller can handle it
+       http.logout().disable();
+
       return http.build();
   }
 

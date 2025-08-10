@@ -5,6 +5,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -12,6 +14,7 @@ import org.swen90017.oas.constant.Constants;
 import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.entity.RefreshToken;
 import org.swen90017.oas.mapper.RefreshTokenMapper;
+import org.swen90017.oas.service.impl.StudentServiceImpl;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -28,6 +31,8 @@ import java.util.UUID;
  */
 @Component
 public class TokenService {
+    private static final Logger log = LoggerFactory.getLogger(TokenService.class);
+
 
     @Autowired
     private RefreshTokenMapper refreshTokenMapper;
@@ -175,6 +180,27 @@ public class TokenService {
     public void revokeAllRefreshTokens(Long userId) {
         refreshTokenMapper.revokeAllByUserId(userId);
     }
+
+  /**
+   * Revoke a single refresh token by its token string
+   */
+  public void revokeRefreshToken(String refreshToken,Long userId) {
+    // Check if the token exists
+    RefreshToken existingToken = refreshTokenMapper.findActiveByUserId(userId);
+    log.info("Revoke refresh token: {}", refreshToken);
+    log.info("Existing token: {}", existingToken);
+
+    if (existingToken == null || !existingToken.getToken().equals(refreshToken)) {
+        log.error("Invalid or non-existent refresh token: {}", refreshToken);
+        throw new IllegalArgumentException("Invalid or non-existent refresh token");
+    }
+    log.info("Revoke refresh token for userId: {}", userId);
+    int num = refreshTokenMapper.revokeAllByUserId(userId);
+    log.info("Number of tokens revoked: {}", num);
+    if (num <= 0) {
+        throw new IllegalArgumentException("Failed to revoke refresh token");
+    }
+  }
     
     /**
      * Generate JWT token from claims with expiry date

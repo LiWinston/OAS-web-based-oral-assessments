@@ -11,6 +11,7 @@ import java.util.Date;
 public class SysUser {
     @TableId
     private Long userId;
+    private String email;
     private String userName;
     private String password;
     //TODO:change to enum

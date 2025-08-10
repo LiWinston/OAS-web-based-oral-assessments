@@ -12,6 +12,10 @@ import java.io.Serializable;
 public class RefreshTokenRequestDTO implements Serializable {
     
     private static final long serialVersionUID = 1L;
+    /**
+     * User ID
+     */
+    private Long userId;
     
     /**
      * Refresh token
