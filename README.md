@@ -170,32 +170,6 @@ By implementing this solution, the project will improve the overall efficiency, 
       <p><a href="https://github.com/Crystallen1">@Yun Chen</a></p>
     </td>
   </tr>
-<tr>
-    <td width="150" align="center">
-      <a href="https://github.com/weiranxu-unimelb">
-        <img src="https://personal.r2.bitsleep.cn/xwr.jpg" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Backend Developer</h3>
-      <p><b>Weiran Xu</b> (Student ID: 1454343)</p>
-      <p>Experienced in backend development using Java and Spring Boot. Familiar with databases and proficient in deploying backend projects to private cloud environments such as AWS EC2. Expecting to gain skills in database optimization and to deeply explore the Spring Boot ecosystem.</p>
-      <p><a href="https://github.com/weiranxu-unimelb">@Weiran Xu</a></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="150" align="center">
-      <a href="https://github.com/BENYUANWANG">
-        <img src="https://github.com/user-attachments/assets/57b4df4b-e2fb-4381-ae6d-864911ab2ad2" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Backend Developer</h3>
-      <p><b>Benyuan Wang</b> (Student ID: 1492846)</p>
-      <p>Experienced in python and flask backend development, understanding of database design, and some knowledge of software testing. Want to strengthen and improve backend development capabilities and technology stacks.</p>
-      <p><a href="https://github.com/BENYUANWANG">@Benyuan Wang</a></p>
-    </td>
-  </tr>
   <tr>
     <td width="150" align="center">
       <a href="https://github.com/wangxiang13">
@@ -216,25 +190,12 @@ By implementing this solution, the project will improve the overall efficiency, 
 <table>
   <tr>
     <td width="150" align="center">
-      <a href="https://github.com/yungenc">
-        <img src="https://github.com/user-attachments/assets/e01d7aea-fa37-4ea0-a41c-1cd6d2cca78f" width="100px;" alt="Frontend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Frontend Developer</h3>
-      <p><b>Ian Chi</b> (Student ID: 1579898)</p>
-      <p>Experienced in full-stack web development with proficiency in React/Next.js. Experience in payment integration efforts in commercial projects. Eager to strengthen backend architecture design skills and contribute to innovative solutions in a collaborative environment.</p>
-      <p><a href="https://github.com/yungenc">@yungenc</a></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="150" align="center">
       <a href="https://github.com/lihaocheng1006">
         <img src="https://github.com/user-attachments/assets/8c926df4-7424-4dd1-8abe-f279197c0591" width="100px;" alt="Frontend Developer"/>
       </a>
     </td>
     <td>
-      <h3>Frontend Developer</h3>
+      <h3>Frontend Lead</h3>
       <p><b>Haocheng Li</b> (Student ID: 1525380)</p>
       <p>Experienced in React and Next.js development with a strong focus on AI integration. Proficient in building modern web applications and implementing AI-powered features. Looking to enhance frontend development skills and create innovative user experiences.</p>
       <p><a href="https://github.com/lihaocheng1006">@lihaocheng1006</a></p>
@@ -267,6 +228,37 @@ By implementing this solution, the project will improve the overall efficiency, 
     </td>
   </tr>
 </table>
+
+### Testing Team (From Semester 2)
+<table>
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/BENYUANWANG">
+        <img src="https://github.com/user-attachments/assets/57b4df4b-e2fb-4381-ae6d-864911ab2ad2" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Testing lead</h3>
+      <p><b>Benyuan Wang</b> (Student ID: 1492846)</p>
+      <p>Experienced in python and flask backend development, understanding of database design, and some knowledge of software testing. Want to strengthen and improve backend development capabilities and technology stacks.</p>
+      <p><a href="https://github.com/BENYUANWANG">@Benyuan Wang</a></p>
+    </td>
+  </tr>
+<tr>
+    <td width="150" align="center">
+      <a href="https://github.com/weiranxu-unimelb">
+        <img src="https://personal.r2.bitsleep.cn/xwr.jpg" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Testing Engineer</h3>
+      <p><b>Weiran Xu</b> (Student ID: 1454343)</p>
+      <p>Experienced in backend development using Java and Spring Boot. Familiar with databases and proficient in deploying backend projects to private cloud environments such as AWS EC2. Expecting to gain skills in database optimization and to deeply explore the Spring Boot ecosystem.</p>
+      <p><a href="https://github.com/weiranxu-unimelb">@Weiran Xu</a></p>
+    </td>
+  </tr>
+</table>
+
 
 ## Project Structure
 
