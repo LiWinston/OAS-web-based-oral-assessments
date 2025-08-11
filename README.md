@@ -133,19 +133,6 @@ By implementing this solution, the project will improve the overall efficiency, 
   </tr>
   <tr>
     <td width="150" align="center">
-      <a href="https://github.com/TianyunLei">
-        <img src="https://github.com/user-attachments/assets/70e3b61e-521e-47e3-965c-4748011b7a11" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Backend Developer</h3>
-      <p><b>Tianyun Lei</b> (Student ID: 1454701)</p>
-      <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
-      <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
-    </td>
-  </tr>
-  <tr>
-    <td width="150" align="center">
       <a href="https://github.com/LiWinston">
         <img src="https://personal.r2.bitsleep.cn/lyc2024.jpg" width="100px;" alt="Backend Developer"/>
       </a>
@@ -225,6 +212,19 @@ By implementing this solution, the project will improve the overall efficiency, 
       <p><b>Yukun Fu</b> (Student ID: 1538627)</p>
       <p>Familiar with front-end development, have some developing experience with react and vue, hope to improve my front-end development level in this project</p>
       <p><a href="https://github.com/YulkonFU">@YulkonFU</a></p>
+    </td>
+  </tr>
+     <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/TianyunLei">
+        <img src="https://github.com/user-attachments/assets/70e3b61e-521e-47e3-965c-4748011b7a11" width="100px;" alt="Backend Developer"/>
+      </a>
+    </td>
+    <td>
+      <h3>Frontend Developer</h3>
+      <p><b>Tianyun Lei</b> (Student ID: 1454701)</p>
+      <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
+      <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
     </td>
   </tr>
 </table>
