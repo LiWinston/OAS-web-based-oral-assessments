@@ -8,4 +8,9 @@ import lombok.Data;
 public class SysUserRole {
     private Long userId;
     private Long roleId;
+
+    public SysUserRole(Long userId, Long roleId) {
+        this.userId = userId;
+        this.roleId = roleId;
+    }
 }

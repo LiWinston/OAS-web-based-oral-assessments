@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en"
+  class="bg-gradient-to-b from-blue-100 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OAS Account Activation - Complete</title>
+  <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+    window.onload = function () {
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    function goLogin() {
+      // 跳转到登录页
+      window.location.href = "../AdministratorDashboard.html";
+    }
+  </script>
+</head>
+
+<body class="min-h-screen flex flex-col justify-between transition-colors duration-300 dark:bg-gray-900">
+  <!-- 顶部导航 -->
+  <header class="flex items-center justify-between px-6 py-4">
+    <div class="flex items-center">
+      <span class="font-extrabold text-2xl text-blue-700 dark:text-blue-300 tracking-wide font-sans"
+        style="letter-spacing:0.1em; font-family: 'Inter', 'Helvetica Neue', Arial, 'sans-serif'; font-weight: 600;">OAS</span>
+    </div>
+    <button onclick="toggleDarkMode()" aria-label="Toggle dark mode"
+      class="text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-xl focus:outline-none">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </header>
+
+  <!-- 主体内容 -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4">
+    <div
+      class="w-full max-w-xl md:max-w-2xl lg:max-w-3xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-10 md:p-14 flex flex-col items-center"
+      style="font-family: 'Inter', 'Helvetica Neue', Arial, 'sans-serif'; font-weight: 300;">
+      <!-- 进度条 -->
+      <div class="w-full mb-8">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-blue-600 dark:text-blue-300">Step 5 of 5</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">Completed</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 100%;"></div>
+        </div>
+      </div>
+      <!-- 完成内容 -->
+      <div class="flex flex-col items-center text-center">
+        <div class="mb-6">
+          <i class="fa-solid fa-circle-check text-green-500 dark:text-green-400 text-5xl mb-4"></i>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-semibold text-gray-800 dark:text-white mb-4" style="font-weight: 400;">
+          Congratulations!</h1>
+        <p class="text-gray-500 dark:text-gray-300 mb-8 text-lg" style="font-weight: 300;">
+          Your account has been successfully activated.<br>
+          You can now log in and start using the Oral Assessment System.
+        </p>
+        <button onclick="goLogin()"
+          class="w-full max-w-xs py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow transition-all text-lg flex items-center justify-center gap-2"
+          style="font-weight: 400;">
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Go to Login</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="text-center text-xs text-gray-400 dark:text-gray-500 py-4">
+    &copy; 2025 Oral Assessment System. All rights reserved.
+  </footer>
+</body>
+
+</html>

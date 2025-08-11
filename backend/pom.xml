@@ -60,7 +60,7 @@
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
-            <version>5.8.11</version>
+            <version>5.8.21</version>
         </dependency>
 
         <dependency>
@@ -99,7 +99,7 @@
             <!-- This dependency is only needed if you are using a TokenCredential object for authentication -->
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
-            <version>1.11.0</version>
+            <version>1.12.2</version>
         </dependency>
 
         <!-- SendGrid SDK for sending emails -->
@@ -159,6 +159,11 @@
             <artifactId>transmittable-thread-local</artifactId>
             <version>2.14.2</version>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
 
         <!-- Reactor Core for reactive programming -->
         <dependency>

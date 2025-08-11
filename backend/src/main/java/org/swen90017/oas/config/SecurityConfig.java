@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 import org.swen90017.oas.filter.JwtAuthenticationTokenFilter;
 import org.swen90017.oas.security.JwtAuthenticationEntryPoint;
 import org.swen90017.oas.security.XSSFilter;
@@ -40,6 +41,12 @@ public class SecurityConfig {
      */
     @Autowired
     private JwtAuthenticationEntryPoint unauthorizedHandler;
+    
+    /**
+     * CORS configuration source from CorsConfig
+     */
+    @Autowired
+    private CorsConfigurationSource corsConfigurationSource;
 
     /**
      * Authentication manager bean
@@ -75,6 +82,9 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
       http
+          // Enable CORS with configuration from CorsConfig
+          .cors(cors -> cors.configurationSource(corsConfigurationSource))
+          
           // Disable CSRF for REST API
           .csrf(csrf -> csrf.disable())
 
@@ -92,6 +102,8 @@ public class SecurityConfig {
               .antMatchers(HttpMethod.POST, "/token/refresh").permitAll()
               .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
+              // Allow OPTIONS requests for CORS preflight
+              .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               // Authenticated endpoints
               .anyRequest().authenticated()
           );

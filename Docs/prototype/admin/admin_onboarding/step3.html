@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gradient-to-b from-blue-100 via-white to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OAS Account Activation - Courses</title>
+  <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css">
+  <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    function toggleDarkMode() {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }
+    window.onload = function() {
+      if(localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    }
+    function goBack() {
+      window.location.href = "step2-1.html";
+    }
+    function goNext() {
+      // 可加表单校验
+      window.location.href = "step4.html";
+    }
+    // 课程选项
+    const courseOptions = [
+      { value: "COMP90017", label: "COMP90017 - SWEN90004" },
+      { value: "COMP90018", label: "COMP90018 - Software Project Management" },
+      { value: "INFO90005", label: "INFO90005 - Web Information Technologies" },
+      { value: "INFO90003", label: "INFO90003 - Database Systems" },
+      { value: "COMP90019", label: "COMP90019 - Cloud Computing" }
+    ];
+    let selected = [];
+
+    function renderOptions(filter = "") {
+      const ul = document.getElementById('options');
+      ul.innerHTML = "";
+      courseOptions.forEach(opt => {
+        if (filter && !opt.label.toLowerCase().includes(filter.toLowerCase())) return;
+        const li = document.createElement('li');
+        li.className = "px-4 py-2 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer text-sm text-gray-700 dark:text-gray-200";
+        li.textContent = opt.label;
+        li.onclick = () => selectOption(opt);
+        if (selected.find(s => s.value === opt.value)) {
+          li.classList.add("bg-blue-50", "dark:bg-blue-800", "text-blue-700", "dark:text-blue-300");
+        }
+        ul.appendChild(li);
+      });
+    }
+
+    function selectOption(opt) {
+      if (!selected.find(s => s.value === opt.value)) {
+        selected.push(opt);
+        updateSelected();
+      }
+    }
+
+    function updateSelected() {
+      const input = document.getElementById('dropdownInput');
+      const placeholder = document.getElementById('placeholder');
+      input.querySelectorAll('.selected-label').forEach(e => e.parentNode.remove());
+      if (selected.length === 0) {
+        placeholder.style.display = '';
+      } else {
+        placeholder.style.display = 'none';
+        selected.forEach(opt => {
+          const template = document.getElementById('selected-template');
+          const node = template.content.cloneNode(true);
+          node.querySelector('.selected-label').textContent = opt.label;
+          node.querySelector('button').setAttribute('data-value', opt.value);
+          input.appendChild(node);
+        });
+      }
+      document.getElementById('selectedCourses').value = selected.map(s => s.value).join(',');
+      renderOptions(document.querySelector('#dropdownList input').value);
+    }
+
+    function removeSelected(e, btn) {
+      e.stopPropagation();
+      const value = btn.getAttribute('data-value');
+      selected = selected.filter(opt => opt.value !== value);
+      updateSelected();
+    }
+
+    function toggleDropdown() {
+      const dropdown = document.getElementById('dropdownList');
+      dropdown.classList.toggle('hidden');
+      if (!dropdown.classList.contains('hidden')) {
+        renderOptions();
+        document.querySelector('#dropdownList input').focus();
+      }
+    }
+
+    function filterOptions(val) {
+      renderOptions(val);
+    }
+
+    // 关闭下拉
+    document.addEventListener('click', function(e) {
+      const dropdown = document.getElementById('dropdown-multiselect');
+      if (!dropdown.contains(e.target)) {
+        document.getElementById('dropdownList').classList.add('hidden');
+      }
+    });
+  </script>
+</head>
+<body class="min-h-screen flex flex-col justify-between transition-colors duration-300 dark:bg-gray-900">
+  <!-- 顶部导航 -->
+  <header class="flex items-center justify-between px-6 py-4">
+    <div class="flex items-center">
+      <span class="font-extrabold text-2xl text-blue-700 dark:text-blue-300 tracking-wide font-sans" style="letter-spacing:0.1em; font-family: 'Inter', 'Helvetica Neue', Arial, 'sans-serif'; font-weight: 600;">OAS</span>
+    </div>
+    <button onclick="toggleDarkMode()" aria-label="Toggle dark mode" class="text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 text-xl focus:outline-none">
+      <i class="fa-solid fa-moon"></i>
+    </button>
+  </header>
+
+  <!-- 主体内容 -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4">
+    <div class="w-full max-w-xl md:max-w-2xl lg:max-w-3xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-10 md:p-14 flex flex-col items-center" style="font-family: 'Inter', 'Helvetica Neue', Arial, 'sans-serif'; font-weight: 300;">
+      <!-- 进度条 -->
+      <div class="w-full mb-8">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-xs font-semibold text-blue-600 dark:text-blue-300">Step 3 of 5</span>
+          <span class="text-xs text-gray-400 dark:text-gray-500">Assign Courses</span>
+        </div>
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+          <div class="bg-blue-500 h-2 rounded-full transition-all duration-500" style="width: 60%;"></div>
+        </div>
+      </div>
+      <!-- 表单内容 -->
+      <h1 class="text-xl md:text-2xl font-semibold text-gray-800 dark:text-white mb-6 text-center" style="font-weight: 400;">Assign Your Courses</h1>
+      <form class="w-full flex flex-col gap-6" onsubmit="event.preventDefault(); goNext();">
+        <div>
+          <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1" for="courses">Courses</label>
+          <!-- 多选下拉组件 -->
+          <div class="relative" id="dropdown-multiselect">
+            <div class="flex flex-wrap gap-2 min-h-[48px] px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg cursor-pointer relative"
+                 onclick="toggleDropdown()" tabindex="0" id="dropdownInput" style="font-weight:300;">
+              <template id="selected-template">
+                <span class="flex items-center bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded px-2 py-1 text-xs font-medium mr-1 mb-1">
+                  <span class="selected-label"></span>
+                  <button type="button" class="ml-1 focus:outline-none" onclick="removeSelected(event, this)">
+                    <i class="fa fa-times text-xs"></i>
+                  </button>
+                </span>
+              </template>
+              <span id="placeholder" class="text-gray-400 dark:text-gray-500 select-none">Select courses...</span>
+              <!-- 下拉箭头图标 -->
+              <span class="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <i class="fa fa-chevron-down text-gray-400 dark:text-gray-500"></i>
+              </span>
+            </div>
+            <div id="dropdownList" class="absolute z-10 left-0 right-0 mt-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-56 overflow-auto hidden">
+              <input type="text" placeholder="Search..." oninput="filterOptions(this.value)" class="w-full px-3 py-2 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 text-sm focus:outline-none" style="font-weight:300;">
+              <ul id="options" class="py-1">
+                <!-- 选项会由JS动态生成 -->
+              </ul>
+            </div>
+            <input type="hidden" name="courses" id="selectedCourses">
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">
+            Click the box to open the course list. You can search by typing, select multiple courses by clicking, and remove selected courses by clicking the <i class="fa fa-times"></i> on each tag. The dropdown will stay open for multiple selections.
+          </p>
+        </div>
+        <div class="flex justify-between gap-4 mt-2">
+          <button type="button" onclick="goBack()"
+            class="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-300 rounded-xl shadow hover:bg-gray-200 dark:hover:bg-gray-600 transition font-medium"
+            style="font-weight: 400;">
+            <i class="fa-solid fa-arrow-left mr-2"></i>Back
+          </button>
+          <button type="submit"
+            class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow transition font-medium flex items-center justify-center gap-2"
+            style="font-weight: 400;">
+            Next<i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- 页脚 -->
+  <footer class="text-center text-xs text-gray-400 dark:text-gray-500 py-4">
+    &copy; 2025 Oral Assessment System. All rights reserved.
+  </footer>
+</body>
+</html>

@@ -84,10 +84,16 @@ local.properties
 
 # IDE - Others
 .cursor/
+.cursor
+*.cursor
 .atom/
 .buildlog/
 .history/
 .svn/
+
+# Project-specific ignores
+# OAS Frontend Implementation Plan
+Docs/Requirement/OAS Frontend Design Plan.md
 
 # Node.js / Frontend
 node_modules/
@@ -193,3 +199,7 @@ temp/
 *.swp
 *~
 .DS_Store?
+CLAUDE.md
+.claude/settings.local.json
+frontend/.env.example
+frontend/.claude/settings.local.json

@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Time Slot</title>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" />
+    <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: transparent;
+        }
+
+        .modal-container {
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 100%;
+            max-width: 32rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Time picker custom styling */
+        .time-picker {
+            display: flex;
+            align-items: center;
+        }
+
+        .time-part {
+            width: 3.5rem;
+            text-align: center;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .dark .time-part {
+            border-color: #4b5563;
+            background-color: #374151;
+            color: #e5e7eb;
+        }
+
+        .time-separator {
+            font-weight: bold;
+            padding: 0 0.25rem;
+        }
+
+        .am-pm-toggle {
+            display: flex;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-left: 0.5rem;
+        }
+
+        .dark .am-pm-toggle {
+            border-color: #4b5563;
+        }
+
+        .am-pm-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .am-pm-btn.selected {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .dark .am-pm-btn.selected {
+            background-color: #3b82f6;
+        }
+
+        /* Examiner selection */
+        .examiner-item {
+            transition: background-color 0.2s;
+        }
+
+        .examiner-item:hover {
+            background-color: #f3f4f6;
+        }
+
+        .dark .examiner-item:hover {
+            background-color: #374151;
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+        }
+
+        .status-full {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .dark .status-full {
+            background-color: rgba(6, 95, 70, 0.2);
+            color: #10b981;
+        }
+
+        .status-partial {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .dark .status-partial {
+            background-color: rgba(146, 64, 14, 0.2);
+            color: #f59e0b;
+        }
+
+        .status-empty {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .dark .status-empty {
+            background-color: rgba(185, 28, 28, 0.2);
+            color: #ef4444;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="modal-container bg-white dark:bg-gray-800" id="editTimeSlotModal">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200">Edit Time Slot</h3>
+            <button onclick="window.parent.closeModal('edit')"
+                class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="p-4">
+            <div class="mb-4 flex items-center justify-between">
+                <div class="status-badge status-partial" id="statusBadge">
+                    <i class="fas fa-user-clock mr-1.5"></i>
+                    <span id="statusText">Partially Staffed</span>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <span id="assignedCount">1</span>/<span id="requiredCount">2</span> examiners assigned
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <!-- Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="timeSlotDate"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <!-- Time inputs -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Start Time <span class="text-red-500">*</span>
+                        </label>
+                        <div class="time-picker">
+                            <select id="startTimeHour" class="time-part">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                            </select>
+                            <span class="time-separator">:</span>
+                            <select id="startTimeMinute" class="time-part">
+                                <option value="00">00</option>
+                                <option value="15">15</option>
+                                <option value="30">30</option>
+                                <option value="45">45</option>
+                            </select>
+                            <div class="am-pm-toggle">
+                                <span id="amButton" class="am-pm-btn" onclick="toggleAmPm('AM')">AM</span>
+                                <span id="pmButton" class="am-pm-btn selected" onclick="toggleAmPm('PM')">PM</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Number of Sessions <span class="text-red-500">*</span>
+                        </label>
+                        <div class="flex items-center">
+                            <button onclick="decrementSessions()"
+                                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <input type="number" id="sessionCount" value="3" min="1"
+                                class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                            <button onclick="incrementSessions()"
+                                class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- End time (calculated) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        End Time (calculated)
+                    </label>
+                    <div id="endTimeDisplay"
+                        class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600">
+                        3:30 PM
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Based on 30-minute sessions with 5-minute gaps
+                    </p>
+                </div>
+
+                <!-- Venue -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Venue <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="venueInput" value="ICT Building, Room 203"
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+
+                <!-- Required examiners -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Required Examiners
+                    </label>
+                    <div class="flex items-center">
+                        <button onclick="decrementExaminers()"
+                            class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                        <input type="number" id="requiredExaminers" value="2" min="1"
+                            class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                        <button onclick="incrementExaminers()"
+                            class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">examiners</span>
+                    </div>
+                </div>
+
+                <!-- Current assignments section -->
+                <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Current Assignments</h4>
+                        <div class="flex space-x-2">
+                            <button onclick="clearAllExaminers()"
+                                class="text-xs px-2 py-1 text-red-600 dark:text-red-400 hover:underline">
+                                Clear All
+                            </button>
+                            <button onclick="assignRandomExaminers()"
+                                class="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline">
+                                Auto-assign
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 max-h-48 overflow-y-auto">
+                        <div class="examiner-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="examiner1" class="rounded text-blue-600 mr-3">
+                                <img src="/api/placeholder/24/24" class="w-6 h-6 rounded-full mr-2" alt="Examiner" />
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dr. Emma
+                                    Thompson</span>
+                            </div>
+                            <div
+                                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                2 assignments
+                            </div>
+                        </div>
+
+                        <div class="examiner-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="examiner2" checked class="rounded text-blue-600 mr-3">
+                                <img src="/api/placeholder/24/24" class="w-6 h-6 rounded-full mr-2" alt="Examiner" />
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dr. Michael
+                                    Chen</span>
+                            </div>
+                            <div
+                                class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+                                4 assignments
+                            </div>
+                        </div>
+
+                        <div class="examiner-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="examiner3" class="rounded text-blue-600 mr-3">
+                                <img src="/api/placeholder/24/24" class="w-6 h-6 rounded-full mr-2" alt="Examiner" />
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dr. Sarah
+                                    Johnson</span>
+                            </div>
+                            <div
+                                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                1 assignment
+                            </div>
+                        </div>
+
+                        <div class="examiner-item flex items-center justify-between p-2 rounded-lg">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="examiner4" class="rounded text-blue-600 mr-3">
+                                <img src="/api/placeholder/24/24" class="w-6 h-6 rounded-full mr-2" alt="Examiner" />
+                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Dr. Jennifer
+                                    Lee</span>
+                            </div>
+                            <div
+                                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                                0 assignments
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+            <button onclick="window.parent.closeModal('edit')"
+                class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700">
+                Cancel
+            </button>
+            <button onclick="saveTimeSlot()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                Update Time Slot
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let amPmValue = 'PM';
+        let slotId = null;
+
+        function toggleAmPm(value) {
+            amPmValue = value;
+            if (value === 'AM') {
+                document.getElementById('amButton').classList.add('selected');
+                document.getElementById('pmButton').classList.remove('selected');
+            } else {
+                document.getElementById('amButton').classList.remove('selected');
+                document.getElementById('pmButton').classList.add('selected');
+            }
+            updateEndTime();
+        }
+
+        function incrementSessions() {
+            const sessionsInput = document.getElementById('sessionCount');
+            sessionsInput.value = parseInt(sessionsInput.value) + 1;
+            updateEndTime();
+        }
+
+        function decrementSessions() {
+            const sessionsInput = document.getElementById('sessionCount');
+            if (parseInt(sessionsInput.value) > 1) {
+                sessionsInput.value = parseInt(sessionsInput.value) - 1;
+                updateEndTime();
+            }
+        }
+
+        function incrementExaminers() {
+            const examinersInput = document.getElementById('requiredExaminers');
+            examinersInput.value = parseInt(examinersInput.value) + 1;
+            updateStatus();
+        }
+
+        function decrementExaminers() {
+            const examinersInput = document.getElementById('requiredExaminers');
+            if (parseInt(examinersInput.value) > 1) {
+                examinersInput.value = parseInt(examinersInput.value) - 1;
+                updateStatus();
+            }
+        }
+
+        function updateEndTime() {
+            const hourInput = document.getElementById('startTimeHour');
+            const minuteInput = document.getElementById('startTimeMinute');
+            const sessionsInput = document.getElementById('sessionCount');
+
+            let startHour = parseInt(hourInput.value);
+            const startMinute = parseInt(minuteInput.value);
+            const sessions = parseInt(sessionsInput.value);
+
+            // Convert 12-hour to 24-hour format
+            if (amPmValue === 'PM' && startHour < 12) {
+                startHour += 12;
+            } else if (amPmValue === 'AM' && startHour === 12) {
+                startHour = 0;
+            }
+
+            // Calculate total minutes (30 min per session, 5 min gap between)
+            const sessionLength = 30; // minutes
+            const gapTime = 5; // minutes
+            const totalSessionTime = sessions * sessionLength;
+            const totalGapTime = (sessions - 1) * gapTime;
+            const totalMinutes = totalSessionTime + totalGapTime;
+
+            // Calculate end time
+            let endHour = startHour + Math.floor((startMinute + totalMinutes) / 60);
+            let endMinute = (startMinute + totalMinutes) % 60;
+
+            // Convert back to 12-hour format
+            let endAmPm = 'AM';
+            if (endHour >= 12) {
+                endAmPm = 'PM';
+                if (endHour > 12) {
+                    endHour -= 12;
+                }
+            }
+            if (endHour === 0) {
+                endHour = 12;
+            }
+
+            const endTimeDisplay = document.getElementById('endTimeDisplay');
+            endTimeDisplay.textContent = `${endHour}:${endMinute.toString().padStart(2, '0')} ${endAmPm}`;
+        }
+
+        function updateStatus() {
+            const requiredCount = parseInt(document.getElementById('requiredExaminers').value);
+            const checkboxes = [
+                document.getElementById('examiner1'),
+                document.getElementById('examiner2'),
+                document.getElementById('examiner3'),
+                document.getElementById('examiner4')
+            ];
+
+            const assignedCount = checkboxes.filter(cb => cb.checked).length;
+
+            // Update counts
+            document.getElementById('assignedCount').textContent = assignedCount;
+            document.getElementById('requiredCount').textContent = requiredCount;
+
+            // Update status badge
+            const statusBadge = document.getElementById('statusBadge');
+            const statusText = document.getElementById('statusText');
+
+            statusBadge.classList.remove('status-full', 'status-partial', 'status-empty');
+
+            if (assignedCount === 0) {
+                statusBadge.classList.add('status-empty');
+                statusText.textContent = 'Unstaffed';
+            } else if (assignedCount < requiredCount) {
+                statusBadge.classList.add('status-partial');
+                statusText.textContent = 'Partially Staffed';
+            } else {
+                statusBadge.classList.add('status-full');
+                statusText.textContent = 'Fully Staffed';
+            }
+        }
+
+        function assignRandomExaminers() {
+            // Simple random assignment of examiners
+            const examinerCheckboxes = [
+                document.getElementById('examiner1'),
+                document.getElementById('examiner2'),
+                document.getElementById('examiner3'),
+                document.getElementById('examiner4')
+            ];
+
+            // Clear all
+            examinerCheckboxes.forEach(checkbox => checkbox.checked = false);
+
+            // Get required count
+            const requiredCount = parseInt(document.getElementById('requiredExaminers').value);
+
+            // Randomly select required number of examiners
+            const shuffled = [...examinerCheckboxes].sort(() => 0.5 - Math.random());
+            shuffled.slice(0, requiredCount).forEach(checkbox => checkbox.checked = true);
+
+            updateStatus();
+        }
+
+        function clearAllExaminers() {
+            const examinerCheckboxes = [
+                document.getElementById('examiner1'),
+                document.getElementById('examiner2'),
+                document.getElementById('examiner3'),
+                document.getElementById('examiner4')
+            ];
+
+            examinerCheckboxes.forEach(checkbox => checkbox.checked = false);
+            updateStatus();
+        }
+
+        function saveTimeSlot() {
+            const date = document.getElementById('timeSlotDate').value;
+            const venue = document.getElementById('venueInput').value;
+
+            if (!date || !venue) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            // Get selected examiners
+            const selectedExaminers = [];
+            if (document.getElementById('examiner1').checked) selectedExaminers.push({ id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24' });
+            if (document.getElementById('examiner2').checked) selectedExaminers.push({ id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24' });
+            if (document.getElementById('examiner3').checked) selectedExaminers.push({ id: 3, name: 'Dr. Sarah Johnson', avatar: '/api/placeholder/24/24' });
+            if (document.getElementById('examiner4').checked) selectedExaminers.push({ id: 4, name: 'Dr. Jennifer Lee', avatar: '/api/placeholder/24/24' });
+
+            // Determine status
+            let status = 'empty';
+            if (selectedExaminers.length > 0) {
+                status = selectedExaminers.length >= parseInt(document.getElementById('requiredExaminers').value) ? 'full' : 'partial';
+            }
+
+            // Create time slot data to send to parent
+            const timeSlotData = {
+                id: slotId,
+                date: date,
+                startTime: `${document.getElementById('startTimeHour').value}:${document.getElementById('startTimeMinute').value} ${amPmValue}`,
+                endTime: document.getElementById('endTimeDisplay').textContent,
+                venue: venue,
+                sessions: parseInt(document.getElementById('sessionCount').value),
+                requiredExaminers: parseInt(document.getElementById('requiredExaminers').value),
+                assignedExaminers: selectedExaminers,
+                status: status
+            };
+
+            // Send to parent window and close modal
+            window.parent.updateTimeSlot(timeSlotData);
+            window.parent.closeModal('edit');
+        }
+
+        // Handle checkbox changes
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkboxes = [
+                document.getElementById('examiner1'),
+                document.getElementById('examiner2'),
+                document.getElementById('examiner3'),
+                document.getElementById('examiner4')
+            ];
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateStatus);
+            });
+
+            // Attach event listeners for dynamic updates
+            document.getElementById('startTimeHour').addEventListener('change', updateEndTime);
+            document.getElementById('startTimeMinute').addEventListener('change', updateEndTime);
+            document.getElementById('sessionCount').addEventListener('change', updateEndTime);
+            document.getElementById('requiredExaminers').addEventListener('change', updateStatus);
+
+            // Initialize status
+            updateStatus();
+
+            // Calculate initial end time
+            updateEndTime();
+        });
+
+        // Receive data from parent window
+        window.addEventListener('message', function (event) {
+            if (event.data && event.data.type === 'fillData') {
+                const data = event.data.timeSlotData;
+                if (data) {
+                    slotId = data.id;
+                    document.getElementById('timeSlotDate').value = data.date;
+
+                    // Parse time
+                    const timeParts = data.startTime.split(' ');
+                    const [hour, minute] = timeParts[0].split(':');
+                    document.getElementById('startTimeHour').value = hour;
+                    document.getElementById('startTimeMinute').value = minute;
+                    toggleAmPm(timeParts[1]);
+
+                    document.getElementById('sessionCount').value = data.sessions;
+                    document.getElementById('venueInput').value = data.venue;
+                    document.getElementById('requiredExaminers').value = data.requiredExaminers;
+
+                    // Set assigned examiners
+                    const examinerMap = {
+                        'Dr. Emma Thompson': 'examiner1',
+                        'Dr. Michael Chen': 'examiner2',
+                        'Dr. Sarah Johnson': 'examiner3',
+                        'Dr. Jennifer Lee': 'examiner4'
+                    };
+
+                    // Clear all checkboxes first
+                    clearAllExaminers();
+
+                    // Check the ones that are assigned
+                    if (data.assignedExaminers) {
+                        data.assignedExaminers.forEach(examiner => {
+                            const checkboxId = examinerMap[examiner.name];
+                            if (checkboxId) {
+                                document.getElementById(checkboxId).checked = true;
+                            }
+                        });
+                    }
+
+                    updateStatus();
+                    updateEndTime();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

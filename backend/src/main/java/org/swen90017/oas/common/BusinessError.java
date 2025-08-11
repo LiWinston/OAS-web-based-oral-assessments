@@ -6,7 +6,11 @@ package org.swen90017.oas.common;
  */
 public enum BusinessError implements Error {
     /** Booking validation failed */
-    BOOKING_VALIDATION_FAILED("2001", "Booking validation failed");
+    BOOKING_VALIDATION_FAILED("2001", "Booking validation failed"),
+    CSV_READ_FAILED("2002", "CSV read failed"),
+    CSV_WRITE_FAILED("2003", "CSV write failed"),
+    USER_NOT_FOUND("2004", "User not found"),
+    INVALID_CSV_TYPE("2005", "invalid CSV type"),;
     
     private final String code;
     private final String message;

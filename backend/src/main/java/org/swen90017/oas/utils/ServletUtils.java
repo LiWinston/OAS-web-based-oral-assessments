@@ -432,16 +432,48 @@ public class ServletUtils
         response.setContentType(HttpRequestConstants.CONTENT_TYPE_TEXT_PLAIN);
         response.setCharacterEncoding(Constants.UTF8);
     }
-    
+
     /**
-     * Set cross-origin access control headers
+     * Set cross-origin access control headers.
+     * Recommended to use CorsConfig instead of this manual method.
      *
      * @param response Response object
      */
     public static void setCorsHeaders(HttpServletResponse response) {
-        response.setHeader("Access-Control-Allow-Origin", "*");
-        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        setCorsHeaders(response, "*");
+    }
+
+    /**
+     * Set cross-origin access control headers for a specific origin.
+     *
+     * @param response Response object
+     * @param origin Allowed origin
+     */
+    public static void setCorsHeaders(HttpServletResponse response, String origin) {
+        response.setHeader("Access-Control-Allow-Origin", origin);
+        response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD");
         response.setHeader("Access-Control-Max-Age", "3600");
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+        response.setHeader("Access-Control-Allow-Headers",
+                "Content-Type, Authorization, X-Requested-With, Accept, Origin, " +
+                        "Access-Control-Request-Method, Access-Control-Request-Headers, X-Trace-ID, X-CSRF-TOKEN");
+        response.setHeader("Access-Control-Allow-Credentials", "true");
+        response.setHeader("Access-Control-Expose-Headers",
+                "Authorization, Content-Disposition, X-Trace-ID, Access-Control-Allow-Origin, Access-Control-Allow-Credentials");
+    }
+
+    /**
+     * Set cross-origin access control headers for preflight (OPTIONS) requests.
+     *
+     * @param response Response object
+     * @param request Request object
+     */
+    public static void handlePreflightRequest(HttpServletResponse response, HttpServletRequest request) {
+        String origin = request.getHeader("Origin");
+        if (origin != null) {
+            setCorsHeaders(response, origin);
+        } else {
+            setCorsHeaders(response);
+        }
+        response.setStatus(HttpServletResponse.SC_OK);
     }
 }

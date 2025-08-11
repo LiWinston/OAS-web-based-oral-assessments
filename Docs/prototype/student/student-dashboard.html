@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAS - Student Dashboard</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+
+      /* Custom Classes */
+      .bg-primary {
+        background-color: var(--primary);
+      }
+      .bg-primary-light {
+        background-color: var(--primary-light);
+      }
+      .bg-primary-dark {
+        background-color: var(--primary-dark);
+      }
+      .bg-secondary {
+        background-color: var(--secondary);
+      }
+      .bg-success {
+        background-color: var(--success);
+      }
+      .bg-warning {
+        background-color: var(--warning);
+      }
+      .bg-danger {
+        background-color: var(--danger);
+      }
+
+      .text-primary {
+        color: var(--primary);
+      }
+      .text-primary-light {
+        color: var(--primary-light);
+      }
+      .text-primary-dark {
+        color: var(--primary-dark);
+      }
+      .text-secondary {
+        color: var(--secondary);
+      }
+      .text-success {
+        color: var(--success);
+      }
+      .text-warning {
+        color: var(--warning);
+      }
+      .text-danger {
+        color: var(--danger);
+      }
+
+      .border-primary {
+        border-color: var(--primary);
+      }
+      .border-secondary {
+        border-color: var(--secondary);
+      }
+      .border-success {
+        border-color: var(--success);
+      }
+      .border-warning {
+        border-color: var(--warning);
+      }
+      .border-danger {
+        border-color: var(--danger);
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .dark .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s ease;
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .btn-danger {
+        background-color: var(--danger);
+        color: white;
+        transition: all 0.2s ease;
+      }
+
+      .btn-danger:hover {
+        background-color: #dc2626;
+      }
+
+      /* Time slot styles */
+      .timeslot {
+        transition: all 0.2s ease;
+        border: 2px solid transparent;
+      }
+
+      .timeslot:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .timeslot.selected {
+        border-color: var(--primary);
+        background-color: rgba(37, 99, 235, 0.1);
+      }
+
+      .timeslot.booked {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      /* Calendar date styles */
+      .calendar-date {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        border-radius: 50%;
+        transition: all 0.2s ease;
+      }
+
+      .calendar-date:hover {
+        background-color: #e5e7eb;
+      }
+
+      .calendar-date.active {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      .dark .calendar-date:hover {
+        background-color: #4b5563;
+      }
+
+      /* Badge styles */
+      .badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+      }
+
+      .badge-blue {
+        @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+      }
+
+      .badge-green {
+        @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+      }
+
+      .badge-red {
+        @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+      }
+
+      .badge-yellow {
+        @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+      }
+
+      .badge-purple {
+        @apply bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200;
+      }
+
+      /* Animation for notifications */
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.7;
+        }
+      }
+
+      .pulse-alert {
+        animation: pulse 2s infinite;
+      }
+    </style>
+  </head>
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ darkMode: false, sidebarOpen: true, notificationsOpen: false }"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Student</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Main
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="student-assignments.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tasks mr-2"></i> My Assignments
+          </a>
+          <a
+            href="student-booking-board.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-calendar-alt mr-2"></i> My Bookings
+          </a>
+          <a
+            href="student-groups.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-users mr-2"></i> My Groups
+          </a>
+          <a
+            href="student-results.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-chart-bar mr-2"></i> My Results
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Support
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-question-circle mr-2"></i> Help Center
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-cog mr-2"></i> Settings
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Course selector -->
+            <div class="ml-4 md:ml-0 relative">
+              <select
+                aria-label="Select a course to filter dashboard content"
+                class="w-48 md:w-64 pl-3 pr-10 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none"
+              >
+                <option>All Courses</option>
+                <option>COMP90082 - SPM</option>
+                <option>INFO30005 - Web Info Tech</option>
+                <option>COMP30022 - IT Project</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="pulse-alert absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                  >3</span
+                >
+              </button>
+
+              <!-- Notifications dropdown -->
+              <div
+                x-show="notificationsOpen"
+                @click.away="notificationsOpen = false"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                x-cloak
+              >
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                >
+                  <h3 class="text-sm font-semibold">Notifications</h3>
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >Mark all as read</a
+                  >
+                </div>
+
+                <!-- Notification items -->
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                >
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                      <i class="fas fa-calendar-check text-green-500"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p
+                        class="text-xs font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Booking Confirmed
+                      </p>
+                      <p
+                        class="text-xs text-gray-600 dark:text-gray-300 mt-0.5"
+                      >
+                        Your SPM Final Presentation is booked for April 15, 10:30 AM
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        10 min ago
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                >
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                      <i class="fas fa-exclamation-circle text-yellow-500"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p
+                        class="text-xs font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Upcoming Assessment Reminder
+                      </p>
+                      <p
+                        class="text-xs text-gray-600 dark:text-gray-300 mt-0.5"
+                      >
+                        Web Info Tech presentation tomorrow at 2:00 PM
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        1 hour ago
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                >
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                      <i class="fas fa-users text-blue-500"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p
+                        class="text-xs font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Group Assignment Update
+                      </p>
+                      <p
+                        class="text-xs text-gray-600 dark:text-gray-300 mt-0.5"
+                      >
+                        You've been added to Group 7 for IT Project
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Yesterday
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-2 text-center">
+                  <a
+                    href="student-notifications.html"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >View all notifications</a
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Student Avatar"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Jane Smith
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    Student ID: s123456
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Page title and welcome message -->
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between mb-6"
+          >
+            <div>
+              <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                Student Dashboard
+              </h1>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Welcome back, Jane! Here's what's happening with your assessments.
+              </p>
+            </div>
+
+            <!-- Current semester info -->
+            <div
+              class="mt-4 md:mt-0 px-4 py-2 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg text-sm text-blue-800 dark:text-blue-200 font-medium"
+            >
+              <i class="fas fa-calendar-alt mr-2"></i> Current: 2025 Semester 1
+            </div>
+          </div>
+
+          <!-- Alert banner for important notifications -->
+          <div
+            class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-md shadow-sm dark:bg-yellow-900 dark:bg-opacity-20"
+          >
+            <div class="flex items-start">
+              <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-yellow-500"></i>
+              </div>
+              <div class="ml-3">
+                <h3
+                  class="text-sm font-medium text-yellow-800 dark:text-yellow-300"
+                >
+                  Action Required
+                </h3>
+                <div class="mt-1 text-sm text-yellow-700 dark:text-yellow-200">
+                  <p>
+                    You have 2 upcoming assessments that need booking. The booking deadline is in 3 days.
+                  </p>
+                </div>
+                <div class="mt-2">
+                  <a
+                    href="student-booking-slots.html"
+                    class="text-xs font-medium text-yellow-800 dark:text-yellow-300 hover:underline focus:outline-none"
+                  >
+                    Book now
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Assessment overview cards -->
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6"
+          >
+            <!-- Total assessments -->
+            <div
+              class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p
+                    class="text-sm font-medium text-gray-500 dark:text-gray-400"
+                  >
+                    Total Assessments
+                  </p>
+                  <p
+                    class="text-2xl font-bold text-gray-800 dark:text-gray-200 mt-1"
+                  >
+                    6
+                  </p>
+                </div>
+                <div
+                  class="p-3 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30"
+                >
+                  <i class="fas fa-tasks text-blue-600 dark:text-blue-400"></i>
+                </div>
+              </div>
+              <div class="mt-4">
+                <div class="flex items-center">
+                  <i class="fas fa-chart-line text-blue-500 text-xs mr-1"></i>
+                  <span class="text-xs text-gray-500 dark:text-gray-400"
+                    >Average score: 85%</span
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Two column layout for main content -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left column - 2/3 width -->
+            <div class="lg:col-span-2 space-y-6">
+              <!-- Upcoming Assessments -->
+              <div
+                class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    Your Upcoming Assessments
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Scheduled assessments for this semester
+                  </p>
+                </div>
+                <div class="p-4">
+                  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Assessment 1 -->
+                    <li class="py-4">
+                      <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                          <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">APR</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">15</span>
+                          </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            Software Project Management - Final Presentation
+                          </p>
+                          <div class="mt-1 flex items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-clock mr-1"></i> 10:30 AM - 11:00 AM
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-map-marker-alt mr-1"></i> Room 202, Doug McDonell Building
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-users mr-1"></i> Group Assessment
+                            </span>
+                          </div>
+                          <div class="mt-2 flex">
+                            <span class="badge badge-green">
+                              <i class="fas fa-check-circle mr-1"></i> Booked
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                          <a href="student-assignments-detail.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">View Details</a>
+                        </div>
+                      </div>
+                    </li>
+                    
+                    <!-- Assessment 2 -->
+                    <li class="py-4">
+                      <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                          <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">APR</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">18</span>
+                          </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            Web Information Technology - Progress Evaluation
+                          </p>
+                          <div class="mt-1 flex items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-clock mr-1"></i> 2:00 PM - 2:30 PM
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-map-marker-alt mr-1"></i> Room 105, ICT Building
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-user mr-1"></i> Individual Assessment
+                            </span>
+                          </div>
+                          <div class="mt-2 flex">
+                            <span class="badge badge-red">
+                              <i class="fas fa-exclamation-circle mr-1"></i> Booking Required
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                          <a href="student-booking-slots.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Book Now</a>
+                        </div>
+                      </div>
+                    </li>
+                    
+                    <!-- Assessment 3 -->
+                    <li class="py-4">
+                      <div class="flex items-start space-x-4">
+                        <div class="flex-shrink-0">
+                          <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">APR</span>
+                            <span class="text-xl font-bold text-gray-900 dark:text-white">25</span>
+                          </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                            IT Project - Project Defense
+                          </p>
+                          <div class="mt-1 flex items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-clock mr-1"></i> Time TBD
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-2">
+                              <i class="fas fa-map-marker-alt mr-1"></i> Venue TBD
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-users mr-1"></i> Group Assessment
+                            </span>
+                          </div>
+                          <div class="mt-2 flex">
+                            <span class="badge badge-red">
+                              <i class="fas fa-exclamation-circle mr-1"></i> Booking Required
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0">
+                          <a href="student-booking-slots.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">Book Now</a>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right rounded-b-lg">
+                  <a href="student-assignments.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    View All Assessments <i class="fas fa-arrow-right ml-1"></i>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Recent Results -->
+              <div
+                class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    Recent Results
+                  </h3>
+                  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Your latest assessment results
+                  </p>
+                </div>
+                <div class="p-4">
+                  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Result 1: Network Security Project -->
+                    <li class="py-4">
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                          <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                            Network Security Project
+                          </h4>
+                          <div class="mt-1 flex items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-3">
+                              <i class="fas fa-calendar-day mr-1"></i> Oct 15, 2024
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-network-wired mr-1"></i> COMP30023 - Final Presentation
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center">
+                          <span class="text-2xl font-bold text-gray-800 dark:text-gray-200 mr-2">
+                            92<span class="text-sm">%</span>
+                          </span>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                            A
+                          </span>
+                        </div>
+                      </div>
+                      <div class="mt-2">
+                        <a href="student-results-detail.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                          View Feedback
+                        </a>
+                      </div>
+                    </li>
+                    
+                    <!-- Result 2: Machine Learning Models -->
+                    <li class="py-4">
+                      <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                          <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                            Machine Learning Models
+                          </h4>
+                          <div class="mt-1 flex items-center">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-3">
+                              <i class="fas fa-calendar-day mr-1"></i> Nov 10, 2024
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-brain mr-1"></i> COMP30027 - Final Exam
+                            </span>
+                          </div>
+                        </div>
+                        <div class="flex-shrink-0 flex items-center">
+                          <span class="text-2xl font-bold text-gray-800 dark:text-gray-200 mr-2">
+                            85<span class="text-sm">%</span>
+                          </span>
+                          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                            B+
+                          </span>
+                        </div>
+                      </div>
+                      <div class="mt-2">
+                        <a href="student-results-detail.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                          View Feedback
+                        </a>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-right rounded-b-lg">
+                  <a href="student-results.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                    View All Results <i class="fas fa-arrow-right ml-1"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right column - 1/3 width -->
+            <div class="space-y-6">
+              <!-- My Groups Card -->
+              <div
+                class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                      My Groups
+                    </h3>
+                    <a href="student-groups.html" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                      View All
+                    </a>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <ul class="space-y-3">
+                    <!-- Group 1 -->
+                    <li class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                        SPM - Group 5
+                      </h4>
+                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Software Project Management
+                      </p>
+                      <div class="mt-2 flex -space-x-1 overflow-hidden">
+                        <img src="/api/placeholder/24/24" alt="Member 1" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <img src="/api/placeholder/24/24" alt="Member 2" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <img src="/api/placeholder/24/24" alt="Member 3" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <img src="/api/placeholder/24/24" alt="Member 4" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <div class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
+                          <span class="text-xs font-medium text-gray-500 dark:text-gray-400">+1</span>
+                        </div>
+                      </div>
+                    </li>
+                    
+                    <!-- Group 2 -->
+                    <li class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      <h4 class="text-sm font-medium text-gray-900 dark:text-white">
+                        IT Project - Group 7
+                      </h4>
+                      <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        IT Project
+                      </p>
+                      <div class="mt-2 flex -space-x-1 overflow-hidden">
+                        <img src="/api/placeholder/24/24" alt="Member 1" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <img src="/api/placeholder/24/24" alt="Member 2" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                        <img src="/api/placeholder/24/24" alt="Member 3" class="inline-block h-6 w-6 rounded-full ring-2 ring-white dark:ring-gray-800" />
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Upcoming Events Calendar -->
+              <div
+                class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    April 2025
+                  </h3>
+                </div>
+                <div class="p-4">
+                  <!-- Calendar header -->
+                  <div class="grid grid-cols-7 gap-1 mb-2 text-center">
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Sun</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Mon</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Tue</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Wed</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Thu</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Fri</div>
+                    <div class="text-xs font-medium text-gray-500 dark:text-gray-400">Sat</div>
+                  </div>
+                  
+                  <!-- Calendar grid -->
+                  <div class="grid grid-cols-7 gap-1 text-center">
+                    <!-- Previous month -->
+                    <div class="text-sm text-gray-400 dark:text-gray-600 py-1">30</div>
+                    <div class="text-sm text-gray-400 dark:text-gray-600 py-1">31</div>
+                    
+                    <!-- Current month -->
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">1</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">2</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">3</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">4</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">5</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">6</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">7</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">8</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">9</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">10</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">11</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">12</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">13</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">14</div>
+                    <div class="calendar-date active">15</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">16</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">17</div>
+                    <div class="calendar-date bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-30 text-yellow-800 dark:text-yellow-200 font-medium">18</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">19</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">20</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">21</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">22</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">23</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">24</div>
+                    <div class="calendar-date bg-yellow-50 dark:bg-yellow-900 dark:bg-opacity-30 text-yellow-800 dark:text-yellow-200 font-medium">25</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">26</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">27</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">28</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">29</div>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 py-1">30</div>
+                    
+                    <!-- Next month -->
+                    <div class="text-sm text-gray-400 dark:text-gray-600 py-1">1</div>
+                    <div class="text-sm text-gray-400 dark:text-gray-600 py-1">2</div>
+                    <div class="text-sm text-gray-400 dark:text-gray-600 py-1">3</div>
+                  </div>
+                </div>
+                <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 rounded-b-lg">
+                  <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                      <span class="w-3 h-3 bg-blue-500 rounded-full inline-block mr-1"></span>
+                      <span>Booked</span>
+                    </div>
+                    <div class="flex items-center">
+                      <span class="w-3 h-3 bg-yellow-500 rounded-full inline-block mr-1"></span>
+                      <span>Needs Booking</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Actions Card -->
+              <div
+                class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700"
+              >
+                <div class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+                  <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+                    Quick Actions
+                  </h3>
+                </div>
+                <div class="p-4 grid grid-cols-2 gap-3">
+                  <a href="student-booking-slots.html" class="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-calendar-plus text-blue-600 dark:text-blue-400 text-xl mb-2"></i>
+                    <span class="text-xs text-gray-700 dark:text-gray-300 text-center">Book Assessment</span>
+                  </a>
+                  <a href="student-groups.html" class="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-users text-green-600 dark:text-green-400 text-xl mb-2"></i>
+                    <span class="text-xs text-gray-700 dark:text-gray-300 text-center">View Groups</span>
+                  </a>
+                  <a href="student-results.html" class="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-chart-bar text-purple-600 dark:text-purple-400 text-xl mb-2"></i>
+                    <span class="text-xs text-gray-700 dark:text-gray-300 text-center">View Results</span>
+                  </a>
+                  <a href="#" class="flex flex-col items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-question-circle text-yellow-600 dark:text-yellow-400 text-xl mb-2"></i>
+                    <span class="text-xs text-gray-700 dark:text-gray-300 text-center">Help Center</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400"
+        >
+          &copy; 2025 Oral Assessment System. All rights reserved.
+        </footer>
+      </div>
+    </div>
+
+    <!-- AlpineJS for interactivity -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+      defer
+    ></script>
+  </body>
+</html>

@@ -18,7 +18,9 @@ public enum UserRole {
     /**
      * Student role
      */
-    STUDENT("ROLE_STUDENT", "Student");
+    STUDENT("ROLE_STUDENT", "Student"),
+
+    SUPER_ADMIN("ROLE_SUPER_ADMIN", "Super Administrator");
     
     private final String code;
     private final String desc;

@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OAS - Book Assessment Slot</title>
+  <!-- External CSS Libraries -->
+  <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" />
+  <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* Custom Variables */
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --secondary: #4f46e5;
+      --tertiary: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --light: #f3f4f6;
+      --dark: #1f2937;
+      --text-dark: #1f2937;
+      --text-light: #f9fafb;
+      --bg-light: #ffffff;
+      --bg-dark: #111827;
+      --card-light: #ffffff;
+      --card-dark: #1f2937;
+    }
+
+    /* Light/Dark mode transitions */
+    body,
+    .sidebar,
+    .dashboard-card,
+    .header,
+    .sidebar-link,
+    input,
+    select,
+    button {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Dark mode variables */
+    .dark {
+      --primary: #3b82f6;
+      --primary-light: #60a5fa;
+      --primary-dark: #2563eb;
+      --secondary: #6366f1;
+      --light: #212529;
+      --dark: #f8f9fa;
+    }
+
+    /* Custom Element Styles */
+    body {
+      font-family: "Inter", sans-serif;
+      background-color: var(--light);
+      color: var(--text-dark);
+    }
+
+    .dark body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+    }
+
+    .dashboard-card {
+      background-color: white;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      border: 1px solid var(--light);
+    }
+
+    .dark .dashboard-card {
+      background-color: var(--card-dark);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+      border-color: #374151;
+    }
+
+    .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .dark .dashboard-card:hover {
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .btn-outline-primary {
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      transition: all 0.2s ease;
+    }
+
+    .btn-outline-primary:hover {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Time slot styles */
+    .timeslot {
+      transition: all 0.2s ease;
+      border: 2px solid transparent;
+    }
+
+    .timeslot:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeslot.selected {
+      border-color: var(--primary);
+      background-color: rgba(37, 99, 235, 0.1);
+    }
+
+    .timeslot.booked {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* Calendar date styles */
+    .calendar-date-base {
+      /* New base class for all dates in the grid */
+      /* width: 40px; */
+      /* Ensuring width and height are consistent - REMOVED to allow full cell width */
+      height: 40px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s ease;
+      font-size: 1rem;
+      /* Increased font size from 0.875rem (text-sm) to 1rem (text-base) */
+    }
+
+    .calendar-date-other-month {
+      color: #9ca3af;
+      /* gray-400 */
+    }
+
+    .dark .calendar-date-other-month {
+      color: #4b5563;
+      /* dark:gray-600 */
+    }
+
+    .calendar-date-unavailable {
+      /* For current month, non-interactive dates */
+      background-color: #f3f4f6;
+      /* gray-100 */
+      color: #6b7280;
+      /* gray-500 */
+      border-radius: 0.375rem;
+      /* rounded-md */
+      cursor: not-allowed;
+    }
+
+    .dark .calendar-date-unavailable {
+      background-color: #374151;
+      /* dark:bg-gray-700 */
+      color: #9ca3af;
+      /* dark:text-gray-400 */
+    }
+
+    .calendar-date {
+      /* For available, clickable dates */
+      background-color: #eff6ff;
+      /* Tailwind's blue-50, a very light blue */
+      color: #3b82f6;
+      /* Tailwind's blue-500 */
+      border-radius: 0.375rem;
+      /* rounded-md for rectangular shape */
+      cursor: pointer;
+      font-weight: 500;
+      /* medium */
+      border: 1px solid #dbeafe;
+      /* Tailwind's blue-200 for a light border */
+    }
+
+    .calendar-date:hover {
+      background-color: #dbeafe;
+      /* Tailwind's blue-200 */
+      border-color: #93c5fd;
+      /* Tailwind's blue-300 */
+    }
+
+    .dark .calendar-date {
+      background-color: #1e3a8a;
+      /* Tailwind's blue-800 for dark mode available */
+      color: #dbeafe;
+      /* Tailwind's blue-200 for dark mode text */
+      border-color: #1d4ed8;
+      /* Tailwind's blue-700 for dark mode border */
+    }
+
+    .dark .calendar-date:hover {
+      background-color: #1c3578;
+      /* Slightly darker blue-800 */
+    }
+
+    .calendar-date.active {
+      /* For selected available date */
+      background-color: #2563eb;
+      /* Tailwind's blue-600 (primary blue) */
+      color: white;
+      border-color: #1d4ed8;
+      /* Tailwind's blue-700 */
+      box-shadow: 0 0 0 2px white, 0 0 0 4px #2563eb;
+      /* primary color (e.g., darker blue) */
+    }
+
+    .dark .calendar-date.active {
+      background-color: #3b82f6;
+      /* Tailwind's blue-500 for dark mode selected */
+      border-color: #2563eb;
+      /* Tailwind's blue-600 */
+      box-shadow: 0 0 0 2px var(--bg-dark), 0 0 0 4px #3b82f6;
+    }
+
+    /* Badge styles */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+
+    .badge-green {
+      background-color: #10b98118;
+      color: #047857;
+    }
+
+    .badge-blue {
+      background-color: #3b82f618;
+      color: #1d4ed8;
+    }
+
+    .badge-red {
+      background-color: #ef444418;
+      color: #b91c1c;
+    }
+
+    .dark .badge-green {
+      background-color: #047857;
+      color: #d1fae5;
+    }
+
+    .dark .badge-blue {
+      background-color: #1d4ed8;
+      color: #dbeafe;
+    }
+
+    .dark .badge-red {
+      background-color: #b91c1c;
+      color: #fee2e2;
+    }
+
+    /* Step indicator styles */
+    .step {
+      display: flex;
+      align-items: center;
+    }
+
+    .step-number {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background-color: #e5e7eb;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+
+    .step.active .step-number {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .step-label {
+      margin-left: 0.75rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .step.active .step-label {
+      color: #1f2937;
+      font-weight: 500;
+    }
+
+    .dark .step-number {
+      background-color: #374151;
+      color: #9ca3af;
+    }
+
+    .dark .step.active .step-number {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .dark .step-label {
+      color: #9ca3af;
+    }
+
+    .dark .step.active .step-label {
+      color: #f9fafb;
+    }
+
+    .step-connector {
+      flex: 1;
+      height: 2px;
+      background-color: #e5e7eb;
+      margin: 0 0.5rem;
+    }
+
+    .dark .step-connector {
+      background-color: #374151;
+    }
+
+    .step.active+.step-connector,
+    .step.completed+.step-connector {
+      background-color: var(--primary);
+    }
+
+    /* Tooltip styles */
+    [data-tooltip] {
+      position: relative;
+      cursor: help;
+    }
+
+    [data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #1f2937;
+      color: white;
+      padding: 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      z-index: 10;
+      margin-bottom: 0.5rem;
+    }
+
+    .dark [data-tooltip]:hover::after {
+      background-color: #f9fafb;
+      color: #1f2937;
+    }
+  </style>
+</head>
+
+<body class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+  x-data="{ darkMode: false, sidebarOpen: true, notificationsOpen: false, currentStep: 1, selectedDate: null, selectedSession: null, bookingType: 'group' }">
+  <!-- Main container -->
+  <div class="min-h-screen flex flex-col md:flex-row">
+    <!-- Sidebar navigation -->
+    <aside
+      class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+      :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}" id="sidebar">
+      <!-- Logo and system name -->
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center space-x-2">
+          <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">OAS</span>
+          <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Student</span>
+        </div>
+        <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+          @click="sidebarOpen = false" aria-label="Close sidebar">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Navigation links -->
+      <nav class="py-4">
+        <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          Main
+        </div>
+        <a href="student-dashboard.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+        </a>
+        <a href="student-assignments.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-tasks mr-2"></i> My Assignments
+        </a>
+        <a href="student-booking-board.html"
+          class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium">
+          <i class="fas fa-calendar-alt mr-2"></i> My Bookings
+        </a>
+        <a href="student-groups.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-users mr-2"></i> My Groups
+        </a>
+        <a href="student-results.html"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-chart-bar mr-2"></i> My Results
+        </a>
+
+        <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+          Support
+        </div>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-question-circle mr-2"></i> Help Center
+        </a>
+        <a href="#"
+          class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+          <i class="fas fa-cog mr-2"></i> Settings
+        </a>
+      </nav>
+
+      <!-- Version info -->
+      <div class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+        Oral Assessment System v1.2.0
+      </div>
+    </aside>
+
+    <!-- Main content area -->
+    <div class="flex-1 flex flex-col">
+      <!-- Top header with user info and actions -->
+      <header class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6">
+        <!-- Mobile menu toggle -->
+        <div class="flex items-center">
+          <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = true" aria-label="Open sidebar">
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+
+        <!-- Right side - user profile, notifications, etc. -->
+        <div class="flex items-center space-x-4">
+          <!-- Dark mode toggle -->
+          <button @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            aria-label="Toggle dark mode">
+            <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+            <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+          </button>
+
+          <!-- Notifications -->
+          <div class="relative">
+            <button @click="notificationsOpen = !notificationsOpen"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+              aria-label="Notifications">
+              <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+              <span
+                class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white">3</span>
+            </button>
+
+            <!-- Notifications dropdown -->
+            <div x-show="notificationsOpen" @click.away="notificationsOpen = false"
+              class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+              x-cloak>
+              <!-- Notification content similar to dashboard -->
+            </div>
+          </div>
+
+          <!-- User profile -->
+          <div class="relative">
+            <button
+              class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="User profile">
+              <img src="/api/placeholder/32/32" alt="Student Avatar" class="w-8 h-8 rounded-full" />
+              <div class="hidden md:block text-left">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Jane Smith
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Student ID: s123456
+                </div>
+              </div>
+              <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main content -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900">
+        <!-- Breadcrumb -->
+        <div class="mb-4">
+          <nav class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+            <ol class="flex items-center space-x-2">
+              <li class="flex items-center">
+                <a href="student-dashboard.html"
+                  class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center">
+                  <span class="text-sm text-gray-600 dark:text-gray-300">Dashboard</span>
+                </a>
+              </li>
+              <li class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                <a href="student-booking-board.html"
+                  class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                  My Bookings
+                </a>
+              </li>
+              <li class="flex items-center">
+                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                <span class="text-blue-600 dark:text-blue-400 font-medium">
+                  Book Assessment Slot
+                </span>
+              </li>
+            </ol>
+          </nav>
+        </div>
+
+        <!-- Page title and info -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+              Book Assessment Slot
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              Web Information Technology - Progress Evaluation
+            </p>
+          </div>
+
+          <div class="mt-4 md:mt-0">
+            <span
+              class="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 rounded-full">
+              <i class="fas fa-clock mr-1"></i> Booking closes in 3 days
+            </span>
+          </div>
+        </div>
+
+        <!-- Booking progress steps -->
+        <div
+          class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 mb-6">
+          <div class="flex items-center justify-between">
+            <!-- Step 1 -->
+            <div class="step" :class="{ 'active': currentStep >= 1, 'completed': currentStep > 1 }">
+              <div class="step-number">1</div>
+              <div class="step-label">Select Date</div>
+            </div>
+
+            <!-- Connector -->
+            <div class="step-connector" :class="{ 'bg-blue-500 dark:bg-blue-500': currentStep > 1 }"></div>
+
+            <!-- Step 2 -->
+            <div class="step" :class="{ 'active': currentStep >= 2, 'completed': currentStep > 2 }">
+              <div class="step-number">2</div>
+              <div class="step-label">Choose Session</div>
+            </div>
+
+            <!-- Connector -->
+            <div class="step-connector" :class="{ 'bg-blue-500 dark:bg-blue-500': currentStep > 2 }"></div>
+
+            <!-- Step 3 -->
+            <div class="step" :class="{ 'active': currentStep >= 3, 'completed': currentStep > 3 }">
+              <div class="step-number">3</div>
+              <div class="step-label">Confirm Booking</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Select Date -->
+        <div x-show="currentStep === 1">
+          <div
+            class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 mb-6">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              Select a Date
+            </h2>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Choose an available date for your assessment. Dates with available time slots are highlighted.
+            </p>
+
+            <!-- Calendar Header -->
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                <i class="fas fa-calendar-alt mr-2 text-blue-600 dark:text-blue-400"></i>April 2025
+              </h3>
+              <div class="flex space-x-1">
+                <button class="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                  aria-label="Previous month">
+                  <i class="fas fa-chevron-left text-sm text-gray-600 dark:text-gray-400"></i>
+                </button>
+                <button class="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                  aria-label="Next month">
+                  <i class="fas fa-chevron-right text-sm text-gray-600 dark:text-gray-400"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Unified Calendar view -->
+            <div class="grid grid-cols-7 gap-1 text-center mb-6">
+              <!-- Day Headers -->
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Sun</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Mon</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Tue</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Wed</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Thu</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Fri</div>
+              <div class="text-xs font-medium text-gray-500 dark:text-gray-400 py-2">Sat</div>
+
+              <!-- Dates -->
+              <!-- Previous month -->
+              <div class="calendar-date-base calendar-date-other-month">30</div>
+              <div class="calendar-date-base calendar-date-other-month">31</div>
+
+              <!-- Current month -->
+              <div class="calendar-date-base calendar-date-unavailable">1</div>
+              <div class="calendar-date-base calendar-date-unavailable">2</div>
+              <div class="calendar-date-base calendar-date-unavailable">3</div>
+              <div class="calendar-date-base calendar-date-unavailable">4</div>
+              <div class="calendar-date-base calendar-date-unavailable">5</div>
+
+              <div class="calendar-date-base calendar-date-unavailable">6</div>
+              <div class="calendar-date-base calendar-date-unavailable">7</div>
+              <div class="calendar-date-base calendar-date-unavailable">8</div>
+              <div class="calendar-date-base calendar-date-unavailable">9</div>
+              <div class="calendar-date-base calendar-date-unavailable">10</div>
+              <div class="calendar-date-base calendar-date-unavailable">11</div>
+              <div class="calendar-date-base calendar-date-unavailable">12</div>
+
+              <div class="calendar-date-base calendar-date-unavailable">13</div>
+              <div class="calendar-date-base calendar-date-unavailable">14</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '15' }"
+                @click="selectedDate = '15'">15</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '16' }"
+                @click="selectedDate = '16'">16</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '17' }"
+                @click="selectedDate = '17'">17</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '18' }"
+                @click="selectedDate = '18'">18</div>
+              <div class="calendar-date-base calendar-date-unavailable">19</div>
+
+              <div class="calendar-date-base calendar-date-unavailable">20</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '21' }"
+                @click="selectedDate = '21'">21</div>
+              <div class="calendar-date-base calendar-date cursor-pointer" :class="{ 'active': selectedDate === '22' }"
+                @click="selectedDate = '22'">22</div>
+              <div class="calendar-date-base calendar-date-unavailable">23</div>
+              <div class="calendar-date-base calendar-date-unavailable">24</div>
+              <div class="calendar-date-base calendar-date-unavailable">25</div>
+              <div class="calendar-date-base calendar-date-unavailable">26</div>
+
+              <!-- Next month -->
+              <div class="calendar-date-base calendar-date-other-month">27</div>
+              <div class="calendar-date-base calendar-date-other-month">28</div>
+              <div class="calendar-date-base calendar-date-other-month">29</div>
+              <div class="calendar-date-base calendar-date-other-month">30</div>
+              <div class="calendar-date-base calendar-date-other-month">1</div>
+              <div class="calendar-date-base calendar-date-other-month">2</div>
+              <div class="calendar-date-base calendar-date-other-month">3</div>
+            </div>
+
+            <div class="flex items-center space-x-4 text-xs text-gray-600 dark:text-gray-400 mb-4">
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-blue-500 rounded-full mr-1"></div>
+                <span>Available</span>
+              </div>
+              <div class="flex items-center">
+                <div class="w-3 h-3 bg-gray-300 dark:bg-gray-600 rounded-full mr-1"></div>
+                <span>Full</span>
+              </div>
+              <div class="flex items-center">
+                <div
+                  class="w-3 h-3 bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-300 dark:border-gray-600 mr-1">
+                </div>
+                <span>Past/Unavailable</span>
+              </div>
+            </div>
+
+            <div x-show="selectedDate"
+              class="p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-md flex items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-gray-800 dark:text-white">
+                  Selected Date: April <span x-text="selectedDate"></span>, 2025
+                </span>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  <span
+                    x-text="selectedDate === '15' ? '8 slots available' : selectedDate === '16' ? '5 slots available' : selectedDate === '17' ? '3 slots available' : selectedDate === '18' ? '6 slots available' : selectedDate === '21' ? '4 slots available' : '7 slots available'"></span>
+                </p>
+              </div>
+              <button @click="currentStep = 2"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                :disabled="!selectedDate">
+                Next: Choose Session
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Choose Session -->
+        <div x-show="currentStep === 2">
+          <div
+            class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                Choose a Session
+              </h2>
+              <button @click="currentStep = 1"
+                class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Calendar
+              </button>
+            </div>
+
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              April <span x-text="selectedDate"></span>, 2025 - Available sessions
+            </p>
+
+            <!-- Filters -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label for="venue-filter"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Venue</label>
+                <select id="venue-filter" name="venue-filter"
+                  class="mt-1 block w-full py-2 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:text-gray-200">
+                  <option>All Venues</option>
+                  <option>Main Hall</option>
+                  <option>Room A101</option>
+                  <option>Room B203</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <!-- Time slot 1 -->
+                <div class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer"
+                  :class="{ 'selected': selectedSession === '9:00 AM' }" @click="selectedSession = '9:00 AM'">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      9:00 AM
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                      30 minutes
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Time slot 2 -->
+                <div class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer"
+                  :class="{ 'selected': selectedSession === '10:00 AM' }" @click="selectedSession = '10:00 AM'">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      10:00 AM
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                      30 minutes
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Time slot 3 -->
+                <div class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer"
+                  :class="{ 'selected': selectedSession === '11:00 AM' }" @click="selectedSession = '11:00 AM'">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      11:00 AM
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                      30 minutes
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Time slot 4 (Booked example) -->
+                <div
+                  class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md booked bg-gray-100 dark:bg-gray-700">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-500 dark:text-gray-400">
+                      11:30 AM
+                    </span>
+                    <span class="text-xs text-red-500 dark:text-red-400 font-semibold">Booked</span>
+                  </div>
+                </div>
+
+                <!-- Time slot 5 -->
+                <div class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer"
+                  :class="{ 'selected': selectedSession === '1:00 PM' }" @click="selectedSession = '1:00 PM'">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      1:00 PM
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                      30 minutes
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Time slot 6 -->
+                <div class="timeslot p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer"
+                  :class="{ 'selected': selectedSession === '2:00 PM' }" @click="selectedSession = '2:00 PM'">
+                  <div class="flex justify-between items-center">
+                    <span class="font-medium text-gray-800 dark:text-gray-200">
+                      2:00 PM
+                    </span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                      30 minutes
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <div x-show="selectedSession"
+              class="p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-md flex items-center justify-between">
+              <div>
+                <span class="text-sm font-medium text-gray-800 dark:text-white">
+                  Selected Slot: <span x-text="selectedSession"></span> on April <span x-text="selectedDate"></span>,
+                  2025
+                </span>
+                <p class="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Ensure this time works for all group members if applicable.
+                </p>
+              </div>
+              <button @click="currentStep = 3"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                :disabled="!selectedSession">
+                Next: Confirm Booking
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Confirm Booking -->
+        <div x-show="currentStep === 3">
+          <div
+            class="dashboard-card bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700 mb-6">
+            <div class="flex justify-between items-center mb-4">
+              <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                Confirm Your Booking
+              </h2>
+              <button @click="currentStep = 2"
+                class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                <i class="fas fa-arrow-left mr-1"></i> Back to Sessions
+              </button>
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-6">
+              <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">Booking Summary:</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p class="text-gray-500 dark:text-gray-400">Assessment:</p>
+                  <p class="text-gray-800 dark:text-gray-200 font-medium">Web Information Technology - Progress
+                    Evaluation</p>
+                </div>
+                <div>
+                  <p class="text-gray-500 dark:text-gray-400">Date:</p>
+                  <p class="text-gray-800 dark:text-gray-200 font-medium">April <span x-text="selectedDate"></span>,
+                    2025</p>
+                </div>
+                <div>
+                  <p class="text-gray-500 dark:text-gray-400">Session Time:</p>
+                  <p class="text-gray-800 dark:text-gray-200 font-medium"><span x-text="selectedSession"></span> - <span
+                      x-text="selectedSession ? (parseInt(selectedSession.split(':')[0]) + (selectedSession.includes('PM') && parseInt(selectedSession.split(':')[0]) !== 12 ? 12 : 0)) % 24 + ':' + (parseInt(selectedSession.split(':')[1].substring(0,2)) + 30) % 60 : ''"></span>
+                    <span
+                      x-text="selectedSession ? (parseInt(selectedSession.split(':')[1].substring(0,2)) + 30 >= 60 ? (selectedSession.includes('AM') ? (parseInt(selectedSession.split(':')[0]) + 1 >=12 ? 'PM' : 'AM') : (parseInt(selectedSession.split(':')[0]) + 1 >= 12 ? 'AM' : 'PM')) : selectedSession.substring(selectedSession.length - 2)) : ''"></span>
+                    (30 mins)
+                  </p>
+                </div>
+                <div>
+                  <p class="text-gray-500 dark:text-gray-400">Booking Type:</p>
+                  <p class="text-gray-800 dark:text-gray-200 font-medium capitalize" x-text="bookingType"></p>
+                </div>
+                <div>
+                  <p class="text-gray-500 dark:text-gray-400">Venue:</p>
+                  <p class="text-gray-800 dark:text-gray-200 font-medium">Main Hall</p>
+                </div>
+                <div x-show="bookingType === 'group'" class="md:col-span-2">
+                  <p class="text-gray-500 dark:text-gray-400">Group Members (Example):</p>
+                  <ul class="list-disc list-inside text-gray-800 dark:text-gray-200 font-medium">
+                    <li>Jane Smith (s123456)</li>
+                    <li>John Doe (s654321)</li>
+                    <li>Alice Brown (s789012)</li>
+                  </ul>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This booking will apply to all members of
+                    your assigned group for this assessment.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="mb-4">
+              <label class="flex items-center text-sm text-gray-700 dark:text-gray-300">
+                <input type="checkbox"
+                  class="form-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded mr-2" required>
+                I confirm that all details are correct and I understand the assessment policies.
+              </label>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+              <button @click="currentStep = 2"
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                Cancel
+              </button>
+              <button @click="window.location.href='booking-confirmation-html.html'"
+                class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                <i class="fas fa-check-circle mr-2"></i>Confirm & Book Session
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- AlpineJS for interactivity -->
+  <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+</body>
+
+</html>

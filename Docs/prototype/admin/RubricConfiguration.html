@@ -1,0 +1,3523 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rubric Builder | OAS Admin</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #4f46e5;
+        --primary-dark: #4338ca;
+        --primary-light: #818cf8;
+        --secondary: #6366f1;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f8fafc;
+        --dark: #1e293b;
+        --text-dark: #1e293b;
+        --text-light: #f8fafc;
+        --text-muted: #64748b;
+        --bg-light: #ffffff;
+        --bg-dark: #0f172a;
+        --card-light: #ffffff;
+        --card-dark: #1e293b;
+        --border-light: #e2e8f0;
+        --border-dark: #334155;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+          0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+          0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        --radius-sm: 0.25rem;
+        --radius: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button,
+      textarea {
+        transition: all 0.3s ease;
+      }
+
+      /* Base styles */
+      body {
+        font-family: var(--font-sans);
+        background-color: var(--light);
+        color: var(--text-dark);
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: var(--radius-sm);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #1e293b;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      /* Dashboard Card */
+      .dashboard-card {
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: var(--shadow);
+        border-color: var(--border-dark);
+      }
+
+      .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+      }
+
+      /* Buttons */
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+        font-weight: 500;
+        border-radius: var(--radius);
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-1px);
+      }
+
+      .btn-primary:active {
+        transform: translateY(1px);
+      }
+
+      .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s ease;
+        font-weight: 500;
+        border-radius: var(--radius);
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary);
+        color: white;
+        transform: translateY(-1px);
+      }
+
+      .btn-outline-primary:active {
+        transform: translateY(1px);
+      }
+
+      /* Form elements */
+      .form-control {
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.15s ease;
+      }
+
+      .form-control:focus {
+        border-color: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+        outline: none;
+      }
+
+      .dark .form-control {
+        background-color: #1e293b;
+        border-color: var(--border-dark);
+        color: var(--text-light);
+      }
+
+      .dark .form-control:focus {
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
+      }
+
+      /* Criteria card refinements */
+      .criteria-card {
+        background-color: white;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        border-left: 4px solid var(--primary);
+        margin-bottom: 1.25rem;
+        overflow: hidden;
+      }
+
+      .dark .criteria-card {
+        background-color: var(--card-dark);
+        box-shadow: var(--shadow);
+      }
+
+      .criteria-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+
+      .criteria-handle {
+        cursor: move;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-sm);
+        color: var(--text-muted);
+      }
+
+      .criteria-handle:hover {
+        background-color: #f1f5f9;
+        color: var(--primary);
+      }
+
+      .dark .criteria-handle:hover {
+        background-color: #334155;
+      }
+
+      /* Rating Grid - Enhanced */
+      .rating-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius);
+        overflow: hidden;
+        gap: 1px;
+        background-color: var(--border-light);
+      }
+
+      .dark .rating-grid {
+        border-color: var(--border-dark);
+        background-color: var(--border-dark);
+      }
+
+      .rating-cell {
+        padding: 0.75rem;
+        text-align: center;
+        background-color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        border: 2px solid transparent;
+      }
+
+      .dark .rating-cell {
+        background-color: var(--card-dark);
+      }
+
+      .rating-cell:hover {
+        background-color: #f8fafc;
+      }
+
+      .dark .rating-cell:hover {
+        background-color: #334155;
+      }
+
+      .rating-cell.selected {
+        background-color: #eff6ff;
+        border-color: var(--primary);
+      }
+
+      .dark .rating-cell.selected {
+        background-color: rgba(79, 70, 229, 0.2);
+      }
+
+      .rating-value {
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+      }
+
+      .rating-description {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.25;
+      }
+
+      /* Selection indicator - Refined */
+      .selection-indicator {
+        position: absolute;
+        bottom: -1px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid var(--primary);
+        display: none;
+      }
+
+      .rating-cell.selected .selection-indicator {
+        display: block;
+      }
+
+      /* Comment Section */
+      .comment-section {
+        display: none;
+        padding: 1rem;
+        background-color: #f8fafc;
+        border-top: 1px solid var(--border-light);
+        border-radius: 0 0 var(--radius) var(--radius);
+      }
+
+      .dark .comment-section {
+        background-color: #1e293b;
+        border-color: var(--border-dark);
+      }
+
+      .comment-section.active {
+        display: block;
+      }
+
+      /* Comment toggle button */
+      .comment-toggle {
+        background-color: white;
+        border: 1px solid var(--border-light);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-muted);
+      }
+
+      .dark .comment-toggle {
+        background-color: #334155;
+        border-color: var(--border-dark);
+        color: #94a3b8;
+      }
+
+      .comment-toggle:hover {
+        background-color: #f8fafc;
+        color: var(--primary);
+      }
+
+      .dark .comment-toggle:hover {
+        background-color: #475569;
+        color: var(--primary-light);
+      }
+
+      .comment-toggle.active {
+        background-color: var(--primary);
+        color: white;
+        border-color: var(--primary-dark);
+      }
+
+      .dark .comment-toggle.active {
+        border-color: var(--primary-light);
+      }
+
+      /* Level color indicators - Refined */
+      .level-color-outstanding,
+      .scale-excellent {
+        border-left: 4px solid var(--success);
+      }
+
+      .level-color-verygood,
+      .scale-good {
+        border-left: 4px solid var(--primary);
+      }
+
+      .level-color-good,
+      .scale-satisfactory {
+        border-left: 4px solid var(--warning);
+      }
+
+      .level-color-needsimprovement,
+      .scale-needs-improvement {
+        border-left: 4px solid var(--danger);
+      }
+
+      /* Rubric Table - Enhanced */
+      .rubric-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .dark .rubric-table {
+        border-color: var(--border-dark);
+      }
+
+      .rubric-table th {
+        background-color: #f8fafc;
+        color: var(--text-dark);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border-light);
+      }
+
+      .dark .rubric-table th {
+        background-color: #334155;
+        color: var(--text-light);
+        border-color: var(--border-dark);
+      }
+
+      .rubric-table td {
+        padding: 1rem;
+        font-size: 0.875rem;
+        border-bottom: 1px solid var(--border-light);
+        vertical-align: top;
+      }
+
+      .dark .rubric-table td {
+        border-color: var(--border-dark);
+      }
+
+      /* Toggle switch refinements */
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 44px;
+        height: 22px;
+      }
+
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #cbd5e1;
+        transition: 0.3s;
+        border-radius: 22px;
+      }
+
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      input:checked + .toggle-slider {
+        background-color: var(--primary);
+      }
+
+      input:checked + .toggle-slider:before {
+        transform: translateX(22px);
+      }
+
+      /* Modal refinements */
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(15, 23, 42, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        backdrop-filter: blur(4px);
+      }
+
+      .modal-backdrop.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .modal-content {
+        background-color: white;
+        border-radius: var(--radius-lg);
+        width: 100%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        transform: translateY(-20px) scale(0.95);
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .dark .modal-content {
+        background-color: var(--card-dark);
+      }
+
+      .modal-backdrop.show .modal-content {
+        transform: translateY(0) scale(1);
+      }
+
+      /* Animations for interactive elements */
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      .btn-primary:focus {
+        animation: pulse 0.5s ease-in-out;
+      }
+
+      /* Drag & drop styling - Enhanced */
+      .dragging {
+        opacity: 0.7;
+        transform: scale(1.02);
+        box-shadow: var(--shadow-lg);
+      }
+
+      .drag-over {
+        border: 2px dashed var(--primary);
+        background-color: rgba(79, 70, 229, 0.05);
+      }
+
+      /* Animation for criteria reordering */
+      @keyframes highlight {
+        0% {
+          background-color: rgba(59, 130, 246, 0.1);
+        }
+        100% {
+          background-color: transparent;
+        }
+      }
+
+      .criteria-highlight {
+        animation: highlight 1s ease;
+      }
+
+      /* Scale colorization */
+      .scale-indicator {
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 4px;
+      }
+
+      /* Hide number input arrows */
+      /* Chrome, Safari, Edge, Opera */
+      input[type="number"]::-webkit-inner-spin-button,
+      input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* Firefox */
+      input[type="number"] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ darkMode: false, sidebarOpen: true, notificationsOpen: false }"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Admin</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            MAIN
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tasks mr-2"></i> Assignments
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-users mr-2"></i> Users
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-book mr-2"></i> Courses
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            CONFIGURATION
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-cog mr-2"></i> Settings
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-bell mr-2"></i> Notifications
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            HELP
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-book-open mr-2"></i> Documentation
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-headset mr-2"></i> Support
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Search box -->
+            <div class="ml-4 md:ml-0 relative">
+              <span
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <i class="fas fa-search text-gray-400"></i>
+              </span>
+              <input
+                type="text"
+                placeholder="Search for rubrics..."
+                class="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none"
+                aria-label="Search"
+              />
+            </div>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                  >2</span
+                >
+              </button>
+
+              <!-- Notifications dropdown -->
+              <div
+                x-show="notificationsOpen"
+                @click.away="notificationsOpen = false"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                x-cloak
+              >
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                >
+                  <h3 class="text-sm font-semibold">Notifications</h3>
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >Mark all as read</a
+                  >
+                </div>
+
+                <!-- Notification items -->
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                >
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                      <i class="fas fa-clipboard-check text-green-500"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p
+                        class="text-xs font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Rubric Published
+                      </p>
+                      <p
+                        class="text-xs text-gray-600 dark:text-gray-300 mt-0.5"
+                      >
+                        "Speaking Assessment Rubric" is now published and
+                        available for use
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        30 min ago
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                >
+                  <div class="flex items-start">
+                    <div class="flex-shrink-0 pt-0.5">
+                      <i class="fas fa-exclamation-circle text-red-500"></i>
+                    </div>
+                    <div class="ml-3 w-0 flex-1">
+                      <p
+                        class="text-xs font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Incomplete Rubric
+                      </p>
+                      <p
+                        class="text-xs text-gray-600 dark:text-gray-300 mt-0.5"
+                      >
+                        "Presentation Skills Rubric" is incomplete and requires
+                        configuration
+                      </p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        2 hours ago
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-2 text-center">
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >View all notifications</a
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Admin User"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Administrator
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    System Admin
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Breadcrumb Navigation -->
+          <div class="mb-4">
+            <nav
+              class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3"
+            >
+              <ol class="flex items-center space-x-2">
+                <li class="flex items-center">
+                  <a
+                    href="AdministratorDashboard.html"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center"
+                  >
+                    <span
+                      class="font-bold text-blue-600 dark:text-blue-400 mr-1"
+                      >OAS</span
+                    >
+                    <span class="text-sm text-gray-600 dark:text-gray-300"
+                      >Dashboard</span
+                    >
+                  </a>
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="CourseCreation.html"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    >Courses</a
+                  >
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <a
+                    href="AssignmentConfiguration.html"
+                    id="assignmentBreadcrumb"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                    >Course Assignments</a
+                  >
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <span
+                    class="text-blue-600 dark:text-blue-400 font-medium"
+                    id="rubricBreadcrumb"
+                    >Assignment Rubrics</span
+                  >
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Page Header -->
+          <div
+            class="flex flex-col md:flex-row md:items-center justify-between mb-6"
+          >
+            <div>
+              <h1
+                class="text-2xl font-bold text-gray-800 dark:text-gray-200"
+                id="pageTitle"
+              >
+                Rubric Builder
+              </h1>
+              <p
+                class="text-sm text-gray-600 dark:text-gray-400"
+                id="pageSubtitle"
+              >
+                Create and manage assessment rubrics to standardize scoring
+                criteria and provide clear expectations.
+              </p>
+            </div>
+
+            <div class="mt-4 md:mt-0 flex space-x-2">
+              <button
+                class="bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-600 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-gray-400"
+                id="loadRubricBtn"
+              >
+                <i class="fas fa-folder-open"></i>
+                <span>Load Template</span>
+              </button>
+              <button
+                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                id="newRubricBtn"
+              >
+                <i class="fas fa-plus"></i>
+                <span>New Rubric</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Rubric Builder Main Content -->
+          <div class="dashboard-card p-4 mb-6">
+            <!-- Rubric Header/Details Section -->
+            <div
+              class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4"
+            >
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="md:col-span-2">
+                  <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Rubric Title <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="rubricTitle"
+                    class="w-full form-control"
+                    placeholder="e.g., Oral Presentation Assessment Rubric"
+                    value="Oral Presentation Assessment Rubric"
+                  />
+                </div>
+                <div class="md:col-span-2">
+                  <label
+                    class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
+                    Rubric Description
+                  </label>
+                  <textarea
+                    class="w-full form-control"
+                    rows="3"
+                    placeholder="Provide a brief description of the rubric and its purpose..."
+                  >
+This rubric assesses student oral presentation skills including content organization, delivery, visual aids, and answering questions. It helps standardize evaluation and provides clear expectations to students.</textarea
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Main Builder Interface -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <!-- Left side - Criteria Builder -->
+              <div class="lg:col-span-7">
+                <div class="mb-4 flex justify-between items-center">
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    Assessment Criteria
+                  </h2>
+                  <button
+                    id="addCriterionBtn"
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center space-x-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <i class="fas fa-plus text-xs"></i>
+                    <span>Add Criterion</span>
+                  </button>
+                </div>
+
+                <div class="max-h-criteria overflow-y-auto pr-1">
+                  <!-- Criteria list with drag handles -->
+                  <div id="criteriaList" class="space-y-4">
+                    <!-- Criterion 1 -->
+                    <div class="criteria-card p-4" data-id="criterion-1">
+                      <div class="flex justify-between items-start mb-3">
+                        <div class="flex items-center">
+                          <div class="criteria-handle mr-2 text-gray-400">
+                            <i class="fas fa-grip-vertical"></i>
+                          </div>
+                          <div>
+                            <h3
+                              class="text-base font-medium text-gray-800 dark:text-gray-200"
+                            >
+                              Content Organization
+                            </h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                              25% of total score
+                            </p>
+                          </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                          <button
+                            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="Duplicate"
+                          >
+                            <i class="fas fa-copy"></i>
+                          </button>
+                          <button
+                            class="text-gray-400 hover:text-red-500"
+                            title="Delete"
+                          >
+                            <i class="fas fa-trash-alt"></i>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="mb-3">
+                        <label
+                          class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                        >
+                          Criterion Description
+                        </label>
+                        <textarea class="w-full form-control text-sm" rows="2">
+Logical sequence of ideas with clear introduction, body, and conclusion. Well-structured content with effective transitions between parts.</textarea
+                        >
+                      </div>
+
+                      <div class="mb-3 grid grid-cols-2 gap-4">
+                        <div>
+                          <label
+                            for="scaleType"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                            >Marking Scale
+                            <span class="text-red-500">*</span></label
+                          >
+                          <select
+                            id="scaleType"
+                            class="w-full form-control"
+                            required
+                          >
+                            <option value="">Select scale type...</option>
+                            <option selected>
+                              Descriptive Scale
+                              (Excellent/Good/Satisfactory/Needs Improvement)
+                            </option>
+                            <option>Letter Grade (A/B/C/D/F)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label
+                            for="criterionWeight"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                            >Points <span class="text-red-500">*</span></label
+                          >
+                          <input
+                            type="number"
+                            id="criterionWeight"
+                            class="w-full form-control"
+                            value="5"
+                            min="0"
+                            required
+                          />
+                        </div>
+                      </div>
+
+                      <!-- Scale definition using rating-grid from rubric-test.html -->
+                      <div class="mb-3">
+                        <div class="flex justify-between items-center mb-1">
+                          <label
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                          >
+                            Performance Levels
+                          </label>
+                          <button
+                            class="text-sm text-primary hover:text-primary-dark flex items-center"
+                            id="editPerformanceLevelsBtn"
+                          >
+                            <i class="fas fa-pencil-alt mr-1 text-xs"></i>
+                            <span>Edit Levels</span>
+                          </button>
+                        </div>
+                        <div class="rating-grid">
+                          <div class="rating-cell" data-value="5">
+                            <div class="rating-value">Outstanding</div>
+                            <div class="rating-description">
+                              Exceptionally clear structure with seamless
+                              transitions
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                              5-4 Points
+                            </div>
+                            <div class="selection-indicator"></div>
+                          </div>
+                          <div class="rating-cell" data-value="4">
+                            <div class="rating-value">Very Good</div>
+                            <div class="rating-description">
+                              Clear structure with good transitions
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                              4-3.2 Points
+                            </div>
+                            <div class="selection-indicator"></div>
+                          </div>
+                          <div class="rating-cell selected" data-value="3">
+                            <div class="rating-value">Good</div>
+                            <div class="rating-description">
+                              Basic structure present with adequate transitions
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                              3.2-2.5 Points
+                            </div>
+                            <div class="selection-indicator"></div>
+                          </div>
+                          <div class="rating-cell" data-value="2">
+                            <div class="rating-value">Fair</div>
+                            <div class="rating-description">
+                              Some structure but weak transitions
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                              2.5-1 Points
+                            </div>
+                            <div class="selection-indicator"></div>
+                          </div>
+                          <div class="rating-cell" data-value="1">
+                            <div class="rating-value">Poor</div>
+                            <div class="rating-description">
+                              Unclear structure with ineffective transitions
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                              1-0 Points
+                            </div>
+                            <div class="selection-indicator"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Comment Management - New Section -->
+                      <div
+                        class="border-t border-gray-200 dark:border-gray-700 pt-3 mt-3"
+                      >
+                        <div class="flex justify-between items-center mb-2">
+                          <div class="flex items-center">
+                            <label
+                              class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                            >
+                              Predefined Comments
+                            </label>
+                            <div class="ml-2">
+                              <label class="toggle-switch">
+                                <input type="checkbox" checked />
+                                <span class="toggle-slider"></span>
+                              </label>
+                            </div>
+                          </div>
+                          <button
+                            class="text-sm text-primary hover:text-primary-dark flex items-center"
+                            id="manageCommentsBtn"
+                          >
+                            <i class="fas fa-comment-dots mr-1 text-xs"></i>
+                            <span>Manage Comments</span>
+                          </button>
+                        </div>
+
+                        <div
+                          class="bg-gray-50 dark:bg-gray-800 rounded-md p-3 mt-2"
+                        >
+                          <div
+                            class="text-xs text-gray-500 dark:text-gray-400 mb-2"
+                          >
+                            Comments are organized by performance level and will
+                            be available to examiners during assessment.
+                          </div>
+
+                          <div class="grid grid-cols-1 gap-2">
+                            <div
+                              class="flex items-center justify-between bg-white dark:bg-gray-700 rounded p-2 shadow-sm"
+                            >
+                              <div class="flex items-center">
+                                <div
+                                  class="w-2 h-2 rounded-full bg-green-500 mr-2"
+                                ></div>
+                                <span class="text-xs font-medium"
+                                  >Outstanding</span
+                                >
+                              </div>
+                              <span
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                                >3 comments</span
+                              >
+                            </div>
+
+                            <div
+                              class="flex items-center justify-between bg-white dark:bg-gray-700 rounded p-2 shadow-sm"
+                            >
+                              <div class="flex items-center">
+                                <div
+                                  class="w-2 h-2 rounded-full bg-blue-500 mr-2"
+                                ></div>
+                                <span class="text-xs font-medium"
+                                  >Very Good</span
+                                >
+                              </div>
+                              <span
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                                >2 comments</span
+                              >
+                            </div>
+
+                            <div
+                              class="flex items-center justify-between bg-white dark:bg-gray-700 rounded p-2 shadow-sm"
+                            >
+                              <div class="flex items-center">
+                                <div
+                                  class="w-2 h-2 rounded-full bg-yellow-500 mr-2"
+                                ></div>
+                                <span class="text-xs font-medium">Good</span>
+                              </div>
+                              <span
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                                >4 comments</span
+                              >
+                            </div>
+
+                            <div
+                              class="flex items-center justify-between bg-white dark:bg-gray-700 rounded p-2 shadow-sm"
+                            >
+                              <div class="flex items-center">
+                                <div
+                                  class="w-2 h-2 rounded-full bg-red-500 mr-2"
+                                ></div>
+                                <span class="text-xs font-medium"
+                                  >Needs Improvement</span
+                                >
+                              </div>
+                              <span
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                                >3 comments</span
+                              >
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right side - Preview Panel -->
+              <div class="lg:col-span-5">
+                <div class="mb-4 flex justify-between items-center">
+                  <h2
+                    class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    Rubric Preview
+                  </h2>
+                  <button
+                    class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center"
+                  >
+                    <i class="fas fa-eye mr-1"></i> View Full Screen
+                  </button>
+                </div>
+
+                <div class="preview-panel p-4 max-h-[600px] overflow-y-auto">
+                  <!-- Rubric title and metadata -->
+                  <div
+                    class="mb-4 pb-3 border-b border-gray-200 dark:border-gray-700"
+                  >
+                    <h3
+                      class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-1"
+                      id="previewRubricTitle"
+                    >
+                      Oral Presentation Assessment Rubric
+                    </h3>
+                    <p
+                      class="text-sm text-gray-600 dark:text-gray-400 mb-2"
+                      id="previewAssignmentName"
+                    >
+                      Final Oral Presentation
+                    </p>
+                    <div
+                      class="flex items-center text-xs text-gray-500 dark:text-gray-400"
+                    >
+                      <span id="previewTotalPoints"
+                        ><i class="fas fa-calculator mr-1"></i> Total possible
+                        points: 15</span
+                      >
+                      <span class="mx-2">|</span>
+                      <span id="previewCriteriaCount"
+                        ><i class="fas fa-list-ul mr-1"></i> 3 criteria</span
+                      >
+                    </div>
+                  </div>
+
+                  <!-- Updated Rubric Preview to match rubric-test.html -->
+                  <table class="rubric-table mb-6">
+                    <thead>
+                      <tr>
+                        <th width="20%">Criteria</th>
+                        <th width="60%">Rating Levels</th>
+                        <th width="20%">Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- Content Organization Criteria -->
+                      <tr class="criteria-row" id="preview-criteria-1">
+                        <td>
+                          <div class="font-medium">Content Organization</div>
+                          <div class="text-sm text-gray-500 mt-1">
+                            Thoroughness and organization of presented material
+                          </div>
+                        </td>
+                        <td>
+                          <div class="rating-grid">
+                            <div class="rating-cell" data-value="1">
+                              <div class="rating-value">Poor</div>
+                              <div class="rating-description">
+                                Incomplete, disorganized
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                1-0 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="2">
+                              <div class="rating-value">Fair</div>
+                              <div class="rating-description">
+                                Basic coverage, weak structure
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                2.5-1 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell selected" data-value="3">
+                              <div class="rating-value">Good</div>
+                              <div class="rating-description">
+                                Solid content, clear structure
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                3.2-2.5 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="4">
+                              <div class="rating-value">Very Good</div>
+                              <div class="rating-description">
+                                Comprehensive, well-structured
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                4-3.2 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="5">
+                              <div class="rating-value">Excellent</div>
+                              <div class="rating-description">
+                                Exceptional, perfectly structured
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                5-4 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                          </div>
+                          <div
+                            class="comment-section mt-2"
+                            id="preview-comment-criteria-1"
+                          >
+                            <textarea
+                              class="w-full p-2 border border-gray-300 rounded resize-none"
+                              rows="2"
+                              placeholder="Add your comment here..."
+                            ></textarea>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <div
+                            class="flex items-center justify-center space-x-2"
+                          >
+                            <input
+                              type="number"
+                              class="w-16 p-1 border border-gray-300 rounded text-center"
+                              value="3"
+                            />
+                            <span>/ 5 pts</span>
+                            <button
+                              class="comment-toggle"
+                              onclick="toggleCommentPreview('criteria-1')"
+                            >
+                              <i class="fas fa-comment"></i>
+                            </button>
+                          </div>
+                          <div
+                            class="comment-display hidden text-sm text-gray-600 mt-2 break-words w-full text-left"
+                          ></div>
+                        </td>
+                      </tr>
+
+                      <!-- Delivery & Speaking Skills Criteria -->
+                      <tr class="criteria-row" id="preview-criteria-2">
+                        <td>
+                          <div class="font-medium">
+                            Delivery & Speaking Skills
+                          </div>
+                          <div class="text-sm text-gray-500 mt-1">
+                            Effectiveness in conveying complex ideas
+                          </div>
+                        </td>
+                        <td>
+                          <div class="rating-grid">
+                            <div class="rating-cell" data-value="1">
+                              <div class="rating-value">Poor</div>
+                              <div class="rating-description">
+                                Unclear, difficult to follow
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                1-0 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="2">
+                              <div class="rating-value">Fair</div>
+                              <div class="rating-description">
+                                Sometimes clear, inconsistent
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                2.5-1 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell selected" data-value="3">
+                              <div class="rating-value">Good</div>
+                              <div class="rating-description">
+                                Mostly clear, effective communication
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                3.2-2.5 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="4">
+                              <div class="rating-value">Very Good</div>
+                              <div class="rating-description">
+                                Clear, highly effective communication
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                4-3.2 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="5">
+                              <div class="rating-value">Excellent</div>
+                              <div class="rating-description">
+                                Exceptionally clear, engaging presentation
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                5-4 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                          </div>
+                          <div
+                            class="comment-section mt-2"
+                            id="preview-comment-criteria-2"
+                          >
+                            <textarea
+                              class="w-full p-2 border border-gray-300 rounded resize-none"
+                              rows="2"
+                              placeholder="Add your comment here..."
+                            ></textarea>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <div
+                            class="flex items-center justify-center space-x-2"
+                          >
+                            <input
+                              type="number"
+                              class="w-16 p-1 border border-gray-300 rounded text-center"
+                              value="3"
+                            />
+                            <span>/ 5 pts</span>
+                            <button
+                              class="comment-toggle"
+                              onclick="toggleCommentPreview('criteria-2')"
+                            >
+                              <i class="fas fa-comment"></i>
+                            </button>
+                          </div>
+                          <div
+                            class="comment-display hidden text-sm text-gray-600 mt-2 break-words w-full text-left"
+                          ></div>
+                        </td>
+                      </tr>
+
+                      <!-- Subject Knowledge Criteria -->
+                      <tr class="criteria-row" id="preview-criteria-3">
+                        <td>
+                          <div class="font-medium">Subject Knowledge</div>
+                          <div class="text-sm text-gray-500 mt-1">
+                            Quality and execution of project demonstration
+                          </div>
+                        </td>
+                        <td>
+                          <div class="rating-grid">
+                            <div class="rating-cell" data-value="1">
+                              <div class="rating-value">Poor</div>
+                              <div class="rating-description">
+                                Failed or severely limited demo
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                1-0 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="2">
+                              <div class="rating-value">Fair</div>
+                              <div class="rating-description">
+                                Basic demo with significant issues
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                2.5-1 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="3">
+                              <div class="rating-value">Good</div>
+                              <div class="rating-description">
+                                Effective demo with minor issues
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                3.2-2.5 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell selected" data-value="4">
+                              <div class="rating-value">Very Good</div>
+                              <div class="rating-description">
+                                Smooth demo with no significant issues
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                4-3.2 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                            <div class="rating-cell" data-value="5">
+                              <div class="rating-value">Excellent</div>
+                              <div class="rating-description">
+                                Flawless, impressive demonstration
+                              </div>
+                              <div class="text-xs text-gray-500 mt-1">
+                                5-4 Points
+                              </div>
+                              <div class="selection-indicator"></div>
+                            </div>
+                          </div>
+                          <div
+                            class="comment-section mt-2"
+                            id="preview-comment-criteria-3"
+                          >
+                            <textarea
+                              class="w-full p-2 border border-gray-300 rounded resize-none"
+                              rows="2"
+                              placeholder="Add your comment here..."
+                            ></textarea>
+                          </div>
+                        </td>
+                        <td class="text-center">
+                          <div
+                            class="flex items-center justify-center space-x-2"
+                          >
+                            <input
+                              type="number"
+                              class="w-16 p-1 border border-gray-300 rounded text-center"
+                              value="4"
+                            />
+                            <span>/ 5 pts</span>
+                            <button
+                              class="comment-toggle"
+                              onclick="toggleCommentPreview('criteria-3')"
+                            >
+                              <i class="fas fa-comment"></i>
+                            </button>
+                          </div>
+                          <div
+                            class="comment-display hidden text-sm text-gray-600 mt-2 break-words w-full text-left"
+                          ></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rubric Configuration Options -->
+          <div class="dashboard-card p-4 mb-6">
+            <h2
+              class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4"
+            >
+              Rubric Settings
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3
+                  class="text-base font-medium text-gray-800 dark:text-gray-200 mb-3"
+                >
+                  Display Options
+                </h3>
+
+                <div class="space-y-3">
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="showPointValues"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      checked
+                    />
+                    <label
+                      for="showPointValues"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Show point values with descriptive labels
+                    </label>
+                  </div>
+
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="showCriteriaWeights"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      checked
+                    />
+                    <label
+                      for="showCriteriaWeights"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Show criteria weights/percentages
+                    </label>
+                  </div>
+
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="enableExaminerNotes"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      checked
+                    />
+                    <label
+                      for="enableExaminerNotes"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Enable examiner notes field for each criterion
+                    </label>
+                  </div>
+
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="enableSummaryFeedback"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      checked
+                    />
+                    <label
+                      for="enableSummaryFeedback"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Include summary feedback section
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3
+                  class="text-base font-medium text-gray-800 dark:text-gray-200 mb-3"
+                >
+                  Scoring Configuration
+                </h3>
+
+                <div class="space-y-3">
+                  <div>
+                    <label
+                      class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Calculation Method
+                    </label>
+                    <select class="form-control text-sm">
+                      <option selected>
+                        Weighted average (based on criteria percentages)
+                      </option>
+                      <option>Simple average (equal weights)</option>
+                      <option>Sum of points</option>
+                      <option>Custom formula</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      class="block text-sm text-gray-700 dark:text-gray-300 mb-1"
+                    >
+                      Final Score Representation
+                    </label>
+                    <select class="form-control text-sm">
+                      <option>Percentage (0-100%)</option>
+                      <option selected>Points (total of all criteria)</option>
+                      <option>Letter Grade (A-F)</option>
+                      <option>Pass/Fail</option>
+                      <option>Custom Scale</option>
+                    </select>
+                  </div>
+
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="roundScores"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                      checked
+                    />
+                    <label
+                      for="roundScores"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Round partial scores (e.g., 3.75 to 4)
+                    </label>
+                  </div>
+
+                  <div class="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="allowPartialScores"
+                      class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4"
+                    />
+                    <label
+                      for="allowPartialScores"
+                      class="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      Allow partial scores between scale points
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex justify-between mb-6">
+            <div>
+              <button
+                id="cancelBtn"
+                class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600 transition-all"
+              >
+                <i class="fas fa-times mr-1"></i> Cancel
+              </button>
+            </div>
+            <div class="flex space-x-3">
+              <button
+                class="px-4 py-2 text-sm font-medium text-primary dark:text-primary-light bg-white dark:bg-gray-800 border border-primary dark:border-primary-light rounded-lg hover:bg-blue-50 dark:hover:bg-opacity-20 dark:hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary-light transition-all"
+              >
+                <i class="fas fa-save mr-1"></i> Save Draft
+              </button>
+              <button
+                class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm hover:shadow"
+              >
+                <i class="fas fa-check-circle mr-1"></i> Publish Rubric
+              </button>
+            </div>
+          </div>
+        </main>
+
+        <!-- Footer -->
+        <footer
+          class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400"
+        >
+          &copy; 2025 Oral Assessment System. All rights reserved.
+        </footer>
+      </div>
+    </div>
+
+    <!-- Add Criterion Modal -->
+    <div class="modal-backdrop" id="addCriterionModal">
+      <div class="modal-content p-6 max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            Add Assessment Criterion
+          </h3>
+          <button
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            id="closeCriterionModal"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="criterionForm">
+          <div class="space-y-4">
+            <div>
+              <label
+                for="criterionName"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Criterion Name <span class="text-red-500">*</span></label
+              >
+              <input
+                type="text"
+                id="criterionName"
+                class="w-full form-control"
+                placeholder="e.g., Pronunciation and Fluency"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                for="criterionDescription"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Description <span class="text-red-500">*</span></label
+              >
+              <textarea
+                id="criterionDescription"
+                class="w-full form-control"
+                rows="3"
+                placeholder="Describe what this criterion measures and what assessors should look for..."
+                required
+              ></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  for="scaleType"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Marking Scale <span class="text-red-500">*</span></label
+                >
+                <select id="scaleType" class="w-full form-control" required>
+                  <option value="">Select scale type...</option>
+                  <option selected>
+                    Descriptive Scale (Excellent/Good/Satisfactory/Needs
+                    Improvement)
+                  </option>
+                  <option>Letter Grade (A/B/C/D/F)</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  for="criterionWeight"
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Points <span class="text-red-500">*</span></label
+                >
+                <input
+                  type="number"
+                  id="criterionWeight"
+                  class="w-full form-control"
+                  value="5"
+                  min="0"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <label
+                  class="block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >Performance Levels <span class="text-red-500">*</span></label
+                >
+                <button
+                  type="button"
+                  class="text-primary hover:text-primary-dark text-sm font-medium flex items-center"
+                  id="addLevelBtn"
+                >
+                  <i class="fas fa-plus text-xs mr-1"></i> Add Level
+                </button>
+              </div>
+
+              <div
+                class="space-y-3 max-h-[500px] overflow-y-auto"
+                id="performanceLevelsContainer"
+              >
+                <!-- Level 1 (Outstanding) -->
+                <div
+                  class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-green-500"
+                >
+                  <div class="flex justify-between mb-2">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                      <input
+                        type="text"
+                        class="form-control text-sm"
+                        value="Outstanding"
+                        placeholder="Level name"
+                      />
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="flex items-center">
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="5"
+                          min="0"
+                          step="0.1"
+                          placeholder="Max"
+                        />
+                        <span class="mx-1">-</span>
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="4"
+                          min="0"
+                          step="0.1"
+                          placeholder="Min"
+                        />
+                        <span class="ml-1 text-xs text-gray-500">Points</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="text-gray-400 hover:text-red-500"
+                        title="Remove Level"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    class="form-control text-sm w-full resize-none mt-1"
+                    rows="2"
+                    placeholder="Describe outstanding performance..."
+                  >
+Exceptionally clear structure with seamless transitions. Introduction captivates audience.</textarea
+                  >
+                </div>
+
+                <!-- Level 2 (Very Good) -->
+                <div
+                  class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-blue-500"
+                >
+                  <div class="flex justify-between mb-2">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                      <input
+                        type="text"
+                        class="form-control text-sm"
+                        value="Very Good"
+                        placeholder="Level name"
+                      />
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="flex items-center">
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="4"
+                          min="0"
+                          step="0.1"
+                          placeholder="Max"
+                        />
+                        <span class="mx-1">-</span>
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="3.2"
+                          min="0"
+                          step="0.1"
+                          placeholder="Min"
+                        />
+                        <span class="ml-1 text-xs text-gray-500">Points</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="text-gray-400 hover:text-red-500"
+                        title="Remove Level"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    class="form-control text-sm w-full resize-none mt-1"
+                    rows="2"
+                    placeholder="Describe very good performance..."
+                  >
+Clear structure with good transitions. Strong introduction, well-developed body.</textarea
+                  >
+                </div>
+
+                <!-- Level 3 (Good) -->
+                <div
+                  class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-yellow-500"
+                >
+                  <div class="flex justify-between mb-2">
+                    <div class="flex items-center">
+                      <div
+                        class="w-3 h-3 rounded-full bg-yellow-500 mr-2"
+                      ></div>
+                      <input
+                        type="text"
+                        class="form-control text-sm"
+                        value="Good"
+                        placeholder="Level name"
+                      />
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="flex items-center">
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="3.2"
+                          min="0"
+                          step="0.1"
+                          placeholder="Max"
+                        />
+                        <span class="mx-1">-</span>
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="2.5"
+                          min="0"
+                          step="0.1"
+                          placeholder="Min"
+                        />
+                        <span class="ml-1 text-xs text-gray-500">Points</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="text-gray-400 hover:text-red-500"
+                        title="Remove Level"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    class="form-control text-sm w-full resize-none mt-1"
+                    rows="2"
+                    placeholder="Describe good performance..."
+                  >
+Basic structure present with adequate transitions. Clear introduction, body, and conclusion.</textarea
+                  >
+                </div>
+
+                <!-- Level 4 (Needs Improvement) -->
+                <div
+                  class="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-red-500"
+                >
+                  <div class="flex justify-between mb-2">
+                    <div class="flex items-center">
+                      <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                      <input
+                        type="text"
+                        class="form-control text-sm"
+                        value="Needs Improvement"
+                        placeholder="Level name"
+                      />
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <div class="flex items-center">
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="2.5"
+                          min="0"
+                          step="0.1"
+                          placeholder="Max"
+                        />
+                        <span class="mx-1">-</span>
+                        <input
+                          type="number"
+                          class="form-control text-sm w-14"
+                          value="0"
+                          min="0"
+                          step="0.1"
+                          placeholder="Min"
+                        />
+                        <span class="ml-1 text-xs text-gray-500">Points</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="text-gray-400 hover:text-red-500"
+                        title="Remove Level"
+                      >
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    class="form-control text-sm w-full resize-none mt-1"
+                    rows="2"
+                    placeholder="Describe performance that needs improvement..."
+                  >
+Unclear structure with ineffective transitions. Introduction or conclusion may be missing.</textarea
+                  >
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex items-center space-x-2 mb-2">
+                <label
+                  class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
+                  <input
+                    type="checkbox"
+                    class="rounded text-primary focus:ring-primary h-4 w-4 mr-2"
+                    checked
+                  />
+                  <span>Enable predefined comments for this criterion</span>
+                </label>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Predefined comments can be configured after the criterion is
+                created.
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border border-blue-600 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 focus:outline-none"
+            >
+              <i class="fas fa-save mr-1"></i> Save
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Load Template Modal -->
+    <div class="modal-backdrop" id="loadTemplateModal">
+      <div class="modal-content p-6 max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            Load Template
+          </h3>
+          <button
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            id="closeTemplateModal"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="templateForm">
+          <div class="space-y-4">
+            <div>
+              <label
+                for="templateName"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Template Name <span class="text-red-500">*</span></label
+              >
+              <input
+                type="text"
+                id="templateName"
+                class="w-full form-control"
+                placeholder="e.g., Oral Presentation Template"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                for="templateDescription"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Description <span class="text-red-500">*</span></label
+              >
+              <textarea
+                id="templateDescription"
+                class="w-full form-control"
+                rows="3"
+                placeholder="Describe the template and its purpose..."
+                required
+              ></textarea>
+            </div>
+
+            <div>
+              <label
+                for="templateFile"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Template File <span class="text-red-500">*</span></label
+              >
+              <input
+                type="file"
+                id="templateFile"
+                class="w-full form-control"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border border-blue-600 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 focus:outline-none"
+            >
+              <i class="fas fa-upload mr-1"></i> Upload
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Scale Editor Modal -->
+    <div class="modal-backdrop" id="scaleEditorModal">
+      <div class="modal-content p-6 max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            Edit Performance Levels
+          </h3>
+          <button
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            id="closeScaleModal"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <form id="levelForm">
+          <div class="space-y-4">
+            <div>
+              <label
+                for="levelName"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Level Name <span class="text-red-500">*</span></label
+              >
+              <input
+                type="text"
+                id="levelName"
+                class="w-full form-control"
+                placeholder="e.g., Outstanding"
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                for="levelDescription"
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Description <span class="text-red-500">*</span></label
+              >
+              <textarea
+                id="levelDescription"
+                class="w-full form-control"
+                rows="3"
+                placeholder="Describe this performance level..."
+                required
+              ></textarea>
+            </div>
+
+            <div>
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Points Range <span class="text-red-500">*</span></label
+              >
+              <div class="flex items-center">
+                <input
+                  type="number"
+                  id="levelMaxPoints"
+                  class="form-control text-sm w-24"
+                  value="5"
+                  min="0"
+                  step="0.1"
+                  placeholder="Max"
+                  required
+                />
+                <span class="mx-2">-</span>
+                <input
+                  type="number"
+                  id="levelMinPoints"
+                  class="form-control text-sm w-24"
+                  value="4"
+                  min="0"
+                  step="0.1"
+                  placeholder="Min"
+                  required
+                />
+                <span class="ml-2 text-gray-500">Points</span>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >Color</label
+              >
+              <div class="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-full bg-green-500 border-2 border-transparent hover:border-gray-400"
+                  data-color="green"
+                  title="Outstanding"
+                ></button>
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-full bg-blue-500 border-2 border-transparent hover:border-gray-400"
+                  data-color="blue"
+                  title="Very Good"
+                ></button>
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-full bg-yellow-500 border-2 border-transparent hover:border-gray-400"
+                  data-color="yellow"
+                  title="Good"
+                ></button>
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-full bg-red-500 border-2 border-transparent hover:border-gray-400"
+                  data-color="red"
+                  title="Needs Improvement"
+                ></button>
+                <button
+                  type="button"
+                  class="w-6 h-6 rounded-full bg-purple-500 border-2 border-transparent hover:border-gray-400"
+                  data-color="purple"
+                  title="Custom"
+                ></button>
+                <input type="hidden" id="levelColor" value="green" />
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              id="cancelEditLevel"
+              class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-800 border border-blue-600 dark:border-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900 dark:hover:bg-opacity-20 focus:outline-none"
+            >
+              <i class="fas fa-save mr-1"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Predefined Comments Management Modal -->
+    <div class="modal-backdrop" id="commentsManagementModal">
+      <div class="modal-content p-6 max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+            Manage Predefined Comments
+          </h3>
+          <button
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            id="closeCommentsModal"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="mb-4">
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Predefined comments help standardize feedback and save time during
+            assessment. Comments are organized by performance level and will be
+            available to examiners during the assessment process.
+          </p>
+
+          <!-- Tab navigation for performance levels -->
+          <div class="border-b border-gray-200 dark:border-gray-700 mb-4">
+            <ul class="flex flex-wrap -mb-px" role="tablist">
+              <li class="mr-2">
+                <a
+                  class="tab-nav-item active"
+                  data-level="outstanding"
+                  href="#"
+                  role="tab"
+                >
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                    Outstanding
+                  </div>
+                </a>
+              </li>
+              <li class="mr-2">
+                <a
+                  class="tab-nav-item"
+                  data-level="verygood"
+                  href="#"
+                  role="tab"
+                >
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                    Very Good
+                  </div>
+                </a>
+              </li>
+              <li class="mr-2">
+                <a class="tab-nav-item" data-level="good" href="#" role="tab">
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                    Good
+                  </div>
+                </a>
+              </li>
+              <li class="mr-2">
+                <a
+                  class="tab-nav-item"
+                  data-level="needsimprovement"
+                  href="#"
+                  role="tab"
+                >
+                  <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                    Needs Improvement
+                  </div>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Tab content -->
+          <div class="tab-content active" data-level="outstanding">
+            <div class="flex justify-between items-center mb-2">
+              <h4
+                class="text-base font-medium text-gray-800 dark:text-gray-200"
+              >
+                Outstanding Level Comments
+              </h4>
+              <button
+                class="text-primary hover:text-primary-dark text-sm font-medium flex items-center"
+              >
+                <i class="fas fa-plus text-xs mr-1"></i> Add Comment
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[400px] overflow-y-auto">
+              <!-- Comment Item 1 -->
+              <div
+                class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                <div class="flex justify-between mb-2">
+                  <span class="text-sm font-medium">Comment #1</span>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-gray-400 hover:text-gray-600"
+                      title="Edit"
+                    >
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button
+                      class="text-gray-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  Exceptionally well-organized content with a clear narrative
+                  flow. The introduction effectively establishes context and the
+                  conclusion summarizes key points perfectly.
+                </div>
+              </div>
+
+              <!-- Comment Item 2 -->
+              <div
+                class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                <div class="flex justify-between mb-2">
+                  <span class="text-sm font-medium">Comment #2</span>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-gray-400 hover:text-gray-600"
+                      title="Edit"
+                    >
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button
+                      class="text-gray-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  Transitions between sections are seamless, guiding the
+                  audience naturally through complex ideas. The organization
+                  enhances comprehension significantly.
+                </div>
+              </div>
+
+              <!-- Comment Item 3 -->
+              <div
+                class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                <div class="flex justify-between mb-2">
+                  <span class="text-sm font-medium">Comment #3</span>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-gray-400 hover:text-gray-600"
+                      title="Edit"
+                    >
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button
+                      class="text-gray-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  The presentation demonstrates excellent structural integrity
+                  with logical progression of ideas. Each section builds
+                  naturally upon previous points.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-content" data-level="verygood">
+            <div class="flex justify-between items-center mb-2">
+              <h4
+                class="text-base font-medium text-gray-800 dark:text-gray-200"
+              >
+                Very Good Level Comments
+              </h4>
+              <button
+                class="text-primary hover:text-primary-dark text-sm font-medium flex items-center"
+              >
+                <i class="fas fa-plus text-xs mr-1"></i> Add Comment
+              </button>
+            </div>
+
+            <div class="space-y-3 max-h-[400px] overflow-y-auto">
+              <!-- Comment Items for Very Good level -->
+              <div
+                class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                <div class="flex justify-between mb-2">
+                  <span class="text-sm font-medium">Comment #1</span>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-gray-400 hover:text-gray-600"
+                      title="Edit"
+                    >
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button
+                      class="text-gray-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  Well-structured presentation with clear sections. Transitions
+                  generally work well though occasionally could be smoother.
+                </div>
+              </div>
+
+              <div
+                class="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
+              >
+                <div class="flex justify-between mb-2">
+                  <span class="text-sm font-medium">Comment #2</span>
+                  <div class="flex items-center space-x-2">
+                    <button
+                      class="text-gray-400 hover:text-gray-600"
+                      title="Edit"
+                    >
+                      <i class="fas fa-pencil-alt"></i>
+                    </button>
+                    <button
+                      class="text-gray-400 hover:text-red-500"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash-alt"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                  Good organization with effective introduction and conclusion.
+                  The body of the presentation progresses logically with only
+                  minor organizational issues.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Other tab content for other levels would go here -->
+        </div>
+
+        <div class="mt-4 flex justify-end space-x-3">
+          <button
+            type="button"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+            id="cancelCommentsBtn"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md text-sm font-medium"
+            id="saveCommentsBtn"
+          >
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AlpineJS for interactivity -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+      defer
+    ></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Mock assignments data
+        const mockAssignments = [
+          {
+            id: "1",
+            name: "Project Proposal Presentation",
+            description: "Students present initial project ideas.",
+            type: "group",
+          },
+          {
+            id: "2",
+            name: "Mid-Semester Project Update",
+            description: "Progress report on project development.",
+            type: "individual",
+          },
+          {
+            id: "3",
+            name: "Final Project Deliverable & Demo",
+            description: "Group demo and individual Q&A.",
+            type: "mixed",
+          },
+        ];
+
+        // Parse URL parameters for course and assignment context
+        const urlParams = new URLSearchParams(window.location.search);
+        const courseCodeParam = urlParams.get("course") || "COMP90082";
+        const courseYearParam = urlParams.get("year") || "2025";
+        const courseSemesterParam = urlParams.get("semester") || "2";
+        const assignmentIdParam = urlParams.get("assignmentId") || "1";
+
+        // Get assignment data
+        const assignmentData = mockAssignments.find(
+          (a) => a.id === assignmentIdParam
+        ) || {
+          name: "Assignment Rubric",
+          description: "Configure assessment rubric",
+        };
+        const assignmentName = assignmentData.name;
+
+        // Map semester numbers to text
+        const semesterMap = {
+          1: "Semester 1",
+          2: "Semester 2",
+          summer: "Summer Term",
+        };
+        const semesterText =
+          semesterMap[courseSemesterParam] || courseSemesterParam;
+
+        // Map course codes to names
+        const courseNames = {
+          COMP90082: "Software Project Management",
+          INFO30005: "Web Information Technologies",
+          INFO20003: "Database Systems",
+        };
+        const courseName = courseNames[courseCodeParam] || "Selected Course";
+
+        // Update breadcrumb links with URL parameters
+        const assignmentBreadcrumbLink = document.getElementById(
+          "assignmentBreadcrumb"
+        );
+        if (assignmentBreadcrumbLink) {
+          assignmentBreadcrumbLink.href = `AssignmentConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}`;
+          assignmentBreadcrumbLink.textContent = `${courseName} Assignments`;
+        }
+
+        // Update assignment rubric breadcrumb
+        const rubricBreadcrumb = document.getElementById("rubricBreadcrumb");
+        if (rubricBreadcrumb) {
+          rubricBreadcrumb.textContent = `${assignmentName} Rubric`;
+        }
+
+        // Update page header
+        document.getElementById(
+          "pageTitle"
+        ).textContent = `${assignmentName} Rubric`;
+        document.getElementById(
+          "pageSubtitle"
+        ).textContent = `Configure assessment rubric for ${assignmentName}`;
+
+        // Update page title
+        document.title = `${assignmentName} Rubric | OAS Admin`;
+
+        // Modal handling - Add Criterion Modal
+        const addCriterionBtn = document.getElementById("addCriterionBtn");
+        const addCriterionModal = document.getElementById("addCriterionModal");
+        const closeCriterionModal = document.getElementById(
+          "closeCriterionModal"
+        );
+        const cancelCriterionBtn =
+          document.getElementById("cancelCriterionBtn");
+
+        // Load Template Modal elements
+        const newRubricBtn = document.getElementById("newRubricBtn");
+        const loadRubricBtn = document.getElementById("loadRubricBtn");
+        const loadTemplateModal = document.getElementById("loadTemplateModal");
+        const closeTemplateModal =
+          document.getElementById("closeTemplateModal");
+        const cancelTemplateBtn = document.getElementById("cancelTemplateBtn");
+
+        // Scale Editor Modal elements
+        const scaleEditorModal = document.getElementById("scaleEditorModal");
+        const closeScaleModal = document.getElementById("closeScaleModal");
+        const cancelScaleBtn = document.getElementById("cancelScaleBtn");
+        const cancelEditBtn = document.getElementById("cancelEditLevel");
+        const levelForm = document.getElementById("levelForm");
+        let currentEditingLevel = null;
+
+        // Comments Management Modal elements
+        const commentsManagementModal = document.getElementById(
+          "commentsManagementModal"
+        );
+        const closeCommentsModal =
+          document.getElementById("closeCommentsModal");
+        const cancelCommentsBtn = document.getElementById("cancelCommentsBtn");
+        const saveCommentsBtn = document.getElementById("saveCommentsBtn");
+        const manageCommentsBtn = document.getElementById("manageCommentsBtn");
+
+        // Open Add Criterion Modal
+        if (addCriterionBtn) {
+          addCriterionBtn.addEventListener("click", function () {
+            addCriterionModal.classList.add("show");
+          });
+        }
+
+        // Close Add Criterion Modal
+        [closeCriterionModal, cancelCriterionBtn].forEach((el) => {
+          if (el) {
+            el.addEventListener("click", function () {
+              addCriterionModal.classList.remove("show");
+            });
+          }
+        });
+
+        // Open Load Template Modal
+        if (loadRubricBtn) {
+          loadRubricBtn.addEventListener("click", function () {
+            loadTemplateModal.classList.add("show");
+          });
+        }
+
+        // Close Load Template Modal
+        [closeTemplateModal, cancelTemplateBtn].forEach((el) => {
+          if (el) {
+            el.addEventListener("click", function () {
+              loadTemplateModal.classList.remove("show");
+            });
+          }
+        });
+
+        // Handle Scale Editor Modal
+
+        // Add event listeners to edit buttons in level cards
+        document
+          .querySelectorAll("#performanceLevelsContainer .bg-white")
+          .forEach((levelCard) => {
+            const editBtn = document.createElement("button");
+            editBtn.className = "text-gray-400 hover:text-gray-600 mr-2";
+            editBtn.title = "Edit";
+            editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+
+            const removeBtn = levelCard.querySelector(
+              "button[title='Remove Level']"
+            );
+            if (removeBtn) {
+              removeBtn.parentNode.insertBefore(editBtn, removeBtn);
+            }
+
+            editBtn.addEventListener("click", function (e) {
+              e.preventDefault();
+              openLevelEditor(levelCard);
+            });
+          });
+
+        // Function to open the level editor modal with prefilled data
+        function openLevelEditor(levelCard) {
+          currentEditingLevel = levelCard;
+
+          // Get level data
+          const levelName = levelCard.querySelector(
+            'input[placeholder="Level name"]'
+          ).value;
+          const levelDescription = levelCard.querySelector("textarea").value;
+          const maxPoints = levelCard.querySelector(
+            'input[placeholder="Max"]'
+          ).value;
+          const minPoints = levelCard.querySelector(
+            'input[placeholder="Min"]'
+          ).value;
+
+          // Determine color
+          let color = "green"; // default
+          if (levelCard.classList.contains("border-l-green-500"))
+            color = "green";
+          else if (levelCard.classList.contains("border-l-blue-500"))
+            color = "blue";
+          else if (levelCard.classList.contains("border-l-yellow-500"))
+            color = "yellow";
+          else if (levelCard.classList.contains("border-l-red-500"))
+            color = "red";
+          else if (levelCard.classList.contains("border-l-purple-500"))
+            color = "purple";
+
+          // Fill the form
+          document.getElementById("levelName").value = levelName;
+          document.getElementById("levelDescription").value = levelDescription;
+          document.getElementById("levelMaxPoints").value = maxPoints;
+          document.getElementById("levelMinPoints").value = minPoints;
+          document.getElementById("levelColor").value = color;
+
+          // Mark the selected color
+          document
+            .querySelectorAll("#levelForm [data-color]")
+            .forEach((btn) => {
+              btn.classList.remove("border-gray-800", "dark:border-white");
+              if (btn.getAttribute("data-color") === color) {
+                btn.classList.add("border-gray-800", "dark:border-white");
+              }
+            });
+
+          // Show the modal
+          scaleEditorModal.classList.add("show");
+        }
+
+        // Add click handlers to color buttons
+        document.querySelectorAll("#levelForm [data-color]").forEach((btn) => {
+          btn.addEventListener("click", function () {
+            const color = this.getAttribute("data-color");
+            document.getElementById("levelColor").value = color;
+
+            // Update visual selection
+            document
+              .querySelectorAll("#levelForm [data-color]")
+              .forEach((b) => {
+                b.classList.remove("border-gray-800", "dark:border-white");
+              });
+            this.classList.add("border-gray-800", "dark:border-white");
+          });
+        });
+
+        // Handle form submission to update the level
+        if (levelForm) {
+          levelForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            if (!currentEditingLevel) return;
+
+            // Get form values
+            const levelName = document.getElementById("levelName").value;
+            const levelDescription =
+              document.getElementById("levelDescription").value;
+            const maxPoints = document.getElementById("levelMaxPoints").value;
+            const minPoints = document.getElementById("levelMinPoints").value;
+            const color = document.getElementById("levelColor").value;
+
+            // Update the level card
+            currentEditingLevel.querySelector(
+              'input[placeholder="Level name"]'
+            ).value = levelName;
+            currentEditingLevel.querySelector("textarea").value =
+              levelDescription;
+            currentEditingLevel.querySelector(
+              'input[placeholder="Max"]'
+            ).value = maxPoints;
+            currentEditingLevel.querySelector(
+              'input[placeholder="Min"]'
+            ).value = minPoints;
+
+            // Update color
+            currentEditingLevel.classList.remove(
+              "border-l-green-500",
+              "border-l-blue-500",
+              "border-l-yellow-500",
+              "border-l-red-500",
+              "border-l-purple-500"
+            );
+            currentEditingLevel.classList.add(`border-l-${color}-500`);
+
+            // Update the color dot
+            const colorDot = currentEditingLevel.querySelector(".rounded-full");
+            colorDot.classList.remove(
+              "bg-green-500",
+              "bg-blue-500",
+              "bg-yellow-500",
+              "bg-red-500",
+              "bg-purple-500"
+            );
+            colorDot.classList.add(`bg-${color}-500`);
+
+            // Close the modal
+            scaleEditorModal.classList.remove("show");
+
+            // Reset the current editing level
+            currentEditingLevel = null;
+
+            // Show success notification
+            showNotification(
+              "Performance level updated successfully",
+              "success"
+            );
+          });
+        }
+
+        // Add event listeners to edit buttons in the page
+        document
+          .querySelectorAll(
+            '.scale-option button[title="Edit"], #editPerformanceLevelsBtn'
+          )
+          .forEach((btn) => {
+            btn.addEventListener("click", function () {
+              // This would typically open the modal with a new level or a selected level
+              // For demo purposes, just show the modal
+              scaleEditorModal.classList.add("show");
+            });
+          });
+
+        // Close Scale Editor Modal
+        [closeScaleModal, cancelScaleBtn, cancelEditBtn].forEach((el) => {
+          if (el) {
+            el.addEventListener("click", function () {
+              scaleEditorModal.classList.remove("show");
+              currentEditingLevel = null;
+            });
+          }
+        });
+
+        // Open Comments Management Modal
+        if (manageCommentsBtn) {
+          manageCommentsBtn.addEventListener("click", function () {
+            commentsManagementModal.classList.add("show");
+          });
+        }
+
+        // Close Comments Management Modal
+        [closeCommentsModal, cancelCommentsBtn].forEach((el) => {
+          if (el) {
+            el.addEventListener("click", function () {
+              commentsManagementModal.classList.remove("show");
+            });
+          }
+        });
+
+        // Save Comments
+        if (saveCommentsBtn) {
+          saveCommentsBtn.addEventListener("click", function () {
+            // In a real implementation, we would save the comments data
+            commentsManagementModal.classList.remove("show");
+            // Show a success notification
+            showNotification("Comments saved successfully", "success");
+          });
+        }
+
+        // Handle tab navigation in the Comments Management Modal
+        const tabNavItems = document.querySelectorAll(".tab-nav-item");
+        const tabContents = document.querySelectorAll(".tab-content");
+
+        tabNavItems.forEach((item) => {
+          item.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            // Remove active class from all tabs
+            tabNavItems.forEach((tab) => tab.classList.remove("active"));
+            tabContents.forEach((content) =>
+              content.classList.remove("active")
+            );
+
+            // Add active class to clicked tab
+            this.classList.add("active");
+
+            // Show corresponding content
+            const levelId = this.getAttribute("data-level");
+            const content = document.querySelector(
+              `.tab-content[data-level="${levelId}"]`
+            );
+            if (content) {
+              content.classList.add("active");
+            }
+          });
+        });
+
+        // Implement drag-and-drop functionality for criteria reordering
+        const criteriaList = document.getElementById("criteriaList");
+        if (criteriaList) {
+          // Track which item is being dragged
+          let draggedItem = null;
+
+          // Add event listeners to all criteria cards
+          const criteriaCards = document.querySelectorAll(".criteria-card");
+          criteriaCards.forEach((card) => {
+            // Handle the dragstart event
+            card.addEventListener("dragstart", function () {
+              draggedItem = this;
+              setTimeout(() => {
+                this.classList.add("dragging");
+              }, 0);
+            });
+
+            // Handle the dragend event
+            card.addEventListener("dragend", function () {
+              this.classList.remove("dragging");
+              draggedItem = null;
+            });
+
+            // Make the criteria draggable
+            card.setAttribute("draggable", "true");
+
+            // Handle the drag handle clicking
+            const handle = card.querySelector(".criteria-handle");
+            if (handle) {
+              handle.addEventListener("mousedown", function () {
+                card.setAttribute("draggable", "true");
+              });
+
+              handle.addEventListener("mouseup", function () {
+                setTimeout(() => {
+                  card.setAttribute("draggable", "false");
+                }, 100);
+              });
+            }
+
+            // Handle dragover event
+            card.addEventListener("dragover", function (e) {
+              e.preventDefault();
+              if (draggedItem !== this) {
+                this.classList.add("drag-over");
+              }
+            });
+
+            // Handle dragleave event
+            card.addEventListener("dragleave", function () {
+              this.classList.remove("drag-over");
+            });
+
+            // Handle drop event
+            card.addEventListener("drop", function (e) {
+              e.preventDefault();
+              if (draggedItem !== this) {
+                // Get positions of both elements
+                const draggingRect = draggedItem.getBoundingClientRect();
+                const dropRect = this.getBoundingClientRect();
+
+                // Determine if the dragged item should go before or after the drop target
+                const insertBefore = dropRect.top > draggingRect.top;
+
+                // Insert the dragged item before or after the drop target
+                if (insertBefore) {
+                  criteriaList.insertBefore(draggedItem, this);
+                } else {
+                  criteriaList.insertBefore(draggedItem, this.nextSibling);
+                }
+
+                // Remove the drag-over class
+                this.classList.remove("drag-over");
+
+                // Highlight the moved item briefly
+                draggedItem.classList.add("criteria-highlight");
+                setTimeout(() => {
+                  draggedItem.classList.remove("criteria-highlight");
+                }, 1000);
+              }
+            });
+          });
+        }
+
+        // Handle criterion form submission
+        const criterionForm = document.getElementById("criterionForm");
+        if (criterionForm) {
+          criterionForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            // Get form values
+            const criterionName =
+              document.getElementById("criterionName").value;
+            const criterionDescription = document.getElementById(
+              "criterionDescription"
+            ).value;
+            const scaleType = document.getElementById("scaleType").value;
+            const criterionPoints =
+              document.getElementById("criterionWeight").value;
+
+            // Collect performance levels data
+            const performanceLevels = [];
+            const levelContainers = document.querySelectorAll(
+              "#performanceLevelsContainer > div"
+            );
+
+            levelContainers.forEach((container) => {
+              const levelName = container.querySelector(
+                'input[placeholder="Level name"]'
+              ).value;
+              const maxPoints = container.querySelector(
+                'input[placeholder="Max"]'
+              ).value;
+              const minPoints = container.querySelector(
+                'input[placeholder="Min"]'
+              ).value;
+              const description = container.querySelector("textarea").value;
+
+              // Get color from left border
+              let colorClass = "";
+              if (container.classList.contains("border-l-green-500"))
+                colorClass = "green";
+              else if (container.classList.contains("border-l-blue-500"))
+                colorClass = "blue";
+              else if (container.classList.contains("border-l-yellow-500"))
+                colorClass = "yellow";
+              else if (container.classList.contains("border-l-red-500"))
+                colorClass = "red";
+              else colorClass = "purple";
+
+              performanceLevels.push({
+                name: levelName,
+                maxPoints: parseFloat(maxPoints),
+                minPoints: parseFloat(minPoints),
+                description: description,
+                color: colorClass,
+              });
+            });
+
+            // Validate data
+            if (
+              !criterionName ||
+              !criterionDescription ||
+              performanceLevels.length === 0
+            ) {
+              showNotification("Please fill in all required fields", "error");
+              return;
+            }
+
+            // In a real implementation, we would save this data to the server
+            console.log("Criterion Data:", {
+              name: criterionName,
+              description: criterionDescription,
+              scaleType: scaleType,
+              totalPoints: parseFloat(criterionPoints),
+              performanceLevels: performanceLevels,
+            });
+
+            // Close the modal
+            addCriterionModal.classList.remove("show");
+
+            // Show success notification
+            showNotification("Criterion added successfully", "success");
+          });
+        }
+
+        // Handle template selection
+        const templateItems = document.querySelectorAll(
+          "#loadTemplateModal .border.rounded-lg"
+        );
+        templateItems.forEach((template) => {
+          template.addEventListener("click", function () {
+            // Remove selected class from all templates
+            templateItems.forEach((t) => {
+              t.classList.remove("border-blue-500", "dark:border-blue-400");
+            });
+
+            // Add selected class to clicked template
+            this.classList.add("border-blue-500", "dark:border-blue-400");
+
+            // Update the selection indicator
+            const indicators = document.querySelectorAll(
+              "#loadTemplateModal .text-blue-600 span"
+            );
+            indicators.forEach((i) => {
+              i.innerHTML = '<i class="fas fa-arrow-right"></i>';
+            });
+
+            const thisIndicator = this.querySelector(".text-blue-600 span");
+            if (thisIndicator) {
+              thisIndicator.innerHTML =
+                '<i class="fas fa-check-circle mr-1"></i> Selected';
+            }
+          });
+        });
+
+        // Handle the "Add Level" button in the performance levels
+        const addLevelBtn = document.getElementById("addLevelBtn");
+        const performanceLevelsContainer = document.getElementById(
+          "performanceLevelsContainer"
+        );
+
+        if (addLevelBtn && performanceLevelsContainer) {
+          addLevelBtn.addEventListener("click", function () {
+            // Create a new level with default values
+            const newLevel = document.createElement("div");
+            newLevel.className =
+              "bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm border-l-4 border-l-purple-500";
+
+            // Get the last level's min points to use as the starting point for the new level
+            const levels =
+              performanceLevelsContainer.querySelectorAll(".bg-white");
+            let maxPoints = 0;
+            let minPoints = 0;
+
+            if (levels.length > 0) {
+              const lastLevel = levels[levels.length - 1];
+              const minInput = lastLevel.querySelector(
+                'input[placeholder="Min"]'
+              );
+              if (minInput && minInput.value) {
+                maxPoints = parseFloat(minInput.value);
+                minPoints = Math.max(0, maxPoints - 1).toFixed(1);
+              }
+            }
+
+            newLevel.innerHTML = `
+              <div class="flex justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                  <input type="text" class="form-control text-sm" value="New Level" placeholder="Level name" />
+                </div>
+                <div class="flex items-center space-x-2">
+                  <div class="flex items-center">
+                    <input type="number" class="form-control text-sm w-14" value="${maxPoints}" min="0" step="0.1" placeholder="Max" />
+                    <span class="mx-1">-</span>
+                    <input type="number" class="form-control text-sm w-14" value="${minPoints}" min="0" step="0.1" placeholder="Min" />
+                    <span class="ml-1 text-xs text-gray-500">Points</span>
+                  </div>
+                  <button
+                    type="button"
+                    class="text-gray-400 hover:text-red-500"
+                    title="Remove Level"
+                  >
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <textarea
+                class="form-control text-sm w-full resize-none mt-1"
+                rows="2"
+                placeholder="Describe this performance level..."
+              ></textarea>
+            `;
+
+            // Add the new level to the container
+            performanceLevelsContainer.appendChild(newLevel);
+
+            // Add event listener to the remove button
+            const removeBtn = newLevel.querySelector(
+              "button[title='Remove Level']"
+            );
+            if (removeBtn) {
+              removeBtn.addEventListener("click", function () {
+                newLevel.remove();
+              });
+            }
+          });
+
+          // Add event listeners to existing remove buttons
+          const removeButtons = document.querySelectorAll(
+            "#performanceLevelsContainer button[title='Remove Level']"
+          );
+          removeButtons.forEach((btn) => {
+            btn.addEventListener("click", function () {
+              // Find the parent level container and remove it
+              const levelContainer = this.closest(
+                ".bg-white.dark\\:bg-gray-800"
+              );
+              if (levelContainer) {
+                levelContainer.remove();
+              }
+            });
+          });
+
+          // Add event listeners to ensure max points are always greater than min points
+          document.addEventListener("change", function (e) {
+            if (
+              e.target.matches(
+                '#performanceLevelsContainer input[type="number"]'
+              )
+            ) {
+              const parent = e.target.closest(".bg-white.dark\\:bg-gray-800");
+              if (parent) {
+                const maxInput = parent.querySelector(
+                  'input[placeholder="Max"]'
+                );
+                const minInput = parent.querySelector(
+                  'input[placeholder="Min"]'
+                );
+
+                if (maxInput && minInput) {
+                  const maxVal = parseFloat(maxInput.value);
+                  const minVal = parseFloat(minInput.value);
+
+                  if (maxVal < minVal) {
+                    if (e.target === maxInput) {
+                      minInput.value = maxVal;
+                    } else {
+                      maxInput.value = minVal;
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener("click", function (e) {
+          if (e.target === addCriterionModal) {
+            addCriterionModal.classList.remove("show");
+          }
+          if (e.target === loadTemplateModal) {
+            loadTemplateModal.classList.remove("show");
+          }
+          if (e.target === scaleEditorModal) {
+            scaleEditorModal.classList.remove("show");
+          }
+          if (e.target === commentsManagementModal) {
+            commentsManagementModal.classList.remove("show");
+          }
+        });
+
+        // Initialize rating cell interaction in the preview panel
+        const previewRatingCells = document.querySelectorAll(
+          ".preview-panel .rating-cell"
+        );
+        if (previewRatingCells.length > 0) {
+          previewRatingCells.forEach((cell) => {
+            cell.addEventListener("click", function () {
+              // Remove selected class from siblings
+              const parent = this.parentNode;
+              parent.querySelectorAll(".rating-cell").forEach((sibling) => {
+                sibling.classList.remove("selected");
+              });
+
+              // Add selected class to this cell
+              this.classList.add("selected");
+
+              // Update the score input in the points column
+              const scoreValue = this.getAttribute("data-value");
+              const row = this.closest(".criteria-row");
+              const scoreInput = row.querySelector('input[type="number"]');
+              if (scoreInput) {
+                scoreInput.value = scoreValue;
+              }
+            });
+          });
+        }
+
+        // Initialize rating cells in the criteria builder section
+        const criteriaRatingCells = document.querySelectorAll(
+          ".criteria-card .rating-cell"
+        );
+        if (criteriaRatingCells.length > 0) {
+          criteriaRatingCells.forEach((cell) => {
+            cell.addEventListener("click", function () {
+              // Remove selected class from siblings
+              const parent = this.parentNode;
+              parent.querySelectorAll(".rating-cell").forEach((sibling) => {
+                sibling.classList.remove("selected");
+              });
+
+              // Add selected class to this cell
+              this.classList.add("selected");
+            });
+          });
+        }
+
+        // Function to handle comment toggling in the preview panel
+        window.toggleCommentPreview = function (criteriaId) {
+          const commentDiv = document.getElementById(
+            "preview-comment-" + criteriaId
+          );
+          const commentButton = document.querySelector(
+            `#preview-${criteriaId} .comment-toggle`
+          );
+          const commentDisplay = document.querySelector(
+            `#preview-${criteriaId} .comment-display`
+          );
+
+          if (commentDiv && commentButton) {
+            commentDiv.classList.toggle("active");
+            commentButton.classList.toggle("active");
+
+            if (!commentDiv.classList.contains("active") && commentDisplay) {
+              const textarea = commentDiv.querySelector("textarea");
+              if (textarea) {
+                const text = textarea.value.trim();
+                if (text) {
+                  commentDisplay.textContent = text;
+                  commentDisplay.classList.remove("hidden");
+                }
+              }
+            } else if (commentDisplay) {
+              commentDisplay.classList.add("hidden");
+            }
+          }
+        };
+
+        // Function to show notifications
+        function showNotification(message, type = "info") {
+          // Create notification element
+          const notification = document.createElement("div");
+          notification.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all transform translate-y-0 opacity-100 ${
+            type === "success"
+              ? "bg-green-500"
+              : type === "error"
+              ? "bg-red-500"
+              : type === "warning"
+              ? "bg-yellow-500"
+              : "bg-blue-500"
+          } text-white`;
+
+          // Add icon based on type
+          let icon = "info-circle";
+          if (type === "success") icon = "check-circle";
+          if (type === "error") icon = "exclamation-circle";
+          if (type === "warning") icon = "exclamation-triangle";
+
+          notification.innerHTML = `
+            <div class="flex items-center">
+              <i class="fas fa-${icon} mr-2"></i>
+              <span>${message}</span>
+            </div>
+          `;
+
+          // Add to DOM
+          document.body.appendChild(notification);
+
+          // Animate in
+          setTimeout(() => {
+            notification.classList.add("translate-y-0", "opacity-100");
+          }, 10);
+
+          // Animate out and remove after 3 seconds
+          setTimeout(() => {
+            notification.classList.add("translate-y-4", "opacity-0");
+            setTimeout(() => {
+              notification.remove();
+            }, 300);
+          }, 3000);
+        }
+
+        // Update the assignment name in the preview
+        const previewAssignmentNameEl = document.getElementById(
+          "previewAssignmentName"
+        );
+        if (previewAssignmentNameEl) {
+          previewAssignmentNameEl.textContent = assignmentName;
+        }
+
+        // Set up the Cancel button to navigate back to the Assignment Configuration page
+        const cancelBtn = document.getElementById("cancelBtn");
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", function () {
+            window.location.href = `AssignmentConfiguration.html?course=${courseCodeParam}&year=${courseYearParam}&semester=${courseSemesterParam}`;
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

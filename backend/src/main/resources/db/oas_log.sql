@@ -8,7 +8,7 @@ CREATE TABLE `sys_oper_log` (
     `business_type` int(2) DEFAULT '0' COMMENT 'Business type (0=Other,1=Insert,2=Update,3=Delete,4=Query,5=Grant,6=Export,7=Import,8=Booking,9=Cancel Booking,10=Assessment,11=Feedback)',
     `method` varchar(100) DEFAULT '' COMMENT 'Method name',
     `request_method` varchar(10) DEFAULT '' COMMENT 'Request method',
-    `operator_type` int(1) DEFAULT '0' COMMENT 'Operator type (0=Other,1=Admin,2=Examiner,3=Student)',
+    `operator_type` int(1) DEFAULT '0' COMMENT 'Operator type (0=Other,1=Admin,2=Examiner,3=Student,4=Super Admin)',
     `oper_name` varchar(50) DEFAULT '' COMMENT 'Operator name',
     `oper_role` varchar(50) DEFAULT '' COMMENT 'Operator role',
     `oper_url` varchar(255) DEFAULT '' COMMENT 'Request URL',
@@ -27,7 +27,7 @@ CREATE TABLE `sys_oper_log` (
     KEY `idx_sys_oper_log_ot` (`oper_time`),
     KEY `idx_sys_oper_log_tid` (`trace_id`)
     ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4 COMMENT='Operation log table';
-
+DROP TABLE IF EXISTS `sys_refresh_token`;
 CREATE TABLE sys_refresh_token (
                                    id BIGINT PRIMARY KEY AUTO_INCREMENT,
                                    user_id BIGINT NOT NULL,
@@ -40,6 +40,7 @@ CREATE TABLE sys_refresh_token (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='refresh_token';
 
 -- user table
+DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE sys_user (
                           user_id BIGINT PRIMARY KEY AUTO_INCREMENT,
                           user_name VARCHAR(50) UNIQUE NOT NULL,
@@ -52,6 +53,7 @@ CREATE TABLE sys_user (
 );
 
 -- role table
+DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE sys_role (
                           role_id BIGINT PRIMARY KEY AUTO_INCREMENT,
                           role_name VARCHAR(50) UNIQUE NOT NULL,
@@ -63,8 +65,34 @@ CREATE TABLE sys_role (
 );
 
 -- user-role association table
+DROP TABLE IF EXISTS `sys_user_role`;
 CREATE TABLE sys_user_role (
                                user_id BIGINT,
                                role_id BIGINT,
                                PRIMARY KEY(user_id, role_id)
+);
+DROP TABLE IF EXISTS `sys_student`;
+CREATE TABLE sys_student (
+                             user_id BIGINT PRIMARY KEY,
+                             token VARCHAR(255),
+                             student_number VARCHAR(50) UNIQUE,
+                             sis_user_id VARCHAR(128) UNIQUE,
+                             FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
+);
+DROP TABLE IF EXISTS `sys_group`;
+CREATE TABLE sys_group (
+                           group_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+                           group_name VARCHAR(100) NOT NULL,
+                           canvas_group_id VARCHAR(50) UNIQUE,
+                           create_time DATETIME,
+                           creator BIGINT
+);
+DROP TABLE IF EXISTS `sys_student_group`;
+
+CREATE TABLE sys_student_group (
+                                   user_id BIGINT NOT NULL,
+                                   group_id BIGINT NOT NULL,
+                                   PRIMARY KEY (user_id, group_id),
+                                   FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE,
+                                   FOREIGN KEY (group_id) REFERENCES sys_group(group_id) ON DELETE CASCADE
 );

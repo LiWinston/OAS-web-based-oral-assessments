@@ -723,6 +723,29 @@ public class StringUtils extends org.apache.commons.lang3.StringUtils
         }
     }
 
+    /**
+     * Converts a space-separated string (e.g., "Student Name") into lower camel case format (e.g., "studentName").
+     *
+     * @param input the original string with spaces
+     * @return the converted camelCase string
+     */
+    static String spaceToCamelCase(String input) {
+        String[] parts = input.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < parts.length; i++) {
+            String part = parts[i].toLowerCase();
+            if (i == 0) {
+                sb.append(part);
+            } else {
+                sb.append(part.substring(0, 1).toUpperCase()).append(part.substring(1));
+            }
+        }
+
+        return sb.toString();
+    }
+
+
     public static void main(String[] args) {
         String result = toPascalCase("test_string");
         System.out.println(result);

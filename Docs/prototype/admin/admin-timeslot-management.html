@@ -1,0 +1,1846 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Time Slot Management | OAS Admin</title>
+    <!-- External CSS Libraries -->
+    <link rel="stylesheet" href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css" />
+    <link rel="stylesheet" href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+    <style>
+        /* Custom Variables */
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --secondary: #4f46e5;
+            --tertiary: #8b5cf6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --light: #f3f4f6;
+            --dark: #1f2937;
+            --text-dark: #1f2937;
+            --text-light: #f9fafb;
+            --bg-light: #ffffff;
+            --bg-dark: #111827;
+            --card-light: #ffffff;
+            --card-dark: #1f2937;
+        }
+
+        /* Light/Dark mode transitions */
+        body,
+        .sidebar,
+        .dashboard-card,
+        .header,
+        .sidebar-link,
+        input,
+        select,
+        button,
+        textarea {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* Dark mode variables */
+        .dark {
+            --primary: #3b82f6;
+            --primary-light: #60a5fa;
+            --primary-dark: #2563eb;
+            --secondary: #6366f1;
+            --light: #212529;
+            --dark: #f8f9fa;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* Dark mode scrollbar */
+        .dark ::-webkit-scrollbar-track {
+            background: #2d3748;
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4a5568;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+
+        /* Custom Element Styles */
+        body {
+            font-family: "Inter", sans-serif;
+            background-color: var(--light);
+            color: var(--text-dark);
+        }
+
+        .dark body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+        }
+
+        .dashboard-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            border: 1px solid var(--light);
+        }
+
+        .dark .dashboard-card {
+            background-color: var(--card-dark);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            border-color: #374151;
+        }
+
+        /* Form controls */
+        .form-control {
+            @apply rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2;
+        }
+
+        /* Calendar styles */
+        .calendar-container {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+
+        .calendar-day {
+            position: relative;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            min-height: 5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day:hover {
+            background-color: #f3f4f6;
+        }
+
+        .dark .calendar-day:hover {
+            background-color: #374151;
+        }
+
+        .calendar-day.selected {
+            background-color: #dbeafe;
+            border-color: #60a5fa;
+        }
+
+        .dark .calendar-day.selected {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+        }
+
+        .calendar-day .date {
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .calendar-day .day-status {
+            position: absolute;
+            right: 0.5rem;
+            top: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .calendar-day .slot-count {
+            font-size: 0.75rem;
+            font-weight: 600;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .dark .calendar-day .slot-count {
+            background-color: #4b5563;
+            color: #e5e7eb;
+        }
+
+        .calendar-day .status-indicator {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            margin-bottom: 0.125rem;
+        }
+
+        .status-indicator.status-full {
+            background-color: #10b981;
+        }
+
+        .status-indicator.status-partial {
+            background-color: #f59e0b;
+        }
+
+        .status-indicator.status-empty {
+            background-color: #ef4444;
+        }
+
+        /* Time slot item */
+        .time-slot-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .dark .time-slot-item {
+            border-color: #4b5563;
+        }
+
+        .time-slot-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .dark .time-slot-item:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .time-slot-item.selected {
+            border-color: #60a5fa;
+            background-color: #dbeafe;
+        }
+
+        .dark .time-slot-item.selected {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        /* Status badges */
+        .status-badge {
+            @apply text-xs font-medium px-2 py-1 rounded-full;
+        }
+
+        .status-badge-full {
+            @apply bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200;
+        }
+
+        .status-badge-partial {
+            @apply bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200;
+        }
+
+        .status-badge-empty {
+            @apply bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200;
+        }
+
+        /* Examiner chips */
+        .examiner-chip {
+            @apply inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs mr-1 mb-1;
+        }
+
+        .examiner-chip .avatar {
+            @apply w-4 h-4 rounded-full mr-1;
+        }
+
+        .examiner-chip.overloaded {
+            @apply bg-red-100 dark:bg-red-900 dark:bg-opacity-30 text-red-800 dark:text-red-200;
+        }
+
+        /* Action buttons */
+        .action-btn {
+            @apply p-1.5 rounded-full transition-colors;
+        }
+
+        .action-btn-primary {
+            @apply bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800;
+        }
+
+        .action-btn-warning {
+            @apply bg-yellow-100 dark:bg-yellow-900 dark:bg-opacity-30 text-yellow-800 dark:text-yellow-200 hover:bg-yellow-200 dark:hover:bg-yellow-800;
+        }
+
+        .action-btn-danger {
+            @apply bg-red-100 dark:bg-red-900 dark:bg-opacity-30 text-red-800 dark:text-red-200 hover:bg-red-200 dark:hover:bg-red-800;
+        }
+
+        /* Modal styles */
+        /* Modal overlay styling */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-iframe {
+            width: 100%;
+            max-width: 32rem;
+            height: 90vh;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        /* Drag and drop */
+        .draggable {
+            cursor: grab;
+        }
+
+        .dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+
+        .drop-zone {
+            border: 2px dashed #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background-color: #f9fafb;
+            transition: all 0.2s ease;
+        }
+
+        .dark .drop-zone {
+            border-color: #4b5563;
+            background-color: #374151;
+        }
+
+        .drop-zone.active {
+            border-color: #60a5fa;
+            background-color: #dbeafe;
+        }
+
+        .dark .drop-zone.active {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.2);
+        }
+
+        /* Time slot filter tags */
+        .filter-tag {
+            @apply inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs mr-1 mb-1;
+        }
+
+        .filter-tag.active {
+            @apply bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 text-blue-800 dark:text-blue-200;
+        }
+
+        .filter-tag .remove {
+            @apply ml-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* Empty state */
+        .empty-state {
+            @apply flex flex-col items-center justify-center py-12 text-center;
+        }
+
+        .empty-state-icon {
+            @apply w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-400 dark:text-gray-500 mb-4;
+        }
+
+        /* Time picker custom styling */
+        .time-picker {
+            display: flex;
+            align-items: center;
+        }
+
+        .time-part {
+            width: 3.5rem;
+            text-align: center;
+            border-radius: 0.375rem;
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .dark .time-part {
+            border-color: #4b5563;
+            background-color: #374151;
+            color: #e5e7eb;
+        }
+
+        .time-separator {
+            font-weight: bold;
+            padding: 0 0.25rem;
+        }
+
+        .am-pm-toggle {
+            display: flex;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.375rem;
+            overflow: hidden;
+            margin-left: 0.5rem;
+        }
+
+        .dark .am-pm-toggle {
+            border-color: #4b5563;
+        }
+
+        .am-pm-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .am-pm-btn.selected {
+            background-color: #2563eb;
+            color: white;
+        }
+
+        .dark .am-pm-btn.selected {
+            background-color: #3b82f6;
+        }
+    </style>
+</head>
+
+<body class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" x-data="{ 
+      darkMode: false, 
+      sidebarOpen: true, 
+      notificationsOpen: false,
+      selectedDate: null,
+      showModal: false,
+      modalMode: 'add', // 'add' or 'edit'
+      currentMonth: 'April 2025',
+      editingTimeSlot: null,
+      selectedTimeSlots: [],
+      showBatchOperations: false,
+      filterStatus: 'all',
+      filterVenue: 'all',
+      filterExaminer: 'all',
+      
+      timeSlots: [
+        {
+          id: 1,
+          date: '2025-04-15',
+          startTime: '09:00 AM',
+          endTime: '10:30 AM',
+          venue: 'Engineering Building, Room 405',
+          requiredExaminers: 2,
+          assignedExaminers: [
+            { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24' },
+            { id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24' }
+          ],
+          sessions: 3,
+          status: 'full' // 'full', 'partial', 'empty'
+        },
+        {
+          id: 2,
+          date: '2025-04-15',
+          startTime: '11:00 AM',
+          endTime: '12:30 PM',
+          venue: 'Engineering Building, Room 405',
+          requiredExaminers: 2,
+          assignedExaminers: [
+            { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24' }
+          ],
+          sessions: 3,
+          status: 'partial'
+        },
+        {
+          id: 3,
+          date: '2025-04-16',
+          startTime: '02:00 PM',
+          endTime: '04:00 PM',
+          venue: 'ICT Building, Room 203',
+          requiredExaminers: 2,
+          assignedExaminers: [],
+          sessions: 4,
+          status: 'empty'
+        },
+        {
+          id: 4,
+          date: '2025-04-18',
+          startTime: '10:00 AM',
+          endTime: '11:30 AM',
+          venue: 'Engineering Building, Room 303',
+          requiredExaminers: 2,
+          assignedExaminers: [
+            { id: 3, name: 'Dr. Sarah Johnson', avatar: '/api/placeholder/24/24' },
+            { id: 4, name: 'Prof. David Williams', avatar: '/api/placeholder/24/24' }
+          ],
+          sessions: 3,
+          status: 'full'
+        },
+        {
+          id: 5,
+          date: '2025-04-22',
+          startTime: '09:00 AM',
+          endTime: '10:30 AM',
+          venue: 'Engineering Building, Room 405',
+          requiredExaminers: 2,
+          assignedExaminers: [
+            { id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24' }
+          ],
+          sessions: 3,
+          status: 'partial'
+        }
+      ],
+      
+      // Available examiners for assignments
+      availableExaminers: [
+        { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24', assignments: 4 },
+        { id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24', assignments: 2 },
+        { id: 3, name: 'Dr. Sarah Johnson', avatar: '/api/placeholder/24/24', assignments: 1 },
+        { id: 4, name: 'Prof. David Williams', avatar: '/api/placeholder/24/24', assignments: 3 },
+        { id: 5, name: 'Dr. Jennifer Lee', avatar: '/api/placeholder/24/24', assignments: 0 },
+        { id: 6, name: 'Prof. Robert Brown', avatar: '/api/placeholder/24/24', assignments: 2 }
+      ],
+      
+      // Time slot form data
+      timeSlotForm: {
+        date: '',
+        startTimeHour: '9',
+        startTimeMinute: '00',
+        startTimeAMPM: 'AM',
+        sessions: 3,
+        venue: '',
+        requiredExaminers: 2,
+        assignedExaminers: []
+      },
+      
+      // Computed functions
+      getTimeSlotsForDate: function(date) {
+        return this.timeSlots.filter(slot => slot.date === date);
+      },
+      
+      getTimeSlotCountForDate: function(date) {
+        return this.timeSlots.filter(slot => slot.date === date).length;
+      },
+      
+      getStatusForDate: function(date) {
+        const slots = this.timeSlots.filter(slot => slot.date === date);
+        if (!slots.length) return null;
+        
+        const statuses = slots.map(slot => slot.status);
+        if (statuses.every(status => status === 'full')) return 'full';
+        if (statuses.every(status => status === 'empty')) return 'empty';
+        return 'partial';
+      },
+      
+      toggleTimeSlotSelection: function(slotId) {
+        const index = this.selectedTimeSlots.indexOf(slotId);
+        if (index >= 0) {
+          this.selectedTimeSlots.splice(index, 1);
+        } else {
+          this.selectedTimeSlots.push(slotId);
+        }
+        this.showBatchOperations = this.selectedTimeSlots.length > 0;
+      },
+      
+      selectAllTimeSlotsForDate: function() {
+        if (!this.selectedDate) return;
+        
+        const dateSlots = this.getTimeSlotsForDate(this.selectedDate);
+        const allSelected = dateSlots.every(slot => this.selectedTimeSlots.includes(slot.id));
+        
+        if (allSelected) {
+          // Deselect all
+          this.selectedTimeSlots = this.selectedTimeSlots.filter(id => 
+            !dateSlots.some(slot => slot.id === id)
+          );
+        } else {
+          // Select all
+          dateSlots.forEach(slot => {
+            if (!this.selectedTimeSlots.includes(slot.id)) {
+              this.selectedTimeSlots.push(slot.id);
+            }
+          });
+        }
+        
+        this.showBatchOperations = this.selectedTimeSlots.length > 0;
+      },
+      
+      openAddModal: function() {
+        this.modalMode = 'add';
+        this.timeSlotForm = {
+          date: this.selectedDate || '',
+          startTimeHour: '9',
+          startTimeMinute: '00',
+          startTimeAMPM: 'AM',
+          sessions: 3,
+          venue: '',
+          requiredExaminers: 2,
+          assignedExaminers: []
+        };
+        this.showModal = true;
+      },
+      
+      openEditModal: function(timeSlot) {
+        this.modalMode = 'edit';
+        this.editingTimeSlot = timeSlot;
+        
+        // Parse the start time
+        const timeParts = timeSlot.startTime.split(' ');
+        const [hour, minute] = timeParts[0].split(':');
+        
+        this.timeSlotForm = {
+          date: timeSlot.date,
+          startTimeHour: hour,
+          startTimeMinute: minute,
+          startTimeAMPM: timeParts[1],
+          sessions: timeSlot.sessions,
+          venue: timeSlot.venue,
+          requiredExaminers: timeSlot.requiredExaminers,
+          assignedExaminers: [...timeSlot.assignedExaminers]
+        };
+        
+        this.showModal = true;
+      },
+      
+      calculateEndTime: function() {
+        if (!this.timeSlotForm.startTimeHour || !this.timeSlotForm.startTimeMinute || this.timeSlotForm.sessions <= 0) {
+          return 'N/A';
+        }
+        
+        let startHour = parseInt(this.timeSlotForm.startTimeHour);
+        const startMinute = parseInt(this.timeSlotForm.startTimeMinute);
+        
+        // Convert 12-hour to 24-hour format
+        if (this.timeSlotForm.startTimeAMPM === 'PM' && startHour < 12) {
+          startHour += 12;
+        } else if (this.timeSlotForm.startTimeAMPM === 'AM' && startHour === 12) {
+          startHour = 0;
+        }
+        
+        // Assuming each session is 30 minutes with a 5-minute gap
+        const sessionLength = 30; // minutes
+        const gapTime = 5; // minutes
+        
+        // Calculate total minutes for all sessions
+        const totalSessionTime = this.timeSlotForm.sessions * sessionLength;
+        const totalGapTime = (this.timeSlotForm.sessions - 1) * gapTime;
+        const totalMinutes = totalSessionTime + totalGapTime;
+        
+        // Calculate end time
+        let endHour = startHour + Math.floor((startMinute + totalMinutes) / 60);
+        let endMinute = (startMinute + totalMinutes) % 60;
+        
+        // Convert back to 12-hour format
+        let endAMPM = 'AM';
+        if (endHour >= 12) {
+          endAMPM = 'PM';
+          if (endHour > 12) {
+            endHour -= 12;
+          }
+        }
+        if (endHour === 0) {
+          endHour = 12;
+        }
+        
+        return `${endHour}:${endMinute.toString().padStart(2, '0')} ${endAMPM}`;
+      },
+      
+      saveTimeSlot: function() {
+        if (!this.timeSlotForm.date || !this.timeSlotForm.venue) {
+          alert('Please fill in all required fields');
+          return;
+        }
+        
+        const startTime = `${this.timeSlotForm.startTimeHour}:${this.timeSlotForm.startTimeMinute} ${this.timeSlotForm.startTimeAMPM}`;
+        const endTime = this.calculateEndTime();
+        
+        if (this.modalMode === 'edit' && this.editingTimeSlot) {
+          // Update existing time slot
+          const index = this.timeSlots.findIndex(slot => slot.id === this.editingTimeSlot.id);
+          if (index >= 0) {
+            this.timeSlots[index] = {
+              ...this.timeSlots[index],
+              date: this.timeSlotForm.date,
+              startTime: startTime,
+              endTime: endTime,
+              venue: this.timeSlotForm.venue,
+              sessions: this.timeSlotForm.sessions,
+              requiredExaminers: this.timeSlotForm.requiredExaminers,
+              assignedExaminers: this.timeSlotForm.assignedExaminers,
+              status: this.determineStatus(this.timeSlotForm.assignedExaminers.length, this.timeSlotForm.requiredExaminers)
+            };
+          }
+        } else {
+          // Add new time slot
+          const newId = Math.max(...this.timeSlots.map(slot => slot.id)) + 1;
+          this.timeSlots.push({
+            id: newId,
+            date: this.timeSlotForm.date,
+            startTime: startTime,
+            endTime: endTime,
+            venue: this.timeSlotForm.venue,
+            sessions: this.timeSlotForm.sessions,
+            requiredExaminers: this.timeSlotForm.requiredExaminers,
+            assignedExaminers: this.timeSlotForm.assignedExaminers,
+            status: this.determineStatus(this.timeSlotForm.assignedExaminers.length, this.timeSlotForm.requiredExaminers)
+          });
+          
+          // If we added a slot for a date, select that date
+          this.selectedDate = this.timeSlotForm.date;
+        }
+        
+        this.showModal = false;
+        this.editingTimeSlot = null;
+      },
+      
+      determineStatus: function(assignedCount, requiredCount) {
+        if (assignedCount === 0) return 'empty';
+        if (assignedCount < requiredCount) return 'partial';
+        return 'full';
+      },
+      
+      deleteTimeSlot: function(slotId) {
+        if (confirm('Are you sure you want to delete this time slot?')) {
+          const index = this.timeSlots.findIndex(slot => slot.id === slotId);
+          if (index >= 0) {
+            this.timeSlots.splice(index, 1);
+            
+            // Remove from selected if it was selected
+            const selectedIndex = this.selectedTimeSlots.indexOf(slotId);
+            if (selectedIndex >= 0) {
+              this.selectedTimeSlots.splice(selectedIndex, 1);
+            }
+            
+            this.showBatchOperations = this.selectedTimeSlots.length > 0;
+          }
+        }
+      },
+      
+      deleteSelectedTimeSlots: function() {
+        if (confirm(`Are you sure you want to delete ${this.selectedTimeSlots.length} selected time slots?`)) {
+          this.timeSlots = this.timeSlots.filter(slot => !this.selectedTimeSlots.includes(slot.id));
+          this.selectedTimeSlots = [];
+          this.showBatchOperations = false;
+        }
+      },
+      
+      duplicateTimeSlot: function(slotId) {
+        const original = this.timeSlots.find(slot => slot.id === slotId);
+        if (original) {
+          const newId = Math.max(...this.timeSlots.map(slot => slot.id)) + 1;
+          this.timeSlots.push({
+            ...original,
+            id: newId,
+            assignedExaminers: []
+          });
+        }
+      },
+      
+      toggleExaminerSelection: function(examiner) {
+        const index = this.timeSlotForm.assignedExaminers.findIndex(e => e.id === examiner.id);
+        if (index >= 0) {
+          this.timeSlotForm.assignedExaminers.splice(index, 1);
+        } else {
+          this.timeSlotForm.assignedExaminers.push(examiner);
+        }
+      },
+      
+      isExaminerSelected: function(examinerId) {
+        return this.timeSlotForm.assignedExaminers.some(e => e.id === examinerId);
+      },
+      
+      notifyExaminers: function(slotId) {
+        alert('Notification emails sent to examiners');
+      },
+      
+      assignRandomExaminers: function() {
+        // Randomly assign examiners up to the required count
+        const available = [...this.availableExaminers]
+          .sort(() => Math.random() - 0.5)
+          .slice(0, this.timeSlotForm.requiredExaminers);
+          
+        this.timeSlotForm.assignedExaminers = available;
+      },
+      
+      releaseToStudent: function() {
+        if (confirm('Are you sure you want to release these time slots to students? This action cannot be undone.')) {
+          // Here you would typically make an API call to release the time slots
+          alert('Time slots have been released to students successfully!');
+        }
+      },
+      
+      to24Hour: function(timeStr) {
+        // Expects format 'hh:mm AM' or 'hh:mm PM'
+        if (!timeStr) return '';
+        const [time, period] = timeStr.split(' ');
+        let [hour, minute] = time.split(':');
+        hour = parseInt(hour);
+        if (period === 'PM' && hour < 12) hour += 12;
+        if (period === 'AM' && hour === 12) hour = 0;
+        return `${hour.toString().padStart(2, '0')}:${minute}`;
+      }
+    }" :class="{'dark': darkMode}">
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+        <!-- Sidebar navigation -->
+        <aside
+            class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800 z-20"
+            :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}" id="sidebar">
+            <!-- Logo and system name -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center space-x-2">
+                    <span class="text-2xl font-bold text-blue-600 dark:text-blue-400">OAS</span>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-300">Admin</span>
+                </div>
+                <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                    @click="sidebarOpen = false" aria-label="Close sidebar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Navigation links -->
+            <nav class="py-4">
+                <div class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                    Main
+                </div>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium">
+                    <i class="fas fa-tasks mr-2"></i> Assignments
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-users mr-2"></i> Users
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-book mr-2"></i> Courses
+                </a>
+
+                <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                    Configuration
+                </div>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-graduation-cap mr-2"></i> Academic Structure
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-cog mr-2"></i> Settings
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-plug mr-2"></i> Integrations
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-bell mr-2"></i> Notifications
+                </a>
+
+                <div class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">
+                    Help
+                </div>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-question-circle mr-2"></i> Documentation
+                </a>
+                <a href="#"
+                    class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2">
+                    <i class="fas fa-headset mr-2"></i> Support
+                </a>
+            </nav>
+
+            <!-- Version info -->
+            <div
+                class="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+                Oral Assessment System v1.2.0
+            </div>
+        </aside>
+
+        <!-- Main content area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top header with user info and actions -->
+            <header class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6">
+                <!-- Mobile menu toggle -->
+                <div class="flex items-center">
+                    <button class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                        @click="sidebarOpen = true" aria-label="Open sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+
+                    <!-- Course info -->
+                    <div class="ml-4 md:ml-6">
+                        <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Software Project Management <span
+                                class="text-xs text-gray-500 dark:text-gray-400">COMP90082</span>
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            2025 · Semester 2
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right side - user profile, notifications, etc. -->
+                <div class="flex items-center space-x-4">
+                    <!-- Dark mode toggle -->
+                    <button @click="darkMode = !darkMode"
+                        class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                        aria-label="Toggle dark mode">
+                        <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+                        <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+                    </button>
+
+                    <!-- Notifications -->
+                    <div class="relative">
+                        <button @click="notificationsOpen = !notificationsOpen"
+                            class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                            aria-label="Notifications">
+                            <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                            <span
+                                class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white">
+                                2
+                            </span>
+                        </button>
+
+                        <!-- Notifications dropdown -->
+                        <div x-show="notificationsOpen" @click.away="notificationsOpen = false"
+                            class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                            x-cloak>
+                            <div
+                                class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                                <h3 class="text-sm font-semibold">Notifications</h3>
+                                <a href="#" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                    Mark all as read
+                                </a>
+                            </div>
+
+                            <!-- Notification items -->
+                            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <div class="flex items-start">
+                                        <div
+                                            class="flex-shrink-0 h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-yellow-500 dark:text-yellow-300">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                        </div>
+                                        <div class="ml-3 w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">Time slots need
+                                                examiners</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">3 time slots for
+                                                COMP90082 have insufficient
+                                                examiners assigned.</p>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">10 minutes ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <div class="flex items-start">
+                                        <div
+                                            class="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-500 dark:text-green-300">
+                                            <i class="fas fa-user-check"></i>
+                                        </div>
+                                        <div class="ml-3 w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-900 dark:text-white">New examiner
+                                                available</p>
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">Dr. Jennifer Lee is now
+                                                available for
+                                                COMP90082 assessments.</p>
+                                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">1 hour ago</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-4 py-2 text-center">
+                                <a href="#" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                    View all notifications
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User profile -->
+                    <div class="relative">
+                        <button
+                            class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                            aria-label="User profile">
+                            <img src="/api/placeholder/32/32" alt="Admin User" class="w-8 h-8 rounded-full" />
+                            <div class="hidden md:block text-left">
+                                <div class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Administrator
+                                </div>
+                                <div class="text-xs text-gray-500 dark:text-gray-400">
+                                    System Admin
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main content -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900">
+                <!-- Breadcrumb -->
+                <div class="mb-4">
+                    <nav class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+                        <ol class="flex items-center space-x-2">
+                            <li class="flex items-center">
+                                <a href="#"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center">
+                                    <span class="font-bold text-blue-600 dark:text-blue-400 mr-1">OAS</span>
+                                    <span class="text-sm text-gray-600 dark:text-gray-300">Dashboard</span>
+                                </a>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                                <a href="#"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                                    Assignments
+                                </a>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                                <a href="#"
+                                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400">
+                                    COMP90082
+                                </a>
+                            </li>
+                            <li class="flex items-center">
+                                <i class="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+                                <span class="text-blue-600 dark:text-blue-400 font-medium">
+                                    Time Slot Management
+                                </span>
+                            </li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Page Header -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                            Time Slot Management
+                        </h1>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Manage assessment time slots and examiner assignments for Final Project Defense
+                        </p>
+                    </div>
+
+                    <!-- Quick Action -->
+                    <div class="mt-4 md:mt-0 flex space-x-2">
+                        <button
+                            class="add-time-slot-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2">
+                            <span class="text-lg">+</span>
+                            <span>Add New Time Slot</span>
+                        </button>
+                        <button
+                            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                            Release Schedule
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Assessment Summary Card -->
+                <div class="dashboard-card p-5 mb-6">
+                    <div class="flex items-center mb-4">
+                        <div
+                            class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mr-3">
+                            <i class="fas fa-clipboard-list text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                                Final Project Defense
+                            </h2>
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                COMP90082 - Software Project Management
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Session
+                                Length</div>
+                            <div class="text-base font-medium text-gray-800 dark:text-gray-200">30 minutes per session
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Gap Time
+                            </div>
+                            <div class="text-base font-medium text-gray-800 dark:text-gray-200">5 minutes between
+                                sessions</div>
+                        </div>
+
+                        <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                            <div class="text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold mb-1">Examiners
+                                Required</div>
+                            <div class="text-base font-medium text-gray-800 dark:text-gray-200">2 examiners per session
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-panel layout for calendar and time slots -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Left panel - Calendar -->
+                    <div class="dashboard-card p-5">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-medium text-gray-800 dark:text-gray-200">
+                                <i class="fas fa-calendar-alt text-blue-600 dark:text-blue-400 mr-2"></i> April 2025
+                            </h2>
+                            <div class="flex space-x-1">
+                                <button
+                                    class="p-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                                    <i class="fas fa-chevron-left text-gray-600 dark:text-gray-400 text-xs"></i>
+                                </button>
+                                <button
+                                    class="p-1 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600">
+                                    <i class="fas fa-chevron-right text-gray-600 dark:text-gray-400 text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Calendar header -->
+                        <div class="calendar-container mb-2">
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Sun</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Mon</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Tue</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Wed</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Thu</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Fri</div>
+                            <div class="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2">Sat</div>
+                        </div>
+
+                        <!-- Calendar days -->
+                        <div class="calendar-container">
+                            <!-- Previous month days -->
+                            <div class="calendar-day bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                                <span class="date">30</span>
+                            </div>
+                            <div class="calendar-day bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                                <span class="date">31</span>
+                            </div>
+
+                            <!-- April days -->
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">1</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">2</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">3</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">4</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">5</span>
+                            </div>
+
+                            <!-- Week 2 -->
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">6</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">7</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">8</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">9</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">10</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">11</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">12</span>
+                            </div>
+
+                            <!-- Week 3 -->
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">13</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">14</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700"
+                                @click="selectedDate = '2025-04-15'"
+                                :class="{'selected': selectedDate === '2025-04-15'}">
+                                <span class="date">15</span>
+                                <div class="day-status">
+                                    <span class="slot-count">2</span>
+                                    <div class="status-indicator status-full"></div>
+                                    <div class="status-indicator status-partial"></div>
+                                </div>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700"
+                                @click="selectedDate = '2025-04-16'"
+                                :class="{'selected': selectedDate === '2025-04-16'}">
+                                <span class="date">16</span>
+                                <div class="day-status">
+                                    <span class="slot-count">1</span>
+                                    <div class="status-indicator status-empty"></div>
+                                </div>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">17</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700"
+                                @click="selectedDate = '2025-04-18'"
+                                :class="{'selected': selectedDate === '2025-04-18'}">
+                                <span class="date">18</span>
+                                <div class="day-status">
+                                    <span class="slot-count">1</span>
+                                    <div class="status-indicator status-full"></div>
+                                </div>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">19</span>
+                            </div>
+
+                            <!-- Week 4 -->
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">20</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">21</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700"
+                                @click="selectedDate = '2025-04-22'"
+                                :class="{'selected': selectedDate === '2025-04-22'}">
+                                <span class="date">22</span>
+                                <div class="day-status">
+                                    <span class="slot-count">1</span>
+                                    <div class="status-indicator status-partial"></div>
+                                </div>
+                            </div>
+                            <div
+                                class="calendar-day border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10">
+                                <span class="date font-semibold">23</span>
+                                <div class="absolute right-0 bottom-0 w-2 h-2 bg-blue-500 rounded-full m-1.5"></div>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">24</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">25</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">26</span>
+                            </div>
+
+                            <!-- Week 5 -->
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">27</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">28</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">29</span>
+                            </div>
+                            <div class="calendar-day border border-gray-200 dark:border-gray-700">
+                                <span class="date">30</span>
+                            </div>
+                            <div class="calendar-day bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                                <span class="date">1</span>
+                            </div>
+                            <div class="calendar-day bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                                <span class="date">2</span>
+                            </div>
+                            <div class="calendar-day bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500">
+                                <span class="date">3</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Legend</h3>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-green-500 rounded-full mr-1.5"></div>
+                                    <span class="text-xs text-gray-700 dark:text-gray-300">Fully Staffed</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-yellow-500 rounded-full mr-1.5"></div>
+                                    <span class="text-xs text-gray-700 dark:text-gray-300">Partially Staffed</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-red-500 rounded-full mr-1.5"></div>
+                                    <span class="text-xs text-gray-700 dark:text-gray-300">Unstaffed</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 bg-blue-500 rounded-full mr-1.5"></div>
+                                    <span class="text-xs text-gray-700 dark:text-gray-300">Today</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right panel - Time slot management -->
+                    <div class="dashboard-card p-5 lg:col-span-2">
+                        <!-- Time slots header with date and actions -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
+                                <i class="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
+                                <span x-show="selectedDate">
+                                    Time Slots - <span
+                                        x-text="selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', {weekday: 'short', month: 'long', day: 'numeric', year: 'numeric'}) : ''"></span>
+                                </span>
+                                <span x-show="!selectedDate">Time Slots - Select a date</span>
+                            </h2>
+
+                            <div class="flex items-center"
+                                x-show="selectedDate && getTimeSlotsForDate(selectedDate).length > 0">
+                                <button @click="selectAllTimeSlotsForDate()"
+                                    class="px-3 py-1 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 mr-2">
+                                    <span
+                                        x-text="getTimeSlotsForDate(selectedDate).every(slot => selectedTimeSlots.includes(slot.id)) ? 'Deselect All' : 'Select All'"></span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Empty state when no date selected -->
+                        <div class="empty-state" x-show="!selectedDate">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-calendar-day text-xl"></i>
+                            </div>
+                            <h3 class="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Date Selected
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+                                Select a date from the calendar to view and manage time slots for that day.
+                            </p>
+                        </div>
+
+                        <!-- Empty state when date selected has no time slots -->
+                        <div class="empty-state"
+                            x-show="selectedDate && getTimeSlotsForDate(selectedDate).length === 0">
+                            <div class="empty-state-icon">
+                                <i class="fas fa-calendar-plus text-xl"></i>
+                            </div>
+                            <h3 class="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Time Slots</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">
+                                There are no time slots scheduled for this date yet.
+                            </p>
+                            <button @click="openAddModal()"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+                                <i class="fas fa-plus mr-2"></i> Add Time Slot
+                            </button>
+                        </div>
+
+                        <!-- Time slots list -->
+                        <div x-show="selectedDate && getTimeSlotsForDate(selectedDate).length > 0" class="space-y-4">
+                            <!-- Batch operations bar (visible when items are selected) -->
+                            <div class="p-3 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg flex items-center justify-between animate-fade-in"
+                                x-show="showBatchOperations">
+                                <div class="flex items-center">
+                                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200 mr-2">
+                                        <i class="fas fa-check-square mr-1.5"></i>
+                                        <span x-text="selectedTimeSlots.length"></span> time slots selected
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <button
+                                        class="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <i class="fas fa-envelope mr-1.5"></i> Notify Examiners
+                                    </button>
+                                    <button
+                                        class="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                        <i class="fas fa-copy mr-1.5"></i> Duplicate
+                                    </button>
+                                    <button @click="deleteSelectedTimeSlots()"
+                                        class="text-xs px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                                        <i class="fas fa-trash-alt mr-1.5"></i> Delete
+                                    </button>
+                                </div>
+                            </div>
+
+                            <template x-for="timeSlot in getTimeSlotsForDate(selectedDate)" :key="timeSlot.id">
+                                <div class="time-slot-item"
+                                    :class="{'selected': selectedTimeSlots.includes(timeSlot.id)}">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div class="flex items-center">
+                                            <div class="mr-3">
+                                                <input type="checkbox"
+                                                    :checked="selectedTimeSlots.includes(timeSlot.id)"
+                                                    @click="toggleTimeSlotSelection(timeSlot.id)"
+                                                    class="rounded text-blue-600">
+                                            </div>
+                                            <div>
+                                                <h3 class="text-base font-medium text-gray-800 dark:text-gray-200"
+                                                    x-text="to24Hour(timeSlot.startTime) + ' - ' + to24Hour(timeSlot.endTime)">
+                                                </h3>
+                                                <div class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">
+                                                    <i class="fas fa-map-marker-alt mr-1.5"></i>
+                                                    <span x-text="timeSlot.venue"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-start">
+                                            <div class="mr-3 text-right">
+                                                <div class="flex items-center">
+                                                    <span class="text-xs font-medium rounded-full px-2 py-0.5" :class="{
+                                                            'bg-green-100 dark:bg-green-900 dark:bg-opacity-30 text-green-800 dark:text-green-200': timeSlot.status === 'full',
+                                                            'bg-yellow-100 dark:bg-yellow-900 dark:bg-opacity-30 text-yellow-800 dark:text-yellow-200': timeSlot.status === 'partial',
+                                                            'bg-red-100 dark:bg-red-900 dark:bg-opacity-30 text-red-800 dark:text-red-200': timeSlot.status === 'empty'
+                                                        }">
+                                                        <span x-text="timeSlot.assignedExaminers.length"></span>/<span
+                                                            x-text="timeSlot.requiredExaminers"></span> examiners
+                                                    </span>
+                                                </div>
+                                                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                    <i class="fas fa-users mr-1.5"></i>
+                                                    <span x-text="timeSlot.sessions"></span> sessions
+                                                </div>
+                                            </div>
+
+                                            <div class="flex">
+                                                <!-- Example for edit buttons on time slot items -->
+                                                <button class="edit-time-slot-btn action-btn action-btn-primary"
+                                                    data-slot-id="3" title="Edit Time Slot">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button @click="duplicateTimeSlot(timeSlot.id)"
+                                                    class="action-btn text-amber-600 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:hover:text-amber-300 dark:bg-amber-900 dark:bg-opacity-20 dark:hover:bg-opacity-30 mr-1"
+                                                    title="Duplicate Time Slot">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                                <button @click="deleteTimeSlot(timeSlot.id)"
+                                                    class="action-btn text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900 dark:bg-opacity-20 dark:hover:bg-opacity-30 mr-1"
+                                                    title="Delete Time Slot">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                                <button @click="notifyExaminers(timeSlot.id)"
+                                                    class="action-btn text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:hover:text-purple-300 dark:bg-purple-900 dark:bg-opacity-20 dark:hover:bg-opacity-30"
+                                                    title="Notify Examiners">
+                                                    <i class="fas fa-envelope"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Examiner assignment section -->
+                                    <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 flex flex-row">
+                                        <div class="flex-1 pr-6">
+                                            <h4
+                                                class="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase mb-2">
+                                                Examiner Allocated:</h4>
+                                            <div x-show="timeSlot.assignedExaminers.length === 0"
+                                                class="text-sm text-gray-500 dark:text-gray-400 italic">
+                                                No examiners assigned yet
+                                            </div>
+                                            <div x-show="timeSlot.assignedExaminers.length > 0" class="flex flex-wrap">
+                                                <template x-for="examiner in timeSlot.assignedExaminers"
+                                                    :key="examiner.id">
+                                                    <div class="examiner-chip pr-2">
+                                                        <span x-text="examiner.name"></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="border-l border-gray-200 dark:border-gray-700 pl-6 flex flex-col items-start min-w-[180px]">
+                                            <div class="flex items-center w-full justify-between">
+                                                <div class="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                                                    <span
+                                                        x-text="(timeSlot.bookings ? timeSlot.bookings.length : 0) + '/' + timeSlot.sessions"></span>
+                                                    session booked
+                                                </div>
+                                                <button
+                                                    @click="timeSlot.showBookingDropdown = !timeSlot.showBookingDropdown"
+                                                    class="ml-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs text-blue-600 dark:text-blue-400">
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                            <div x-show="timeSlot.showBookingDropdown"
+                                                class="mt-2 w-56 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 z-30 absolute"
+                                                @click.away="timeSlot.showBookingDropdown = false">
+                                                <div class="p-2">
+                                                    <template
+                                                        x-if="!timeSlot.bookings || timeSlot.bookings.length === 0">
+                                                        <div
+                                                            class="text-xs text-gray-500 dark:text-gray-400 text-center py-2">
+                                                            No bookings yet</div>
+                                                    </template>
+                                                    <template x-for="booking in (timeSlot.bookings || [])"
+                                                        :key="booking.groupNumber">
+                                                        <div
+                                                            class="flex items-center justify-between py-1 px-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                                                            <span class="text-xs text-gray-500 dark:text-gray-400 w-14"
+                                                                x-text="booking.time"></span>
+                                                            <span
+                                                                class="text-xs font-medium text-gray-800 dark:text-gray-200 flex-1 text-center"
+                                                                x-text="booking.groupName"></span>
+                                                            <span
+                                                                class="text-xs text-gray-500 dark:text-gray-400 w-10 text-right"
+                                                                x-text="booking.groupNumber"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- Modal for adding/editing time slots -->
+            <div class="modal-overlay" x-show="showModal" x-cloak>
+                <div class="modal-container" @click.away="showModal = false">
+                    <div class="modal-header">
+                        <h3 class="text-lg font-medium text-gray-800 dark:text-gray-200"
+                            x-text="modalMode === 'add' ? 'Add New Time Slot' : 'Edit Time Slot'"></h3>
+                        <button @click="showModal = false"
+                            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="space-y-4">
+                            <!-- Date -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Date
+                                </label>
+                                <input type="date" x-model="timeSlotForm.date"
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Time inputs -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Start Time
+                                    </label>
+                                    <div class="time-picker">
+                                        <select x-model="timeSlotForm.startTimeHour" class="time-part">
+                                            <option value="1">1</option>
+                                            <option value="2">2</option>
+                                            <option value="3">3</option>
+                                            <option value="4">4</option>
+                                            <option value="5">5</option>
+                                            <option value="6">6</option>
+                                            <option value="7">7</option>
+                                            <option value="8">8</option>
+                                            <option value="9">9</option>
+                                            <option value="10">10</option>
+                                            <option value="11">11</option>
+                                            <option value="12">12</option>
+                                        </select>
+                                        <span class="time-separator">:</span>
+                                        <select x-model="timeSlotForm.startTimeMinute" class="time-part">
+                                            <option value="00">00</option>
+                                            <option value="15">15</option>
+                                            <option value="30">30</option>
+                                            <option value="45">45</option>
+                                        </select>
+                                        <div class="am-pm-toggle">
+                                            <span class="am-pm-btn"
+                                                :class="{'selected': timeSlotForm.startTimeAMPM === 'AM'}"
+                                                @click="timeSlotForm.startTimeAMPM = 'AM'">AM</span>
+                                            <span class="am-pm-btn"
+                                                :class="{'selected': timeSlotForm.startTimeAMPM === 'PM'}"
+                                                @click="timeSlotForm.startTimeAMPM = 'PM'">PM</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Number of Sessions
+                                    </label>
+                                    <div class="flex items-center">
+                                        <button @click="timeSlotForm.sessions = Math.max(1, timeSlotForm.sessions - 1)"
+                                            class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <input type="number" x-model.number="timeSlotForm.sessions" min="1"
+                                            class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                        <button @click="timeSlotForm.sessions++"
+                                            class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- End time (calculated) -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    End Time (calculated)
+                                </label>
+                                <div
+                                    class="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600">
+                                    <span x-text="calculateEndTime()"></span>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Based on 30-minute sessions with 5-minute gaps
+                                </p>
+                            </div>
+
+                            <!-- Venue -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Venue
+                                </label>
+                                <input type="text" x-model="timeSlotForm.venue"
+                                    placeholder="e.g. Engineering Building, Room 405"
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                            </div>
+
+                            <!-- Required examiners -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Required Examiners
+                                </label>
+                                <div class="flex items-center">
+                                    <button
+                                        @click="timeSlotForm.requiredExaminers = Math.max(1, timeSlotForm.requiredExaminers - 1)"
+                                        class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" x-model.number="timeSlotForm.requiredExaminers" min="1"
+                                        class="w-16 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                    <button @click="timeSlotForm.requiredExaminers++"
+                                        class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">examiners</span>
+                                </div>
+                            </div>
+
+                            <!-- Examiner assignment section -->
+                            <div class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Assign Examiners
+                                    </h4>
+                                    <button @click="assignRandomExaminers()"
+                                        class="text-xs px-2 py-1 text-blue-600 dark:text-blue-400 hover:underline">
+                                        Auto-assign
+                                    </button>
+                                </div>
+
+                                <div class="space-y-2 max-h-48 overflow-y-auto">
+                                    <template x-for="examiner in availableExaminers" :key="examiner.id">
+                                        <div
+                                            class="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            <div class="flex items-center">
+                                                <input type="checkbox" :checked="isExaminerSelected(examiner.id)"
+                                                    @click="toggleExaminerSelection(examiner)"
+                                                    class="rounded text-blue-600 mr-3">
+                                                <img :src="examiner.avatar" class="w-6 h-6 rounded-full mr-2"
+                                                    alt="Examiner" />
+                                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                                                    x-text="examiner.name"></span>
+                                            </div>
+                                            <div class="text-xs px-2 py-0.5 rounded-full" :class="{
+                          'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200': examiner.assignments < 3,
+                          'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200': examiner.assignments >= 3 && examiner.assignments < 5,
+                          'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200': examiner.assignments >= 5
+                        }">
+                                                <span x-text="examiner.assignments"></span> assignments
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button @click="showModal = false"
+                            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 mr-2">
+                            Cancel
+                        </button>
+                        <button @click="saveTimeSlot()"
+                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                            <span x-text="modalMode === 'add' ? 'Add Time Slot' : 'Update Time Slot'"></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer
+                class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 text-center text-sm text-gray-600 dark:text-gray-400">
+                &copy; 2025 Oral Assessment System. All rights reserved.
+            </footer>
+        </div>
+    </div>
+
+    <!-- Modal overlays -->
+    <div id="addModalOverlay" class="modal-overlay">
+        <iframe id="addModalFrame" class="modal-iframe" src="add-time-slot-modal.html"></iframe>
+    </div>
+
+    <!-- Add this JavaScript code before the closing </body> tag -->
+    <script>
+        // Modal handling functions
+        function openAddModal() {
+            document.getElementById('addModalOverlay').classList.add('active');
+            // For add, clear modal after open
+            setTimeout(() => {
+                document.getElementById('addModalFrame').contentWindow.postMessage({ type: 'clear' }, '*');
+            }, 100);
+        }
+
+        function openEditModal(timeSlot) {
+            document.getElementById('addModalOverlay').classList.add('active');
+            // Wait for iframe to load before sending data
+            setTimeout(() => {
+                document.getElementById('addModalFrame').contentWindow.postMessage({
+                    type: 'fillData',
+                    timeSlotData: timeSlot,
+                    mode: 'edit'
+                }, '*');
+            }, 100);
+        }
+
+        function closeModal(type) {
+            document.getElementById('addModalOverlay').classList.remove('active');
+        }
+
+        function addNewTimeSlot(data) {
+            console.log('New time slot added:', data);
+            // Implement your logic to add the time slot to your data store
+        }
+
+        function updateTimeSlot(data) {
+            console.log('Time slot updated:', data);
+            // Implement your logic to update the time slot in your data store
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Connect add new time slot button
+            const addButtons = document.querySelectorAll('.add-time-slot-btn');
+            addButtons.forEach(button => {
+                button.addEventListener('click', openAddModal);
+            });
+
+            // Connect edit buttons
+            document.addEventListener('click', function (e) {
+                let target = e.target;
+                while (target && !target.matches('.edit-time-slot-btn')) {
+                    if (target.parentElement) {
+                        target = target.parentElement;
+                    } else {
+                        break;
+                    }
+                }
+                if (target && target.matches('.edit-time-slot-btn')) {
+                    const slotId = target.getAttribute('data-slot-id');
+                    const timeSlot = findTimeSlotById(slotId);
+                    if (timeSlot) {
+                        openEditModal(timeSlot);
+                    }
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('addModalOverlay').addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal('add');
+                }
+            });
+        });
+
+        // Helper function to find a time slot by ID
+        function findTimeSlotById(id) {
+            // Replace this with your actual data access logic
+            const timeSlots = [
+                {
+                    id: '1',
+                    date: '2025-04-15',
+                    startTime: '9:00 AM',
+                    endTime: '10:30 AM',
+                    venue: 'Engineering Building, Room 405',
+                    requiredExaminers: 2,
+                    assignedExaminers: [
+                        { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24' },
+                        { id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24' }
+                    ],
+                    sessions: 3,
+                    status: 'full'
+                },
+                {
+                    id: '2',
+                    date: '2025-04-15',
+                    startTime: '11:00 AM',
+                    endTime: '12:30 PM',
+                    venue: 'Engineering Building, Room 405',
+                    requiredExaminers: 2,
+                    assignedExaminers: [
+                        { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24' }
+                    ],
+                    sessions: 3,
+                    status: 'partial'
+                },
+                {
+                    id: '3',
+                    date: '2025-04-16',
+                    startTime: '2:00 PM',
+                    endTime: '4:00 PM',
+                    venue: 'ICT Building, Room 203',
+                    requiredExaminers: 2,
+                    assignedExaminers: [],
+                    sessions: 4,
+                    status: 'empty'
+                }
+            ];
+
+            return timeSlots.find(slot => slot.id === id);
+        }
+    </script>
+
+    <!-- AlpineJS for interactivity -->
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+</body>
+
+</html>

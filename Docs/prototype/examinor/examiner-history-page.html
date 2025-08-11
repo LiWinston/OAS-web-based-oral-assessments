@@ -1,0 +1,2784 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Assessment History | OAS</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css"
+    />
+    <!-- Alternative: <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" /> -->
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Alternative: <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" /> -->
+
+    <!-- Google Fonts - keep as is -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --primary-light: #3b82f6;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button,
+      textarea {
+        transition: background-color 0.3s ease, color 0.3s ease,
+          border-color 0.3s ease, box-shadow 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .dark .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Form controls */
+      .form-control {
+        @apply rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-1 focus:ring-blue-500 px-3 py-2;
+      }
+
+      /* Status badges */
+      .status-badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+      }
+
+      .status-completed {
+        @apply bg-green-100 text-green-800 dark:bg-green-800 dark:bg-opacity-30 dark:text-green-200;
+      }
+
+      .status-flagged {
+        @apply bg-amber-100 text-amber-800 dark:bg-amber-800 dark:bg-opacity-30 dark:text-amber-200;
+      }
+
+      .status-recent {
+        @apply bg-blue-100 text-blue-800 dark:bg-blue-800 dark:bg-opacity-30 dark:text-blue-200;
+      }
+
+      /* Score badges */
+      .score-high {
+        @apply bg-gradient-to-r from-green-500 to-green-600 text-white;
+      }
+
+      .score-medium {
+        @apply bg-gradient-to-r from-blue-500 to-blue-600 text-white;
+      }
+
+      .score-low {
+        @apply bg-gradient-to-r from-amber-500 to-amber-600 text-white;
+      }
+
+      .score-failing {
+        @apply bg-gradient-to-r from-red-500 to-red-600 text-white;
+      }
+
+      /* Recent assessment cards scrolling container */
+      .recent-assessments-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: 0.5rem;
+      }
+
+      .recent-assessment-card {
+        min-width: 280px;
+        max-width: 280px;
+        transition: all 0.2s ease;
+      }
+
+      .recent-assessment-card:hover {
+        transform: translateY(-4px);
+      }
+
+      /* View toggles */
+      .view-toggle {
+        @apply px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 focus:outline-none transition-colors;
+      }
+
+      .view-toggle-active {
+        @apply bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700;
+      }
+
+      /* Filter controls */
+      .filter-header {
+        @apply flex justify-between items-center p-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md cursor-pointer;
+      }
+
+      .filter-body {
+        @apply p-3 pt-0;
+      }
+
+      /* Assessment table */
+      .assessment-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+
+      .assessment-table th {
+        @apply bg-gray-50 dark:bg-gray-800 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider px-4 py-3 text-left sticky top-0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .assessment-table td {
+        @apply px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-sm;
+      }
+
+      .assessment-table tr:hover td {
+        @apply bg-gray-50 dark:bg-gray-800;
+      }
+
+      /* Assessment cards */
+      .assessment-card {
+        @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow;
+      }
+
+      /* Chart containers */
+      .chart-container {
+        @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700;
+        height: 300px;
+      }
+
+      /* Interactive pill filters */
+      .pill-filter {
+        @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mr-2 mb-2 bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200;
+      }
+
+      .pill-filter-active {
+        @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-opacity-50 dark:text-blue-200;
+      }
+
+      .pill-filter-close {
+        @apply ml-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300;
+      }
+
+      /* Assessment detail modal */
+      .modal-overlay {
+        @apply fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50 p-4;
+      }
+
+      .modal-content {
+        @apply bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-90vh overflow-y-auto;
+      }
+
+      .modal-header {
+        @apply p-4 border-b border-gray-200 dark:border-gray-700;
+      }
+
+      .modal-body {
+        @apply p-4;
+      }
+
+      .modal-footer {
+        @apply p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-2;
+      }
+
+      /* Stats counter */
+      .stats-card {
+        @apply p-5 rounded-lg flex items-start;
+      }
+
+      .stats-icon {
+        @apply w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0;
+      }
+
+      /* Button styles */
+      .btn {
+        @apply inline-flex items-center justify-center rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors;
+      }
+
+      .btn-sm {
+        @apply px-3 py-1 text-xs;
+      }
+
+      .btn-md {
+        @apply px-4 py-2 text-sm;
+      }
+
+      .btn-primary {
+        @apply bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500;
+      }
+
+      .btn-secondary {
+        @apply bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200 focus:ring-gray-500;
+      }
+
+      .btn-success {
+        @apply bg-green-600 hover:bg-green-700 text-white focus:ring-green-500;
+      }
+
+      .btn-danger {
+        @apply bg-red-600 hover:bg-red-700 text-white focus:ring-red-500;
+      }
+
+      /* Tab styles */
+      .tab-button {
+        @apply px-4 py-2 font-medium rounded-t-lg border-b-2 transition-colors;
+      }
+
+      .tab-button.active {
+        @apply text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400;
+      }
+
+      .tab-button:not(.active) {
+        @apply text-gray-500 dark:text-gray-400 border-transparent hover:text-gray-700 dark:hover:text-gray-300;
+      }
+
+      /* Responsive utility for table */
+      .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      @media (max-width: 768px) {
+        .assessment-table th,
+        .assessment-table td {
+          @apply px-2 py-2;
+        }
+      }
+
+      /* Fade transitions */
+      .fade-enter-active,
+      .fade-leave-active {
+        transition: opacity 0.3s;
+      }
+
+      .fade-enter,
+      .fade-leave-to {
+        opacity: 0;
+      }
+
+      /* Copied custom styles from the original page */
+
+      .dashboard-card {
+        background: var(--bg-light);
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 1px solid var(--light);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+
+      .dark .dashboard-card {
+        background: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .data-table {
+        width: 100%;
+      }
+
+      .data-table thead th {
+        padding: 0.75rem 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        background: #f9fafb;
+      }
+
+      .data-table tbody td {
+        padding: 0.75rem 1rem;
+        border-top: 1px solid #e5e7eb;
+      }
+
+      .data-table tbody tr:hover {
+        background: #f3f4f6;
+      }
+
+      .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+      }
+
+      .status-completed {
+        background: #dcfce7;
+        color: #047857;
+      }
+
+      .status-submitted {
+        background: #dbeafe;
+        color: #1e3a8a;
+      }
+
+      .status-pending {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .pagination-btn {
+        padding: 0.25rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+      }
+
+      .pagination-btn.active {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #1d4ed8;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ 
+      darkMode: false, 
+      sidebarOpen: true, 
+      notificationsOpen: false,
+      activeView: 'table',
+      filterPanelOpen: false,
+      showAssessmentDetail: false,
+      selectedAssessment: null,
+      selectedSubjects: [],
+      selectedAssignments: [],
+      assessmentTypeFilter: 'both',
+      dateRangeStart: null,
+      dateRangeEnd: null,
+      scoreRangeMin: 0,
+      scoreRangeMax: 100,
+      showFlaggedOnly: false,
+      sortField: 'date',
+      sortDirection: 'desc',
+      itemsPerPage: 10,
+      currentPage: 1,
+      searchQuery: '',
+      statisticsTab: 'overview',
+      detailTab: 'rubric',
+      toggleFilter(filter) {
+        if (this.selectedSubjects.includes(filter)) {
+          this.selectedSubjects = this.selectedSubjects.filter(s => s !== filter);
+        } else {
+          this.selectedSubjects.push(filter);
+        }
+      },
+      clearFilters() {
+        this.selectedSubjects = [];
+        this.selectedAssignments = [];
+        this.assessmentTypeFilter = 'both';
+        this.dateRangeStart = null;
+        this.dateRangeEnd = null;
+        this.scoreRangeMin = 0;
+        this.scoreRangeMax = 100;
+        this.showFlaggedOnly = false;
+        this.searchQuery = '';
+      },
+      selectAssessment(assessment) {
+        this.selectedAssessment = assessment;
+        this.showAssessmentDetail = true;
+      },
+      getScoreClass(score) {
+        if (score >= 85) return 'score-high';
+        if (score >= 70) return 'score-medium';
+        if (score >= 50) return 'score-low';
+        return 'score-failing';
+      }
+    }"
+    :class="{'dark': darkMode}"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800 z-20"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Examiner</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Main
+          </div>
+          <a
+            href="examiner-dashboard-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="examiner-schedule-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-calendar-alt mr-2"></i> Schedule
+          </a>
+          <a
+            href="examiner-assessment-page.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-clipboard-check mr-2"></i> Assessment
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium"
+          >
+            <i class="fas fa-chart-bar mr-2"></i> Results
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-comment-dots mr-2"></i> Comment Library
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Help
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-question-circle mr-2"></i> Documentation
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-headset mr-2"></i> Support
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 mt-auto border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+
+            <!-- Search box -->
+            <div class="ml-4 md:ml-6 relative">
+              <span
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"
+              >
+                <i class="fas fa-search text-gray-400"></i>
+              </span>
+              <input
+                type="text"
+                x-model="searchQuery"
+                placeholder="Search students, assignments..."
+                class="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none"
+                aria-label="Search"
+              />
+            </div>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                >
+                  3
+                </span>
+              </button>
+
+              <!-- Notifications dropdown -->
+              <div
+                x-show="notificationsOpen"
+                @click.away="notificationsOpen = false"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                x-cloak
+              >
+                <div
+                  class="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                >
+                  <h3 class="text-sm font-semibold">Notifications</h3>
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Mark all as read
+                  </a>
+                </div>
+
+                <!-- Notification items -->
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div
+                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div class="flex items-start">
+                      <div
+                        class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-500 dark:text-blue-300"
+                      >
+                        <i class="fas fa-calendar-alt"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          Availability Updated
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          Your availability for COMP90082 has been confirmed.
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        >
+                          Just now
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div class="flex items-start">
+                      <div
+                        class="flex-shrink-0 h-8 w-8 rounded-full bg-yellow-100 dark:bg-yellow-900 flex items-center justify-center text-yellow-500 dark:text-yellow-300"
+                      >
+                        <i class="fas fa-exclamation-triangle"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          Scheduling Conflict
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          There's a potential conflict in your schedule for
+                          April 22.
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        >
+                          2 hours ago
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    <div class="flex items-start">
+                      <div
+                        class="flex-shrink-0 h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-500 dark:text-green-300"
+                      >
+                        <i class="fas fa-user-plus"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p
+                          class="text-sm font-medium text-gray-900 dark:text-white"
+                        >
+                          New Booking
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                          Group #5 has booked a session on April 24.
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        >
+                          Yesterday
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="px-4 py-2 text-center">
+                  <a
+                    href="#"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    View all notifications
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Examiner Profile"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Dr. Emma Thompson
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    Examiner
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Page header with statistics -->
+          <div
+            class="flex flex-col md:flex-row md:justify-between md:items-center mb-6"
+          >
+            <div>
+              <h1
+                class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2"
+              >
+                Assessment History
+              </h1>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Review and manage your past assessments and feedback
+              </p>
+            </div>
+
+            <div class="flex mt-4 md:mt-0 space-x-4">
+              <div class="flex flex-col items-center">
+                <div class="text-xl font-bold text-blue-600 dark:text-blue-400">
+                  187
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Total Assessments
+                </div>
+              </div>
+              <div class="flex flex-col items-center">
+                <div
+                  class="text-xl font-bold text-green-600 dark:text-green-400"
+                >
+                  42
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  This Semester
+                </div>
+              </div>
+              <div class="flex flex-col items-center">
+                <div
+                  class="text-xl font-bold text-amber-600 dark:text-amber-400"
+                >
+                  8
+                </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                  Flagged
+                </div>
+              </div>
+              <div class="relative">
+                <button class="btn btn-md btn-primary">
+                  <i class="fas fa-download mr-1"></i> Export Data
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recently Viewed Section -->
+          <div class="dashboard-card mb-6">
+            <div
+              class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+            >
+              <h2
+                class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+              >
+                <i
+                  class="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"
+                ></i>
+                Recently Viewed
+              </h2>
+            </div>
+            <div class="recent-assessments-container p-4">
+              <div class="flex space-x-4">
+                <!-- Recent Assessment Card 1 -->
+                <div
+                  class="recent-assessment-card dashboard-card p-3 cursor-pointer"
+                  @click="selectAssessment({id: 1, name: 'Maria Rodriguez', studentId: '1203457', subject: 'COMP90082', assignment: 'Final Project Defense', type: 'Individual', date: 'Apr 22, 2025', score: 92})"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="status-badge status-recent">Today</div>
+                    <div class="flex items-center">
+                      <span
+                        class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                        >92</span
+                      >
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >/ 100</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1"
+                  >
+                    Maria Rodriguez
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Final Project Defense
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                      <div
+                        class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mr-1"
+                      ></div>
+                      <span class="text-xs text-gray-600 dark:text-gray-400"
+                        >COMP90082</span
+                      >
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      10:30 AM
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent Assessment Card 2 -->
+                <div
+                  class="recent-assessment-card dashboard-card p-3 cursor-pointer"
+                  @click="selectAssessment({id: 2, name: 'Team Innovate', studentId: 'Group #12', subject: 'INFO30005', assignment: 'Mid-Semester Update', type: 'Group', date: 'Apr 21, 2025', score: 85})"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="status-badge status-recent">Yesterday</div>
+                    <div class="flex items-center">
+                      <span
+                        class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                        >85</span
+                      >
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >/ 100</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1"
+                  >
+                    Team Innovate
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Mid-Semester Update
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                      <div
+                        class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-1"
+                      ></div>
+                      <span class="text-xs text-gray-600 dark:text-gray-400"
+                        >INFO30005</span
+                      >
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Group #12
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent Assessment Card 3 -->
+                <div
+                  class="recent-assessment-card dashboard-card p-3 cursor-pointer"
+                  @click="selectAssessment({id: 3, name: 'David Kim', studentId: '1203458', subject: 'INFO20003', assignment: 'Database Design', type: 'Individual', date: 'Apr 19, 2025', score: 78})"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="status-badge status-completed">Apr 19</div>
+                    <div class="flex items-center">
+                      <span
+                        class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                        >78</span
+                      >
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >/ 100</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1"
+                  >
+                    David Kim
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Database Design
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                      <div
+                        class="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 mr-1"
+                      ></div>
+                      <span class="text-xs text-gray-600 dark:text-gray-400"
+                        >INFO20003</span
+                      >
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Individual
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent Assessment Card 4 -->
+                <div
+                  class="recent-assessment-card dashboard-card p-3 cursor-pointer"
+                  @click="selectAssessment({id: 4, name: 'Sarah Johnson', studentId: '1203459', subject: 'COMP90082', assignment: 'Project Proposal', type: 'Individual', date: 'Apr 18, 2025', score: 67})"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="status-badge status-flagged">Flagged</div>
+                    <div class="flex items-center">
+                      <span
+                        class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                        >67</span
+                      >
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >/ 100</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1"
+                  >
+                    Sarah Johnson
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Project Proposal
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                      <div
+                        class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mr-1"
+                      ></div>
+                      <span class="text-xs text-gray-600 dark:text-gray-400"
+                        >COMP90082</span
+                      >
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Apr 18
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Recent Assessment Card 5 -->
+                <div
+                  class="recent-assessment-card dashboard-card p-3 cursor-pointer"
+                  @click="selectAssessment({id: 5, name: 'Tech Wizards', studentId: 'Group #7', subject: 'INFO30005', assignment: 'Final Presentation', type: 'Group', date: 'Apr 16, 2025', score: 91})"
+                >
+                  <div class="flex justify-between items-start mb-2">
+                    <div class="status-badge status-completed">Apr 16</div>
+                    <div class="flex items-center">
+                      <span
+                        class="text-xl font-bold text-blue-600 dark:text-blue-400"
+                        >91</span
+                      >
+                      <span
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                        >/ 100</span
+                      >
+                    </div>
+                  </div>
+                  <div
+                    class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1"
+                  >
+                    Tech Wizards
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    Final Presentation
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                      <div
+                        class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-1"
+                      ></div>
+                      <span class="text-xs text-gray-600 dark:text-gray-400"
+                        >INFO30005</span
+                      >
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      Group #7
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Assessment History Section -->
+          <div class="flex flex-col md:flex-row gap-6">
+            <!-- Left side: Filters -->
+            <div class="w-full md:w-1/4 lg:w-1/5">
+              <div class="dashboard-card mb-4">
+                <div
+                  class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                >
+                  <h2
+                    class="text-md font-semibold text-gray-800 dark:text-gray-200"
+                  >
+                    <i
+                      class="fas fa-filter text-blue-600 dark:text-blue-400 mr-2"
+                    ></i>
+                    Filters
+                  </h2>
+                  <button
+                    @click="clearFilters()"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Clear All
+                  </button>
+                </div>
+
+                <div class="p-4">
+                  <!-- Subject Filter -->
+                  <div class="mb-4">
+                    <div
+                      class="filter-header"
+                      @click="filterPanelOpen = filterPanelOpen === 'subject' ? null : 'subject'"
+                    >
+                      <span>Subject</span>
+                      <i
+                        class="fas"
+                        :class="filterPanelOpen === 'subject' ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </div>
+                    <div
+                      class="filter-body"
+                      x-show="filterPanelOpen === 'subject'"
+                      x-cloak
+                    >
+                      <div class="space-y-2">
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                            value="COMP90082"
+                            @click="toggleFilter('COMP90082')"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >COMP90082</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                            value="INFO30005"
+                            @click="toggleFilter('INFO30005')"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >INFO30005</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                            value="INFO20003"
+                            @click="toggleFilter('INFO20003')"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >INFO20003</span
+                          >
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Assignment Filter -->
+                  <div class="mb-4">
+                    <div
+                      class="filter-header"
+                      @click="filterPanelOpen = filterPanelOpen === 'assignment' ? null : 'assignment'"
+                    >
+                      <span>Assignment</span>
+                      <i
+                        class="fas"
+                        :class="filterPanelOpen === 'assignment' ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </div>
+                    <div
+                      class="filter-body"
+                      x-show="filterPanelOpen === 'assignment'"
+                      x-cloak
+                    >
+                      <div class="space-y-2">
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Project Proposal</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Mid-Semester Update</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Final Presentation</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="checkbox"
+                            class="form-checkbox h-4 w-4 text-blue-600"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Database Design</span
+                          >
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Assessment Type Filter -->
+                  <div class="mb-4">
+                    <div
+                      class="filter-header"
+                      @click="filterPanelOpen = filterPanelOpen === 'type' ? null : 'type'"
+                    >
+                      <span>Assessment Type</span>
+                      <i
+                        class="fas"
+                        :class="filterPanelOpen === 'type' ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </div>
+                    <div
+                      class="filter-body"
+                      x-show="filterPanelOpen === 'type'"
+                      x-cloak
+                    >
+                      <div class="space-y-2">
+                        <label class="flex items-center">
+                          <input
+                            type="radio"
+                            name="assessmentType"
+                            value="both"
+                            class="form-radio h-4 w-4 text-blue-600"
+                            x-model="assessmentTypeFilter"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Both</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="radio"
+                            name="assessmentType"
+                            value="individual"
+                            class="form-radio h-4 w-4 text-indigo-600"
+                            x-model="assessmentTypeFilter"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Individual Only</span
+                          >
+                        </label>
+                        <label class="flex items-center">
+                          <input
+                            type="radio"
+                            name="assessmentType"
+                            value="group"
+                            class="form-radio h-4 w-4 text-blue-600"
+                            x-model="assessmentTypeFilter"
+                          />
+                          <span
+                            class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                            >Group Only</span
+                          >
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Date Range Filter -->
+                  <div class="mb-4">
+                    <div
+                      class="filter-header"
+                      @click="filterPanelOpen = filterPanelOpen === 'date' ? null : 'date'"
+                    >
+                      <span>Date Range</span>
+                      <i
+                        class="fas"
+                        :class="filterPanelOpen === 'date' ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </div>
+                    <div
+                      class="filter-body"
+                      x-show="filterPanelOpen === 'date'"
+                      x-cloak
+                    >
+                      <div class="space-y-2">
+                        <div>
+                          <label
+                            class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                            >From</label
+                          >
+                          <input
+                            type="date"
+                            class="form-control w-full"
+                            x-model="dateRangeStart"
+                          />
+                        </div>
+                        <div>
+                          <label
+                            class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1"
+                            >To</label
+                          >
+                          <input
+                            type="date"
+                            class="form-control w-full"
+                            x-model="dateRangeEnd"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Score Range Filter -->
+                  <div class="mb-4">
+                    <div
+                      class="filter-header"
+                      @click="filterPanelOpen = filterPanelOpen === 'score' ? null : 'score'"
+                    >
+                      <span>Score Range</span>
+                      <i
+                        class="fas"
+                        :class="filterPanelOpen === 'score' ? 'fa-chevron-up' : 'fa-chevron-down'"
+                      ></i>
+                    </div>
+                    <div
+                      class="filter-body"
+                      x-show="filterPanelOpen === 'score'"
+                      x-cloak
+                    >
+                      <div class="space-y-4">
+                        <div
+                          class="flex justify-between text-xs text-gray-500 dark:text-gray-400"
+                        >
+                          <span x-text="scoreRangeMin"></span>
+                          <span x-text="scoreRangeMax"></span>
+                        </div>
+                        <div class="px-2">
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            class="w-full"
+                            x-model="scoreRangeMin"
+                          />
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            class="w-full"
+                            x-model="scoreRangeMax"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Flagged Toggle -->
+                  <div class="mb-4">
+                    <label class="flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        class="form-checkbox h-4 w-4 text-amber-600"
+                        x-model="showFlaggedOnly"
+                      />
+                      <span
+                        class="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                        >Show Flagged Only</span
+                      >
+                    </label>
+                  </div>
+
+                  <!-- Apply Filters Button -->
+                  <button class="btn btn-primary w-full">Apply Filters</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right side: Assessment Data -->
+            <div class="w-full md:w-3/4 lg:w-4/5">
+              <!-- Applied Filters -->
+              <div class="flex flex-wrap mb-4">
+                <template x-for="subject in selectedSubjects" :key="subject">
+                  <div class="pill-filter pill-filter-active">
+                    <span x-text="subject"></span>
+                    <button
+                      class="pill-filter-close"
+                      @click="toggleFilter(subject)"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </template>
+
+                <template x-if="assessmentTypeFilter !== 'both'">
+                  <div class="pill-filter pill-filter-active">
+                    <span
+                      x-text="assessmentTypeFilter === 'individual' ? 'Individual' : 'Group'"
+                    ></span>
+                    <button
+                      class="pill-filter-close"
+                      @click="assessmentTypeFilter = 'both'"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </template>
+
+                <template x-if="showFlaggedOnly">
+                  <div class="pill-filter pill-filter-active">
+                    <span>Flagged Only</span>
+                    <button
+                      class="pill-filter-close"
+                      @click="showFlaggedOnly = false"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </template>
+
+                <template x-if="searchQuery">
+                  <div class="pill-filter pill-filter-active">
+                    <span>Search: <span x-text="searchQuery"></span></span>
+                    <button class="pill-filter-close" @click="searchQuery = ''">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </template>
+              </div>
+
+              <!-- View Controls -->
+              <div class="dashboard-card mb-6">
+                <div
+                  class="p-3 flex flex-col sm:flex-row justify-between items-center"
+                >
+                  <!-- View Toggle -->
+                  <div
+                    class="flex rounded-md overflow-hidden border border-gray-300 dark:border-gray-600 mb-3 sm:mb-0"
+                  >
+                    <button
+                      @click="activeView = 'table'"
+                      :class="{'view-toggle': true, 'view-toggle-active': activeView === 'table', 'rounded-l-md': true}"
+                    >
+                      <i class="fas fa-table mr-1"></i> Table
+                    </button>
+                    <button
+                      @click="activeView = 'cards'"
+                      :class="{'view-toggle': true, 'view-toggle-active': activeView === 'cards'}"
+                    >
+                      <i class="fas fa-th-large mr-1"></i> Cards
+                    </button>
+                    <button
+                      @click="activeView = 'statistics'"
+                      :class="{'view-toggle': true, 'view-toggle-active': activeView === 'statistics', 'rounded-r-md': true}"
+                    >
+                      <i class="fas fa-chart-bar mr-1"></i> Statistics
+                    </button>
+                  </div>
+
+                  <!-- Sort Controls -->
+                  <div class="flex items-center space-x-3">
+                    <div class="flex items-center">
+                      <label
+                        class="text-sm text-gray-500 dark:text-gray-400 mr-2"
+                        >Sort by:</label
+                      >
+                      <select class="form-control text-sm" x-model="sortField">
+                        <option value="date">Date</option>
+                        <option value="name">Student Name</option>
+                        <option value="score">Score</option>
+                      </select>
+                    </div>
+
+                    <button
+                      @click="sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'"
+                      class="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <i
+                        class="fas"
+                        :class="sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down'"
+                      ></i>
+                    </button>
+
+                    <div class="hidden md:flex items-center">
+                      <label
+                        class="text-sm text-gray-500 dark:text-gray-400 mr-2"
+                        >Show:</label
+                      >
+                      <select
+                        class="form-control text-sm"
+                        x-model="itemsPerPage"
+                      >
+                        <option>10</option>
+                        <option>25</option>
+                        <option>50</option>
+                        <option>100</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Table View -->
+              <div
+                x-show="activeView === 'table'"
+                class="dashboard-card mb-6"
+                x-cloak
+              >
+                <div class="dashboard-card mb-6 overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th class="rounded-tl-lg">
+                            <div class="flex items-center">
+                              Date/Time
+                              <button
+                                class="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <i class="fas fa-sort"></i>
+                              </button>
+                            </div>
+                          </th>
+                          <th>
+                            <div class="flex items-center">
+                              Course
+                              <button
+                                class="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <i class="fas fa-sort"></i>
+                              </button>
+                            </div>
+                          </th>
+                          <th>
+                            <div class="flex items-center">
+                              Assignment
+                              <button
+                                class="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <i class="fas fa-sort"></i>
+                              </button>
+                            </div>
+                          </th>
+                          <th>Student/Group</th>
+                          <th>
+                            <div class="flex items-center">
+                              Status
+                              <button
+                                class="ml-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              >
+                                <i class="fas fa-sort"></i>
+                              </button>
+                            </div>
+                          </th>
+                          <th>Duration</th>
+                          <th>Score</th>
+                          <th class="rounded-tr-lg">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <!-- Assessment Row 1 -->
+                        <tr>
+                          <td class="text-sm">
+                            <div class="font-medium">Apr 23, 2025</div>
+                            <div
+                              class="text-xs text-gray-500 dark:text-gray-400"
+                            >
+                              10:30 AM
+                            </div>
+                          </td>
+                          <td>
+                            <div class="text-sm">COMP90082</div>
+                            <div
+                              class="text-xs text-gray-500 dark:text-gray-400"
+                            >
+                              Software Project
+                            </div>
+                          </td>
+                          <td>
+                            <div class="text-sm">Project Defense</div>
+                            <div
+                              class="text-xs text-gray-500 dark:text-gray-400"
+                            >
+                              <span
+                                class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full"
+                                >Group</span
+                              >
+                            </div>
+                          </td>
+                          <td>
+                            <div class="flex items-center">
+                              <div
+                                class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mr-2"
+                              >
+                                <img
+                                  src="/api/placeholder/24/24"
+                                  alt="Group icon"
+                                />
+                              </div>
+                              <div>
+                                <div class="text-sm font-medium">
+                                  Team Innovate
+                                </div>
+                                <div
+                                  class="text-xs text-gray-500 dark:text-gray-400"
+                                >
+                                  Group #12 · 4 members
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span class="status-badge status-completed"
+                              >Completed</span
+                            >
+                          </td>
+                          <td class="text-sm">32 min</td>
+                          <td class="text-sm font-medium">89%</td>
+                          <td>
+                            <div class="flex space-x-1">
+                              <button
+                                @click="window.parent.postMessage({type: 'openAssessmentModal', payload: 'assessment1'}, '*')"
+                                class="btn btn-sm btn-secondary"
+                              >
+                                <i class="fas fa-eye"></i>
+                              </button>
+                              <button class="btn btn-sm btn-secondary">
+                                <i class="fas fa-download"></i>
+                              </button>
+                              <button class="btn btn-sm btn-secondary">
+                                <i class="fas fa-print"></i>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        <!-- Assessment Rows 2–6 copied similarly -->
+                      </tbody>
+                    </table>
+                  </div>
+                  <!-- Pagination -->
+                  <div
+                    class="p-4 flex flex-col sm:flex-row justify-between items-center border-t border-gray-200 dark:border-gray-700"
+                  >
+                    <div
+                      class="text-sm text-gray-600 dark:text-gray-400 mb-4 sm:mb-0"
+                    >
+                      Showing 1 to 6 of 157 entries
+                    </div>
+                    <div class="flex items-center space-x-2">
+                      <button class="pagination-btn" disabled>
+                        <i class="fas fa-chevron-left"></i>
+                      </button>
+                      <button class="pagination-btn active">1</button>
+                      <button class="pagination-btn">2</button>
+                      <button class="pagination-btn">3</button>
+                      <span class="text-gray-600 dark:text-gray-400">...</span>
+                      <button class="pagination-btn">26</button>
+                      <button class="pagination-btn">
+                        <i class="fas fa-chevron-right"></i>
+                      </button>
+                      <select class="form-control ml-4">
+                        <option value="10">10 per page</option>
+                        <option value="25">25 per page</option>
+                        <option value="50">50 per page</option>
+                        <option value="100">100 per page</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card View -->
+              <div x-show="activeView === 'cards'" x-cloak>
+                <div
+                  class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6"
+                >
+                  <!-- Card 1 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 1, name: 'Maria Rodriguez', studentId: '1203457', subject: 'COMP90082', assignment: 'Final Project Defense', type: 'Individual', date: 'Apr 22, 2025', score: 92})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3"
+                        >
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            Maria Rodriguez
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            ID: 1203457
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        92
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Final Project Defense</span
+                          >
+                        </div>
+                        <div class="status-badge status-recent">Today</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >COMP90082</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:bg-opacity-30 dark:text-indigo-200"
+                          >Individual</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 22, 2025 • 10:30 AM</div>
+                        <div>28 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card 2 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 2, name: 'Team Innovate', studentId: 'Group #12', subject: 'INFO30005', assignment: 'Mid-Semester Update', type: 'Group', date: 'Apr 21, 2025', score: 85})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-400 mr-3"
+                        >
+                          <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            Team Innovate
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            Group #12
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        85
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Mid-Semester Update</span
+                          >
+                        </div>
+                        <div class="status-badge status-recent">Yesterday</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >INFO30005</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-opacity-30 dark:text-blue-200"
+                          >Group</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 21, 2025 • 02:00 PM</div>
+                        <div>35 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card 3 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 3, name: 'David Kim', studentId: '1203458', subject: 'INFO20003', assignment: 'Database Design', type: 'Individual', date: 'Apr 19, 2025', score: 78})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400 mr-3"
+                        >
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            David Kim
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            ID: 1203458
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        78
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Database Design</span
+                          >
+                        </div>
+                        <div class="status-badge status-completed">Apr 19</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >INFO20003</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:bg-opacity-30 dark:text-indigo-200"
+                          >Individual</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 19, 2025 • 11:15 AM</div>
+                        <div>22 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card 4 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 4, name: 'Sarah Johnson', studentId: '1203459', subject: 'COMP90082', assignment: 'Project Proposal', type: 'Individual', date: 'Apr 18, 2025', score: 67})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3"
+                        >
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            Sarah Johnson
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            ID: 1203459
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        67
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Project Proposal</span
+                          >
+                        </div>
+                        <div class="status-badge status-flagged">Flagged</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-blue-500 dark:bg-blue-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >COMP90082</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:bg-opacity-30 dark:text-indigo-200"
+                          >Individual</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 18, 2025 • 09:45 AM</div>
+                        <div>18 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card 5 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 5, name: 'Tech Wizards', studentId: 'Group #7', subject: 'INFO30005', assignment: 'Final Presentation', type: 'Group', date: 'Apr 16, 2025', score: 91})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-400 mr-3"
+                        >
+                          <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            Tech Wizards
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            Group #7
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        91
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Final Presentation</span
+                          >
+                        </div>
+                        <div class="status-badge status-completed">Apr 16</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-green-500 dark:bg-green-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >INFO30005</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-blue-100 text-blue-800 dark:bg-blue-900 dark:bg-opacity-30 dark:text-blue-200"
+                          >Group</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 16, 2025 • 01:30 PM</div>
+                        <div>32 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Card 6 -->
+                  <div
+                    class="assessment-card cursor-pointer"
+                    @click="selectAssessment({id: 6, name: 'Alex Chen', studentId: '1203456', subject: 'INFO20003', assignment: 'Database Implementation', type: 'Individual', date: 'Apr 15, 2025', score: 82})"
+                  >
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center"
+                    >
+                      <div class="flex items-center">
+                        <div
+                          class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center text-purple-600 dark:text-purple-400 mr-3"
+                        >
+                          <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                          <div
+                            class="font-medium text-gray-900 dark:text-white"
+                          >
+                            Alex Chen
+                          </div>
+                          <div class="text-xs text-gray-500 dark:text-gray-400">
+                            ID: 1203456
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+                      >
+                        82
+                      </div>
+                    </div>
+                    <div class="p-4">
+                      <div class="flex justify-between mb-2">
+                        <div class="text-sm">
+                          <span class="text-gray-500 dark:text-gray-400"
+                            >Assignment:</span
+                          >
+                          <span
+                            class="font-medium text-gray-900 dark:text-white ml-1"
+                            >Database Implementation</span
+                          >
+                        </div>
+                        <div class="status-badge status-completed">Apr 15</div>
+                      </div>
+                      <div class="flex justify-between mb-3">
+                        <div class="flex items-center">
+                          <div
+                            class="w-2 h-2 rounded-full bg-purple-500 dark:bg-purple-400 mr-1"
+                          ></div>
+                          <span class="text-sm text-gray-600 dark:text-gray-400"
+                            >INFO20003</span
+                          >
+                        </div>
+                        <span
+                          class="status-badge bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:bg-opacity-30 dark:text-indigo-200"
+                          >Individual</span
+                        >
+                      </div>
+                      <div
+                        class="flex text-xs text-gray-500 dark:text-gray-400 justify-between mt-4"
+                      >
+                        <div>Apr 15, 2025 • 03:15 PM</div>
+                        <div>25 minutes</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Pagination -->
+                <div class="dashboard-card p-4 flex justify-between mb-6">
+                  <div class="text-sm text-gray-500 dark:text-gray-400">
+                    Showing
+                    <span class="font-medium text-gray-700 dark:text-gray-300"
+                      >1-6</span
+                    >
+                    of
+                    <span class="font-medium text-gray-700 dark:text-gray-300"
+                      >42</span
+                    >
+                    results
+                  </div>
+                  <div class="flex space-x-1">
+                    <button
+                      class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50"
+                      disabled
+                    >
+                      Previous
+                    </button>
+                    <button
+                      class="px-3 py-1 bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 text-blue-600 dark:text-blue-400 rounded border border-blue-300 dark:border-blue-700"
+                    >
+                      1
+                    </button>
+                    <button
+                      class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      2
+                    </button>
+                    <button
+                      class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      3
+                    </button>
+                    <button
+                      class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Statistics View -->
+              <div x-show="activeView === 'statistics'" x-cloak>
+                <!-- Statistics Tabs -->
+                <div
+                  class="mb-4 border-b border-gray-200 dark:border-gray-700 flex space-x-4"
+                >
+                  <button
+                    @click="statisticsTab = 'overview'"
+                    :class="statisticsTab === 'overview' ? 'tab-button active' : 'tab-button'"
+                  >
+                    Overview
+                  </button>
+                  <button
+                    @click="statisticsTab = 'scores'"
+                    :class="statisticsTab === 'scores' ? 'tab-button active' : 'tab-button'"
+                  >
+                    Score Analysis
+                  </button>
+                  <button
+                    @click="statisticsTab = 'time'"
+                    :class="statisticsTab === 'time' ? 'tab-button active' : 'tab-button'"
+                  >
+                    Time & Volume
+                  </button>
+                  <button
+                    @click="statisticsTab = 'comparison'"
+                    :class="statisticsTab === 'comparison' ? 'tab-button active' : 'tab-button'"
+                  >
+                    Comparisons
+                  </button>
+                </div>
+
+                <!-- Overview Tab -->
+                <div x-show="statisticsTab === 'overview'">
+                  <!-- Stats Cards -->
+                  <div
+                    class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+                  >
+                    <!-- Average Score Card -->
+                    <div class="dashboard-card">
+                      <div
+                        class="stats-card bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20"
+                      >
+                        <div class="stats-icon bg-blue-100 dark:bg-blue-800">
+                          <i
+                            class="fas fa-chart-line text-blue-600 dark:text-blue-400"
+                          ></i>
+                        </div>
+                        <div>
+                          <h3 class="text-sm text-gray-500 dark:text-gray-400">
+                            Average Score
+                          </h3>
+                          <div
+                            class="text-2xl font-bold text-gray-900 dark:text-white mt-1"
+                          >
+                            83.2%
+                          </div>
+                          <div class="flex items-center mt-1 text-xs">
+                            <span class="text-green-600 dark:text-green-400">
+                              <i class="fas fa-arrow-up mr-1"></i> 2.4%
+                            </span>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1"
+                              >from last semester</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Assessment Count Card -->
+                    <div class="dashboard-card">
+                      <div
+                        class="stats-card bg-green-50 dark:bg-green-900 dark:bg-opacity-20"
+                      >
+                        <div class="stats-icon bg-green-100 dark:bg-green-800">
+                          <i
+                            class="fas fa-clipboard-check text-green-600 dark:text-green-400"
+                          ></i>
+                        </div>
+                        <div>
+                          <h3 class="text-sm text-gray-500 dark:text-gray-400">
+                            Total Assessments
+                          </h3>
+                          <div
+                            class="text-2xl font-bold text-gray-900 dark:text-white mt-1"
+                          >
+                            187
+                          </div>
+                          <div class="flex items-center mt-1 text-xs">
+                            <span class="text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-calendar-alt mr-1"></i> 42 this
+                              semester
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Most Assessed Assignment Card -->
+                    <div class="dashboard-card">
+                      <div
+                        class="stats-card bg-purple-50 dark:bg-purple-900 dark:bg-opacity-20"
+                      >
+                        <div
+                          class="stats-icon bg-purple-100 dark:bg-purple-800"
+                        >
+                          <i
+                            class="fas fa-award text-purple-600 dark:text-purple-400"
+                          ></i>
+                        </div>
+                        <div>
+                          <h3 class="text-sm text-gray-500 dark:text-gray-400">
+                            Most Assessed
+                          </h3>
+                          <div
+                            class="text-2xl font-bold text-gray-900 dark:text-white mt-1"
+                          >
+                            Final Project
+                          </div>
+                          <div class="flex items-center mt-1 text-xs">
+                            <span class="text-gray-500 dark:text-gray-400">
+                              <i class="fas fa-users mr-1"></i> 28 assessments
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Average Time Card -->
+                    <div class="dashboard-card">
+                      <div
+                        class="stats-card bg-amber-50 dark:bg-amber-900 dark:bg-opacity-20"
+                      >
+                        <div class="stats-icon bg-amber-100 dark:bg-amber-800">
+                          <i
+                            class="fas fa-clock text-amber-600 dark:text-amber-400"
+                          ></i>
+                        </div>
+                        <div>
+                          <h3 class="text-sm text-gray-500 dark:text-gray-400">
+                            Average Time
+                          </h3>
+                          <div
+                            class="text-2xl font-bold text-gray-900 dark:text-white mt-1"
+                          >
+                            24 min
+                          </div>
+                          <div class="flex items-center mt-1 text-xs">
+                            <span class="text-red-600 dark:text-red-400">
+                              <i class="fas fa-arrow-up mr-1"></i> 3 min
+                            </span>
+                            <span class="text-gray-500 dark:text-gray-400 ml-1"
+                              >from last semester</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Charts Row -->
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Score Distribution Chart -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-chart-bar text-blue-600 dark:text-blue-400 mr-2"
+                          ></i>
+                          Score Distribution
+                        </h3>
+                      </div>
+                      <div class="p-4 h-64 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-bar text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Bar chart showing score distribution]
+                          </p>
+                          <p
+                            class="text-xs text-gray-400 dark:text-gray-500 mt-2"
+                          >
+                            Most scores fall in the 80-89% range
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Assessment Volume Chart -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-calendar-alt text-green-600 dark:text-green-400 mr-2"
+                          ></i>
+                          Assessment Volume
+                        </h3>
+                      </div>
+                      <div class="p-4 h-64 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-line text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Line chart showing assessment volume over time]
+                          </p>
+                          <p
+                            class="text-xs text-gray-400 dark:text-gray-500 mt-2"
+                          >
+                            Peak activity in mid-April with 22 assessments
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Performance by Criteria Chart -->
+                  <div class="dashboard-card mb-6">
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <h3
+                        class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                      >
+                        <i
+                          class="fas fa-bullseye text-purple-600 dark:text-purple-400 mr-2"
+                        ></i>
+                        Performance by Criteria
+                      </h3>
+                    </div>
+                    <div class="p-4 h-64 flex items-center justify-center">
+                      <div
+                        class="w-full h-full flex flex-col items-center justify-center"
+                      >
+                        <i
+                          class="fas fa-chart-radar text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                        ></i>
+                        <p class="text-gray-500 dark:text-gray-400 text-center">
+                          [Radar chart showing performance across different
+                          assessment criteria]
+                        </p>
+                        <p
+                          class="text-xs text-gray-400 dark:text-gray-500 mt-2"
+                        >
+                          Students excel in Technical Implementation (87%) but
+                          struggle with Communication (76%)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Score Analysis Tab -->
+                <div x-show="statisticsTab === 'scores'" x-cloak>
+                  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <!-- Score Trends Chart -->
+                    <div class="dashboard-card lg:col-span-2">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-chart-line text-blue-600 dark:text-blue-400 mr-2"
+                          ></i>
+                          Score Trends
+                        </h3>
+                      </div>
+                      <div class="p-4 h-80 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-line text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Line chart showing score trends over time]
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Score Breakdown -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-clipboard-list text-green-600 dark:text-green-400 mr-2"
+                          ></i>
+                          Score Breakdown
+                        </h3>
+                      </div>
+                      <div class="p-4">
+                        <ul class="space-y-3">
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">90-100%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-green-500 h-2 rounded-full"
+                                  style="width: 18%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              18%
+                            </div>
+                          </li>
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">80-89%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-blue-500 h-2 rounded-full"
+                                  style="width: 42%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              42%
+                            </div>
+                          </li>
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">70-79%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-blue-400 h-2 rounded-full"
+                                  style="width: 25%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              25%
+                            </div>
+                          </li>
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">60-69%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-amber-500 h-2 rounded-full"
+                                  style="width: 10%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              10%
+                            </div>
+                          </li>
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">50-59%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-amber-400 h-2 rounded-full"
+                                  style="width: 3%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              3%
+                            </div>
+                          </li>
+                          <li class="flex justify-between items-center">
+                            <div class="text-sm font-medium">0-49%</div>
+                            <div class="flex-1 mx-4">
+                              <div
+                                class="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden"
+                              >
+                                <div
+                                  class="bg-red-500 h-2 rounded-full"
+                                  style="width: 2%"
+                                ></div>
+                              </div>
+                            </div>
+                            <div
+                              class="text-sm text-gray-500 dark:text-gray-400"
+                            >
+                              2%
+                            </div>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Score Comparison Card -->
+                  <div class="dashboard-card mb-6">
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <h3
+                        class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                      >
+                        <i
+                          class="fas fa-chart-bar text-purple-600 dark:text-purple-400 mr-2"
+                        ></i>
+                        Score Comparison by Assignment
+                      </h3>
+                    </div>
+                    <div class="p-4 h-80 flex items-center justify-center">
+                      <div
+                        class="w-full h-full flex flex-col items-center justify-center"
+                      >
+                        <i
+                          class="fas fa-chart-bar text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                        ></i>
+                        <p class="text-gray-500 dark:text-gray-400 text-center">
+                          [Grouped bar chart comparing scores across different
+                          assignments]
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Time & Volume Tab -->
+                <div x-show="statisticsTab === 'time'" x-cloak>
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Assessment Calendar Heatmap -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-calendar-alt text-blue-600 dark:text-blue-400 mr-2"
+                          ></i>
+                          Assessment Calendar
+                        </h3>
+                      </div>
+                      <div class="p-4 h-80 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-calendar-alt text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Calendar heatmap showing assessment frequency by
+                            day]
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Time Distribution -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-clock text-green-600 dark:text-green-400 mr-2"
+                          ></i>
+                          Time Distribution
+                        </h3>
+                      </div>
+                      <div class="p-4 h-80 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-pie text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Pie chart showing assessment time distribution]
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Assessment Volume by Week -->
+                  <div class="dashboard-card mb-6">
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <h3
+                        class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                      >
+                        <i
+                          class="fas fa-chart-area text-purple-600 dark:text-purple-400 mr-2"
+                        ></i>
+                        Assessment Volume by Week
+                      </h3>
+                    </div>
+                    <div class="p-4 h-64 flex items-center justify-center">
+                      <div
+                        class="w-full h-full flex flex-col items-center justify-center"
+                      >
+                        <i
+                          class="fas fa-chart-area text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                        ></i>
+                        <p class="text-gray-500 dark:text-gray-400 text-center">
+                          [Area chart showing assessment volume by week]
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Comparisons Tab -->
+                <div x-show="statisticsTab === 'comparison'" x-cloak>
+                  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Subject Comparison -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-book text-blue-600 dark:text-blue-400 mr-2"
+                          ></i>
+                          Subject Comparison
+                        </h3>
+                      </div>
+                      <div class="p-4 h-80 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-bar text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Bar chart comparing scores across different
+                            subjects]
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Individual vs Group -->
+                    <div class="dashboard-card">
+                      <div
+                        class="p-4 border-b border-gray-200 dark:border-gray-700"
+                      >
+                        <h3
+                          class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                        >
+                          <i
+                            class="fas fa-users text-green-600 dark:text-green-400 mr-2"
+                          ></i>
+                          Individual vs Group Performance
+                        </h3>
+                      </div>
+                      <div class="p-4 h-80 flex items-center justify-center">
+                        <div
+                          class="w-full h-full flex flex-col items-center justify-center"
+                        >
+                          <i
+                            class="fas fa-chart-bar text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                          ></i>
+                          <p
+                            class="text-gray-500 dark:text-gray-400 text-center"
+                          >
+                            [Comparison chart of individual vs. group assessment
+                            scores]
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Semester Comparison -->
+                  <div class="dashboard-card mb-6">
+                    <div
+                      class="p-4 border-b border-gray-200 dark:border-gray-700"
+                    >
+                      <h3
+                        class="text-lg font-semibold text-gray-800 dark:text-gray-200"
+                      >
+                        <i
+                          class="fas fa-chart-line text-purple-600 dark:text-purple-400 mr-2"
+                        ></i>
+                        Semester Comparison
+                      </h3>
+                    </div>
+                    <div class="p-4 h-64 flex items-center justify-center">
+                      <div
+                        class="w-full h-full flex flex-col items-center justify-center"
+                      >
+                        <i
+                          class="fas fa-chart-line text-6xl text-gray-300 dark:text-gray-600 mb-4"
+                        ></i>
+                        <p class="text-gray-500 dark:text-gray-400 text-center">
+                          [Line chart comparing performance across semesters]
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

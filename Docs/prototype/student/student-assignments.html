@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAS - My Assignments</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+
+      .dark .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+        transition: all 0.2s ease;
+      }
+
+      .btn-outline-primary:hover {
+        background-color: var(--primary);
+        color: white;
+      }
+
+      /* Badge styles */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .badge-green {
+        background-color: #10b98118;
+        color: #047857;
+      }
+
+      .badge-blue {
+        background-color: #3b82f618;
+        color: #1d4ed8;
+      }
+
+      .badge-red {
+        background-color: #ef444418;
+        color: #b91c1c;
+      }
+
+      .badge-orange {
+        background-color: #f59e0b18;
+        color: #d97706;
+      }
+
+      .badge-purple {
+        background-color: #8b5cf618;
+        color: #7c3aed;
+      }
+
+      .dark .badge-green {
+        background-color: #047857;
+        color: #d1fae5;
+      }
+
+      .dark .badge-blue {
+        background-color: #1d4ed8;
+        color: #dbeafe;
+      }
+
+      .dark .badge-red {
+        background-color: #b91c1c;
+        color: #fee2e2;
+      }
+
+      .dark .badge-orange {
+        background-color: #d97706;
+        color: #ffedd5;
+      }
+
+      .dark .badge-purple {
+        background-color: #7c3aed;
+        color: #ede9fe;
+      }
+
+      /* Progress bar */
+      .progress {
+        height: 8px;
+        border-radius: 4px;
+        overflow: hidden;
+        background-color: #e5e7eb;
+      }
+
+      .dark .progress {
+        background-color: #374151;
+      }
+
+      .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+      }
+
+      .progress-bar-success {
+        background-color: #10b981;
+      }
+
+      .progress-bar-warning {
+        background-color: #f59e0b;
+      }
+
+      .progress-bar-danger {
+        background-color: #ef4444;
+      }
+    </style>
+  </head>
+  <body
+    class="antialiased bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+    x-data="{ darkMode: false, sidebarOpen: true, notificationsOpen: false }"
+  >
+    <!-- Main container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+      <!-- Sidebar navigation -->
+      <aside
+        class="sidebar w-64 md:shadow transform -translate-x-full md:translate-x-0 transition-transform duration-150 ease-in bg-white dark:bg-gray-800"
+        :class="{'hidden': !sidebarOpen, 'block': sidebarOpen}"
+        id="sidebar"
+      >
+        <!-- Logo and system name -->
+        <div
+          class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600 dark:text-blue-400"
+              >OAS</span
+            >
+            <span class="text-sm font-medium text-gray-600 dark:text-gray-300"
+              >Student</span
+            >
+          </div>
+          <button
+            class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+            @click="sidebarOpen = false"
+            aria-label="Close sidebar"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <!-- Navigation links -->
+        <nav class="py-4">
+          <div
+            class="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Main
+          </div>
+          <a
+            href="student-dashboard.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+          </a>
+          <a
+            href="student-assignments.html"
+            class="sidebar-link block px-4 py-2 text-sm text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-30 rounded-md mx-2 font-medium"
+          >
+            <i class="fas fa-tasks mr-2"></i> My Assignments
+          </a>
+          <a
+          href="student-booking-board.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-calendar-alt mr-2"></i> My Bookings
+          </a>
+          <a
+            href="student-groups.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-users mr-2"></i> My Groups
+          </a>
+          <a
+            href="student-results.html"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-chart-bar mr-2"></i> My Results
+          </a>
+
+          <div
+            class="px-4 py-2 mt-4 text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold"
+          >
+            Support
+          </div>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-question-circle mr-2"></i> Help Center
+          </a>
+          <a
+            href="#"
+            class="sidebar-link block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 rounded-md mx-2"
+          >
+            <i class="fas fa-cog mr-2"></i> Settings
+          </a>
+        </nav>
+
+        <!-- Version info -->
+        <div
+          class="p-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400"
+        >
+          Oral Assessment System v1.2.0
+        </div>
+      </aside>
+
+      <!-- Main content area -->
+      <div class="flex-1 flex flex-col">
+        <!-- Top header with user info and actions -->
+        <header
+          class="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6"
+        >
+          <!-- Mobile menu toggle -->
+          <div class="flex items-center">
+            <button
+              class="md:hidden p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              @click="sidebarOpen = true"
+              aria-label="Open sidebar"
+            >
+              <i class="fas fa-bars"></i>
+            </button>
+          </div>
+
+          <!-- Right side - user profile, notifications, etc. -->
+          <div class="flex items-center space-x-4">
+            <!-- Dark mode toggle -->
+            <button
+              @click="darkMode = !darkMode; document.body.classList.toggle('dark')"
+              class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+              aria-label="Toggle dark mode"
+            >
+              <i class="fas fa-moon text-gray-600 dark:hidden"></i>
+              <i class="fas fa-sun text-yellow-400 hidden dark:block"></i>
+            </button>
+
+            <!-- Notifications -->
+            <div class="relative">
+              <button
+                @click="notificationsOpen = !notificationsOpen"
+                class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
+                aria-label="Notifications"
+              >
+                <i class="fas fa-bell text-gray-600 dark:text-gray-300"></i>
+                <span
+                  class="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white"
+                  >3</span
+                >
+              </button>
+
+              <!-- Notifications dropdown -->
+              <div
+                x-show="notificationsOpen"
+                @click.away="notificationsOpen = false"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto"
+                x-cloak
+              >
+                <!-- Notification content -->
+                <div class="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                  <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Notifications</h3>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex items-start">
+                      <div class="flex-shrink-0 bg-blue-100 dark:bg-blue-800 p-1 rounded-full">
+                        <i class="fas fa-calendar-check text-blue-600 dark:text-blue-300 text-sm"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200">New time slot booked</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Your booking for Web Technology assessment is confirmed.</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">10 minutes ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex items-start">
+                      <div class="flex-shrink-0 bg-green-100 dark:bg-green-800 p-1 rounded-full">
+                        <i class="fas fa-check-circle text-green-600 dark:text-green-300 text-sm"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Assignment published</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">New assignment 'Final Project' has been added to INFO30005.</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">2 hours ago</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex items-start">
+                      <div class="flex-shrink-0 bg-yellow-100 dark:bg-yellow-800 p-1 rounded-full">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 dark:text-yellow-300 text-sm"></i>
+                      </div>
+                      <div class="ml-3 w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200">Assessment reminder</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Your Database Systems assessment is tomorrow at 2:00 PM.</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">1 day ago</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-center">
+                  <a href="student-notifications.html" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">View all notifications</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- User profile -->
+            <div class="relative">
+              <button
+                class="flex items-center space-x-2 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="User profile"
+              >
+                <img
+                  src="/api/placeholder/32/32"
+                  alt="Student Avatar"
+                  class="w-8 h-8 rounded-full"
+                />
+                <div class="hidden md:block text-left">
+                  <div
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    Jane Smith
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400">
+                    Student ID: s123456
+                  </div>
+                </div>
+                <i
+                  class="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"
+                ></i>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main content -->
+        <main
+          class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900"
+        >
+          <!-- Breadcrumb -->
+          <div class="mb-4">
+            <nav
+              class="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3"
+            >
+              <ol class="flex items-center space-x-2">
+                <li class="flex items-center">
+                  <a
+                    href="student-dashboard.html"
+                    class="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center"
+                  >
+                    <span class="text-sm text-gray-600 dark:text-gray-300"
+                      >Dashboard</span
+                    >
+                  </a>
+                </li>
+                <li class="flex items-center">
+                  <i
+                    class="fas fa-chevron-right text-gray-400 mx-2 text-xs"
+                  ></i>
+                  <span
+                    class="text-blue-600 dark:text-blue-400 font-medium"
+                  >
+                    My Assignments
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Page title and filters -->
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+            <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4 md:mb-0">
+              My Assignments
+            </h1>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+              <!-- Search -->
+              <div class="relative">
+                <input
+                  type="text"
+                  placeholder="Search assignments..."
+                  class="w-full sm:w-64 pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <div class="absolute left-3 top-2.5">
+                  <i class="fas fa-search text-gray-400"></i>
+                </div>
+              </div>
+              
+              <!-- Status filter -->
+              <select
+                class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="all">All Statuses</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending</option>
+              </select>
+              
+              <!-- Sort by -->
+              <select
+                class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="date-newest">Date: Newest First</option>
+                <option value="date-oldest">Date: Oldest First</option>
+                <option value="name-az">Name: A-Z</option>
+                <option value="name-za">Name: Z-A</option>
+              </select>
+            </div>
+          </div>
+          
+          <!-- This week's assignments section -->
+          <div class="mb-8">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              This Week's Assignments
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- Assignment card - urgent -->
+              <div class="dashboard-card overflow-hidden">
+                <div class="h-2 bg-red-500"></div>
+                <div class="p-4">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Web Technology Assessment</h3>
+                    <span class="badge badge-red">
+                      <i class="fas fa-clock mr-1"></i> Due Tomorrow
+                    </span>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">INFO30005</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Progress Evaluation - Individual</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>Booking Status</span>
+                      <span class="font-medium text-red-600 dark:text-red-400">Not Booked</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar progress-bar-danger w-0"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <i class="fas fa-calendar-day mr-1"></i> Due: Apr 15, 2025
+                    </div>
+                    <a href="student-booking-slots.html" class="btn-primary px-3 py-1 rounded-md text-sm">
+                      Book Now
+                    </a>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Assignment card - in progress -->
+              <div class="dashboard-card overflow-hidden">
+                <div class="h-2 bg-yellow-500"></div>
+                <div class="p-4">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Database Systems Presentation</h3>
+                    <span class="badge badge-orange">
+                      <i class="fas fa-hourglass-half mr-1"></i> 3 Days Left
+                    </span>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">INFO30002</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Final Project - Group</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>Preparation Status</span>
+                      <span class="font-medium text-yellow-600 dark:text-yellow-400">In Progress</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar progress-bar-warning w-1/2"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <i class="fas fa-calendar-day mr-1"></i> Due: Apr 17, 2025
+                    </div>
+                    <a href="student-assignments-detail.html" class="btn-outline-primary px-3 py-1 rounded-md text-sm">
+                      View Details
+                    </a>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Assignment card - upcoming -->
+              <div class="dashboard-card overflow-hidden">
+                <div class="h-2 bg-blue-500"></div>
+                <div class="p-4">
+                  <div class="flex justify-between items-start mb-3">
+                    <h3 class="text-base font-semibold text-gray-800 dark:text-gray-200">Software Development Project</h3>
+                    <span class="badge badge-blue">
+                      <i class="fas fa-calendar-alt mr-1"></i> Upcoming
+                    </span>
+                  </div>
+                  
+                  <div class="mb-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400">INFO30001</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Midterm Review - Individual</p>
+                  </div>
+                  
+                  <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                      <span>Status</span>
+                      <span class="font-medium text-blue-600 dark:text-blue-400">Time Slot Booked</span>
+                    </div>
+                    <div class="progress">
+                      <div class="progress-bar progress-bar-success w-full"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <i class="fas fa-calendar-day mr-1"></i> Due: Apr 21, 2025
+                    </div>
+                    <a href="student-assignments-detail.html" class="btn-outline-primary px-3 py-1 rounded-md text-sm">
+                      View Details
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- All assignments section -->
+          <div>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">
+              All Assignments
+            </h2>
+            
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+              <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead class="bg-gray-50 dark:bg-gray-700">
+                    <tr>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Assignment
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Course
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Type
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Due Date
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                    <!-- Row 1 -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900 rounded-full">
+                            <i class="fas fa-code text-blue-600 dark:text-blue-400"></i>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Web Technology Assessment</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Progress Evaluation</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-gray-100">INFO30005</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Web Information Technologies</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          Individual
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center">
+                          <i class="fas fa-calendar-day mr-2 text-red-500 dark:text-red-400"></i>
+                          Apr 15, 2025
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                          Not Booked
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="student-booking-slots.html" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">Book</a>
+                      </td>
+                    </tr>
+                    
+                    <!-- Row 2 -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-purple-100 dark:bg-purple-900 rounded-full">
+                            <i class="fas fa-database text-purple-600 dark:text-purple-400"></i>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Database Systems Presentation</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Final Project</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-gray-100">INFO30002</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Database Systems</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                          Group
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center">
+                          <i class="fas fa-calendar-day mr-2 text-yellow-500 dark:text-yellow-400"></i>
+                          Apr 17, 2025
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+                          In Progress
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="student-assignments-detail.html" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">View</a>
+                      </td>
+                    </tr>
+                    
+                    <!-- Row 3 -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-indigo-100 dark:bg-indigo-900 rounded-full">
+                            <i class="fas fa-laptop-code text-indigo-600 dark:text-indigo-400"></i>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Software Development Project</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Midterm Review</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-gray-100">INFO30001</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Software Engineering</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          Individual
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center">
+                          <i class="fas fa-calendar-day mr-2 text-blue-500 dark:text-blue-400"></i>
+                          Apr 21, 2025
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                          Booked
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="student-assignments-detail.html" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">View</a>
+                      </td>
+                    </tr>
+                    
+                    <!-- Row 4 -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-green-100 dark:bg-green-900 rounded-full">
+                            <i class="fas fa-project-diagram text-green-600 dark:text-green-400"></i>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Machine Learning Models</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Project Showcase</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-gray-100">COMP30027</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Machine Learning</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                          Group
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center">
+                          <i class="fas fa-calendar-day mr-2 text-blue-500 dark:text-blue-400"></i>
+                          Apr 28, 2025
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          Upcoming
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="student-assignments-detail.html" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">View</a>
+                      </td>
+                    </tr>
+                    
+                    <!-- Row 5 -->
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                          <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-gray-100 dark:bg-gray-900 rounded-full">
+                            <i class="fas fa-network-wired text-gray-600 dark:text-gray-400"></i>
+                          </div>
+                          <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900 dark:text-gray-100">Network Security Project</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">Final Presentation</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900 dark:text-gray-100">COMP30023</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">Computer Networks</div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                          Individual
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center">
+                          <i class="fas fa-calendar-check mr-2 text-green-500 dark:text-green-400"></i>
+                          Mar 25, 2025
+                        </div>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                          Completed
+                        </span>
+                      </td>
+                      <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <a href="student-assignments-detail.html" class="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300">Results</a>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <!-- AlpineJS for interactivity -->
+    <script
+      src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js"
+      defer
+    ></script>
+  </body>
+</html>

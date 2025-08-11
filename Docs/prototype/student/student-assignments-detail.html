@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OAS - Assignment Details</title>
+    <!-- External CSS Libraries -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/tailwindcss/2.2.19/tailwind.min.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Custom Variables */
+      :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --tertiary: #8b5cf6;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --light: #f3f4f6;
+        --dark: #1f2937;
+        --text-dark: #1f2937;
+        --text-light: #f9fafb;
+        --bg-light: #ffffff;
+        --bg-dark: #111827;
+        --card-light: #ffffff;
+        --card-dark: #1f2937;
+      }
+
+      /* Light/Dark mode transitions */
+      body,
+      .sidebar,
+      .dashboard-card,
+      .header,
+      .sidebar-link,
+      input,
+      select,
+      button {
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Dark mode variables */
+      .dark {
+        --primary: #3b82f6;
+        --primary-light: #60a5fa;
+        --primary-dark: #2563eb;
+        --secondary: #6366f1;
+        --light: #212529;
+        --dark: #f8f9fa;
+      }
+
+      /* Custom scrollbar */
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 4px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a8a8a8;
+      }
+
+      /* Dark mode scrollbar */
+      .dark ::-webkit-scrollbar-track {
+        background: #2d3748;
+      }
+
+      .dark ::-webkit-scrollbar-thumb {
+        background: #4a5568;
+      }
+
+      .dark ::-webkit-scrollbar-thumb:hover {
+        background: #718096;
+      }
+
+      /* Custom Element Styles */
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--light);
+        color: var(--text-dark);
+      }
+
+      .dark body {
+        background-color: var(--bg-dark);
+        color: var(--text-light);
+      }
+
+      .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+        border: 1px solid var(--light);
+      }
+
+      .dark .dashboard-card {
+        background-color: var(--card-dark);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+        border-color: #374151;
+      }
+
+      .btn-primary {
+        background-color: var(--primary);
+        color: white;
+        transition: all 0.2s ease;
+      }
+
+      .btn-primary:hover {
+        background-color: var(--primary-dark);
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.6rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+      }
+
+      .status-green {
+        background-color: rgba(16, 185, 129, 0.1);
+        color: #065f46;
+      }
+
+      .dark .status-green {
+        background-color: rgba(16, 185, 129, 0.2);
+        color: #34d399;
+      }
+
+      .status-blue {
+        background-color: rgba(59, 130, 246, 0.1);
+        color: #1d4ed8;
+      }
+
+      .dark .status-blue {
+        background-color: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+
+      .status-yellow {
+        background-color: rgba(245, 158, 11, 0.1);
+        color: #92400e;
+      }
+
+      .dark .status-yellow {
+        background-color: rgba(245, 158, 11, 0.2);
+        color: #fbbf24;
+      }
+
+      .status-gray {
+        background-color: rgba(107, 114, 128, 0.1);
+        color: #374151;
+      }
+
+      .dark .status-gray {
+        background-color: rgba(156, 163, 175, 0.2);
+        color: #9ca3af;
+      }
+
+       .detail-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+       }
+       .dark .detail-item {
+        border-bottom: 1px solid #374151;
+       }
+       .detail-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+       }
+       .detail-label {
+        font-weight: 500;
+        color: #4b5563;
+        width: 100%;
+        margin-bottom: 0.25rem;
+       }
+       .dark .detail-label {
+          color: #9ca3af;
+        }
+       .detail-value {
+        color: #1f2937;
+        width: 100%;
+        display: flex;
+        align-items: center;
+       }
+       .dark .detail-value {
+          color: #f9fafb;
+       }
+       .detail-value i {
+           margin-right: 0.5rem;
+           color: #6b7280;
+           width: 1rem;
+           text-align: center;
+       }
+        .dark .detail-value i {
+           color: #9ca3af;
+        }
+
+       @media (min-width: 768px) {
+          .detail-item {
+            flex-wrap: nowrap;
+          }
+          .detail-label {
+            width: 33.333333%;
+            margin-bottom: 0;
+          }
+          .detail-value {
+            width: 66.666667%;
+          }
+       }
+
+       .prose ul > li::marker {
+          color: #6b7280;
+       }
+       .dark .prose ul > li::marker {
+          color: #9ca3af;
+       }
+
+       /* NEW: Sidebar Styling to match Image 3 */
+       .sidebar {
+         background-color: #ffffff;
+         color: #374151;
+         border-right: 1px solid #e5e7eb;
+       }
+       .dark .sidebar {
+         background-color: #1f2937;
+         color: #d1d5db;
+         border-right: 1px solid #374151;
+       }
+       .sidebar-header span {
+          color: #2563eb;
+          font-weight: 700;
+       }
+       .sidebar-header span:last-child {
+           color: #4b5563;
+           font-weight: 500;
+           margin-left: 0.5rem;
+       }
+       .dark .sidebar-header span:last-child {
+           color: #9ca3af;
+       }
+
+       .sidebar-section-title {
+           text-transform: uppercase;
+           font-size: 0.75rem;
+           color: #6b7280;
+           font-weight: 600;
+           padding: 0.5rem 1rem;
+           margin-top: 1rem;
+       }
+       .dark .sidebar-section-title {
+           color: #9ca3af;
+       }
+
+       .sidebar-link {
+         display: flex;
+         align-items: center;
+         padding: 0.75rem 1rem;
+         border-radius: 0.375rem;
+         font-size: 0.875rem;
+         font-weight: 500;
+         color: #374151;
+         transition: background-color 0.2s ease, color 0.2s ease;
+       }
+       .dark .sidebar-link {
+         color: #d1d5db;
+       }
+       .sidebar-link i {
+         margin-right: 0.75rem;
+         width: 1.25rem;
+         text-align: center;
+         color: #6b7280;
+       }
+       .dark .sidebar-link i {
+          color: #9ca3af;
+       }
+       .sidebar-link:hover {
+         background-color: #f3f4f6;
+         color: #1f2937;
+       }
+       .dark .sidebar-link:hover {
+         background-color: #374151;
+         color: #f9fafb;
+       }
+       .sidebar-link.active {
+         background-color: #eff6ff;
+         color: #2563eb;
+         font-weight: 600;
+       }
+       .dark .sidebar-link.active {
+         background-color: rgba(59, 130, 246, 0.2);
+         color: #60a5fa;
+       }
+        .sidebar-link.active i {
+          color: #2563eb;
+        }
+        .dark .sidebar-link.active i {
+          color: #60a5fa;
+        }
+        .sidebar-footer {
+           position: absolute;
+           bottom: 0;
+           left: 0;
+           right: 0;
+           padding: 1rem;
+           font-size: 0.75rem;
+           color: #6b7280;
+           text-align: center;
+        }
+         .dark .sidebar-footer {
+           color: #9ca3af;
+         }
+       /* End NEW Sidebar Styling */
+    </style>
+  </head>
+  <body x-data="{ darkMode: false, sidebarOpen: true }" :class="{ 'dark': darkMode }">
+    <div class="flex h-screen bg-gray-100 dark:bg-gray-900">
+      <!-- Sidebar -->
+      <div
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="sidebar bg-white dark:bg-gray-800 w-64 space-y-6 py-7 px-2 absolute inset-y-0 left-0 transform md:relative md:translate-x-0 transition duration-200 ease-in-out z-10 shadow-md"
+      >
+        <!-- Sidebar Header -->
+        <div class="flex items-center justify-between px-4 py-3">
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold text-blue-600">OAS</span>
+            <span class="text-lg font-medium text-gray-600 dark:text-gray-400">Student</span>
+          </div>
+          <button @click="sidebarOpen = false" class="md:hidden" aria-label="Close sidebar">
+            <svg class="h-6 w-6 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="px-2 flex-1">
+           <div class="sidebar-section-title">Main</div>
+           <a
+            href="student-dashboard.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+           </a>
+           <a
+            href="student-assignments.html"
+            class="sidebar-link active"
+           >
+            <i class="fas fa-clipboard-list"></i>
+            <span>My Assignments</span>
+           </a>
+           <a
+            href="student-booking-board.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-calendar-check"></i>
+            <span>My Bookings</span>
+           </a>
+           <a
+            href="student-groups.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-users"></i>
+            <span>My Groups</span>
+           </a>
+           <a
+            href="student-results.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-poll"></i>
+            <span>My Results</span>
+           </a>
+
+           <div class="sidebar-section-title">Support</div>
+            <a
+            href="#"
+            class="sidebar-link"
+           >
+            <i class="fas fa-question-circle"></i>
+            <span>Help Center</span>
+           </a>
+           <a
+            href="student-settings.html"
+            class="sidebar-link"
+           >
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+           </a>
+        </nav>
+
+         <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            Oral Assessment System v1.2.0
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="header bg-white dark:bg-gray-800 shadow-sm z-10">
+          <div class="flex items-center justify-between p-4">
+            <div class="flex items-center space-x-3">
+              <button @click="sidebarOpen = !sidebarOpen" class="text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path>
+                </svg>
+              </button>
+              <h1 class="text-xl font-semibold text-gray-800 dark:text-white">Assignment Details</h1>
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                @click="darkMode = !darkMode"
+                class="flex items-center justify-center h-8 w-8 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
+                aria-label="Toggle dark mode"
+              >
+                 <svg x-show="!darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                  ></path>
+                </svg>
+                <svg x-show="darkMode" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="display: none">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                  ></path>
+                </svg>
+              </button>
+              <div class="relative">
+                <button class="flex items-center space-x-1 focus:outline-none">
+                  <span class="text-sm text-gray-700 dark:text-gray-300">John Smith</span>
+                  <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
+          <!-- Breadcrumb navigation -->
+          <div class="mb-6">
+            <nav class="flex" aria-label="Breadcrumb">
+              <ol class="flex items-center space-x-1">
+                <li>
+                  <a href="student-assignments.html" class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-clipboard-list mr-1"></i> Assignments
+                  </a>
+                </li>
+                <li>
+                  <span class="text-gray-400 dark:text-gray-600 mx-1">/</span>
+                </li>
+                <li>
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Database Systems Presentation
+                  </span>
+                </li>
+              </ol>
+            </nav>
+          </div>
+
+          <!-- Assignment Header -->
+          <div class="dashboard-card p-6 mb-6">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+              <div>
+                <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-1">Database Systems Presentation</h2>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">
+                  INFO30002 - Database Systems
+                </p>
+                <span class="status-badge status-blue mb-3">
+                    <i class="fas fa-calendar-alt mr-1"></i> Booking Open
+                </span>
+                <p class="text-sm text-gray-600 dark:text-gray-400 flex items-center">
+                    <i class="fas fa-calendar-day mr-2 text-gray-500"></i>
+                    <span class="font-medium mr-1">Due:</span> June 20, 2025
+                 </p>
+              </div>
+              <a href="student-booking-slots.html" class="btn-primary rounded-md px-4 py-2 text-sm font-medium flex items-center space-x-2 self-start md:self-center whitespace-nowrap">
+                 <i class="fas fa-calendar-check"></i>
+                 <span>Book Assessment Slot</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Assignment Details Card -->
+          <div class="dashboard-card p-6 mb-6">
+             <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Assessment Information</h3>
+              <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <div class="detail-item">
+                    <dt class="detail-label">Assessment Type</dt>
+                    <dd class="detail-value"><i class="fas fa-users"></i> Group Assessment</dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Weighting</dt>
+                    <dd class="detail-value"><i class="fas fa-percentage"></i> 25% of final grade</dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Assessment Period</dt>
+                    <dd class="detail-value"><i class="fas fa-calendar-alt"></i> April 15, 2025 - April 20, 2025</dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Booking Period</dt>
+                    <dd class="detail-value"><i class="fas fa-calendar-check"></i> March 30, 2025 - April 10, 2025</dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Duration</dt>
+                    <dd class="detail-value"><i class="fas fa-hourglass-half"></i> 15 minutes presentation + 5 minutes Q&A</dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Associated Group</dt>
+                    <dd class="detail-value">
+                        <a href="student-groups-detail.html" class="text-blue-600 dark:text-blue-400 hover:underline flex items-center">
+                            <i class="fas fa-link"></i> Group 5
+                        </a>
+                    </dd>
+                  </div>
+                   <div class="detail-item">
+                    <dt class="detail-label">Current Booking Status</dt>
+                    <dd class="detail-value">
+                        <span class="status-badge status-yellow">
+                           <i class="fas fa-exclamation-circle mr-1"></i> Not Booked
+                        </span>
+                    </dd>
+                  </div>
+              </dl>
+          </div>
+
+          <!-- Detailed Description -->
+          <div class="dashboard-card p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Detailed Description</h3>
+            <div class="prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
+              <p>
+                This assessment requires each group to present their final software project developed throughout the semester for SWEN90017. The presentation should cover the following key aspects:
+              </p>
+              <ul>
+                <li>System architecture and key design decisions.</li>
+                <li>Demonstration of core features and functionality.</li>
+                <li>Discussion of technologies used and rationale.</li>
+                <li>Challenges faced and how they were overcome.</li>
+                <li>Potential future improvements.</li>
+              </ul>
+              <p>
+The presentation should be approximately 15 minutes long, followed by a 5-minute Q&A session with the examiners. All group members are expected to participate in the presentation.
+              </p>
+              <p>
+Please ensure your presentation slides are prepared in advance. You will have access to a projector and standard AV equipment in the assessment room.
+              </p>
+            </div>
+          </div>
+
+          <!-- Rubric Overview -->
+           <div class="dashboard-card p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Marking Rubric Overview</h3>
+            <div class="text-sm text-gray-700 dark:text-gray-300 space-y-3">
+                <p>The assessment will be marked based on the following criteria:</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li>Clarity and completeness of the system demonstration (30%)</li>
+                    <li>Soundness of architectural design and justification (30%)</li>
+                    <li>Quality of presentation and communication (20%)</li>
+                    <li>Individual contribution and understanding (during Q&A) (10%)</li>
+                    <li>Professionalism and teamwork (10%)</li>
+                </ul>
+                <p>
+A detailed rubric will be used by the examiners during the assessment. Ensure your presentation addresses these key areas.
+                </p>
+                <a href="#" class="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center">
+                    <i class="fas fa-download mr-1"></i> Download Full Rubric (PDF)
+                </a>
+            </div>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.8.2/dist/alpine.min.js" defer></script>
+  </body>
+</html> 
