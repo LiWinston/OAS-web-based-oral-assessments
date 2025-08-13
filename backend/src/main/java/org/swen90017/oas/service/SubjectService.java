@@ -180,6 +180,8 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         return "1".equals(semester) || "2".equals(semester) || "summer".equals(semester);
     }
 
+
+
     /**
      * Delete subject (logical delete by setting isActive to false)
      */

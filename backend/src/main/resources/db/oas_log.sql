@@ -125,4 +125,4 @@ CREATE TABLE `subject` (
     KEY `idx_subject_year` (`academic_year`),
     KEY `idx_subject_semester` (`semester`),
     KEY `idx_subject_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Subject/Course table with embedded academic period info';
+);
