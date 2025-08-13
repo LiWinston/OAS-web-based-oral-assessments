@@ -15,11 +15,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useAuthStore } from '@/store/authStore';
 import { authService } from '@/services/authService';
 
+// Validation schema for login form
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(1, 'Password is required'),
 });
 
+/**
+ * Login Page Component
+ * 
+ * Main login interface for students, examiners, and course administrators.
+ * Provides form validation, error handling, and role-based redirection.
+ * Includes dark mode toggle and test account quick-fill functionality.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuthStore();
@@ -77,22 +85,43 @@ export default function LoginPage() {
     try {
       const response = await authService.login(data.email, data.password);
       
-      // Store auth data
-      login(response.data.token, response.data.user);
-      
-      // Redirect based on user role
-      const roleRoutes = {
-        STUDENT: '/student',
-        EXAMINER: '/examiner', 
-        COURSE_ADMIN: '/admin',
-        SUPER_ADMIN: '/superadmin'
-      };
-      
-      const redirectPath = roleRoutes[response.data.user.role] || '/student';
-      router.push(redirectPath);
+      // Check if login was successful
+      if (response.success && response.data) {
+        // Store auth data with backend response structure
+        login(response.data);
+        
+        // Map backend roles to frontend roles
+        const roleMapping = {
+          'ROLE_ADMIN': 'COURSE_ADMIN',      // Backend ROLE_ADMIN = Frontend COURSE_ADMIN
+          'ROLE_STUDENT': 'STUDENT',
+          'ROLE_EXAMINER': 'EXAMINER',
+          'ROLE_SUPER_ADMIN': 'SUPER_ADMIN',
+          // Add more mappings as needed
+        };
+        
+        const frontendRole = roleMapping[response.data.role] || response.data.role;
+        
+        // Redirect based on user role
+        const roleRoutes = {
+          STUDENT: '/student',
+          EXAMINER: '/examiner', 
+          COURSE_ADMIN: '/admin',
+          SUPER_ADMIN: '/superadmin'
+        };
+        
+        const redirectPath = roleRoutes[frontendRole] || '/student';
+        router.push(redirectPath);
+      } else {
+        setError(response.message || 'Login failed. Please check your credentials.');
+      }
       
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      // Handle backend error response format
+      const errorMessage = err.response?.data?.message || 
+                          err.response?.data?.code || 
+                          err.message || 
+                          'Login failed. Please try again.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -251,35 +280,35 @@ export default function LoginPage() {
                   <div className="grid grid-cols-2 gap-3 text-xs">
                     <button
                       type="button"
-                      onClick={() => fillTestAccount('admin@example.com', 'Admin123!')}
+                      onClick={() => fillTestAccount('alice@student.unimelb.edu.au', 'password1')}
                       className="p-3 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-lg text-center transition-colors"
                     >
                       <div className="font-medium">Course Admin</div>
-                      <div className="text-xs opacity-75">admin@example.com</div>
+                      <div className="text-xs opacity-75">alice</div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => fillTestAccount('student@example.com', 'Student123!')}
+                      onClick={() => fillTestAccount('bob@student.unimelb.edu.au', 'password2')}
                       className="p-3 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/40 text-green-700 dark:text-green-300 rounded-lg text-center transition-colors"
                     >
                       <div className="font-medium">Student</div>
-                      <div className="text-xs opacity-75">student@example.com</div>
+                      <div className="text-xs opacity-75">bob</div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => fillTestAccount('examiner@example.com', 'Examiner123!')}
+                      onClick={() => fillTestAccount('eve@student.unimelb.edu.au', 'password5')}
                       className="p-3 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-lg text-center transition-colors"
                     >
                       <div className="font-medium">Examiner</div>
-                      <div className="text-xs opacity-75">examiner@example.com</div>
+                      <div className="text-xs opacity-75">eve</div>
                     </button>
                     <button
                       type="button"
-                      onClick={() => fillTestAccount('superadmin@example.com', 'Super123!')}
+                      onClick={() => fillTestAccount('yunchen6@unimelb.edu.au', '123456')}
                       className="p-3 bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-300 rounded-lg text-center transition-colors"
                     >
                       <div className="font-medium">Super Admin</div>
-                      <div className="text-xs opacity-75">superadmin@example.com</div>
+                      <div className="text-xs opacity-75">Yun Chen</div>
                     </button>
                   </div>
                   <div className="mt-4 text-center">

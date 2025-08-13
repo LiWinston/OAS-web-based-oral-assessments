@@ -50,7 +50,7 @@ export function SuperAdminTopNav({ onSidebarToggle }) {
           <div className="flex items-center space-x-3">
             <div className="hidden sm:block text-right">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {user?.name || 'Super Admin'}
+                {user?.username || user?.email?.split('@')[0] || 'Super Admin'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 System Administrator

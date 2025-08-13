@@ -1,29 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL Database
-  mysql:
-    image: mysql:8.0
-    container_name: oas-mysql
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: oas_database
-      MYSQL_USER: oas_user
-      MYSQL_PASSWORD: secure_password
-    ports:
-      - "3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-    restart: unless-stopped
-    networks:
-      - oas-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 20s
-      retries: 10
-
-  # Next.js Full-Stack Application
+  # Next.js Frontend Application
   frontend:
     build:
       context: .
@@ -35,28 +13,10 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:3000/api
       - NEXT_PUBLIC_USE_MOCK_API=false
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_NAME=oas_database
-      - DB_USER=oas_user
-      - DB_PASSWORD=secure_password
-      - JWT_SECRET=jfNxVkcV8ESLUZBobgwoMawGDtVGlzt/r+ytDFPnU2iQpgw9q0CqzYbl+GIiX6Ct8ZJGMgrgqs10QCjV2H3e9g==
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - oas-network
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/init"]
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  mysql_data:
-    driver: local
-
-networks:
-  oas-network:
-    driver: bridge

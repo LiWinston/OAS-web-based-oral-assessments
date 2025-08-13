@@ -3,71 +3,50 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
-
-// Mock course data - in real app, this would come from API
-const mockCourses = [
-  {
-    id: 1,
-    name: "Software Project Management",
-    code: "COMP90082", 
-    year: 2025,
-    semester: "Semester 2",
-    students: 120,
-    assignments: 4,
-    status: "active",
-    color: "blue"
-  },
-  {
-    id: 2,
-    name: "Web Information Technologies",
-    code: "INFO30005",
-    year: 2025, 
-    semester: "Semester 1",
-    students: 85,
-    assignments: 3,
-    status: "active",
-    color: "indigo"
-  },
-  {
-    id: 3,
-    name: "Database Systems",
-    code: "INFO20003",
-    year: 2024,
-    semester: "Semester 2", 
-    students: 65,
-    assignments: 2,
-    status: "archived",
-    color: "yellow"
-  },
-  {
-    id: 4,
-    name: "Machine Learning",
-    code: "COMP30024",
-    year: 2025,
-    semester: "Semester 1",
-    students: 95,
-    assignments: 3,
-    status: "active", 
-    color: "green"
-  },
-  {
-    id: 5,
-    name: "Software Engineering Process",
-    code: "SWEN90009",
-    year: 2025,
-    semester: "Semester 2",
-    students: 78,
-    assignments: 2,
-    status: "active",
-    color: "purple"
-  }
-];
+import { courseService } from '../../../services/courseService';
 
 export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onCreateCourse, onEditCourse }) {
-  const [courses, setCourses] = useState(mockCourses);
-  const [filteredCourses, setFilteredCourses] = useState(mockCourses);
+  const [courses, setCourses] = useState([]);
+  const [filteredCourses, setFilteredCourses] = useState([]);
   const [hoveredCourse, setHoveredCourse] = useState(null);
   const [isFiltering, setIsFiltering] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Define colors for courses
+  const courseColors = ['blue', 'indigo', 'yellow', 'green', 'purple'];
+
+  // Fetch courses on mount
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const result = await courseService.getCourses();
+      
+      if (result.success) {
+        // Map the data to the expected format and add colors
+        const mappedCourses = result.data.map((course, index) => ({
+          id: course.id,
+          name: course.courseName,
+          code: course.courseCode,
+          year: course.academicYear,
+          semester: `Semester ${course.semester}`,
+          students: course.students,
+          assignments: course.assignments,
+          status: course.status,
+          color: courseColors[index % courseColors.length]
+        }));
+        setCourses(mappedCourses);
+        setFilteredCourses(mappedCourses);
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter courses based on search and filters with smooth transitions
   useEffect(() => {
@@ -130,6 +109,17 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
     return colors[color] || "bg-blue-600";
   };
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin">
+          <i className="fas fa-spinner text-3xl text-blue-600"></i>
+        </div>
+      </div>
+    );
+  }
+
   // Table View
   if (viewMode === 'table') {
     return (
@@ -190,7 +180,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end space-x-2">
                       <Link
-                        href={`/admin/assignments?course=${course.code}&year=${course.year}&semester=${course.semester.split(' ')[1]}`}
+                        href={`/admin/courses/${course.id}/assignments`}
                         className="group relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 hover:scale-110"
                         title="Manage Assignments"
                       >
@@ -342,7 +332,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
               </div>
               <div className="flex space-x-3">
                 <Link
-                  href={`/admin/assignments?course=${course.code}&year=${course.year}&semester=${course.semester.split(' ')[1]}`}
+                  href={`/admin/courses/${course.id}/assignments`}
                   className="group relative inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 hover:scale-110"
                   title="Manage Assignments"
                 >

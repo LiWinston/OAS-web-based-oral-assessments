@@ -152,12 +152,12 @@ export function AdminTopNav({ onSidebarToggle }) {
           >
             <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                {user?.name?.charAt(0) || 'A'}
+                {user?.username?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || 'A'}
               </span>
             </div>
             <div className="hidden md:block text-left">
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {user?.name || 'Admin User'}
+                {user?.username || user?.email?.split('@')[0] || 'Admin User'}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 Course Administrator

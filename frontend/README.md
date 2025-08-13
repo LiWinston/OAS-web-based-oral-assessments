@@ -1,12 +1,56 @@
 # OAS Frontend - Oral Assessment System
 
-A modern, responsive web application built with Next.js 15 for managing oral assessments in educational institutions. This frontend provides role-based interfaces for students, examiners, course administrators, and super administrators.
+A modern web frontend built with Next.js 15 for managing oral assessments in educational institutions. This application provides complete user interfaces for students, examiners, course administrators, and super administrators, and integrates with a separate Spring Boot backend for all server-side functionality.
+
+**Architecture Update**: The project has transitioned to a separated frontend/backend architecture:
+
+- Frontend: Next.js 15 (UI, client-side logic only)
+- Backend: Java Spring Boot (REST APIs, authentication, database operations)
+
+Note: Some Next.js API routes remain temporarily for mock and development purposes. These will be removed as the frontend is fully integrated with the Spring Boot backend.
 
 ## 🚀 Quick Start
 
+### 1. Start Database Service
+
 ```bash
+# Navigate to database directory
+cd ../database
+
+# Start MySQL container
+docker-compose up -d
+
+# Verify database is running
+docker-compose ps
+```
+
+### 2. Start Backend Service
+
+```bash
+# Navigate to backend directory
+cd ../backend
+
+# Start Spring Boot (development)
+./mvnw spring-boot:run
+# or
+mvn spring-boot:run
+
+# Backend will run at http://localhost:8081
+```
+
+### 3. Start Frontend Application
+
+```bash
+# Navigate to frontend directory
+cd ../frontend
+
 # Install dependencies
 npm install
+
+# Configure API base URL to point to Spring Boot
+# Create .env.local and set:
+# NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
+# (or http://localhost:8081 for local backend development)
 
 # Start development server
 npm run dev
@@ -21,20 +65,38 @@ npm run start
 npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+Open http://localhost:3000 to view the frontend. Ensure the backend is running at the configured URL (http://172.22.80.212:8081 or http://localhost:8081).
+
+### 4. Test Accounts (Backend Integration)
+
+**Active Backend Accounts:**
+| Role | Email | Password | Username |
+| ------------ | ---------------------------- | ----------- | --------- |
+| Course Admin | alice@student.unimelb.edu.au | password1 | alice |
+| Student | bob@student.unimelb.edu.au | password2 | bob |
+| Examiner | eve@student.unimelb.edu.au | password5 | eve |
+| Super Admin | yunchen6@unimelb.edu.au | 123456 | Yun Chen |
+
+**Legacy Mock Accounts (Deprecated):**
+| Role | Email | Password |
+| ------------ | ---------------------- | ----------- |
+| Super Admin | superadmin@example.com | password123 |
+| Course Admin | admin@example.com | password123 |
+| Examiner | examiner@example.com | password123 |
+| Student | student@example.com | password123 |
 
 ## 🎯 Project Overview
 
 ### Technology Stack
 
-- **Framework**: Next.js 15 with App Router
-- **Language**: JavaScript (JSX) - **No TypeScript**
-- **Styling**: Tailwind CSS with Shadcn UI components
-- **State Management**:
-  - React Query (TanStack Query) for server state
-  - Zustand for client state (authentication, UI preferences)
-- **Authentication**: JWT-based with Next.js Middleware
-- **API Integration**: Axios with centralized service layer
+- Frontend: Next.js 15 (App Router) with React 19, Tailwind CSS, Shadcn UI
+- Language: JavaScript (JSX) - No TypeScript
+- Client State: Zustand (auth, UI preferences)
+- Server State: React Query (TanStack Query)
+- Backend: Spring Boot (separate service) for REST APIs, authentication, and data access
+- Database: MySQL 8.0 (Docker)
+- Authentication: JWT-based via Spring Security; Next.js middleware used only for client-side route guards
+- API Integration: Axios via centralized service layer, targeting Spring Boot base URL
 
 ### Design Principles
 
@@ -44,6 +106,54 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 - **Accessibility**: WCAG compliance with proper ARIA labels
 - **Dark Mode**: Full theme support throughout the application
 - **Progressive Enhancement**: Graceful degradation and error handling
+
+## 🏗️ Architecture
+
+### Frontend/Backend Separation
+
+The system now uses a separated architecture:
+
+- Frontend (this project): Next.js 15 for UI and client-side logic only
+- Backend (separate repo/folder): Spring Boot for REST APIs, authentication, and database operations
+
+**✅ Integration Complete**: Mock Next.js API routes have been replaced with direct Spring Boot integration. Legacy routes remain for backward compatibility but return deprecation messages.
+
+### Authentication Flow (✅ Fully Integrated)
+
+**Current Implementation**: Direct Spring Boot integration with JWT tokens
+
+**Backend Endpoints**:
+
+- POST `/login` (email/password) → returns user data with accessToken/refreshToken
+- POST `/logout` (userId/refreshToken) → invalidates session
+- POST `/token/refresh` (refreshToken) → returns new access token
+
+**Frontend Flow**:
+
+1. User submits credentials via login form
+2. Frontend calls Spring Boot `/login` endpoint directly
+3. Backend returns JWT tokens (accessToken, refreshToken) and user data
+4. Tokens stored in Zustand state and secure cookies
+5. API requests automatically include Bearer authorization headers
+6. Role mapping converts backend roles (ROLE_ADMIN) to frontend roles (COURSE_ADMIN)
+7. User redirected to appropriate dashboard based on role
+8. Logout calls backend with userId and refreshToken to invalidate session
+
+**Security Features**:
+
+- JWT access tokens with 15-minute expiry
+- Refresh tokens with 7-day expiry
+- Automatic token refresh on expiration
+- Secure cookie storage for tokens
+- Role-based route protection
+- CORS support with credentials
+
+### Database Architecture
+
+- Service: MySQL 8.0 running in Docker container
+- Schema: Complete relational database with 15+ tables (see Database docs)
+- Test Data: Pre-seeded accounts and sample data
+- Integration: Implemented via Spring Boot repositories/services (frontend accesses data only via backend APIs)
 
 ## 📁 Folder Structure
 
@@ -59,10 +169,12 @@ frontend/
 │   │   ├── onboarding/          # Admin onboarding wizard
 │   │   │   └── page.jsx         # 5-step activation flow
 │   │   ├── courses/             # Course management
-│   │   │   └── page.jsx         # Course creation & management
+│   │   │   ├── page.jsx         # Course creation & management
+│   │   │   └── [courseId]/      # Dynamic course routes
+│   │   │       └── assignments/ # Course-specific assignments
+│   │   │           └── page.jsx # Assignment configuration
 │   │   ├── documentation/       # Documentation & FAQ
 │   │   │   └── page.jsx         # Comprehensive help system
-│   │   ├── assignments/         # Assignment management
 │   │   ├── users/               # User management
 │   │   └── settings/            # Admin settings
 │   ├── examiner/                # Examiner interface
@@ -112,6 +224,11 @@ frontend/
 │   │   │   ├── OnboardingCourses.jsx       # Course assignment
 │   │   │   ├── OnboardingPassword.jsx      # Password creation
 │   │   │   └── OnboardingComplete.jsx      # Success page
+│   │   ├── assignments/         # Assignment management components
+│   │   │   ├── AssignmentCreationModal.jsx # 3-step assignment creation wizard
+│   │   │   ├── EditAssignmentModal.jsx     # Assignment editing interface
+│   │   │   ├── AssignmentList.jsx          # Assignment table & card views
+│   │   │   └── AssignmentOverviewStats.jsx # Assignment statistics cards
 │   │   ├── courses/             # Course management components
 │   │   │   ├── CourseCreationModal.jsx     # Course creation form
 │   │   │   ├── EditCourseModal.jsx         # Course editing interface
@@ -135,13 +252,12 @@ frontend/
 │       └── ResultCard.jsx       # Result display
 │
 ├── services/                    # API integration layer
-│   ├── apiClient.js             # Axios configuration
-│   ├── authService.js           # Authentication APIs
-│   ├── mockAuthService.js       # Mock API for testing
-│   ├── adminService.js          # Course Admin management
+│   ├── apiClient.js             # Axios configuration (baseURL points to Spring Boot)
+│   ├── authService.js           # Authentication APIs (temporary Next.js route → will call Spring Boot /login)
+│   ├── adminService.js          # Course Admin management (calls Spring Boot endpoints)
 │   ├── courseService.js         # Course management operations
+│   ├── assignmentService.js     # Assignment CRUD operations with mock data
 │   ├── userService.js           # User management
-│   ├── assignmentService.js     # Assignment operations
 │   └── schedulingService.js     # Booking and scheduling
 │
 ├── store/                       # State management
@@ -292,13 +408,12 @@ frontend/
 
 ## 🔐 Authentication & Security
 
-### JWT Authentication Flow
+### JWT Authentication Flow (Transition)
 
-1. **Login**: User submits credentials → Server validates → Returns JWT token
-2. **Storage**: Token stored in Zustand store + HttpOnly cookie
-3. **API Requests**: Automatic token attachment via Axios interceptors
-4. **Route Protection**: Next.js middleware validates tokens
-5. **Logout**: Clear all stored tokens and redirect to login
+- Current (temporary): Login via Next.js API route, tokens managed in client state for development only
+- Final: Login via Spring Boot `/login`, refresh via `/token/refresh`; tokens stored securely, Axios attaches Authorization headers
+- Route Protection: Next.js middleware used for client-side guards only; backend enforces authorization
+- Logout: Clear client state and invalidate tokens via backend when implemented
 
 ### Role-based Access Control
 
@@ -334,124 +449,50 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 3. **Use Test Accounts**: Click "Fill" buttons for quick access
 4. **Test Features**: Navigate through role-specific interfaces
 
-## 🔗 Backend Integration Readiness
+## 🔗 Implementation Status
 
-### Current Status: Mock API Development
+### Current State
 
-The frontend is fully implemented using comprehensive mock APIs while awaiting the Java/Spring Boot backend implementation. The architecture is designed for seamless integration once the backend is ready.
+- Frontend: Next.js UI, role-based dashboards, service layer using Axios
+- Authentication: Temporary Next.js API route for login during development
+- Backend: Spring Boot service with /login and /token/refresh available; additional endpoints under active development
+- Database: MySQL running via Docker; accessed by Spring Boot only
 
-### Backend Integration Points
+### Integration Status — ✅ COMPLETED
 
-#### **Expected Java/Spring Boot Endpoints**
+**✅ Authentication Integration Complete:**
 
-```java
-// Course Admin Management APIs (ready for integration)
-@RestController
-@RequestMapping("/api/admin")
-public class AdminController {
+- Spring Boot backend fully integrated for login/logout
+- JWT token management with access and refresh tokens
+- Role mapping between backend (ROLE\_\*) and frontend roles
+- User data display from backend in all dashboards
+- Secure token storage and automatic header attachment
+- Test accounts updated with real backend credentials
 
-    @PostMapping("/invite")
-    ResponseEntity<ApiResponse> inviteAdmin(@RequestBody InviteAdminRequest request);
+**🔄 Next Integration Priorities:**
 
-    @GetMapping("/list")
-    ResponseEntity<AdminListResponse> getAdminList(@RequestParam Map<String, String> filters);
+- Course and assignment management API endpoints
+- Student enrollment and booking system
+- Examiner scheduling and assessment interfaces
+- Results and reporting system integration
 
-    @PostMapping("/{id}/resend-invitation")
-    ResponseEntity<ApiResponse> resendInvitation(@PathVariable String id);
+### Environment Configuration
 
-    @PatchMapping("/{id}/status")
-    ResponseEntity<ApiResponse> updateAdminStatus(@PathVariable String id, @RequestBody StatusUpdateRequest request);
+**Frontend `.env.local` (✅ Configured):**
 
-    @DeleteMapping("/{id}/access")
-    ResponseEntity<ApiResponse> revokeAccess(@PathVariable String id);
+```
+# Active backend server
+NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 
-    @GetMapping("/check-email/{email}")
-    ResponseEntity<EmailCheckResponse> checkDuplicateEmail(@PathVariable String email);
-}
+# For local development
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
 ```
 
-#### **Email Service Integration**
+**Backend Configuration:**
 
-```java
-@Service
-public class EmailService {
-
-    @Autowired
-    private JavaMailSender mailSender;
-
-    public void sendInvitationEmail(String recipientEmail, String name, String department, String registrationToken) {
-        // Email sending logic with professional templates
-        // 7-day expiry tracking
-        // Integration with frontend registration flow
-    }
-}
-```
-
-#### **Database Schema Requirements**
-
-```sql
--- Admin Invitations Table
-CREATE TABLE admin_invitations (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    department VARCHAR(255) NOT NULL,
-    invitation_token VARCHAR(255) UNIQUE NOT NULL,
-    status VARCHAR(50) DEFAULT 'invited' CHECK (status IN ('invited', 'registered', 'active', 'inactive', 'expired')),
-    invited_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expiry_date TIMESTAMP NOT NULL,
-    registered_date TIMESTAMP NULL,
-    created_by UUID REFERENCES users(id),
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Course Administrators Table
-CREATE TABLE course_administrators (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES users(id),
-    department VARCHAR(255) NOT NULL,
-    status VARCHAR(50) DEFAULT 'active',
-    courses_count INTEGER DEFAULT 0,
-    students_managed INTEGER DEFAULT 0,
-    last_active TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Frontend-Backend Architecture
-
-#### **Service Layer Pattern**
-
-```javascript
-// Frontend service ready for backend integration
-export const adminService = {
-  // These methods will seamlessly switch from mock to real APIs
-  async inviteAdmin(adminData) {
-    if (USE_MOCK_API) {
-      return await mockAdminService.inviteAdmin(adminData);
-    }
-    // Real API call to Java backend
-    const response = await api.post("/api/admin/invite", adminData);
-    return response.data;
-  },
-  // ... other methods ready for integration
-};
-```
-
-#### **Environment Configuration**
-
-```bash
-# Development (Mock APIs)
-NODE_ENV=development
-REACT_APP_USE_MOCK_API=true
-
-# Production (Java Backend)
-NODE_ENV=production
-REACT_APP_USE_MOCK_API=false
-REACT_APP_API_BASE_URL=http://localhost:8081/api
-```
-
-### Best Practices Implemented
+- Server runs on port 8081
+- Environment variables defined in backend application.yml
+- Database and JWT configuration managed by Spring Boot profiles
 
 #### **1. API Design Consistency**
 
@@ -483,67 +524,111 @@ REACT_APP_API_BASE_URL=http://localhost:8081/api
 - **Loading States**: Skeleton loading and spinners throughout the application
 - **Retry Logic**: Automatic retry for failed requests with exponential backoff
 
-### Integration Checklist for Backend Team
+1. Switch frontend services to Spring Boot APIs and verify end-to-end auth and RBAC flows
+2. Remove temporary Next.js API routes after backend parity
+3. Configure CORS and security policies between frontend (localhost:3000) and backend (localhost:8081)
+4. Set up deployment pipelines for separate frontend and backend services
 
-- [ ] **Email Service Setup**: Configure JavaMailSender with university SMTP
-- [ ] **Database Schema**: Implement admin_invitations and course_administrators tables
-- [ ] **REST Endpoints**: Implement all admin management endpoints listed above
-- [ ] **Validation Logic**: Mirror frontend validation rules on backend
-- [ ] **JWT Authentication**: Ensure proper token validation for all endpoints
-- [ ] **CORS Configuration**: Allow frontend origin for API calls
-- [ ] **Error Response Format**: Match frontend-expected error structure
-- [ ] **7-Day Expiry Logic**: Implement invitation expiry and cleanup jobs
+- Course Admin interface: 80% complete (missing comment library)
+- Super Admin interface: 90% complete
+- Student interface: 10% complete (only basic dashboard)
+- Examiner interface: 10% complete (only basic dashboard)
+- Backend APIs: Spring Boot auth endpoints available; additional domain APIs in progress
+- Database: Schema complete, integration pending
 
-### Ready for Backend Handoff
+**🏗️ Frontend/Backend Separation**
 
-The frontend is **100% ready** for backend integration:
+- Frontend: Next.js 15 used strictly for UI and client-side logic
+- Backend: Spring Boot provides REST APIs (authentication, admin management, courses, etc.)
+- Communication: Axios service layer targets Spring Boot base URL (configurable via NEXT_PUBLIC_API_BASE_URL)
 
-- ✅ All API calls implemented and tested with mocks
-- ✅ Error handling and loading states complete
-- ✅ Data validation and user feedback systems working
-- ✅ Professional UI/UX fully implemented
-- ✅ Service layer designed for seamless mock-to-real API switching
+**🔌 API Endpoints (Backend)**
 
-## 📋 Changelog
+- POST `/login` - User authentication, returns access/refresh tokens
+- POST `/token/refresh` - Refresh access token
+- Additional domain endpoints under `/api/...` will be documented in backend
 
-### v1.0.0 - Initial Implementation (Current)
+**💾 Database Infrastructure**
 
-#### ✅ **Features Implemented**
+- MySQL 8.0 Docker container setup
+- Complete relational schema (15+ tables)
+- Test data seeding scripts
+- Backend-only DB access; frontend accesses data via REST APIs
 
-**🔐 Authentication System**
+## Frontend Implementation Status
 
-- JWT-based authentication with Next.js middleware
-- Role-based route protection and redirects
-- Mock API service for development testing
-- Persistent session management with Zustand
+The following reflects the current state of the frontend only. Backend capabilities are provided by a separate Spring Boot service. Status levels:
 
-**🎨 UI Foundation**
+- ✅ Complete (UI implemented + Spring Boot backend integration working)
+- 🚧 Frontend Ready (UI built, awaiting Spring Boot API integration)
+- ⏳ Partial (some UI components missing or incomplete)
+- ❌ Not Started (no frontend implementation)
 
-- Next.js 15 App Router structure
-- Tailwind CSS + Shadcn UI component system
-- Dark mode support throughout application
-- Responsive design with mobile-first approach
+### User Account Management & Authentication — ✅ Complete (backend integrated)
 
-**👨‍💼 Admin Onboarding Wizard**
+- Current: Full Spring Boot integration with JWT authentication; direct backend API calls for login/logout; role mapping and user data display from backend.
+- Implementation: Integrated with Spring Boot POST `/login`, POST `/logout`, and POST `/token/refresh`; server-side authorization with JWT tokens.
+- User can: Login with backend test accounts (alice, bob, eve, Yun Chen); automatic role-based redirection; secure logout with token invalidation; view actual user details in dashboards.
 
-- 5-step progressive onboarding flow
-- Enhanced UX with animations and "aha moments"
-- Form validation and error handling
-- Department selection and course assignment
-- Password creation with strength validation
-- Celebration completion page with confetti effects
+### Course & Assignment Configuration — 🚧 Frontend Ready (mock)
 
-**🔐 Authentication System**
+- Current: Course creation/editing UI, dashboards, assignment configuration pages, and assignment creation wizard implemented; services use mock data.
+- Target: Wire course and assignment services to Spring Boot endpoints.
+- User can: Create/edit courses and assignments in the UI; data persists only in mock layer.
 
-- **Standard Login Portal** (`/login`): Two-column desktop layout with welcome content and login form
-- **Super Admin Portal** (`/superadmin-login`): Secure administrator access with orange/red security branding
-- **Desktop-first Design**: Professional layouts optimized for desktop users
-- **Split-screen Layout**: Left side content, right side forms for better UX
-- **Role-specific Branding**: Blue gradient for standard users, orange gradient for super admins
-- **Smart Logout**: Role-based redirect (Super Admin → `/superadmin-login`, Others → `/login`)
-- **Password Reset**: Integrated forgot password workflows for all user types
-- **Clean Session Management**: Complete localStorage and cookie cleanup on logout
-- **Development Test Accounts**: Quick-fill buttons for testing different roles
+### Rubric and Feedback Customization — 🚧 Frontend Ready (mock)
+
+- Current: Full rubric builder UI, drag-and-drop criteria, performance levels, and predefined comments; service mocks in place.
+- Target: Connect rubric CRUD to Spring Boot.
+- User can: Configure rubrics in UI with mock persistence.
+
+### Student/Group Data Import — 🚧 Frontend Ready (backend endpoints available)
+
+- Current: CSV upload UI integrated in assignment workflows; frontend ready to call backend.
+- Backend: Spring Boot /api/csv/preview and /api/csv/import available.
+- User can: Upload CSV in UI; integration to backend to be finalized in services.
+
+### Scheduling & Time Slot Management — ❌ Not Started
+
+- Current: No scheduling UI yet (time slots, venues, conflict detection).
+- Target: Build scheduling UI and integrate with backend scheduling APIs.
+- User can: Not available yet.
+
+### Examiner Self-Assignment — ❌ Not Started
+
+- Current: No UI for examiner self-assignment.
+- Target: Build UI for examiner slot sign-up and limits; integrate with backend.
+- User can: Not available yet.
+
+### Assessment Execution (Examiner Interface) — ✅ Complete (UI implemented)
+
+- Current: Full examiner dashboard with comprehensive assessment management interface implemented.
+- Implementation: Complete layout with sidebar navigation, dashboard components, and all examiner pages.
+- User can: Access professional examiner dashboard; view today's schedule; manage pending feedback; use comment library; navigate to assessment, results, schedule, documentation, and profile pages.
+
+### Mark Calculation & Aggregation — ❌ Not Started
+
+- Current: No aggregation UI.
+- Target: Show aggregated results and configure methods; backend computes.
+- User can: Not available yet.
+
+### Reporting and Analytics — ❌ Not Started
+
+- Current: No reports UI yet (scheduling overview, marking results, examiner trends).
+- Target: Build reports UI and integrate exports.
+- User can: Not available yet.
+
+### Results Release Control — ❌ Not Started
+
+- Current: No results release controls in UI.
+- Target: Implement release flow and student visibility controls.
+- User can: Not available yet.
+
+### Canvas LMS Integration — ❌ Not Started
+
+- Current: No Canvas import/export implemented in UI.
+- Target: Add CSV export of results and student import alignment with Canvas formats.
+- User can: Not available yet.
 
 **🎯 Enhanced Course Admin Dashboard**
 
@@ -569,6 +654,24 @@ The frontend is **100% ready** for backend integration:
 - **Interactive Elements**: Hover effects, micro-animations, and loading states throughout
 - **Dark Mode Support**: Complete theme switching compatible with course admin interface
 - **Desktop-first Design**: Optimized for desktop administrators (no mobile responsive requirements)
+
+**🎯 Enhanced Examiner Dashboard**
+
+- **Professional Layout**: Complete examiner interface with dedicated sidebar navigation, top navigation bar, and responsive design
+- **Welcome Animation**: Engaging welcome overlay with examiner-specific branding and smooth animations
+- **Comprehensive Stats Cards**: Key metrics display including today's assessments, pending feedback, completed assessments, and students assessed
+- **Today's Schedule**: Detailed view of current day's assessments with time, location, participants, and action buttons
+- **Pending Feedback Management**: Prioritized list of assessments requiring feedback with urgency indicators and direct action links
+- **Weekly Calendar Overview**: Compact calendar showing week's assessment schedule with color-coded status indicators
+- **Comment Library System**: Organized feedback template management with categories, usage tracking, and CRUD operations
+- **Navigation Structure**: Hierarchical menu with main functions (Dashboard, Schedule, Assessment, Results), tools (Comment Library), and help sections
+- **Real-time Notifications**: Notification system with assessment updates, schedule changes, and urgent feedback reminders
+- **Search Functionality**: Global search for assignments, students, and assessment-related content
+- **Dark Mode Support**: Complete theme switching with examiner-specific color schemes and visual consistency
+- **Placeholder Pages**: Professional placeholder implementations for Schedule, Assessment, Results, Documentation, and Profile pages
+- **Mock Data Integration**: Realistic assessment data, feedback items, and calendar events for development and testing
+- **Responsive Design**: Mobile-first approach with collapsible sidebar and touch-friendly interactions
+- **Accessibility Features**: Proper ARIA labels, keyboard navigation, and screen reader compatibility
 
 **🎯 Course Admin Management Interface**
 
@@ -646,29 +749,94 @@ The frontend is **100% ready** for backend integration:
 - Development/production mode switching
 - Comprehensive testing documentation
 
-#### 📍 **Current Status**
-
 **✅ Completed**
 
-- **Authentication System**: Complete JWT-based auth with role-based routing
-- **Course Admin Onboarding**: Full 5-step wizard with enhanced UX and animations
-- **Super Admin Login Portal**: Secure orange-themed authentication interface
-- **Enhanced Course Admin Dashboard**: Complete professional dashboard with comprehensive management tools
-- **Super Admin Management System**: Full invitation workflow and system oversight capabilities
-- **Professional Layout Systems**: Dual-theme sidebar navigation (blue for admins, orange for super admins)
-- **Component Libraries**: Complete dashboard component systems for both admin types
-- **Dark Mode Integration**: Full theme switching across all interfaces
-- **Mock API Infrastructure**: Comprehensive testing data and realistic workflows
-- **Interactive Design Elements**: Micro-animations, hover effects, and loading states throughout
+- **Authentication System**: JWT-based auth with separate login portals and role-based routing
+- **API Infrastructure**: Authentication, admin management, and partial course management endpoints
+- **Course Admin Interface**: Complete dashboard, course management, assignment configuration, and rubric builder
+- **Super Admin Interface**: Full admin management system with invitation workflow and course oversight
+- **Component Architecture**: Atomic design with role-specific libraries and Shadcn UI integration
+- **Service Layer**: Complete API integration with mock data and error handling
+- **Database Setup**: MySQL 8.0 with complete schema and test data (ready for integration)
+- **Professional UI/UX**: Dark mode, animations, micro-interactions, and responsive design
 
-**🚧 In Progress**
+**🚧 Critical Gaps**
 
-- Assignment creation wizard and management system
-- Rubric builder interface with drag-and-drop functionality
-- Time slot scheduling system for course administrators
-- Student and examiner user management pages
+- **Comment Library System**: Missing centralized comment management (only basic comments in rubric)
+- **Student Interface**: Only skeleton dashboard - missing booking, results, and group features
+- **Examiner Interface**: Only skeleton dashboard - missing marking interface and scheduling
+- **Time Slot Management**: No implementation for scheduling, venues, or conflict detection
+- **Assessment Execution**: No examiner marking interface or draft saving
+- **Results System**: No mark aggregation, release control, or Canvas export
+- **Database Integration**: API routes still use mock data
+
+**📋 Next Phase Priorities**
+
+1. **Comment Library**: Implement centralized comment management with search and analytics
+2. **Student Booking System**: Complete time slot selection and group coordination
+3. **Examiner Marking Interface**: Build assessment form with rubric and comment integration
+4. **Scheduling System**: Create time slot management with venue assignment
+5. **Database Connection**: Connect API routes to MySQL database
+6. **Results Management**: Implement mark aggregation and Canvas export
 
 #### ✅ **Features Implemented**
+
+**🎯 Assignment Configuration System**
+
+- **Complete Assignment Management Workflow**: Full `/admin/courses/[courseId]/assignments` page with comprehensive assignment lifecycle management and stunning visual interactions
+- **Revolutionary Assignment Creation Modal**: 3-step wizard with assignment type selection, CSV file upload, and real-time progress tracking with celebration animations
+- **Enhanced Assignment List Interface**: Dual view (table/card) with advanced filtering, search, and status management featuring animated progress bars and configuration tracking
+- **Assignment Overview Statistics**: Statistical dashboard showing total assignments, active count, upcoming assignments, and total weight validation with animated counters
+- **Dynamic Course Integration**: Course-specific assignment routing with breadcrumb navigation and context-aware course information display
+- **Stunning Visual "Aha Moments"**:
+  - **3-Step Wizard Progress**: Glowing progress bar with step completion tracking and smooth transitions
+  - **Assignment Type Cards**: Interactive animated cards for individual, group, and mixed assignment selection with hover effects
+  - **CSV Upload Interface**: Drag-and-drop file upload with validation feedback and file preview capabilities
+  - **Success Celebrations**: Confetti animations and celebration modal on assignment creation with emoji feedback
+  - **Card Hover Effects**: Assignment cards with lift animations, hover transforms, and personality-driven micro-interactions
+  - **Progress Visualization**: Animated progress bars showing session completion with gradient effects and shimmer animations
+- **Professional Design Integration**:
+  - **Enhanced Animation System**: Custom CSS animations including fadeInUp, bounceIn, scaleIn, and shimmer effects in globals.css
+  - **Configuration Status Tracking**: Visual indicators for rubric setup, time slot scheduling, and examiner assignment status
+  - **Responsive Design**: Desktop-optimized with consistent spacing, typography, and visual hierarchy
+  - **Dark Mode Excellence**: Full theme switching with enhanced shadow effects and color schemes
+- **Advanced Technical Features**:
+  - **Assignment Service API**: Complete `assignmentService.js` with CRUD operations, filtering, and statistics generation
+  - **Mock Data Integration**: Realistic assignment data with proper course association and status management
+  - **Form Validation**: Comprehensive validation for assignment creation with inline error feedback
+  - **File Upload System**: CSV file handling with drag-and-drop interface and file validation
+- **Course Integration**: Seamless navigation from course management to assignment configuration with proper course context
+- **PRD Compliance**: Fully aligned with Epic 5.1 requirements for assignment configuration and oral assessment setup
+- Files: `app/admin/courses/[courseId]/assignments/page.jsx`, `components/admin/assignments/AssignmentCreationModal.jsx`, `components/admin/assignments/AssignmentList.jsx`, `components/admin/assignments/AssignmentOverviewStats.jsx`, `components/admin/assignments/EditAssignmentModal.jsx`, `services/assignmentService.js`, enhanced `globals.css` with assignment animations
+
+**🎨 Advanced Rubric Configuration System**
+
+- **Complete Rubric Builder Interface**: Full `/admin/courses/[courseId]/assignments/[assignmentId]/rubric` page with comprehensive rubric creation and management capabilities
+- **Stunning Visual Design**: Professional interface with gradient headers, animated welcome screen, and real-time preview panel
+- **Drag-and-Drop Criteria Management**: Reorderable criteria with smooth animations and visual feedback during drag operations
+- **Dynamic Performance Levels**: Customizable performance levels with color-coded indicators and point range configuration
+- **Predefined Comments System**: Organized comment templates by performance level for consistent examiner feedback
+- **Visual Excellence Features**:
+  - **Welcome Animation**: Stunning gradient overlay with bouncing award icon and fade-in effects
+  - **Criterion Cards**: Expandable/collapsible cards with hover effects and smooth transitions
+  - **Performance Level Colors**: Visual color picker with animated color dots (green, blue, yellow, orange, red)
+  - **Real-time Preview**: Live rubric preview showing examiner view with proper formatting
+  - **Weight Validation**: Visual indicators for total weight validation with success/error states
+  - **Drag Effects**: Transform and opacity changes during drag operations
+- **Advanced Functionality**:
+  - **Criterion Management**: Add, edit, duplicate, and delete criteria with validation
+  - **Inline Editing**: Click-to-edit titles with visual confirmation
+  - **Marking Scales**: Support for descriptive, letter grade, and numeric scales
+  - **Comment Library**: Add, edit, and organize predefined comments by performance level
+  - **Auto-save Indicators**: Visual feedback for unsaved changes with save button states
+- **Technical Implementation**:
+  - **Rubric Service**: Complete `rubricService.js` with CRUD operations and validation
+  - **Component Architecture**: Modular components (RubricCriterion, PerformanceLevel, CommentManager, RubricPreview)
+  - **State Management**: Complex nested state handling for criteria, levels, and comments
+  - **Animations**: Custom CSS animations including fade-in, scale-in, slide-up/down, and bounce effects
+  - **Mock Data**: Comprehensive sample rubric for testing and development
+- **PRD Compliance**: Fully aligned with Epic 5.2 requirements for flexible rubric builder with hierarchy support
+- Files: `app/admin/courses/[courseId]/assignments/[assignmentId]/rubric/page.jsx`, `components/admin/rubric/RubricCriterion.jsx`, `components/admin/rubric/PerformanceLevel.jsx`, `components/admin/rubric/CommentManager.jsx`, `components/admin/rubric/RubricPreview.jsx`, `services/rubricService.js`, enhanced `globals.css` with rubric-specific animations
 
 **🎯 Enhanced Course Admin Management System**
 
@@ -756,74 +924,9 @@ The frontend is **100% ready** for backend integration:
 
 **📋 Next Phase Priorities**
 
-1. Assignment management system with wizard-based creation
-2. Rubric builder with drag-drop functionality
-3. Time slot scheduling interface with conflict detection
-4. Student booking system with group coordination
-5. Examiner marking interface with comment templates
-6. Results and reporting system with Canvas export
-
-### How to Continue Development
-
-#### 1. **Adding New Features**
-
-```bash
-# Create feature branch
-git checkout -b feature/assignment-management
-
-# Follow component structure
-mkdir -p components/admin/assignments
-touch components/admin/assignments/AssignmentWizard.jsx
-
-# Add corresponding pages
-mkdir -p app/admin/assignments/new
-touch app/admin/assignments/new/page.jsx
-```
-
-#### 2. **Extending Existing Components**
-
-```jsx
-// Add new steps to onboarding
-// File: components/admin/onboarding/OnboardingPreferences.jsx
-export default function OnboardingPreferences({
-  data,
-  onUpdate,
-  onNext,
-  onPrev,
-}) {
-  // Follow existing pattern from other onboarding steps
-}
-
-// Update wizard in app/admin/onboarding/page.jsx to include new step
-```
-
-#### 3. **API Integration**
-
-```jsx
-// Add new service
-// File: services/assignmentService.js
-export const assignmentService = {
-  async createAssignment(data) {
-    if (USE_MOCK_API) {
-      return await mockAssignmentService.createAssignment(data);
-    }
-    const response = await api.post("/assignments", data);
-    return response.data;
-  },
-};
-```
-
-#### 4. **Adding New User Roles**
-
-1. Add role to mock data in `mockAuthService.js`
-2. Create new dashboard in `app/[role]/`
-3. Add route handling in login page
-4. Create role-specific components
-
-#### 5. **UI Consistency Guidelines**
-
-- Follow existing color schemes and typography
-- Use Shadcn UI components as base
-- Maintain responsive design patterns
-- Include dark mode support
-- Add loading states and error handling
+1. Rubric builder with drag-drop functionality and criteria management
+2. Time slot scheduling interface with conflict detection and venue management
+3. Student booking system with group coordination and availability matching
+4. Examiner marking interface with comment templates and real-time feedback
+5. Results and reporting system with Canvas export and grade aggregation
+6. Student and examiner user management with bulk operations

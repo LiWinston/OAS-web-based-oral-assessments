@@ -1,88 +1,90 @@
-import { NextResponse } from 'next/server';
+// Current user endpoint - now uses JWT token verification
 import jwt from 'jsonwebtoken';
-import { executeQuerySingle } from '../../../../lib/database.js';
 
 export async function GET(request) {
   try {
-    // Get token from Authorization header
+    // Get token from cookie or Authorization header
+    const cookieHeader = request.headers.get('cookie');
     const authHeader = request.headers.get('authorization');
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Authorization token required' 
-        },
+    let token = null;
+    
+    if (cookieHeader) {
+      const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {});
+      token = cookies['auth-token'];
+    }
+    
+    if (!token && authHeader) {
+      token = authHeader.replace('Bearer ', '');
+    }
+
+    if (!token) {
+      return Response.json(
+        { success: false, message: 'No authentication token provided' },
         { status: 401 }
       );
     }
 
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-
     // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
+    
+    // In production, this would call your backend user service
+    // For now, we'll return the user data from the token
+    const userData = {
+      id: decoded.userId,
+      email: decoded.email,
+      role: decoded.role,
+      // These would typically come from a user service call
+      name: getNameFromEmail(decoded.email),
+      department: 'Computer Science',
+      isActive: true,
+      lastLogin: new Date().toISOString()
+    };
 
-    // Get fresh user data from database
-    const user = await executeQuerySingle(
-      'SELECT id, email, name, role, department, is_active, created_at, last_login FROM users WHERE id = ? AND is_active = true',
-      [decoded.userId]
-    );
-
-    if (!user) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'User not found or inactive' 
-        },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json({
+    return Response.json({
       success: true,
-      data: user
+      data: { user: userData }
     });
 
   } catch (error) {
-    if (error.name === 'JsonWebTokenError') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Invalid token' 
-        },
-        { status: 401 }
-      );
-    }
-
-    if (error.name === 'TokenExpiredError') {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Token expired' 
-        },
-        { status: 401 }
-      );
-    }
-
     console.error('Get current user error:', error);
-    return NextResponse.json(
+    
+    if (error.name === 'JsonWebTokenError') {
+      return Response.json(
+        { success: false, message: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return Response.json(
+        { success: false, message: 'Token expired' },
+        { status: 401 }
+      );
+    }
+
+    return Response.json(
       { 
         success: false, 
-        message: 'Internal server error' 
+        message: 'Failed to get user information',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
       },
       { status: 500 }
     );
   }
 }
 
-// Handle OPTIONS request for CORS
-export async function OPTIONS(request) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  });
+// Helper function to get user name from email (temporary)
+function getNameFromEmail(email) {
+  const nameMap = {
+    'superadmin@example.com': 'Super Administrator',
+    'admin@example.com': 'Course Administrator',
+    'examiner@example.com': 'Dr. Jane Examiner',
+    'student@example.com': 'John Student'
+  };
+  return nameMap[email] || email.split('@')[0];
 }

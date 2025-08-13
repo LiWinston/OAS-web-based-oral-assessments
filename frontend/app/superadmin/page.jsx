@@ -37,7 +37,7 @@ export default function SuperAdminDashboard() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">
-              Welcome back, {user?.name}!
+              Welcome back, {user?.username || user?.email?.split('@')[0] || 'Super Admin'}!
             </h1>
             <p className="text-lg text-orange-100 mt-1">
               System-wide oversight and management at your fingertips

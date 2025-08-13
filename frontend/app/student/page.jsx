@@ -14,7 +14,7 @@ export default function StudentDashboard() {
         <div className="px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-900">Student Dashboard</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">Welcome, {user?.name}</span>
+            <span className="text-sm text-gray-600">Welcome, {user?.username || user?.email?.split('@')[0] || 'Student'}</span>
             <Button onClick={smartLogout} variant="outline" size="sm">
               Logout
             </Button>
@@ -24,7 +24,7 @@ export default function StudentDashboard() {
       
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome, {user?.name}!</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome, {user?.username || user?.email?.split('@')[0] || 'Student'}!</h2>
           <p className="text-gray-600">Access your assignments and book oral assessment slots.</p>
         </div>
         

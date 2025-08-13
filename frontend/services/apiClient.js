@@ -1,23 +1,37 @@
 import axios from "axios";
 import useAuthStore from "../store/authStore";
 
+/**
+ * API Client Configuration
+ * 
+ * Centralized Axios instance for all API communications.
+ * Handles authentication, error responses, and provides a consistent
+ * interface for making HTTP requests throughout the application.
+ */
+
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081/api",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "/api", // Points to Spring Boot backend
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Important for CORS with credentials
 });
 
-// Request interceptor to add JWT token
+/**
+ * Request Interceptor
+ * 
+ * Automatically attaches JWT token to all outgoing requests.
+ * Token is retrieved from the auth store.
+ */
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from auth store
-    const token = useAuthStore.getState().token;
+    // Get access token from auth store
+    const accessToken = useAuthStore.getState().accessToken;
 
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
     return config;
@@ -27,7 +41,12 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+/**
+ * Response Interceptor
+ * 
+ * Global error handling for all API responses.
+ * Handles authentication errors, validation errors, and network issues.
+ */
 apiClient.interceptors.response.use(
   (response) => {
     return response;
@@ -68,10 +87,10 @@ apiClient.interceptors.response.use(
           );
       }
     } else if (error.request) {
-      // Network error
+      // Network error - no response received
       console.error("Network error:", error.message);
     } else {
-      // Other error
+      // Other error - request setup failed
       console.error("Error:", error.message);
     }
 
@@ -79,7 +98,12 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Helper functions for common HTTP methods
+/**
+ * API Helper Methods
+ * 
+ * Convenience methods for common HTTP operations.
+ * All methods automatically include authentication headers and error handling.
+ */
 export const api = {
   get: (url, config = {}) => apiClient.get(url, config),
   post: (url, data = {}, config = {}) => apiClient.post(url, data, config),
@@ -88,7 +112,15 @@ export const api = {
   delete: (url, config = {}) => apiClient.delete(url, config),
 };
 
-// Helper for file uploads
+/**
+ * File Upload Helper
+ * 
+ * Handles file uploads with progress tracking.
+ * @param {string} url - Upload endpoint
+ * @param {File} file - File to upload
+ * @param {Function} onProgress - Progress callback (receives percentage)
+ * @returns {Promise} Upload response
+ */
 export const uploadFile = (url, file, onProgress = null) => {
   const formData = new FormData();
   formData.append("file", file);
