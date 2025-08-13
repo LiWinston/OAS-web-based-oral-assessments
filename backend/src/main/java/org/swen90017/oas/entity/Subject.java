@@ -6,8 +6,8 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * Subject Entity
- * User Story 4.1: Set up academic periods (year, semester, subject)
+ * Subject/Course Entity (Simplified for Frontend Compatibility)
+ * Contains embedded academic year and semester information
  */
 @Data
 @TableName("subject")
@@ -20,19 +20,13 @@ public class Subject {
     private Long subjectId;
 
     /**
-     * Semester ID (logical reference to semester table)
-     */
-    @TableField("semester_id")
-    private Long semesterId;
-
-    /**
-     * Subject code (e.g., "SWEN90017")
+     * Subject code (e.g., "SWEN90017", "COMP90082")
      */
     @TableField("subject_code")
     private String subjectCode;
 
     /**
-     * Subject name
+     * Subject name (Course name for frontend)
      */
     @TableField("subject_name")
     private String subjectName;
@@ -42,6 +36,18 @@ public class Subject {
      */
     @TableField("description")
     private String description;
+
+    /**
+     * Academic year (e.g., 2024, 2025)
+     */
+    @TableField("academic_year")
+    private Integer academicYear;
+
+    /**
+     * Semester (e.g., "1", "2", "summer")
+     */
+    @TableField("semester")
+    private String semester;
 
     /**
      * Administrator user ID (logical reference to sys_user table)
@@ -54,6 +60,12 @@ public class Subject {
      */
     @TableField("is_active")
     private Boolean isActive;
+
+    /**
+     * Status (active, archived, etc.)
+     */
+    @TableField("status")
+    private String status;
 
     /**
      * Create time

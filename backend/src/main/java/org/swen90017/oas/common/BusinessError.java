@@ -12,22 +12,13 @@ public enum BusinessError implements Error {
     USER_NOT_FOUND("2004", "User not found"),
     INVALID_CSV_TYPE("2005", "invalid CSV type"),
     
-    // Epic 4.1 Academic Structure Management errors
-    ACADEMIC_YEAR_NOT_FOUND("4001", "Academic year not found"),
-    ACADEMIC_YEAR_ALREADY_EXISTS("4002", "Academic year already exists"),
-    ACADEMIC_YEAR_DATE_INVALID("4003", "Academic year date range is invalid"),
-    ACADEMIC_YEAR_HAS_DEPENDENCIES("4004", "Academic year has dependent semesters"),
-    
-    SEMESTER_NOT_FOUND("4011", "Semester not found"),
-    SEMESTER_ALREADY_EXISTS("4012", "Semester already exists for this academic year"),
-    SEMESTER_DATE_INVALID("4013", "Semester date range is invalid"),
-    SEMESTER_DATE_OUT_OF_RANGE("4014", "Semester dates must be within academic year range"),
-    SEMESTER_HAS_DEPENDENCIES("4015", "Semester has dependent subjects"),
-    
-    SUBJECT_NOT_FOUND("4021", "Subject not found"),
-    SUBJECT_ALREADY_EXISTS("4022", "Subject already exists for this semester"),
-    SUBJECT_ADMIN_INVALID("4023", "Invalid administrator for subject"),
-    SUBJECT_HAS_DEPENDENCIES("4024", "Subject has dependent assignments"),;
+    // Epic 4.1 Course Management (Simplified) errors
+    SUBJECT_NOT_FOUND("4021", "Course not found"),
+    SUBJECT_ALREADY_EXISTS("4022", "Course already exists for this academic year and semester"),
+    SUBJECT_ADMIN_INVALID("4023", "Invalid administrator for course"),
+    SUBJECT_HAS_DEPENDENCIES("4024", "Course has dependent assignments"),
+    SUBJECT_INVALID_YEAR("4025", "Invalid academic year"),
+    SUBJECT_INVALID_SEMESTER("4026", "Invalid semester"),;
     
     private final String code;
     private final String message;

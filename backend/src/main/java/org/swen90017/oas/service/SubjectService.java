@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.SubjectDto;
-import org.swen90017.oas.entity.Semester;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SubjectMapper;
@@ -19,26 +18,28 @@ import org.swen90017.oas.mapper.SubjectMapper;
 import java.util.List;
 
 /**
- * Subject Service
- * User Story 4.1: Set up academic periods (year, semester, subject)
+ * Subject/Course Service (Simplified for Frontend Compatibility)
+ * Handles course management with embedded academic period information
  */
 @Service
 @RequiredArgsConstructor
 public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
 
     private final SubjectMapper subjectMapper;
-    private final SemesterService semesterService;
 
     /**
-     * Get paginated subjects
+     * Get paginated courses/subjects (matches frontend API expectations)
      */
-    public IPage<Subject> getSubjects(int pageNum, int pageSize, Long semesterId, String subjectCode, 
-                                     Long adminUserId, Boolean isActive) {
+    public IPage<Subject> getCourses(int pageNum, int pageSize, Integer academicYear, String semester, 
+                                    String subjectCode, Long adminUserId, String status) {
         Page<Subject> page = new Page<>(pageNum, pageSize);
         
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
-        if (semesterId != null) {
-            queryWrapper.eq(Subject::getSemesterId, semesterId);
+        if (academicYear != null) {
+            queryWrapper.eq(Subject::getAcademicYear, academicYear);
+        }
+        if (StringUtils.hasText(semester)) {
+            queryWrapper.eq(Subject::getSemester, semester);
         }
         if (StringUtils.hasText(subjectCode)) {
             queryWrapper.like(Subject::getSubjectCode, subjectCode);
@@ -46,20 +47,25 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         if (adminUserId != null) {
             queryWrapper.eq(Subject::getAdminUserId, adminUserId);
         }
-        if (isActive != null) {
-            queryWrapper.eq(Subject::getIsActive, isActive);
+        if (StringUtils.hasText(status)) {
+            queryWrapper.eq(Subject::getStatus, status);
+        } else {
+            queryWrapper.eq(Subject::getIsActive, true);
         }
-        queryWrapper.orderByAsc(Subject::getSubjectCode);
+        queryWrapper.orderByDesc(Subject::getAcademicYear)
+                   .orderByAsc(Subject::getSemester)
+                   .orderByAsc(Subject::getSubjectCode);
 
         return subjectMapper.selectPage(page, queryWrapper);
     }
 
     /**
-     * Get subjects by semester
+     * Get courses by academic year and semester
      */
-    public List<Subject> getSubjectsBySemester(Long semesterId) {
+    public List<Subject> getCoursesByPeriod(Integer academicYear, String semester) {
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Subject::getSemesterId, semesterId)
+        queryWrapper.eq(Subject::getAcademicYear, academicYear)
+                   .eq(Subject::getSemester, semester)
                    .eq(Subject::getIsActive, true)
                    .orderByAsc(Subject::getSubjectCode);
         return subjectMapper.selectList(queryWrapper);
@@ -87,27 +93,31 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     }
 
     /**
-     * Create subject
+     * Create course/subject (simplified business logic)
      */
     @Transactional
-    public Subject createSubject(SubjectDto dto) {
-        // Validate semester exists
-        Semester semester = semesterService.getSemesterById(dto.getSemesterId());
-        if (!semester.getIsActive()) {
-            throw new BusinessException(BusinessError.SEMESTER_NOT_FOUND);
+    public Subject createCourse(SubjectDto dto) {
+        // Validate academic year
+        if (dto.getAcademicYear() == null || dto.getAcademicYear() < 2020 || dto.getAcademicYear() > 2030) {
+            throw new BusinessException(BusinessError.SUBJECT_INVALID_YEAR);
         }
 
-        // Check if subject code already exists for this semester
+        // Validate semester
+        if (!isValidSemester(dto.getSemester())) {
+            throw new BusinessException(BusinessError.SUBJECT_INVALID_SEMESTER);
+        }
+
+        // Check if subject code already exists for this academic year and semester
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Subject::getSemesterId, dto.getSemesterId())
-                   .eq(Subject::getSubjectCode, dto.getSubjectCode());
+        queryWrapper.eq(Subject::getSubjectCode, dto.getSubjectCode())
+                   .eq(Subject::getAcademicYear, dto.getAcademicYear())
+                   .eq(Subject::getSemester, dto.getSemester());
         
         if (subjectMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
 
         // Validate admin user ID
-        // In a real implementation, you would validate that the admin user exists and has admin role
         if (dto.getAdminUserId() == null || dto.getAdminUserId() <= 0) {
             throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
         }
@@ -120,22 +130,30 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     }
 
     /**
-     * Update subject
+     * Update course/subject (simplified business logic)
      */
     @Transactional
-    public Subject updateSubject(Long subjectId, SubjectDto dto) {
+    public Subject updateCourse(Long subjectId, SubjectDto dto) {
         Subject existingSubject = subjectMapper.selectById(subjectId);
         if (existingSubject == null) {
             throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
 
-        // Validate semester exists
-        Semester semester = semesterService.getSemesterById(dto.getSemesterId());
+        // Validate academic year
+        if (dto.getAcademicYear() == null || dto.getAcademicYear() < 2020 || dto.getAcademicYear() > 2030) {
+            throw new BusinessException(BusinessError.SUBJECT_INVALID_YEAR);
+        }
 
-        // Check if subject code already exists for this semester (excluding current record)
+        // Validate semester
+        if (!isValidSemester(dto.getSemester())) {
+            throw new BusinessException(BusinessError.SUBJECT_INVALID_SEMESTER);
+        }
+
+        // Check if subject code already exists for this academic year and semester (excluding current record)
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Subject::getSemesterId, dto.getSemesterId())
-                   .eq(Subject::getSubjectCode, dto.getSubjectCode())
+        queryWrapper.eq(Subject::getSubjectCode, dto.getSubjectCode())
+                   .eq(Subject::getAcademicYear, dto.getAcademicYear())
+                   .eq(Subject::getSemester, dto.getSemester())
                    .ne(Subject::getSubjectId, subjectId);
         
         if (subjectMapper.selectCount(queryWrapper) > 0) {
@@ -150,6 +168,16 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         BeanUtils.copyProperties(dto, existingSubject, "subjectId", "createTime", "creator");
         subjectMapper.updateById(existingSubject);
         return existingSubject;
+    }
+
+    /**
+     * Validate semester string
+     */
+    private boolean isValidSemester(String semester) {
+        if (!StringUtils.hasText(semester)) {
+            return false;
+        }
+        return "1".equals(semester) || "2".equals(semester) || "summer".equals(semester);
     }
 
     /**
