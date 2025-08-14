@@ -27,7 +27,15 @@ public enum BusinessError implements Error {
     ASSIGNMENT_INVALID_STATUS("4035", "Invalid assignment status"),
     ASSIGNMENT_INVALID_PROGRESS("4036", "Invalid assignment progress"),
     ASSIGNMENT_HAS_SUBMISSIONS("4037", "Assignment has submissions and cannot be deleted"),
-    ASSIGNMENT_ALREADY_EXISTS("4038", "Assignment already exists for this subject");
+    ASSIGNMENT_ALREADY_EXISTS("4038", "Assignment already exists for this subject"),
+    ASSIGNMENT_INVALID_RUBRIC("4039", "Invalid rubric information"),
+    ASSIGNMENT_INVALID_RUBRIC_WEIGHT("4040", "Invalid rubric weight"),
+    ASSIGNMENT_INVALID_SCALE_TYPE("4041", "Invalid scale type"),
+    ASSIGNMENT_INVALID_PERFORMANCE_LEVELS("4042", "Invalid performance levels"),
+    ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION("4043", "Invalid performance description"),
+    ASSIGNMENT_INVALID_PERFORMANCE_POINTS("4044", "Invalid performance points"),
+    ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
+    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format");
     
     private final String code;
     private final String message;

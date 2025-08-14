@@ -145,4 +145,12 @@ CREATE TABLE assignment (
                             updater BIGINT COMMENT 'Updater user ID',
                             create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
                             update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+
+    -- 外键约束，级联删除
+                            CONSTRAINT fk_assignment_subject
+                            FOREIGN KEY (subjectId) REFERENCES subject(subject_id)
+                            ON DELETE CASCADE,
+
+    -- 索引
+                            KEY idx_assignment_subject (subjectId)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';

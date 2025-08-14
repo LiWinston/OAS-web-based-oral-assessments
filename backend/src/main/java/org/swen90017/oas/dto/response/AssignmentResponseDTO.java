@@ -1,8 +1,10 @@
 package org.swen90017.oas.dto.response;
 
 import lombok.Data;
+import org.swen90017.oas.dto.RubricsInfoDto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Assignment Response DTO
@@ -67,9 +69,9 @@ public class AssignmentResponseDTO {
     private String rubricMetaInfo;
 
     /**
-     * Rubrics information (JSON string)
+     * Rubrics information list
      */
-    private String rubricsInfo;
+    private List<RubricsInfoDto> rubricsInfo;
 
     /**
      * Creator user ID

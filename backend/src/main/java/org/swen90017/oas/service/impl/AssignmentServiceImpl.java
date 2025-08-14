@@ -6,6 +6,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.entity.Assignment;
@@ -63,8 +66,18 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_WEIGHT);
         }
 
+        // Validate rubrics info if provided
+        if (dto.getRubricsInfo() != null) {
+            validateRubricsInfo(dto.getRubricsInfo());
+        }
+
         Assignment assignment = new Assignment();
         BeanUtils.copyProperties(dto, assignment);
+        
+        // Convert rubricsInfo list to JSON string for storage
+        if (dto.getRubricsInfo() != null) {
+            assignment.setRubricsInfo(convertRubricsInfoToJson(dto.getRubricsInfo()));
+        }
         
         assignmentMapper.insert(assignment);
         return convertToDTO(assignment);
@@ -100,6 +113,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         }
 
         BeanUtils.copyProperties(dto, existingAssignment, "id", "createTime", "creator");
+        
+        // Convert rubricsInfo list to JSON string for storage
+        if (dto.getRubricsInfo() != null) {
+            existingAssignment.setRubricsInfo(convertRubricsInfoToJson(dto.getRubricsInfo()));
+        }
+        
         assignmentMapper.updateById(existingAssignment);
         return convertToDTO(existingAssignment);
     }
@@ -145,7 +164,84 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     private AssignmentResponseDTO convertToDTO(Assignment assignment) {
         AssignmentResponseDTO dto = new AssignmentResponseDTO();
         BeanUtils.copyProperties(assignment, dto);
+        
+        // Convert JSON string back to RubricsInfoDto list
+        if (assignment.getRubricsInfo() != null && !assignment.getRubricsInfo().trim().isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<RubricsInfoDto> rubricsInfo = mapper.readValue(assignment.getRubricsInfo(), 
+                    mapper.getTypeFactory().constructCollectionType(List.class, RubricsInfoDto.class));
+                dto.setRubricsInfo(rubricsInfo);
+            } catch (JsonProcessingException e) {
+                // If JSON parsing fails, set to null
+                dto.setRubricsInfo(null);
+            }
+        }
+        
         return dto;
+    }
+
+    /**
+     * Validate rubrics info
+     */
+    private void validateRubricsInfo(List<RubricsInfoDto> rubricsInfo) {
+        if (rubricsInfo == null || rubricsInfo.isEmpty()) {
+            return;
+        }
+
+        double totalWeight = 0.0;
+        for (RubricsInfoDto rubric : rubricsInfo) {
+            // Validate rubric description
+            if (rubric.getDescription() == null || rubric.getDescription().trim().isEmpty()) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC);
+            }
+
+            // Validate rubric weight
+            if (rubric.getWeight() == null || rubric.getWeight() < 0.0 || rubric.getWeight() > 100.0) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_WEIGHT);
+            }
+
+            // Validate scale type
+            if (rubric.getScaleType() == null || rubric.getScaleType().trim().isEmpty()) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_SCALE_TYPE);
+            }
+
+            // Validate performance levels
+            if (rubric.getPerformanceLevel() == null || rubric.getPerformanceLevel().isEmpty()) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_PERFORMANCE_LEVELS);
+            }
+
+            // Validate each performance level
+            for (org.swen90017.oas.dto.PerformanceDto performance : rubric.getPerformanceLevel()) {
+                if (performance.getDescription() == null || performance.getDescription().trim().isEmpty()) {
+                    throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION);
+                }
+                if (performance.getStartPoint() == null || performance.getEndPoint() == null ||
+                    performance.getStartPoint() < 0.0 || performance.getEndPoint() < 0.0 ||
+                    performance.getStartPoint() > performance.getEndPoint()) {
+                    throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_PERFORMANCE_POINTS);
+                }
+            }
+
+            totalWeight += rubric.getWeight();
+        }
+
+        // Validate total weight is reasonable (should be close to 100%)
+        if (Math.abs(totalWeight - 100.0) > 5.0) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_WEIGHT);
+        }
+    }
+
+    /**
+     * Convert RubricsInfoDto list to JSON string
+     */
+    private String convertRubricsInfoToJson(List<RubricsInfoDto> rubricsInfo) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(rubricsInfo);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_FORMAT);
+        }
     }
 
     /**
