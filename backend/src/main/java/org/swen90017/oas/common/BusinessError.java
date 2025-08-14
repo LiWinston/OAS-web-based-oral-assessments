@@ -18,7 +18,17 @@ public enum BusinessError implements Error {
     SUBJECT_ADMIN_INVALID("4023", "Invalid administrator for course"),
     SUBJECT_HAS_DEPENDENCIES("4024", "Course has dependent assignments"),
     SUBJECT_INVALID_YEAR("4025", "Invalid academic year"),
-    SUBJECT_INVALID_SEMESTER("4026", "Invalid semester"),;
+    SUBJECT_INVALID_SEMESTER("4026", "Invalid semester"),
+    
+    // Epic 4.2 Assignment Management errors
+    ASSIGNMENT_NOT_FOUND("4031", "Assignment not found"),
+    ASSIGNMENT_INVALID_TYPE("4032", "Invalid assignment type"),
+    ASSIGNMENT_INVALID_DATES("4033", "Invalid assignment dates"),
+    ASSIGNMENT_INVALID_WEIGHT("4034", "Invalid assignment weight"),
+    ASSIGNMENT_INVALID_STATUS("4035", "Invalid assignment status"),
+    ASSIGNMENT_INVALID_PROGRESS("4036", "Invalid assignment progress"),
+    ASSIGNMENT_HAS_SUBMISSIONS("4037", "Assignment has submissions and cannot be deleted"),
+    ASSIGNMENT_ALREADY_EXISTS("4038", "Assignment already exists for this subject");
     
     private final String code;
     private final String message;

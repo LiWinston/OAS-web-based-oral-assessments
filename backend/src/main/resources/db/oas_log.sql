@@ -126,3 +126,23 @@ CREATE TABLE `subject` (
     KEY `idx_subject_semester` (`semester`),
     KEY `idx_subject_status` (`status`)
 );
+
+DROP TABLE IF EXISTS assignment;
+CREATE TABLE assignment (
+                            id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key ID',
+                            subjectId BIGINT NOT NULL COMMENT 'Subject ID, foreign key',
+                            name VARCHAR(255) NOT NULL COMMENT 'Assignment name',
+                            description TEXT COMMENT 'Assignment description',
+                            type VARCHAR(50) NOT NULL COMMENT 'Assignment type',
+                            start_date DATETIME NOT NULL COMMENT 'Start date',
+                            end_date DATETIME NOT NULL COMMENT 'End date',
+                            weight DECIMAL(5,2) DEFAULT 0.00 COMMENT 'Weight percentage',
+                            progress DECIMAL(5,2) DEFAULT 0.00 COMMENT 'Progress percentage',
+                            status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Assignment status',
+                            rubric_meta_info TEXT COMMENT 'Rubric meta information in JSON format: {name, description, totalPoints}',
+                            rubrics_info TEXT COMMENT 'Rubric detailed information in JSON format: {description, weight, scaleType, performanceLevels}',
+                            creator BIGINT NOT NULL COMMENT 'Creator user ID',
+                            updater BIGINT COMMENT 'Updater user ID',
+                            create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+                            update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';
