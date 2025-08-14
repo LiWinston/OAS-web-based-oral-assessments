@@ -16,7 +16,6 @@ public enum BusinessError implements Error {
     SUBJECT_NOT_FOUND("4021", "Course not found"),
     SUBJECT_ALREADY_EXISTS("4022", "Course already exists for this academic year and semester"),
     SUBJECT_ADMIN_INVALID("4023", "Invalid administrator for course"),
-    SUBJECT_HAS_DEPENDENCIES("4024", "Course has dependent assignments"),
     SUBJECT_INVALID_YEAR("4025", "Invalid academic year"),
     SUBJECT_INVALID_SEMESTER("4026", "Invalid semester"),
     

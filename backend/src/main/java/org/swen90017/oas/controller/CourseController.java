@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.SubjectDto;
+import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.enums.BusinessType;
+import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.SubjectService;
 
 import javax.validation.Valid;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public class CourseController {
 
     private final SubjectService subjectService;
+    private final AssignmentService assignmentService;
 
     /**
      * Get courses (matches frontend courseService.getCourses())
@@ -144,7 +147,16 @@ public class CourseController {
         course.put("isActive", subject.getIsActive());
         course.put("status", subject.getStatus() != null ? subject.getStatus() : "active");
         course.put("students", 0); // Placeholder - would be calculated from actual enrollments
-        course.put("assignments", 0); // Placeholder - would be calculated from actual assignments
+        
+        // Get actual assignment count for this subject
+        try {
+            List<AssignmentResponseDTO> assignments = assignmentService.getAssignmentsBySubject(subject.getSubjectId());
+            course.put("assignments", assignments.size());
+        } catch (Exception e) {
+            // In case of error, fall back to 0
+            course.put("assignments", 0);
+        }
+        
         course.put("createdAt", subject.getCreateTime());
         return course;
     }

@@ -11,9 +11,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.SubjectDto;
+import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SubjectMapper;
+import org.swen90017.oas.service.AssignmentService;
 
 import java.util.List;
 
@@ -26,6 +28,7 @@ import java.util.List;
 public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
 
     private final SubjectMapper subjectMapper;
+    private final AssignmentService assignmentService;
 
     /**
      * Get paginated courses/subjects (matches frontend API expectations)
@@ -184,6 +187,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
 
     /**
      * Delete subject (logical delete by setting isActive to false)
+     * Cascades delete to all associated assignments
      */
     @Transactional
     public void deleteSubject(Long subjectId) {
@@ -192,9 +196,13 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
 
-        // Check if there are any assignments associated with this subject
-        // This would be implemented when AssignmentService is created
+        // Cascade delete: remove all associated assignments first
+        List<AssignmentResponseDTO> assignments = assignmentService.getAssignmentsBySubject(subjectId);
+        for (AssignmentResponseDTO assignment : assignments) {
+            assignmentService.deleteAssignment(assignment.getId());
+        }
         
+        // Then delete the subject
         subject.setIsActive(false);
         subjectMapper.updateById(subject);
     }
