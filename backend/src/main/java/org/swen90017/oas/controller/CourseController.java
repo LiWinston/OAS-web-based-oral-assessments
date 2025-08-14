@@ -33,7 +33,6 @@ public class CourseController {
      * Get courses (matches frontend courseService.getCourses())
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> getCourses(
             @RequestParam(defaultValue = "1") int pageNum,
@@ -62,7 +61,6 @@ public class CourseController {
      * Get course by ID
      */
     @GetMapping("/{courseId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> getCourse(@PathVariable Long courseId) {
         Subject course = subjectService.getSubjectById(courseId);
@@ -74,7 +72,6 @@ public class CourseController {
      * Create course
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.INSERT)
     public ResponseEntity<Result<Map<String, Object>>> createCourse(@Valid @RequestBody SubjectDto dto) {
         Subject course = subjectService.createCourse(dto);
@@ -86,7 +83,6 @@ public class CourseController {
      * Update course
      */
     @PutMapping("/{courseId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.UPDATE)
     public ResponseEntity<Result<Map<String, Object>>> updateCourse(
             @PathVariable Long courseId, 
@@ -100,7 +96,6 @@ public class CourseController {
      * Delete course
      */
     @DeleteMapping("/{courseId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.DELETE)
     public ResponseEntity<Result<Void>> deleteCourse(@PathVariable Long courseId) {
         subjectService.deleteSubject(courseId);
@@ -111,7 +106,6 @@ public class CourseController {
      * Get course statistics for dashboard
      */
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> getCourseStats() {
         // This is a simplified implementation - in reality you'd calculate actual stats
