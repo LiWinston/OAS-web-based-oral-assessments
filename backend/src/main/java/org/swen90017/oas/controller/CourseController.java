@@ -2,20 +2,24 @@ package org.swen90017.oas.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.SubjectDto;
+import org.swen90017.oas.dto.request.CourseCreateRequestDTO;
+import org.swen90017.oas.dto.request.CourseQueryRequestDTO;
+import org.swen90017.oas.dto.request.CourseUpdateRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.CourseListResponseDTO;
+import org.swen90017.oas.dto.response.CourseResponseDTO;
+import org.swen90017.oas.dto.response.CourseStatsResponseDTO;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.SubjectService;
 
 import javax.validation.Valid;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,31 +37,35 @@ public class CourseController {
     private final AssignmentService assignmentService;
 
     /**
-     * Get courses (matches frontend courseService.getCourses())
+     * Get courses with pagination and filters
      */
     @GetMapping
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<Map<String, Object>>> getCourses(
-            @RequestParam(defaultValue = "1") int pageNum,
-            @RequestParam(defaultValue = "10") int pageSize,
-            @RequestParam(required = false) Integer year,
-            @RequestParam(required = false) String semester,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String courseCode,
-            @RequestParam(required = false) Long adminUserId) {
+    public Result<CourseListResponseDTO> getCourses(CourseQueryRequestDTO queryDTO) {
         
-        IPage<Subject> result = subjectService.getCourses(pageNum, pageSize, year, semester, 
-                                                         courseCode, adminUserId, status);
+        IPage<Subject> result = subjectService.getCourses(
+            queryDTO.getPageNum(), 
+            queryDTO.getPageSize(), 
+            queryDTO.getYear(), 
+            queryDTO.getSemester(), 
+            queryDTO.getCourseCode(), 
+            queryDTO.getAdminUserId(), 
+            queryDTO.getStatus()
+        );
         
-        // Transform data to match frontend expectations
-        Map<String, Object> response = new HashMap<>();
-        response.put("data", transformToFrontendFormat(result.getRecords()));
-        response.put("success", true);
-        response.put("total", result.getTotal());
-        response.put("current", result.getCurrent());
-        response.put("size", result.getSize());
+        // Transform data to CourseResponseDTO
+        List<CourseResponseDTO> courseDTOs = result.getRecords().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
         
-        return ResponseEntity.ok(Result.success(response));
+        CourseListResponseDTO response = new CourseListResponseDTO(
+            courseDTOs, 
+            result.getTotal(), 
+            result.getCurrent(), 
+            result.getSize()
+        );
+        
+        return Result.success(response);
     }
 
     /**
@@ -65,10 +73,10 @@ public class CourseController {
      */
     @GetMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<Map<String, Object>>> getCourse(@PathVariable Long courseId) {
+    public Result<CourseResponseDTO> getCourse(@PathVariable Long courseId) {
         Subject course = subjectService.getSubjectById(courseId);
-        Map<String, Object> response = transformSingleToFrontendFormat(course);
-        return ResponseEntity.ok(Result.success(response));
+        CourseResponseDTO response = convertToDTO(course);
+        return Result.success(response);
     }
 
     /**
@@ -76,10 +84,12 @@ public class CourseController {
      */
     @PostMapping
     @Log(module = "Course Management", businessType = BusinessType.INSERT)
-    public ResponseEntity<Result<Map<String, Object>>> createCourse(@Valid @RequestBody SubjectDto dto) {
+    public Result<CourseResponseDTO> createCourse(@Valid @RequestBody CourseCreateRequestDTO requestDTO) {
+        // Convert request DTO to SubjectDto
+        SubjectDto dto = convertCreateRequestToSubjectDto(requestDTO);
         Subject course = subjectService.createCourse(dto);
-        Map<String, Object> response = transformSingleToFrontendFormat(course);
-        return ResponseEntity.ok(Result.success(response));
+        CourseResponseDTO response = convertToDTO(course);
+        return Result.success(response);
     }
 
     /**
@@ -87,12 +97,14 @@ public class CourseController {
      */
     @PutMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.UPDATE)
-    public ResponseEntity<Result<Map<String, Object>>> updateCourse(
+    public Result<CourseResponseDTO> updateCourse(
             @PathVariable Long courseId, 
-            @Valid @RequestBody SubjectDto dto) {
+            @Valid @RequestBody CourseUpdateRequestDTO requestDTO) {
+        // Convert request DTO to SubjectDto
+        SubjectDto dto = convertUpdateRequestToSubjectDto(requestDTO);
         Subject course = subjectService.updateCourse(courseId, dto);
-        Map<String, Object> response = transformSingleToFrontendFormat(course);
-        return ResponseEntity.ok(Result.success(response));
+        CourseResponseDTO response = convertToDTO(course);
+        return Result.success(response);
     }
 
     /**
@@ -100,9 +112,9 @@ public class CourseController {
      */
     @DeleteMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.DELETE)
-    public ResponseEntity<Result<Void>> deleteCourse(@PathVariable Long courseId) {
+    public Result<Void> deleteCourse(@PathVariable Long courseId) {
         subjectService.deleteSubject(courseId);
-        return ResponseEntity.ok(Result.success());
+        return Result.success();
     }
 
     /**
@@ -111,22 +123,22 @@ public class CourseController {
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<Map<String, Object>>> getCourseStats() {
+    public Result<CourseStatsResponseDTO> getCourseStats() {
         // Use optimized SQL aggregation query (single query instead of N+1)
         Map<String, Object> stats = subjectService.getCourseStatisticsOptimized();
         
         // Add current semester information
         String currentSemester = getCurrentSemesterOptimized();
-        stats.put("currentSemester", currentSemester);
         
-        // Placeholder for student count (would require enrollment data)
-        stats.put("totalStudents", 0);
+        CourseStatsResponseDTO response = new CourseStatsResponseDTO(
+            (Integer) stats.get("totalCourses"),
+            (Integer) stats.get("activeCourses"),
+            0, // Placeholder for student count
+            (Integer) stats.get("totalAssignments"),
+            currentSemester
+        );
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("data", stats);
-        
-        return ResponseEntity.ok(Result.success(response));
+        return Result.success(response);
     }
     
     /**
@@ -150,37 +162,66 @@ public class CourseController {
     }
 
     /**
-     * Transform Subject entities to frontend-expected format
+     * Convert Subject entity to CourseResponseDTO
      */
-    private List<Map<String, Object>> transformToFrontendFormat(List<Subject> subjects) {
-        return subjects.stream().map(this::transformSingleToFrontendFormat).collect(Collectors.toList());
-    }
-
-    /**
-     * Transform single Subject entity to frontend format
-     */
-    private Map<String, Object> transformSingleToFrontendFormat(Subject subject) {
-        Map<String, Object> course = new HashMap<>();
-        course.put("id", subject.getSubjectId());
-        course.put("courseName", subject.getSubjectName());
-        course.put("courseCode", subject.getSubjectCode());
-        course.put("academicYear", subject.getAcademicYear());
-        course.put("semester", subject.getSemester());
-        course.put("description", subject.getDescription());
-        course.put("isActive", subject.getIsActive());
-        course.put("status", subject.getStatus() != null ? subject.getStatus() : "active");
-        course.put("students", 0); // Placeholder - would be calculated from actual enrollments
+    private CourseResponseDTO convertToDTO(Subject subject) {
+        CourseResponseDTO dto = new CourseResponseDTO();
+        dto.setId(subject.getSubjectId());
+        dto.setCourseCode(subject.getSubjectCode());
+        dto.setCourseName(subject.getSubjectName());
+        dto.setDescription(subject.getDescription());
+        dto.setAcademicYear(subject.getAcademicYear());
+        dto.setSemester(subject.getSemester());
+        dto.setAdminUserId(subject.getAdminUserId());
+        dto.setIsActive(subject.getIsActive());
+        dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
+        dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
         
         // Get actual assignment count for this subject
         try {
             List<AssignmentResponseDTO> assignments = assignmentService.getAssignmentsBySubject(subject.getSubjectId());
-            course.put("assignments", assignments.size());
+            dto.setAssignments(assignments.size());
         } catch (Exception e) {
             // In case of error, fall back to 0
-            course.put("assignments", 0);
+            dto.setAssignments(0);
         }
         
-        course.put("createdAt", subject.getCreateTime());
-        return course;
+        dto.setCreateTime(subject.getCreateTime());
+        dto.setCreator(subject.getCreator());
+        dto.setUpdateTime(subject.getUpdateTime());
+        dto.setUpdater(subject.getUpdater());
+        
+        return dto;
+    }
+    
+    /**
+     * Convert CourseCreateRequestDTO to SubjectDto
+     */
+    private SubjectDto convertCreateRequestToSubjectDto(CourseCreateRequestDTO requestDTO) {
+        SubjectDto dto = new SubjectDto();
+        dto.setSubjectCode(requestDTO.getCourseCode());
+        dto.setSubjectName(requestDTO.getCourseName());
+        dto.setDescription(requestDTO.getDescription());
+        dto.setAcademicYear(requestDTO.getAcademicYear());
+        dto.setSemester(requestDTO.getSemester());
+        dto.setAdminUserId(requestDTO.getAdminUserId());
+        dto.setStatus(requestDTO.getStatus());
+        return dto;
+    }
+    
+    /**
+     * Convert CourseUpdateRequestDTO to SubjectDto
+     */
+    private SubjectDto convertUpdateRequestToSubjectDto(CourseUpdateRequestDTO requestDTO) {
+        SubjectDto dto = new SubjectDto();
+        dto.setSubjectCode(requestDTO.getCourseCode());
+        dto.setSubjectName(requestDTO.getCourseName());
+        dto.setDescription(requestDTO.getDescription());
+        dto.setAcademicYear(requestDTO.getAcademicYear());
+        dto.setSemester(requestDTO.getSemester());
+        dto.setAdminUserId(requestDTO.getAdminUserId());
+        dto.setStatus(requestDTO.getStatus());
+        dto.setIsActive(requestDTO.getIsActive());
+        return dto;
     }
 }
