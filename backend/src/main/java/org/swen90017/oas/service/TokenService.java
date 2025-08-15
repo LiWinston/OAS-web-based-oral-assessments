@@ -13,8 +13,9 @@ import org.springframework.stereotype.Component;
 import org.swen90017.oas.constant.Constants;
 import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.entity.RefreshToken;
+import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.mapper.RefreshTokenMapper;
-import org.swen90017.oas.service.impl.StudentServiceImpl;
+import org.swen90017.oas.mapper.SysUserMapper;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -57,6 +58,9 @@ public class TokenService {
 
     private SecretKey key;
 
+    @Autowired
+    private SysUserMapper userMapper;
+
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
@@ -67,7 +71,7 @@ public class TokenService {
      */
     public String createAccessToken(LoginUser loginUser) {
         String token = UUID.randomUUID().toString();
-        
+
         // Set user information in claims
         Map<String, Object> claims = new HashMap<>();
         claims.put(Constants.LOGIN_USER_KEY, token);
@@ -77,7 +81,16 @@ public class TokenService {
         
         // Generate JWT token using java.time API for time calculation
         LocalDateTime expiryDateTime = LocalDateTime.now().plusMinutes(accessTokenExpireTime);
-        return createToken(claims, expiryDateTime);
+        String jwt = createToken(claims, expiryDateTime);
+        try {
+            // On successful login, update user's last_login_at for all roles
+            SysUser user = userMapper.selectById(loginUser.getUserId());
+            if (user != null) {
+                user.setLastLoginAt(new java.util.Date());
+                userMapper.updateById(user);
+            }
+        } catch (Exception ignored) {}
+        return jwt;
     }
     
     /**

@@ -1,6 +1,8 @@
 package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -10,7 +12,7 @@ import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.entity.SysRole;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.entity.SysUserRole;
-import org.swen90017.oas.enums.AccountStatus;
+import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.SysUserRoleMapper;
@@ -20,11 +22,13 @@ import org.swen90017.oas.service.TokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.swen90017.oas.entity.RefreshToken;
 
+
 /**
  * User service implementation
  */
 @Service
 public class SysUserServiceImpl implements ISysUserService {
+    private static final Logger log = LoggerFactory.getLogger(SysUserServiceImpl.class);
 
     @Autowired
     private SysUserMapper userMapper;
@@ -37,6 +41,8 @@ public class SysUserServiceImpl implements ISysUserService {
     
     @Autowired
     private TokenService tokenService;
+
+    
 
     @Value("${token.expireTime}")
     private int accessTokenExpireTime;
@@ -64,6 +70,8 @@ public class SysUserServiceImpl implements ISysUserService {
 
     }
 
+    // markLastLogin moved to TokenService to avoid circular dependency
+
     /**
      * Get login user entity
      *
@@ -79,9 +87,9 @@ public class SysUserServiceImpl implements ISysUserService {
             throw new UsernameNotFoundException("Username or password is incorrect");
         }
         
-        // Check account status
-        if (AccountStatus.BANNED.code().equals(user.getStatus())) {
-            throw new BadCredentialsException("Account is disabled");
+        // Check account status: only ACTIVE users can log in
+        if (!UserStatus.ACTIVE.code().equals(user.getStatus())) {
+            throw new BadCredentialsException("Account is not active");
         }
         
         // Verify password
@@ -123,7 +131,7 @@ public class SysUserServiceImpl implements ISysUserService {
     public LoginResponseDTO login(String email, String password) {
         // Process login to get user information
         LoginUser loginUser = getLoginUser(email, password);
-        
+
         // Generate access token
         String accessToken = tokenService.createAccessToken(loginUser);
         
@@ -142,4 +150,4 @@ public class SysUserServiceImpl implements ISysUserService {
         
         return response;
     }
-} 
+}

@@ -1,5 +1,6 @@
 package org.swen90017.oas.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,8 +35,9 @@ public class CsvController {
     @Autowired
     private GroupService groupService;
 
+    @Operation(summary = "Preview CSV", description = "Preview CSV content for student/group before importing")
     @PostMapping("/preview")
-    public Result previewCsv(@RequestParam("file") MultipartFile file,
+    public Result<?> previewCsv(@RequestParam("file") MultipartFile file,
                            @RequestParam("type") String type) throws IOException {
         List<?> csvData = csvService.importCsv(file.getInputStream(), type);
         if (csvData == null || csvData.isEmpty()) {
@@ -51,8 +53,9 @@ public class CsvController {
         }
     }
 
+    @Operation(summary = "Import CSV", description = "Import CSV data for student/group and send activation emails")
     @PostMapping("/import")
-    public Result importCsv(@RequestParam("file") MultipartFile file,
+    public Result<?> importCsv(@RequestParam("file") MultipartFile file,
                           @RequestParam("type") String type) throws IOException {
         List<?> csvData = csvService.importCsv(file.getInputStream(), type);
         if (csvData == null || csvData.isEmpty()) {
@@ -71,7 +74,7 @@ public class CsvController {
     /**
      * Preview student CSV import
      */
-    private Result previewStudentCsv(List<StudentCSVRequestDTO> studentDTOs) {
+    private Result<PreviewCSVResponseDTO> previewStudentCsv(List<StudentCSVRequestDTO> studentDTOs) {
         PreviewCSVResponseDTO previewResponse = studentService.previewStudentImport(studentDTOs);
         return Result.success(previewResponse);
     }
@@ -79,7 +82,7 @@ public class CsvController {
     /**
      * Preview group CSV import
      */
-    private Result previewGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
+    private Result<GroupPreviewCSVResponseDTO> previewGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
         GroupPreviewCSVResponseDTO previewResponse = groupService.previewGroupImport(groupDTOs);
         return Result.success(previewResponse);
     }
@@ -87,7 +90,7 @@ public class CsvController {
     /**
      * Import student CSV
      */
-    private Result importStudentCsv(List<StudentCSVRequestDTO> studentDTOs) {
+    private Result<List<SysStudent>> importStudentCsv(List<StudentCSVRequestDTO> studentDTOs) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
             List<SysStudent> invited = studentService.inviteStudent(studentDTOs);
             emailService.sendActivationEmail(invited);
@@ -99,7 +102,7 @@ public class CsvController {
     /**
      * Import group CSV
      */
-    private Result importGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
+    private Result<List<SysStudent>> importGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
             List<SysStudent> invited = groupService.importGroupData(groupDTOs);
             emailService.sendActivationEmail(invited);

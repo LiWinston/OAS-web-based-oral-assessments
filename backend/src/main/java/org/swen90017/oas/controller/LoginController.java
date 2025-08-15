@@ -1,5 +1,6 @@
 package org.swen90017.oas.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -26,9 +27,7 @@ public class LoginController {
     private TokenService tokenService;
 
     
-    /**
-     * User login
-     */
+    @Operation(summary = "User login", description = "Authenticate a user and return access/refresh tokens")
     @PostMapping("/login")
     public Result<LoginResponseDTO> login(@Validated @RequestBody LoginRequestDTO loginRequest) {
         try {
@@ -48,11 +47,9 @@ public class LoginController {
             return Result.error(CommonError.SERVER_ERROR.getCode(), e.getMessage());
         }
     }
-    /**
-     * Logout: revoke the provided refresh token.
-     */
+    @Operation(summary = "Logout", description = "Revoke the provided refresh token")
     @PostMapping("/logout")
-    public Result logout(@RequestBody RefreshTokenRequestDTO requestDTO) {
+    public Result<String> logout(@RequestBody RefreshTokenRequestDTO requestDTO) {
         try {
             String token = null;
             if (requestDTO != null && requestDTO.getRefreshToken() != null && !requestDTO.getRefreshToken().isEmpty()) {
@@ -63,7 +60,7 @@ public class LoginController {
             }
 
             tokenService.revokeRefreshToken(token,requestDTO.getUserId());
-            return Result.success();
+            return Result.success("Logout successfully");
         } catch (Exception e) {
             return Result.error(SecurityError.INVALID_TOKEN.getCode(), e.getMessage());
         }

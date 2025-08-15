@@ -10,6 +10,8 @@ import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysUser;
+import org.swen90017.oas.enums.RegistrationStatus;
+import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SysStudentMapper;
 import org.swen90017.oas.mapper.SysRoleMapper;
@@ -20,6 +22,7 @@ import org.swen90017.oas.service.StudentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -66,7 +69,9 @@ public class StudentServiceImpl implements StudentService {
         if (user == null) {
             throw new BusinessException(BusinessError.USER_NOT_FOUND);
         }
-        user.setStatus("0");
+        user.setStatus(UserStatus.ACTIVE.code());
+        user.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
+        user.setRegisteredAt(new Date());
         String encodedPassword = passwordEncoder.encode(password);
         user.setPassword(encodedPassword);
         sysUserMapper.updateById(user);
