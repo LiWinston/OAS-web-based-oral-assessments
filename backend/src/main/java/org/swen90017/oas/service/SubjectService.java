@@ -18,6 +18,7 @@ import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Subject/Course Service (Simplified for Frontend Compatibility)
@@ -205,6 +206,35 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         // Then delete the subject
         subject.setIsActive(false);
         subjectMapper.updateById(subject);
+    }
+
+    /**
+     * Get course statistics efficiently using SQL aggregation
+     * This method uses a single optimized query instead of N+1 queries
+     */
+    public Map<String, Object> getCourseStatisticsOptimized() {
+        Map<String, Object> stats = subjectMapper.getCourseStatistics();
+        
+        // Convert Long to Integer for consistency with frontend expectations
+        if (stats.get("totalCourses") != null) {
+            stats.put("totalCourses", ((Number) stats.get("totalCourses")).intValue());
+        }
+        if (stats.get("activeCourses") != null) {
+            stats.put("activeCourses", ((Number) stats.get("activeCourses")).intValue());
+        }
+        if (stats.get("totalAssignments") != null) {
+            stats.put("totalAssignments", ((Number) stats.get("totalAssignments")).intValue());
+        }
+        
+        return stats;
+    }
+
+    /**
+     * Get the most recent academic year from active courses
+     */
+    public Integer getLatestAcademicYear() {
+        Integer year = subjectMapper.getLatestAcademicYear();
+        return year != null ? year : java.time.LocalDate.now().getYear();
     }
 
     /**

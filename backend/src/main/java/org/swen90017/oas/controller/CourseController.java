@@ -106,24 +106,47 @@ public class CourseController {
     }
 
     /**
-     * Get course statistics for dashboard
+     * Get course statistics for dashboard (Optimized with SQL aggregation)
      */
     @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> getCourseStats() {
-        // This is a simplified implementation - in reality you'd calculate actual stats
-        Map<String, Object> stats = new HashMap<>();
-        stats.put("totalCourses", 5);
-        stats.put("activeCourses", 5);
-        stats.put("totalStudents", 443);
-        stats.put("totalAssignments", 14);
-        stats.put("currentSemester", "2025 Semester 1");
+        // Use optimized SQL aggregation query (single query instead of N+1)
+        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized();
+        
+        // Add current semester information
+        String currentSemester = getCurrentSemesterOptimized();
+        stats.put("currentSemester", currentSemester);
+        
+        // Placeholder for student count (would require enrollment data)
+        stats.put("totalStudents", 0);
         
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
         response.put("data", stats);
         
         return ResponseEntity.ok(Result.success(response));
+    }
+    
+    /**
+     * Determine current semester efficiently using optimized query
+     */
+    private String getCurrentSemesterOptimized() {
+        Integer currentYear = subjectService.getLatestAcademicYear();
+        
+        // Determine semester based on current month
+        java.time.LocalDate now = java.time.LocalDate.now();
+        String semester;
+        if (now.getMonthValue() >= 2 && now.getMonthValue() <= 6) {
+            semester = "Semester 1";
+        } else if (now.getMonthValue() >= 7 && now.getMonthValue() <= 11) {
+            semester = "Semester 2";
+        } else {
+            semester = "Summer Term";
+        }
+        
+        return currentYear + " " + semester;
     }
 
     /**
