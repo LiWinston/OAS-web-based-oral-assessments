@@ -1,17 +1,23 @@
 package org.swen90017.oas.enums;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 /**
  * Assignment Status Enum
  * Defines the status of assignments in the system
  */
+@Schema(description = "Assignment status enumeration")
 public enum AssignmentStatus {
     
-    PENDING("PENDING", "Pending"),
-    IN_PROGRESS("IN_PROGRESS", "In Progress"),
-    COMPLETED("COMPLETED", "Completed"),
-    CANCELLED("CANCELLED", "Cancelled");
+    @Schema(description = "Assignment is pending") PENDING("PENDING", "Pending"),
+    @Schema(description = "Assignment is in progress") IN_PROGRESS("IN_PROGRESS", "In Progress"),
+    @Schema(description = "Assignment is completed") COMPLETED("COMPLETED", "Completed"),
+    @Schema(description = "Assignment is cancelled") CANCELLED("CANCELLED", "Cancelled");
 
+    @Schema(description = "Status code")
     private final String code;
+    
+    @Schema(description = "Status description")
     private final String description;
 
     AssignmentStatus(String code, String description) {

@@ -1,6 +1,9 @@
 package org.swen90017.oas.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
  * Course Controller (Frontend-Compatible API)
  * Provides simplified course management API that matches frontend expectations
  */
+@Tag(name = "Course Management", description = "API endpoints for managing academic courses")
 @RestController
 @RequestMapping("/api/courses")
 @RequiredArgsConstructor
@@ -39,9 +43,11 @@ public class CourseController {
     /**
      * Get courses with pagination and filters
      */
+    @Operation(summary = "Get courses", description = "Retrieve courses with pagination and optional filters")
     @GetMapping
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseListResponseDTO> getCourses(CourseQueryRequestDTO queryDTO) {
+    public Result<CourseListResponseDTO> getCourses(
+            @Parameter(description = "Query parameters for course search") CourseQueryRequestDTO queryDTO) {
         
         IPage<Subject> result = subjectService.getCourses(
             queryDTO.getPageNum(), 
@@ -71,9 +77,11 @@ public class CourseController {
     /**
      * Get course by ID
      */
+    @Operation(summary = "Get course by ID", description = "Retrieve a specific course by its ID")
     @GetMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseResponseDTO> getCourse(@PathVariable Long courseId) {
+    public Result<CourseResponseDTO> getCourse(
+            @Parameter(description = "Course ID") @PathVariable Long courseId) {
         Subject course = subjectService.getSubjectById(courseId);
         CourseResponseDTO response = convertToDTO(course);
         return Result.success(response);
@@ -82,9 +90,11 @@ public class CourseController {
     /**
      * Create course
      */
+    @Operation(summary = "Create course", description = "Create a new academic course")
     @PostMapping
     @Log(module = "Course Management", businessType = BusinessType.INSERT)
-    public Result<CourseResponseDTO> createCourse(@Valid @RequestBody CourseCreateRequestDTO requestDTO) {
+    public Result<CourseResponseDTO> createCourse(
+            @Parameter(description = "Course creation data") @Valid @RequestBody CourseCreateRequestDTO requestDTO) {
         // Convert request DTO to SubjectDto
         SubjectDto dto = convertCreateRequestToSubjectDto(requestDTO);
         Subject course = subjectService.createCourse(dto);
@@ -95,11 +105,12 @@ public class CourseController {
     /**
      * Update course
      */
+    @Operation(summary = "Update course", description = "Update an existing course")
     @PutMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.UPDATE)
     public Result<CourseResponseDTO> updateCourse(
-            @PathVariable Long courseId, 
-            @Valid @RequestBody CourseUpdateRequestDTO requestDTO) {
+            @Parameter(description = "Course ID") @PathVariable Long courseId, 
+            @Parameter(description = "Course update data") @Valid @RequestBody CourseUpdateRequestDTO requestDTO) {
         // Convert request DTO to SubjectDto
         SubjectDto dto = convertUpdateRequestToSubjectDto(requestDTO);
         Subject course = subjectService.updateCourse(courseId, dto);
@@ -110,9 +121,11 @@ public class CourseController {
     /**
      * Delete course
      */
+    @Operation(summary = "Delete course", description = "Delete a course and its associated assignments")
     @DeleteMapping("/{courseId}")
     @Log(module = "Course Management", businessType = BusinessType.DELETE)
-    public Result<Void> deleteCourse(@PathVariable Long courseId) {
+    public Result<Void> deleteCourse(
+            @Parameter(description = "Course ID") @PathVariable Long courseId) {
         subjectService.deleteSubject(courseId);
         return Result.success();
     }
@@ -120,6 +133,7 @@ public class CourseController {
     /**
      * Get course statistics for dashboard (Optimized with SQL aggregation)
      */
+    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses")
     @GetMapping("/stats")
     @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
