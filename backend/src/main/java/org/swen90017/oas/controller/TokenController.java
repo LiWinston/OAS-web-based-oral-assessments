@@ -1,5 +1,6 @@
 package org.swen90017.oas.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,9 +24,7 @@ public class TokenController {
     @Autowired
     private TokenService tokenService;
 
-    /**
-     * Refresh access token
-     */
+    @Operation(summary = "Refresh access token", description = "Use a valid refresh token to get a new access token")
     @PostMapping("/refresh")
     public Result<TokenResponseDTO> refreshToken(@RequestBody RefreshTokenRequestDTO requestDTO) {
         try {

@@ -14,7 +14,7 @@ public class Result<T> implements Serializable {
     
     private String code;
     
-    private T result;
+    private T data;
 
     /**
      * Default constructor
@@ -63,11 +63,11 @@ public class Result<T> implements Serializable {
         if (StatusCode.SUCCESS.getCode().equals(code)) {
             this.success = true;
             this.code = String.valueOf(HttpStatus.SUCCESS);
-            this.result = result;
+            this.data = result;
         } else {
             this.success = false;
             this.code = code;
-            this.result = (T) message; // Cast message to T type as error message
+            this.data = (T) message; // Cast message to T type as error message
         }
     }
 
@@ -83,10 +83,10 @@ public class Result<T> implements Serializable {
         this.success = success;
         if (success) {
             this.code = String.valueOf(HttpStatus.SUCCESS);
-            this.result = null;
+            this.data = null;
         } else {
             this.code = code;
-            this.result = (T) message; // Cast message to T type as error message
+            this.data = (T) message; // Cast message to T type as error message
         }
     }
 
@@ -103,10 +103,10 @@ public class Result<T> implements Serializable {
         this.success = success;
         if (success) {
             this.code = String.valueOf(HttpStatus.SUCCESS);
-            this.result = result;
+            this.data = result;
         } else {
             this.code = code;
-            this.result = (T) message; // Cast message to T type as error message
+            this.data = (T) message; // Cast message to T type as error message
         }
     }
 
@@ -129,6 +129,10 @@ public class Result<T> implements Serializable {
      */
     public static <T> Result<T> success(T data) {
         return new Result<>(true, String.valueOf(HttpStatus.SUCCESS), null, data);
+    }
+
+    public static <T> Result<T> success(T data, String message) {
+        return new Result<>(true, String.valueOf(HttpStatus.SUCCESS), message, data);
     }
 
     /**
@@ -181,16 +185,16 @@ public class Result<T> implements Serializable {
         this.code = code;
     }
 
-    public T getResult() {
-        return this.result;
+    public T getData() {
+        return this.data;
     }
 
-    public void setResult(T result) {
-        this.result = result;
+    public void setData(T result) {
+        this.data = result;
     }
 
     @Override
     public String toString() {
-        return "Result{code='" + this.code + '\'' + ", result=" + this.result + '}';
+        return "Result{code='" + this.code + '\'' + ", data=" + this.data + '}';
     }
 } 

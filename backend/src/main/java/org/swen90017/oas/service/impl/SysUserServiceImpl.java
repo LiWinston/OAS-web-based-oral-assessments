@@ -1,5 +1,8 @@
 package org.swen90017.oas.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -9,7 +12,7 @@ import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.entity.SysRole;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.entity.SysUserRole;
-import org.swen90017.oas.enums.AccountStatus;
+import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.SysUserRoleMapper;
@@ -19,11 +22,13 @@ import org.swen90017.oas.service.TokenService;
 import org.springframework.beans.factory.annotation.Value;
 import org.swen90017.oas.entity.RefreshToken;
 
+
 /**
  * User service implementation
  */
 @Service
 public class SysUserServiceImpl implements ISysUserService {
+    private static final Logger log = LoggerFactory.getLogger(SysUserServiceImpl.class);
 
     @Autowired
     private SysUserMapper userMapper;
@@ -36,6 +41,8 @@ public class SysUserServiceImpl implements ISysUserService {
     
     @Autowired
     private TokenService tokenService;
+
+    
 
     @Value("${token.expireTime}")
     private int accessTokenExpireTime;
@@ -51,24 +58,38 @@ public class SysUserServiceImpl implements ISysUserService {
         return userMapper.selectByUserName(username);
     }
 
+    public SysUser selectUserByEmail(String email){
+        return userMapper.selectOne(
+                new QueryWrapper<SysUser>()
+                        .eq("email", email)
+        );
+    }
+
+    @Override
+    public void logout() {
+
+    }
+
+    // markLastLogin moved to TokenService to avoid circular dependency
+
     /**
      * Get login user entity
      *
-     * @param username Username
+     * @param email Username
      * @param password Password
      * @return Login user entity
      */
     @Override
-    public LoginUser getLoginUser(String username, String password) {
+    public LoginUser getLoginUser(String email, String password) {
         // Find user by username
-        SysUser user = selectUserByUserName(username);
+        SysUser user = selectUserByEmail(email);
         if (user == null) {
             throw new UsernameNotFoundException("Username or password is incorrect");
         }
         
-        // Check account status
-        if (AccountStatus.BANNED.code().equals(user.getStatus())) {
-            throw new BadCredentialsException("Account is disabled");
+        // Check account status: only ACTIVE users can log in
+        if (!UserStatus.ACTIVE.code().equals(user.getStatus())) {
+            throw new BadCredentialsException("Account is not active");
         }
         
         // Verify password
@@ -91,6 +112,7 @@ public class SysUserServiceImpl implements ISysUserService {
         loginUser.setUsername(user.getUserName());
         loginUser.setPassword(user.getPassword());
         loginUser.setStatus(user.getStatus());
+        loginUser.setEmail(user.getEmail());
         if (role != null) {
             loginUser.setRole(role.getRoleKey());
         }
@@ -101,15 +123,15 @@ public class SysUserServiceImpl implements ISysUserService {
     /**
      * User login
      *
-     * @param username Username
+     * @param email Username
      * @param password Password
      * @return Login response data
      */
     @Override
-    public LoginResponseDTO login(String username, String password) {
+    public LoginResponseDTO login(String email, String password) {
         // Process login to get user information
-        LoginUser loginUser = getLoginUser(username, password);
-        
+        LoginUser loginUser = getLoginUser(email, password);
+
         // Generate access token
         String accessToken = tokenService.createAccessToken(loginUser);
         
@@ -121,10 +143,11 @@ public class SysUserServiceImpl implements ISysUserService {
         response.setUserId(loginUser.getUserId());
         response.setUsername(loginUser.getUsername());
         response.setRole(loginUser.getRole());
+        response.setEmail(loginUser.getEmail());
         response.setAccessToken(accessToken);
         response.setRefreshToken(refreshToken.getToken());
         response.setExpiresIn((long) accessTokenExpireTime * 60);
         
         return response;
     }
-} 
+}

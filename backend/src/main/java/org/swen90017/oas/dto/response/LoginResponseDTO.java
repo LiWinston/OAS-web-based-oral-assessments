@@ -1,6 +1,8 @@
 package org.swen90017.oas.dto.response;
 
 import lombok.Data;
+import org.swen90017.oas.entity.SysUser;
+
 import java.io.Serializable;
 
 /**
@@ -10,7 +12,7 @@ import java.io.Serializable;
 public class LoginResponseDTO implements Serializable {
     
     private static final long serialVersionUID = 1L;
-    
+
     /**
      * User ID
      */
@@ -25,6 +27,11 @@ public class LoginResponseDTO implements Serializable {
      * User role
      */
     private String role;
+
+    /**
+     * User email
+     */
+    private String email;
     
     /**
      * Access token

@@ -15,14 +15,14 @@ public interface ISysUserService {
      * @return User information
      */
     SysUser selectUserByUserName(String username);
-    
-    /**
-     * User login
-     * 
-     * @param username Username
-     * @param password Password
-     * @return Login response data
-     */
+
+        /**
+         * User login
+         *
+         * @param username Username
+         * @param password Password
+         * @return Login response data
+         */
     LoginResponseDTO login(String username, String password);
     
     /**
@@ -33,4 +33,14 @@ public interface ISysUserService {
      * @return Login user entity
      */
     LoginUser getLoginUser(String username, String password);
+
+    /**
+     * Find user by email
+     *
+     * @param email Email address
+     * @return User information
+     */
+    SysUser selectUserByEmail(String email);
+
+    void logout();
 }

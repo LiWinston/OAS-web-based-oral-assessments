@@ -30,12 +30,23 @@ public class CSVUtils {
                 for (Map.Entry<String, String> entry : originalMap.entrySet()) {
                     String key = entry.getKey();
                     String value = entry.getValue();
+                    System.out.println("Original key: " + key + ", value: " + value);
 
                     String normalizedKey = StringUtils.spaceToCamelCase(key);
+                    System.out.println("Normalized key: " + normalizedKey + ", value: " + value);
+
                     normalizedMap.put(normalizedKey, value);
                 }
 
-                T bean = BeanUtil.mapToBean(normalizedMap, clazz, true);
+
+                Map<String, String> cleanedMap = new HashMap<>();
+                for (Map.Entry<String, String> entry2 : normalizedMap.entrySet()) {
+                    String cleanedKey = entry2.getKey().replaceAll("^\uFEFF", "");  // remove BOM if present
+                    cleanedMap.put(cleanedKey, entry2.getValue());
+                }
+
+
+                T bean = BeanUtil.mapToBean(cleanedMap, clazz, true);
                 result.add(bean);
             }
 

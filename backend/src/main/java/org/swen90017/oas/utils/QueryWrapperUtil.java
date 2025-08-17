@@ -54,6 +54,16 @@ public class QueryWrapperUtil {
                 case LIKE:
                     wrapper.like(columnName, value);
                     break;
+                case IN:
+                    if (value instanceof java.util.Collection) {
+                        wrapper.in(columnName, (java.util.Collection<?>) value);
+                    } else if (value.getClass().isArray()) {
+                        Object[] arr = (Object[]) value;
+                        wrapper.in(columnName, arr);
+                    } else {
+                        wrapper.in(columnName, java.util.Collections.singleton(value));
+                    }
+                    break;
                 case GREATER_THAN:
                     wrapper.gt(columnName, value);
                     break;

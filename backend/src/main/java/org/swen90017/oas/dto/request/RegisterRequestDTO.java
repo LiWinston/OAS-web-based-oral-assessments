@@ -15,4 +15,8 @@ public class RegisterRequestDTO implements Serializable {
      * Password
      */
     private String password;
+
+    private String department;
+
+    private String name;
 }

@@ -36,4 +36,13 @@ public interface RefreshTokenMapper extends BaseMapper<RefreshToken> {
      */
     @Update("UPDATE sys_refresh_token SET revoked = TRUE WHERE user_id = #{userId} AND revoked = FALSE")
     int revokeAllByUserId(@Param("userId") Long userId);
+
+  /**
+   * Revoke a specific refresh token by token string
+   *
+   * @param token Token string
+   * @return Number of affected rows
+   */
+  @Update("UPDATE sys_refresh_token SET revoked = TRUE WHERE token = #{token} AND revoked = FALSE")
+  int revokeByToken(@Param("token") String token);
 } 
