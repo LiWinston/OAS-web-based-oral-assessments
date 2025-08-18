@@ -83,6 +83,26 @@ By implementing this solution, the project will improve the overall efficiency, 
 
 </table>
 
+### Documentation Team
+
+<table>
+
+  <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/yungenc">
+        <img src="https://github.com/user-attachments/assets/e01d7aea-fa37-4ea0-a41c-1cd6d2cca78f" width="100px;" alt="Product Owner"/>
+      </a>
+    </td>
+    <td>
+      <h3>Product Owner</h3>
+      <p><b>Ian Chi</b> (Student ID: 1579898)</p>
+      <p>Stakeholder Communication, Feature Prioritization, User Story Mapping</p>
+      <p><a href="https://github.com/yungenc">@yungenc</a></p>
+    </td>
+  </tr>
+
+</table>
+
 ### Arch & DevOps Team
 
 <table>
@@ -221,7 +241,7 @@ By implementing this solution, the project will improve the overall efficiency, 
       </a>
     </td>
     <td>
-      <h3>Frontend Developer</h3>
+      <h3>Frontend Developer (for Semester 2, previously backend in Semester 1)</h3>
       <p><b>Tianyun Lei</b> (Student ID: 1454701)</p>
       <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
       <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
