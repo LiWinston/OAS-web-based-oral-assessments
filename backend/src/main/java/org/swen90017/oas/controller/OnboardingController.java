@@ -40,7 +40,7 @@ public class OnboardingController {
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Registers a new user using the provided registration details.")
     public Result<LoginResponseDTO> register(@Validated @RequestBody RegisterRequestDTO requestDTO) {
-        SysUser user = studentService.registerStudent(requestDTO.getPassword(), requestDTO.getToken());
+        SysUser user = studentService.register(requestDTO);
         LoginResponseDTO response = userService.login(user.getEmail(), requestDTO.getPassword());
         return Result.success(response);
     }

@@ -335,14 +335,16 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         }
 
         // Force activate if currently inactive (other values stay as-is)
-        if (UserStatus.INACTIVE.code().equals(user.getStatus())) {
+        if ("ACTIVE".equalsIgnoreCase(status)) {
             user.setStatus(UserStatus.ACTIVE.code());
+        }else if ("INACTIVE".equalsIgnoreCase(status)) {
+            user.setStatus(UserStatus.INACTIVE.code());
         }
         sysUserMapper.updateById(user);
 
         UpdateAdminStatusResponseDTO resp = new UpdateAdminStatusResponseDTO();
         resp.setId(id);
-        resp.setStatus("ACTIVE");
+        resp.setStatus(status.toUpperCase());
         resp.setUpdatedAt(OffsetDateTime.now(ZoneOffset.UTC).toString());
         return resp;
     }

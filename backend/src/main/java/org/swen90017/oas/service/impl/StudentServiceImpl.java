@@ -6,17 +6,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.dto.request.RegisterRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
+import org.swen90017.oas.dto.response.LoginResponseDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
+import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.exception.BusinessException;
-import org.swen90017.oas.mapper.SysStudentMapper;
-import org.swen90017.oas.mapper.SysRoleMapper;
-import org.swen90017.oas.mapper.SysUserMapper;
-import org.swen90017.oas.mapper.SysUserRoleMapper;
+import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.BaseCsvImportService;
 import org.swen90017.oas.service.StudentService;
 import org.slf4j.Logger;
@@ -31,17 +31,19 @@ public class StudentServiceImpl implements StudentService {
     private static final Logger log = LoggerFactory.getLogger(StudentServiceImpl.class);
 
     @Autowired
-    private SysUserMapper sysUserMapper;
+    private SysUserMapper userMapper;
     @Autowired
     private SysRoleMapper sysRoleMapper;
     @Autowired
-    private SysStudentMapper sysStudentMapper;
+    private SysStudentMapper studentMapper;
     @Autowired
     private SysUserRoleMapper sysUserRoleMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
     private BaseCsvImportService baseCsvImportService;
+    @Autowired
+    private SysAdminMapper adminMapper;
 
     @Override
     @Transactional
@@ -57,26 +59,44 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public SysUser registerStudent(String password, String token) {
-        SysStudent student = sysStudentMapper.selectOne(new QueryWrapper<SysStudent>()
-                .eq("token", token));
-
-        if (student == null) {
-            throw new BusinessException("Invalid registration link or token has expired");
+    @Transactional
+    public SysUser register(RegisterRequestDTO requestDTO) {
+        String token = requestDTO.getToken();
+        String rawPassword = requestDTO.getPassword();
+        if (token == null || token.isEmpty() || rawPassword == null || rawPassword.isEmpty()) {
+            throw new BusinessException(BusinessError.BOOKING_VALIDATION_FAILED); // 复用已有错误码
         }
-        Long userId = student.getUserId();
-        SysUser user = sysUserMapper.selectById(userId);
-        if (user == null) {
-            throw new BusinessException(BusinessError.USER_NOT_FOUND);
-        }
-        user.setStatus(UserStatus.ACTIVE.code());
-        user.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
-        user.setRegisteredAt(new Date());
-        String encodedPassword = passwordEncoder.encode(password);
-        user.setPassword(encodedPassword);
-        sysUserMapper.updateById(user);
 
-        return user;
+        // 1) Try student
+        SysStudent student = studentMapper.selectOne(new QueryWrapper<SysStudent>().eq("token", token));
+        if (student != null) {
+            SysUser user = userMapper.selectById(student.getUserId());
+            if (user == null) throw new BusinessException(BusinessError.USER_NOT_FOUND);
+            user.setStatus(UserStatus.ACTIVE.code());
+            user.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
+            user.setRegisteredAt(new java.util.Date());
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userMapper.updateById(user);
+            return user;
+        }
+        // 2) Try admin
+        SysAdmin admin = adminMapper.selectOne(new QueryWrapper<SysAdmin>().eq("token", token));
+        if (admin != null) {
+            SysUser user = userMapper.selectById(admin.getUserId());
+            if (user == null) throw new BusinessException(BusinessError.USER_NOT_FOUND);
+            user.setStatus(UserStatus.ACTIVE.code());
+            user.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
+            user.setRegisteredAt(new java.util.Date());
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            user.setUserName(requestDTO.getName());
+            admin.setDepartment(requestDTO.getDepartment());
+            userMapper.updateById(user);
+            adminMapper.updateById(admin);
+            return user;
+        }
+
+        // 3) Not found
+        throw new BusinessException("Invalid registration link or token has expired");
     }
 
     @Override
