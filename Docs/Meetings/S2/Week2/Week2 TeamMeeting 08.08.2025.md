@@ -1,6 +1,6 @@
 # Weekly Team Meeting Minutes
 
-**Date:** 15 Aug, 2025  
+**Date:** 08 Aug, 2025  
 **Time:** 16:00 - 17:00  
 **Chair:** Ian CHI (Product Owner)
 

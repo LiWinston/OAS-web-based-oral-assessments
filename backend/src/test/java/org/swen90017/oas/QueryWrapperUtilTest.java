@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.swen90017.oas.mapper.TestMapper;
+// import org.swen90017.oas.mapper.TestMapper;
 import org.swen90017.oas.query.TestQuery;
 import org.swen90017.oas.utils.QueryWrapperUtil;
 

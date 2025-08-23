@@ -43,4 +43,9 @@ public interface ISysUserService {
     SysUser selectUserByEmail(String email);
 
     void logout();
+
+    /**
+     * Update user password with an already encoded password string.
+     */
+    void updatePassword(Long userId, String encodedPassword);
 }

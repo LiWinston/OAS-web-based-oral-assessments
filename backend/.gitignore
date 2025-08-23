@@ -4,6 +4,8 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+start.ps1
+
 ### STS ###
 .apt_generated
 .classpath

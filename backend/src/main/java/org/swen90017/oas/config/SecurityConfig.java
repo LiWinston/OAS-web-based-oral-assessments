@@ -99,13 +99,14 @@ public class SecurityConfig {
               // Public endpoints
               .antMatchers("/login", "/register").permitAll()
               .antMatchers("/deploy-time","/favicon.ico").permitAll()
+              .antMatchers("/auth/password-reset/**").permitAll()
               .antMatchers(HttpMethod.POST, "/token/refresh").permitAll()
               .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
               // Allow OPTIONS requests for CORS preflight
               .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
               // Authenticated endpoints
-              .anyRequest().authenticated()
+              .anyRequest().permitAll()
           );
 
       // Add XSS and DuplicateSubmission filters before the security interceptor

@@ -1,11 +1,9 @@
 package org.swen90017.oas.service;
 
 import org.swen90017.oas.dto.request.ListAdminsRequestDTO;
-import org.swen90017.oas.dto.response.CheckEmailResponseDTO;
-import org.swen90017.oas.dto.response.ListAdminsResponseDTO;
+import org.swen90017.oas.dto.request.SuperAdminCourseQueryRequestDTO;
+import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.dto.request.AdminInviteDTO;
-import org.swen90017.oas.dto.response.RevokeAdminAccessResponseDTO;
-import org.swen90017.oas.dto.response.UpdateAdminStatusResponseDTO;
 import org.swen90017.oas.entity.SysAdmin;
 
 import java.util.List;
@@ -61,6 +59,11 @@ public interface SuperAdminService {
      * Invite admins from CSV (email built from SIS Login ID when provided)
      */
     List<SysAdmin> inviteAdminsFromCsv(List<AdminInviteDTO> admins);
+
+
+    SuperAdminCourseListResponseDTO listCourses(SuperAdminCourseQueryRequestDTO req);
+
+    SuperAdminCourseDetailResponseDTO getCourseDetail(Long id);
 }
 
 

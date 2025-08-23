@@ -1,6 +1,7 @@
 package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,13 +11,11 @@ import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.constant.HttpStatus;
 import org.swen90017.oas.dto.request.ListAdminsRequestDTO;
 import org.swen90017.oas.dto.request.AdminInviteDTO;
+import org.swen90017.oas.dto.request.SuperAdminCourseQueryRequestDTO;
 import org.swen90017.oas.dto.response.*;
+import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.enums.RegistrationStatus;
-import org.swen90017.oas.entity.SysRole;
-import org.swen90017.oas.entity.SysUser;
-import org.swen90017.oas.entity.SysUserRole;
-import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SysAdminMapper;
 import org.swen90017.oas.enums.UserRole;
@@ -24,6 +23,7 @@ import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.SysUserRoleMapper;
 import org.swen90017.oas.query.AdminListQuery;
+import org.swen90017.oas.service.SubjectService;
 import org.swen90017.oas.service.SuperAdminService;
 import org.swen90017.oas.utils.QueryWrapperUtil;
 import org.swen90017.oas.utils.StringUtils;
@@ -51,8 +51,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
     @Autowired
     private SysAdminMapper sysAdminMapper;
-
-
+    @Autowired
+    private  SubjectService subjectService;
     @Override
     /**
      * List administrator users with pagination and optional filters.
@@ -404,6 +404,121 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         resp.setRevokedAt(OffsetDateTime.now(ZoneOffset.UTC).toString());
         resp.setCoursesTransferred(transferred);
         return resp;
+    }
+
+    public SuperAdminCourseListResponseDTO listCourses(SuperAdminCourseQueryRequestDTO req) {
+        String normalizedSemester = normalizeSemester(req.getSemester());
+        IPage<Subject> pageResult = subjectService.getCourses(
+                req.getPage(),
+                Math.min(Math.max(req.getLimit(), 1), 100),
+                req.getYear(),
+                normalizedSemester,
+                req.getSearch(),
+                req.getAdminId(),
+                req.getStatus()
+        );
+
+        List<SuperAdminCourseItemDTO> items = pageResult.getRecords().stream()
+                .map(this::toItem)
+                .collect(Collectors.toList());
+
+        PaginationDTO pagination = new PaginationDTO();
+        pagination.setCurrentPage((int) pageResult.getCurrent());
+        int totalPages = (int) ((pageResult.getTotal() + pageResult.getSize() - 1) / pageResult.getSize());
+        pagination.setTotalPages(totalPages);
+        pagination.setTotalItems(pageResult.getTotal());
+        pagination.setItemsPerPage((int) pageResult.getSize());
+        pagination.setHasNext(pageResult.getCurrent() < totalPages);
+        pagination.setHasPrev(pageResult.getCurrent() > 1);
+
+        SuperAdminCourseListResponseDTO response = new SuperAdminCourseListResponseDTO();
+        response.setCourses(items);
+        response.setPagination(pagination);
+        return response;
+    }
+
+    public SuperAdminCourseDetailResponseDTO getCourseDetail(Long id) {
+        Subject s = subjectService.getSubjectById(id);
+        SuperAdminCourseDetailResponseDTO dto = new SuperAdminCourseDetailResponseDTO();
+        dto.setId(s.getSubjectId());
+        dto.setCode(s.getSubjectCode());
+        dto.setName(s.getSubjectName());
+        dto.setDescription(s.getDescription());
+        dto.setSemester(prettySemester(s.getSemester()));
+        dto.setYear(s.getAcademicYear());
+        dto.setDepartment(null);
+        dto.setVenue(null);
+        dto.setStatus(s.getStatus() != null ? s.getStatus().toUpperCase() : (Boolean.TRUE.equals(s.getIsActive()) ? "ACTIVE" : "INACTIVE"));
+        dto.setCreatedAt(s.getCreateTime());
+        dto.setUpdatedAt(s.getUpdateTime());
+        if (s.getAdminUserId() != null) {
+            dto.setAdminId(s.getAdminUserId());
+            try {
+                SysUser admin = sysUserMapper.selectById(s.getAdminUserId());
+                if (admin != null) {
+                    dto.setAdminName(admin.getUserName());
+                    dto.setAdminEmail(admin.getEmail());
+                }
+            } catch (Exception ignored) {}
+        }
+        dto.setAssignments(Collections.emptyList());
+        dto.setAssignmentsCount(null);
+        dto.setStudentsCount(null);
+        return dto;
+    }
+
+    private SuperAdminCourseItemDTO toItem(Subject s) {
+        SuperAdminCourseItemDTO dto = new SuperAdminCourseItemDTO();
+        dto.setId(s.getSubjectId());
+        dto.setCode(s.getSubjectCode());
+        dto.setName(s.getSubjectName());
+        dto.setSemester(prettySemester(s.getSemester()));
+        dto.setYear(s.getAcademicYear());
+        dto.setDepartment(null);
+        dto.setVenue(null);
+        dto.setStatus(s.getStatus() != null ? s.getStatus().toUpperCase() : (Boolean.TRUE.equals(s.getIsActive()) ? "ACTIVE" : "INACTIVE"));
+        dto.setCreatedAt(s.getCreateTime());
+        dto.setUpdatedAt(s.getUpdateTime());
+        if (s.getAdminUserId() != null) {
+            dto.setAdminId(s.getAdminUserId());
+            try {
+                SysUser admin = sysUserMapper.selectById(s.getAdminUserId());
+                if (admin != null) {
+                    dto.setAdminName(admin.getUserName());
+                    dto.setAdminEmail(admin.getEmail());
+                }
+            } catch (Exception ignored) {}
+        }
+        dto.setAssignmentsCount(null);
+        dto.setStudentsCount(null);
+        return dto;
+    }
+
+    private String normalizeSemester(String semester) {
+        if (semester == null || semester.isEmpty()) {
+            return null;
+        }
+        String s = semester.trim().toLowerCase();
+        if ("semester 1".equals(s) || "sem 1".equals(s) || "s1".equals(s) || "1".equals(s)) {
+            return "1";
+        }
+        if ("semester 2".equals(s) || "sem 2".equals(s) || "s2".equals(s) || "2".equals(s)) {
+            return "2";
+        }
+        if ("summer".equals(s) || "summer term".equals(s)) {
+            return "summer";
+        }
+        return semester; // fallback
+    }
+
+    private String prettySemester(String raw) {
+        if (raw == null) return null;
+        switch (raw) {
+            case "1": return "Semester 1";
+            case "2": return "Semester 2";
+            case "summer": return "Summer Term";
+            default: return raw;
+        }
     }
 }
 

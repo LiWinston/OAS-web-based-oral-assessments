@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.service.EmailService;
+import org.swen90017.oas.entity.SysUser;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,6 +92,21 @@ public class EmailServiceImpl implements EmailService {
         List<SysAdmin> list = new ArrayList<>(1);
         list.add(admin);
         sendAdminActivationEmail(list);
+    }
+
+    @Override
+    public void sendPasswordResetCode(SysUser user, String code, int ttlMinutes) {
+        if (user == null || user.getEmail() == null) return;
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(user.getEmail());
+            message.setSubject("Password Reset Code");
+            message.setText("Your verification code is: " + code + "\nIt expires in " + ttlMinutes + " minutes.");
+            mailSender.send(message);
+            log.info("Sent password reset code email to {}", user.getEmail());
+        } catch (MailException e) {
+            log.error("Failed to send password reset email: {}", e.getMessage());
+        }
     }
 
     @Async

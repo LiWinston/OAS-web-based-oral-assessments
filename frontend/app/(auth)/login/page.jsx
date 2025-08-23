@@ -79,12 +79,14 @@ export default function LoginPage() {
   };
 
   const onSubmit = async (data) => {
+    console.log('📝 Form submitted with data:', data);
     setIsLoading(true);
     setError('');
 
     try {
+      console.log('🔐 Calling authService.login...');
       const response = await authService.login(data.email, data.password);
-      
+
       // Check if login was successful
       if (response.success && response.data) {
         // Store auth data with backend response structure

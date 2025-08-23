@@ -19,6 +19,7 @@ import org.swen90017.oas.mapper.SysUserRoleMapper;
 import org.swen90017.oas.service.ISysUserService;
 import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.service.TokenService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Value;
 import org.swen90017.oas.entity.RefreshToken;
 
@@ -41,6 +42,9 @@ public class SysUserServiceImpl implements ISysUserService {
     
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     
 
@@ -149,5 +153,15 @@ public class SysUserServiceImpl implements ISysUserService {
         response.setExpiresIn((long) accessTokenExpireTime * 60);
         
         return response;
+    }
+
+    @Override
+    public void updatePassword(Long userId, String encodedPassword) {
+        SysUser user = userMapper.selectById(userId);
+        if (user == null) {
+            return;
+        }
+        user.setPassword(encodedPassword);
+        userMapper.updateById(user);
     }
 }

@@ -17,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.common.BusinessError;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.utils.TransactionUtil;
@@ -25,6 +24,10 @@ import org.swen90017.oas.utils.TransactionUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+
+import org.swen90017.oas.dto.request.SuperAdminCourseQueryRequestDTO;
+import org.swen90017.oas.dto.response.SuperAdminCourseDetailResponseDTO;
+import org.swen90017.oas.dto.response.SuperAdminCourseListResponseDTO;
 
 @RestController
 @RequestMapping("/api/superadmin")
@@ -103,7 +106,7 @@ public class SuperAdminController {
     }
 
     @GetMapping("admins/status")
-    @Operation(summary = "Get admin status list (Do not test yet)", description = "Placeholder endpoint for future use")
+    @Operation(summary = "Get admin status list (先别测这个！！！)", description = "Placeholder endpoint for future use")
     public String getAdminStatus() {
         // This is a placeholder method. In a real application, you would return the status of all admins.
         return "Status of all super admins";
@@ -126,18 +129,18 @@ public class SuperAdminController {
         return Result.success(resp, "Admin access revoked successfully");
     }
 
-    @GetMapping("courses")
-    @Operation(summary = "List courses (Do not test yet)", description = "Placeholder endpoint for future use")
-    public String getCourses() {
-        // This is a placeholder method. In a real application, you would return a list of courses.
-        return "List of courses";
+    @PostMapping("courses")
+    @Operation(summary = "List courses (Super Admin)", description = "Retrieve list of all courses/subjects with pagination and filters")
+    public Result<SuperAdminCourseListResponseDTO> getCourses(@RequestBody SuperAdminCourseQueryRequestDTO req) {
+        SuperAdminCourseListResponseDTO response = superAdminService.listCourses(req);
+        return Result.success(response);
     }
 
     @GetMapping("courses/{id}")
-    @Operation(summary = "Get course by id (Do not test yet)", description = "Placeholder endpoint for future use")
-    public String getCourseById(@Parameter(description = "Course id", example = "abc-uuid") @PathVariable String id) {
-        // This is a placeholder method. In a real application, you would return the details of the course with the given ID.
-        return "Details of course with ID: " + id;
+    @Operation(summary = "Get course by id (Super Admin)", description = "Get detailed info of a specific course/subject by id")
+    public Result<SuperAdminCourseDetailResponseDTO> getCourseById(
+            @Parameter(description = "Course id", example = "1") @PathVariable Long id) {
+        SuperAdminCourseDetailResponseDTO detail = superAdminService.getCourseDetail(id);
+        return Result.success(detail);
     }
-
 }

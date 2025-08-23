@@ -57,7 +57,7 @@ public class StudentServiceImpl implements StudentService {
     }
 
     @Override
-    public Boolean registerStudent(String password, String token) {
+    public SysUser registerStudent(String password, String token) {
         SysStudent student = sysStudentMapper.selectOne(new QueryWrapper<SysStudent>()
                 .eq("token", token));
 
@@ -76,7 +76,7 @@ public class StudentServiceImpl implements StudentService {
         user.setPassword(encodedPassword);
         sysUserMapper.updateById(user);
 
-        return true;
+        return user;
     }
 
     @Override
