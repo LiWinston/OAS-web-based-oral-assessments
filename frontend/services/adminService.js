@@ -16,7 +16,7 @@ export const adminService = {
   // Invite a new course administrator
   async inviteAdmin(adminData) {
     try {
-      const response = await api.post('/api/superadmin/admins/invite', adminData);
+      const response = await api.post('/superadmin/admins/invite', adminData);
       return { success: true, data: response.data };
     } catch (error) {
       // Log the error for debugging
@@ -36,7 +36,7 @@ export const adminService = {
   // Get list of all administrators with filtering
   async getAdminList(filters = {}) {
     try {
-      const response = await api.post('/api/superadmin/admins', filters);
+      const response = await api.post('/superadmin/admins', filters);
 
       // Debug: Log the raw response to see what backend returns
       console.log('=== ADMIN LIST API DEBUG ===');
@@ -58,8 +58,81 @@ export const adminService = {
       let activeAdmins = [];
 
       if (Array.isArray(payload)) {
-        // Backend returned a flat array of admins
-        activeAdmins = payload;
+        // Backend returned a flat array of admins - need to classify by status
+        const users = payload;
+        
+        // Classify users based on their status/registration state
+        users.forEach(user => {
+          console.log('🔍 Classifying user:', {
+            userId: user.userId,
+            username: user.username,
+            email: user.email,
+            hasPassword: !!user.password,
+            status: user.status,
+            invitedAt: user.invitedAt,
+            registeredAt: user.registeredAt,
+            lastLoginAt: user.lastLoginAt
+          });
+          
+          // More sophisticated classification logic
+          let isPending = false;
+          
+          // Check if user is pending based on multiple criteria
+          if (!user.password) {
+            // No password = not registered
+            isPending = true;
+          } else if (user.status === 'invited' || user.status === 'pending') {
+            // Explicit status indicates pending
+            isPending = true;
+          } else if (user.invitedAt && !user.registeredAt) {
+            // Has invitation date but no registration date
+            isPending = true;
+          } else if (user.invitedAt && user.registeredAt) {
+            // Check if invitation is recent (within 7 days) and no last login
+            const invitedDate = new Date(user.invitedAt);
+            const registeredDate = new Date(user.registeredAt);
+            const now = new Date();
+            const daysSinceInvitation = (now - invitedDate) / (1000 * 60 * 60 * 24);
+            const daysSinceRegistration = (now - registeredDate) / (1000 * 60 * 60 * 24);
+            
+            if (daysSinceInvitation <= 7 && daysSinceRegistration <= 7 && !user.lastLoginAt) {
+              // Recently registered but not yet active
+              isPending = true;
+            }
+          }
+          
+          if (isPending) {
+            // User is invited but not yet fully active
+            pendingInvitations.push({
+              id: user.userId,
+              name: user.username || user.name,
+              email: user.email,
+              department: user.department,
+              status: user.status || 'invited',
+              invitedDate: user.invitedAt || 'Unknown'
+            });
+          } else {
+            // User has completed registration and is active
+            activeAdmins.push({
+              id: user.userId,
+              name: user.username || user.name,
+              email: user.email,
+              department: user.department,
+              status: user.status || 'active',
+              coursesCount: user.coursesCount || 0,
+              lastActive: user.lastLoginAt || 'Never',
+              createdAt: user.registeredAt || user.invitedAt
+            });
+          }
+        });
+        
+        console.log('=== USER CLASSIFICATION DEBUG ===');
+        console.log('Total users from backend:', users.length);
+        console.log('Classified as activeAdmins:', activeAdmins.length);
+        console.log('Classified as pendingInvitations:', pendingInvitations.length);
+        console.log('Sample user data:', users[0]);
+        console.log('=== END CLASSIFICATION DEBUG ===');
+        
       } else if (payload && typeof payload === 'object') {
         // Common aliases from different backends
         if (Array.isArray(payload.activeAdmins) || Array.isArray(payload.pendingInvitations)) {
@@ -106,7 +179,7 @@ export const adminService = {
   // Update admin status (activate/deactivate)
   async updateAdminStatus(adminId, status) {
     try {
-      const response = await api.post(`/api/superadmin/admins/${adminId}/status`, { status });
+      const response = await api.post(`/superadmin/admins/${adminId}/status`, { status });
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Update admin status API error:', error);
@@ -117,7 +190,7 @@ export const adminService = {
   // Revoke admin access
   async revokeAccess(adminId) {
     try {
-      const response = await api.post(`/api/superadmin/admins/revoke/${adminId}`);
+      const response = await api.post(`/superadmin/admins/revoke/${adminId}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Revoke access API error:', error);
@@ -128,7 +201,7 @@ export const adminService = {
   // Check if email is already in use
   async checkDuplicateEmail(email) {
     try {
-      const response = await api.get(`/api/superadmin/admins/check-email/${encodeURIComponent(email)}`);
+      const response = await api.get(`/superadmin/admins/check-email/${encodeURIComponent(email)}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Check duplicate email API error:', error);
@@ -139,7 +212,7 @@ export const adminService = {
   // Get admin details
   async getAdminDetails(adminId) {
     try {
-      const response = await api.get(`/api/superadmin/admins/${adminId}`);
+      const response = await api.get(`/superadmin/admins/${adminId}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Get admin details API error:', error);
@@ -157,7 +230,7 @@ export const adminService = {
   // Get admin statistics
   async getAdminStats() {
     try {
-      const response = await api.get('/api/superadmin/admins/status');
+      const response = await api.get('/superadmin/admins/status');
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Get admin stats API error:', error);

@@ -93,41 +93,100 @@ export default function AdminManagementPage() {
       return;
     }
     
+    if (!inviteData.name.trim()) {
+      alert('Full name is required');
+      return;
+    }
+    
+    if (!inviteData.department.trim()) {
+      alert('Department is required');
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // Simulate API call to send invitation email
-    setTimeout(() => {
+    try {
+      // Call the actual API to send invitation
+      const response = await adminService.inviteAdmin(inviteData);
+      
+      if (response && response.success) {
+        setShowInviteForm(false);
+        setInviteData({ name: '', email: '', department: '' });
+        
+        // Show success notification
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        successMessage.innerHTML = `
+          <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            Invitation sent successfully to ${inviteData.email}
+          </div>
+        `;
+        document.body.appendChild(successMessage);
+        
+        setTimeout(() => {
+          successMessage.remove();
+        }, 5000);
+        
+        // Reload admin data to reflect changes
+        await loadAdminData();
+      } else {
+        alert('Failed to send invitation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to send invitation:', error);
+      let errorMessage = 'Failed to send invitation';
+      if (error.message.includes('Backend server is not available')) {
+        errorMessage = 'Backend server is not available. Please try again later.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'API endpoint not found. Please contact support.';
+      }
+      alert(errorMessage);
+    } finally {
       setIsSubmitting(false);
-      setShowInviteForm(false);
-      setInviteData({ name: '', email: '', department: '' });
-      
-      // Show success notification
-      const successMessage = document.createElement('div');
-      successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
-      successMessage.innerHTML = `
-        <div class="flex items-center">
-          <i class="fas fa-check-circle mr-2"></i>
-          Invitation sent successfully to ${inviteData.email}
-        </div>
-      `;
-      document.body.appendChild(successMessage);
-      
-      setTimeout(() => {
-        successMessage.remove();
-      }, 5000);
-    }, 1000);
+    }
   };
 
   const handleResendInvitation = async (adminId) => {
-    const targetRow = document.querySelector(`[data-admin-id="${adminId}"]`);
-    if (targetRow) {
-      targetRow.style.transform = 'scale(0.98)';
-      targetRow.style.opacity = '0.7';
+    try {
+      // Call the API to resend invitation
+      const response = await adminService.resendInvitation(adminId);
       
-      setTimeout(() => {
-        targetRow.style.transform = 'scale(1)';
-        targetRow.style.opacity = '1';
-      }, 300);
+      if (response && response.success) {
+        // Show success notification
+        const successMessage = document.createElement('div');
+        successMessage.className = 'fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+        successMessage.innerHTML = `
+          <div class="flex items-center">
+            <i class="fas fa-paper-plane mr-2"></i>
+            Invitation resent successfully
+          </div>
+        `;
+        document.body.appendChild(successMessage);
+        
+        setTimeout(() => {
+          successMessage.remove();
+        }, 5000);
+        
+        // Visual feedback animation
+        const targetRow = document.querySelector(`[data-admin-id="${adminId}"]`);
+        if (targetRow) {
+          targetRow.style.transform = 'scale(0.98)';
+          targetRow.style.opacity = '0.7';
+          
+          setTimeout(() => {
+            targetRow.style.transform = 'scale(1)';
+            targetRow.style.opacity = '1';
+          }, 300);
+        }
+      } else {
+        alert('Failed to resend invitation. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error resending invitation:', error);
+      alert('Error resending invitation. Please try again.');
     }
   };
 
@@ -170,13 +229,15 @@ export default function AdminManagementPage() {
   };
 
   const handleEditAdmin = (admin) => {
+    console.log('🔍 Editing admin:', admin); // Debug log
     setEditingAdmin(admin);
     setEditData({
       name: admin.name || '',
       email: admin.email || '',
       department: admin.department || '',
-      status: admin.status || 'active'
+      status: editData.status || 'active'
     });
+    console.log('🔍 Set editData:', { name: admin.name || '', email: admin.email || '', department: admin.department || '', status: admin.status || 'active' }); // Debug log
     setShowEditForm(true);
   };
 
@@ -477,11 +538,7 @@ export default function AdminManagementPage() {
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-            <option value="pending">Pending</option>
-            <option value="invited">Invited</option>
-            <option value="registered">Registered</option>
-            <option value="expired">Expired</option>
-            <option value="setup">Setup</option>
+
           </select>
           
           {/* Clear filters button */}
@@ -697,8 +754,7 @@ export default function AdminManagementPage() {
                  >
                    <option value="active">Active</option>
                    <option value="inactive">Inactive</option>
-                   <option value="pending">Pending</option>
-                   <option value="setup">Setup</option>
+                   
                  </select>
                  <p className="mt-1 text-xs text-gray-500">Select the administrator's current status</p>
                </div>

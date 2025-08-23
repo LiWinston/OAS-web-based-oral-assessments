@@ -71,27 +71,84 @@ export default function LoginPage() {
   };
 
   const onSubmit = async (data) => {
+    console.log('📝 Form submitted with data:', data);
     setIsLoading(true);
     setError('');
 
     try {
+      console.log('🔐 Calling authService.login...');
       const response = await authService.login(data.email, data.password);
-      
-      // Store auth data
-      login(response.data.token, response.data.user);
-      
-      // Redirect based on user role
-      const roleRoutes = {
-        STUDENT: '/student',
-        EXAMINER: '/examiner', 
-        COURSE_ADMIN: '/admin',
-        SUPER_ADMIN: '/superadmin'
-      };
-      
-      const redirectPath = roleRoutes[response.data.user.role] || '/student';
-      router.push(redirectPath);
-      
+      console.log('✅ Login response received:', response);
+      console.log('🔍 Response structure:', {
+        success: response.success, // This might be undefined if backend doesn't send it
+        hasData: !!response.data,
+        dataType: typeof response.data,
+        dataKeys: response.data ? Object.keys(response.data) : 'N/A',
+        hasToken: response.data?.accessToken ? 'Yes' : 'No', // Changed from 'token' to 'accessToken'
+        hasUser: response.data?.role ? 'Yes' : 'No', // Check for 'role' as part of user data
+        userKeys: response.data ? Object.keys(response.data) : 'N/A' // Backend sends user data directly
+      });
+
+      // Check if login was successful - backend returns user data directly on success
+      if (response.data && response.data.accessToken) {
+        // Backend returned user data directly
+        const userData = response.data;
+        console.log('🔍 User data received:', userData);
+
+        // Check if we have the required fields
+        if (userData.accessToken && userData.role) {
+          // Store auth data - adapt to backend format
+          const user = {
+            id: userData.userId,
+            email: userData.email,
+            role: userData.role,
+            name: userData.username
+          };
+
+          login(userData.accessToken, user);
+
+          // Redirect based on user role - support both frontend and backend role formats
+          const roleRoutes = {
+            // Frontend format
+            STUDENT: '/student',
+            EXAMINER: '/examiner', 
+            COURSE_ADMIN: '/admin',
+            SUPER_ADMIN: '/superadmin',
+            // Backend format (with ROLE_ prefix)
+            ROLE_STUDENT: '/student',
+            ROLE_EXAMINER: '/examiner',
+            ROLE_COURSE_ADMIN: '/admin',
+            ROLE_SUPER_ADMIN: '/superadmin'
+          };
+
+          const userRole = userData.role;
+          console.log('🔍 Role mapping debug:', {
+            userRole: userRole,
+            userRoleType: typeof userRole,
+            availableRoles: Object.keys(roleRoutes),
+            roleRoutes: roleRoutes,
+            exactMatch: roleRoutes[userRole],
+            fallback: '/student'
+          });
+
+          const redirectPath = roleRoutes[userRole] || '/student';
+          console.log('🔄 Redirecting to:', redirectPath, 'for role:', userRole);
+          router.push(redirectPath);
+        } else {
+          // Missing required fields
+          console.log('❌ Missing required fields in response:', userData);
+          setError('Invalid response format from server');
+        }
+      } else {
+        // Login failed - show error message
+        console.log('❌ Login failed:', response);
+        const errorMessage = response.data || response.message || 'Login failed. Please try again.';
+        // Ensure errorMessage is a string
+        setError(typeof errorMessage === 'string' ? errorMessage : 'Login failed. Please try again.');
+      }
+
     } catch (err) {
+      console.error('❌ Login error:', err);
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);

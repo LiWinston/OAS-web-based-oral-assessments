@@ -50,9 +50,9 @@ export function CourseOverviewTable() {
 
     if (searchTerm) {
       filtered = filtered.filter(course =>
-        course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.department.toLowerCase().includes(searchTerm.toLowerCase())
+        (course.name && course.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (course.code && course.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (course.department && course.department.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -66,10 +66,6 @@ export function CourseOverviewTable() {
 
     setFilteredCourses(filtered);
   }, [courses, searchTerm, filterDepartment, filterStatus]);
-
-
-
-  // Filter courses based on search and filters
 
   const getStatusBadge = (status) => {
     if (!status || typeof status !== 'string') {

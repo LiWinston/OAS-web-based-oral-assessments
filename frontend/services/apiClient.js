@@ -3,7 +3,7 @@ import useAuthStore from "../store/authStore";
 
 // Create axios instance with base configuration
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081/api",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://172.22.80.212:8081/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",

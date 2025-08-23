@@ -1,19 +1,27 @@
 import { api } from './apiClient';
+import { authApi } from './authApiClient';
 
 export const authService = {
   // Login user
   async login(email, password) {
-    const response = await api.post('/auth/login', {
-      email,
-      password,
-    });
-    return response.data;
+    console.log('🔐 Attempting login with:', { email, password: '***' });
+    try {
+      const response = await authApi.post('/login', {
+        email,
+        password,
+      });
+      console.log('✅ Login successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Login failed:', error);
+      throw error;
+    }
   },
 
   // Logout user
   async logout() {
     try {
-      await api.post('/auth/logout');
+      await authApi.post('/logout');
     } catch (error) {
       // Handle logout errors gracefully
       console.warn('Logout request failed:', error);

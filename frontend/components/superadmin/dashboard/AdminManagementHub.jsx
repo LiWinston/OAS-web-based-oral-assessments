@@ -21,6 +21,7 @@ export function AdminManagementHub() {
     activeAdmins: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   
   // Edit admin state
   const [showEditForm, setShowEditForm] = useState(false);
@@ -35,19 +36,37 @@ export function AdminManagementHub() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
+  // Check if component is mounted on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   // Load admin data on component mount
   useEffect(() => {
-    loadAdminData();
-  }, []);
+    if (isClient) {
+      loadAdminData();
+    }
+  }, [isClient]);
 
   const loadAdminData = async () => {
     try {
       setIsLoading(true);
+      console.log('🔍 Loading admin data...');
       const response = await adminService.getAdminList();
-      if (response && response.success && response.data && 
-          (response.data.pendingInvitations || response.data.activeAdmins)) {
+      console.log('📊 Admin data response:', response);
+      
+      if (response && response.success && response.data) {
+        console.log('✅ API call successful, data structure:', {
+          hasPendingInvitations: !!response.data.pendingInvitations,
+          pendingInvitationsLength: response.data.pendingInvitations?.length || 0,
+          hasActiveAdmins: !!response.data.activeAdmins,
+          activeAdminsLength: response.data.activeAdmins?.length || 0,
+          fullData: response.data
+        });
+        
         setAdminData(response.data);
       } else {
+        console.log('❌ API call failed or returned invalid data:', response);
         // API failed, set empty data
         setAdminData({
           pendingInvitations: [],
@@ -55,7 +74,7 @@ export function AdminManagementHub() {
         });
       }
     } catch (error) {
-      console.error("Failed to load admin data:", error);
+      console.error("❌ Failed to load admin data:", error);
       // API error, set empty data
       setAdminData({
         pendingInvitations: [],
@@ -66,37 +85,30 @@ export function AdminManagementHub() {
     }
   };
 
-  const validateForm = async () => {
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const universityDomains = ['unimelb.edu.au', 'student.unimelb.edu.au'];
+    
+    if (!emailRegex.test(email)) return false;
+    
+    const domain = email.split('@')[1];
+    return universityDomains.includes(domain);
+  };
+
+  const checkDuplicateEmail = (email) => {
+    const allEmails = [
+      ...(adminData?.pendingInvitations?.map(inv => inv.email) || []),
+      ...(adminData?.activeAdmins?.map(admin => admin.email) || [])
+    ];
+    return allEmails.includes(email);
+  };
+
+  const validateForm = () => {
     const errors = {};
 
     // Name validation
     if (!inviteData.name.trim()) {
       errors.name = "Full name is required";
-    }
-
-    // Email validation
-    if (!inviteData.email.trim()) {
-      errors.email = "Email address is required";
-    } else {
-      const emailValidation = adminService.validateUniversityEmail(
-        inviteData.email
-      );
-      if (!emailValidation.valid) {
-        errors.email = emailValidation.message;
-      } else {
-        // Check for duplicates
-        try {
-          const duplicateCheck = await adminService.checkDuplicateEmail(
-            inviteData.email
-          );
-          if (duplicateCheck.success && duplicateCheck.data.isDuplicate) {
-            errors.email =
-              "This email address is already registered or invited";
-          }
-        } catch (error) {
-          console.error("Duplicate check failed:", error);
-        }
-      }
     }
 
     // Department validation
@@ -144,9 +156,26 @@ export function AdminManagementHub() {
     // Clear previous errors
     setValidationErrors({});
 
-    // Validate form
-    const isValid = await validateForm();
-    if (!isValid) {
+    // Email validation
+    if (!validateEmail(inviteData.email)) {
+      alert('Please use a valid University of Melbourne email address');
+      return;
+    }
+    
+    // Check for duplicates
+    if (checkDuplicateEmail(inviteData.email)) {
+      alert('This email address has already been invited or is an existing admin');
+      return;
+    }
+    
+    // Name and department validation
+    if (!inviteData.name.trim()) {
+      alert('Full name is required');
+      return;
+    }
+    
+    if (!inviteData.department.trim()) {
+      alert('Department is required');
       return;
     }
 
@@ -213,13 +242,17 @@ export function AdminManagementHub() {
 
   // Handle edit admin
   const handleEditAdmin = (admin) => {
+    console.log('🔍 AdminManagementHub - handleEditAdmin - admin:', admin);
+    console.log('🔍 AdminManagementHub - handleEditAdmin - admin.status:', admin.status);
+    
     setEditingAdmin(admin);
     setEditData({
       name: admin.name || '',
       email: admin.email || '',
       department: admin.department || '',
-      status: admin.status || 'active'
+      status: editData.status || 'active'
     });
+    console.log('🔍 AdminManagementHub - handleEditAdmin - setEditData.status:', admin.status || 'active');
     setShowEditForm(true);
   };
 
@@ -230,6 +263,10 @@ export function AdminManagementHub() {
       showNotification('Invalid admin data', 'error');
       return;
     }
+
+    console.log('🔍 AdminManagementHub - handleUpdateAdmin - editData:', editData);
+    console.log('🔍 AdminManagementHub - handleUpdateAdmin - editData.status:', editData.status);
+    console.log('🔍 AdminManagementHub - handleUpdateAdmin - editingAdmin.id:', editingAdmin.id);
 
     setIsEditing(true);
     
@@ -357,13 +394,15 @@ export function AdminManagementHub() {
   }) || [];
 
   // Show loading state
-  if (isLoading) {
+  if (!isClient || isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-center py-20">
           <div className="text-center">
             <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400">Loading administrator data...</p>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              {!isClient ? 'Initializing...' : 'Loading administrator data...'}
+            </p>
           </div>
         </div>
       </div>
@@ -433,11 +472,7 @@ export function AdminManagementHub() {
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
-          <option value="pending">Pending</option>
-          <option value="invited">Invited</option>
-          <option value="registered">Registered</option>
-          <option value="expired">Expired</option>
-          <option value="setup">Setup</option>
+
         </select>
         
         {/* Clear filters button */}
@@ -489,23 +524,11 @@ export function AdminManagementHub() {
                   value={inviteData.name}
                   onChange={(e) => {
                     setInviteData({ ...inviteData, name: e.target.value });
-                    if (validationErrors.name) {
-                      setValidationErrors({ ...validationErrors, name: "" });
-                    }
                   }}
                   placeholder="Dr. Jane Smith"
-                  className={`mt-1 ${
-                    validationErrors.name
-                      ? "border-red-500 focus:ring-red-500"
-                      : ""
-                  }`}
+                  className="mt-1"
                   required
                 />
-                {validationErrors.name && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {validationErrors.name}
-                  </p>
-                )}
               </div>
               <div>
                 <Label
@@ -520,23 +543,11 @@ export function AdminManagementHub() {
                   value={inviteData.email}
                   onChange={(e) => {
                     setInviteData({ ...inviteData, email: e.target.value });
-                    if (validationErrors.email) {
-                      setValidationErrors({ ...validationErrors, email: "" });
-                    }
                   }}
                   placeholder="jane.smith@student.unimelb.edu.au"
-                  className={`mt-1 ${
-                    validationErrors.email
-                      ? "border-red-500 focus:ring-red-500"
-                      : ""
-                  }`}
+                  className="mt-1"
                   required
                 />
-                {validationErrors.email && (
-                  <p className="mt-1 text-xs text-red-600">
-                    {validationErrors.email}
-                  </p>
-                )}
                 <p className="mt-1 text-xs text-gray-500">
                   Must be a @student.unimelb.edu.au email address
                 </p>
@@ -555,26 +566,11 @@ export function AdminManagementHub() {
                 value={inviteData.department}
                 onChange={(e) => {
                   setInviteData({ ...inviteData, department: e.target.value });
-                  if (validationErrors.department) {
-                    setValidationErrors({
-                      ...validationErrors,
-                      department: "",
-                    });
-                  }
                 }}
                 placeholder="Computer Science"
-                className={`mt-1 ${
-                  validationErrors.department
-                    ? "border-red-500 focus:ring-red-500"
-                    : ""
-                }`}
+                className="mt-1"
                 required
               />
-              {validationErrors.department && (
-                <p className="mt-1 text-xs text-red-600">
-                  {validationErrors.department}
-                </p>
-              )}
             </div>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
@@ -955,8 +951,7 @@ export function AdminManagementHub() {
                     >
                       <option value="active">Active</option>
                       <option value="inactive">Inactive</option>
-                      <option value="pending">Pending</option>
-                      <option value="setup">Setup</option>
+                      
                     </select>
                     <p className="mt-1 text-xs text-gray-500">Select the administrator's current status</p>
                   </div>
