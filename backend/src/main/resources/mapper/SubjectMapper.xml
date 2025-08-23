@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.swen90017.oas.mapper.SubjectMapper">
+
+    <!-- Get course statistics efficiently using SQL aggregation -->
+    <select id="getCourseStatistics" resultType="java.util.Map">
+        SELECT 
+            COUNT(s.subject_id) as totalCourses,
+            COUNT(CASE WHEN s.is_active = 1 AND s.status = 'active' THEN 1 END) as activeCourses,
+            COALESCE(SUM(CASE WHEN s.is_active = 1 THEN a.assignment_count ELSE 0 END), 0) as totalAssignments
+        FROM subject s
+        LEFT JOIN (
+            SELECT 
+                subject_id,
+                COUNT(*) as assignment_count
+            FROM assignment 
+            WHERE is_active = 1
+            GROUP BY subject_id
+        ) a ON s.subject_id = a.subject_id
+        WHERE s.is_active = 1
+    </select>
+
+    <!-- Get the most recent academic year from active courses -->
+    <select id="getLatestAcademicYear" resultType="java.lang.Integer">
+        SELECT MAX(academic_year)
+        FROM subject 
+        WHERE is_active = 1
+    </select>
+
+</mapper>

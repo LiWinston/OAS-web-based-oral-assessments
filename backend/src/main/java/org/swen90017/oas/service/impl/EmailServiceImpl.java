@@ -8,6 +8,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.swen90017.oas.entity.SysStudent;
+import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.service.EmailService;
 
 import java.util.ArrayList;
@@ -45,6 +46,53 @@ public class EmailServiceImpl implements EmailService {
             sendBatch(batch);
         }
     }
+
+    public void sendAdminActivationEmail(List<SysAdmin> admins) {
+        int batchSize = 30;
+        List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
+
+        for (SysAdmin a : admins) {
+            // Prefer SIS Login ID if provided (admin CSV flow), fallback to email
+            String to = null;
+            if (a.getSisLoginId() != null && !a.getSisLoginId().isEmpty()) {
+                to = a.getSisLoginId() + "@unimelb.edu.au";
+            } else if (a.getEmail() != null && !a.getEmail().isEmpty()) {
+                to = a.getEmail();
+            }
+            if (to == null) {
+                log.warn("Skip admin due to missing email: {}", a);
+                continue;
+            }
+            if (a.getToken() == null) {
+                log.warn("Skip admin due to missing token: {}", a);
+                continue;
+            }
+
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject("Admin Invitation");
+            message.setText("Click the link to activate: https://example.com/activate?token=" + a.getToken());
+            batch.add(message);
+
+            if (batch.size() >= batchSize) {
+                sendBatch(batch);
+                batch.clear();
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            sendBatch(batch);
+        }
+    }
+
+    @Override
+    public void sendAdminActivationEmail(SysAdmin admin) {
+        if (admin == null) return;
+        List<SysAdmin> list = new ArrayList<>(1);
+        list.add(admin);
+        sendAdminActivationEmail(list);
+    }
+
     @Async
     protected void sendBatch(List<SimpleMailMessage> batch) {
         try {

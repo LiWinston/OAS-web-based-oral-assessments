@@ -1,6 +1,5 @@
 package org.swen90017.oas.handler.csv;
 
-import org.apache.ibatis.builder.BuilderException;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.exception.BusinessException;
 
@@ -14,6 +13,7 @@ public class CsvHandlerFactory {
     static {
         handlers.put("student", new StudentCsvHandler());
         handlers.put("group", new GroupCsvHandler());
+        handlers.put("admin", new AdminCsvHandler());
     }
 
     @SuppressWarnings("unchecked")

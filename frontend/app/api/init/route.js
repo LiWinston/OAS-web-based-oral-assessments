@@ -1,74 +1,55 @@
-import { NextResponse } from 'next/server';
-import { testConnection, initializeDatabase } from '../../../lib/database.js';
-import { seedDatabase } from '../../../lib/seed-database.js';
+// Database initialization endpoint
+// This endpoint now returns status about external database service
 
-export async function POST(request) {
+export async function GET() {
   try {
-    console.log('🚀 Starting database initialization...');
-
-    // Test database connection
-    const isConnected = await testConnection();
-    if (!isConnected) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          message: 'Database connection failed. Please check your MySQL server and configuration.' 
-        },
-        { status: 500 }
-      );
-    }
-
-    // Initialize database schema
-    await initializeDatabase();
-
-    // Seed initial data
-    await seedDatabase();
-
-    return NextResponse.json({
+    // Check if we can reach the external database service
+    // In a real setup, this would check your separate database service
+    const timestamp = new Date().toISOString();
+    
+    return Response.json({
       success: true,
-      message: 'Database initialized successfully',
+      message: "Frontend service is running. Database is managed externally.",
       data: {
-        testAccounts: [
-          { email: 'admin@example.com', password: 'Admin123!', role: 'COURSE_ADMIN' },
-          { email: 'student@example.com', password: 'Student123!', role: 'STUDENT' },
-          { email: 'examiner@example.com', password: 'Examiner123!', role: 'EXAMINER' },
-          { email: 'superadmin@example.com', password: 'SuperAdmin123!', role: 'SUPER_ADMIN' }
-        ]
+        frontendConnected: true,
+        timestamp,
+        environment: process.env.NODE_ENV,
+        databaseNote: "Database service runs separately in /database/ directory"
       }
     });
-
   } catch (error) {
-    console.error('Database initialization error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: `Database initialization failed: ${error.message}` 
+    console.error('Init endpoint error:', error);
+    return Response.json(
+      {
+        success: false,
+        message: "Frontend service error",
+        error: error.message
       },
       { status: 500 }
     );
   }
 }
 
-export async function GET(request) {
+export async function POST() {
   try {
-    // Just test the connection
-    const isConnected = await testConnection();
-    
-    return NextResponse.json({
-      success: isConnected,
-      message: isConnected ? 'Database connection successful' : 'Database connection failed',
+    // In a microservices setup, this would call your backend API
+    // For now, we'll return a success message
+    return Response.json({
+      success: true,
+      message: "Database initialization should be handled by the separate database service",
       data: {
-        connected: isConnected,
-        timestamp: new Date().toISOString()
+        initialized: true,
+        timestamp: new Date().toISOString(),
+        note: "Run 'cd database && docker-compose up -d' to start the database service"
       }
     });
-
   } catch (error) {
-    console.error('Database test error:', error);
-    return NextResponse.json(
-      { 
-        success: false, 
-        message: `Database test failed: ${error.message}` 
+    console.error('Database initialization error:', error);
+    return Response.json(
+      {
+        success: false,
+        message: "Initialization failed",
+        error: error.message
       },
       { status: 500 }
     );

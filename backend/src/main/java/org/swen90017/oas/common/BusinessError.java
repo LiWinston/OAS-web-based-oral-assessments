@@ -10,7 +10,32 @@ public enum BusinessError implements Error {
     CSV_READ_FAILED("2002", "CSV read failed"),
     CSV_WRITE_FAILED("2003", "CSV write failed"),
     USER_NOT_FOUND("2004", "User not found"),
-    INVALID_CSV_TYPE("2005", "invalid CSV type"),;
+    INVALID_CSV_TYPE("2005", "invalid CSV type"),
+    
+    // Epic 4.1 Course Management (Simplified) errors
+    SUBJECT_NOT_FOUND("4021", "Course not found"),
+    SUBJECT_ALREADY_EXISTS("4022", "Course already exists for this academic year and semester"),
+    SUBJECT_ADMIN_INVALID("4023", "Invalid administrator for course"),
+    SUBJECT_INVALID_YEAR("4025", "Invalid academic year"),
+    SUBJECT_INVALID_SEMESTER("4026", "Invalid semester"),
+    
+    // Epic 4.2 Assignment Management errors
+    ASSIGNMENT_NOT_FOUND("4031", "Assignment not found"),
+    ASSIGNMENT_INVALID_TYPE("4032", "Invalid assignment type"),
+    ASSIGNMENT_INVALID_DATES("4033", "Invalid assignment dates"),
+    ASSIGNMENT_INVALID_WEIGHT("4034", "Invalid assignment weight"),
+    ASSIGNMENT_INVALID_STATUS("4035", "Invalid assignment status"),
+    ASSIGNMENT_INVALID_PROGRESS("4036", "Invalid assignment progress"),
+    ASSIGNMENT_HAS_SUBMISSIONS("4037", "Assignment has submissions and cannot be deleted"),
+    ASSIGNMENT_ALREADY_EXISTS("4038", "Assignment already exists for this subject"),
+    ASSIGNMENT_INVALID_RUBRIC("4039", "Invalid rubric information"),
+    ASSIGNMENT_INVALID_RUBRIC_WEIGHT("4040", "Invalid rubric weight"),
+    ASSIGNMENT_INVALID_SCALE_TYPE("4041", "Invalid scale type"),
+    ASSIGNMENT_INVALID_PERFORMANCE_LEVELS("4042", "Invalid performance levels"),
+    ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION("4043", "Invalid performance description"),
+    ASSIGNMENT_INVALID_PERFORMANCE_POINTS("4044", "Invalid performance points"),
+    ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
+    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format");
     
     private final String code;
     private final String message;

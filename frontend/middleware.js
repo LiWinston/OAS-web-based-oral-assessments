@@ -1,11 +1,17 @@
 import { NextResponse } from 'next/server';
 
+/**
+ * Next.js Middleware
+ * 
+ * Handles authentication and route protection for the application.
+ * Runs before every request to check authentication status and enforce
+ * role-based access control.
+ */
 export function middleware(request) {
   const { pathname } = request.nextUrl;
   
-  // Get token from cookies
+  // Get JWT token from cookies
   const token = request.cookies.get('auth-token')?.value;
-  
   
   // Public routes that don't require authentication
   const publicRoutes = ['/login', '/superadmin-login'];
@@ -22,7 +28,7 @@ export function middleware(request) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
   
-  // Role-based route protection
+  // Role-based route protection mapping
   const roleRoutes = {
     '/student': ['STUDENT'],
     '/examiner': ['EXAMINER'],
@@ -35,14 +41,15 @@ export function middleware(request) {
   
   // If route has role restrictions, check them
   if (roleRoutes[baseRoute]) {
-    // Here you would typically decode the JWT to get user role
+    // TODO: In production, decode and validate JWT to check user role
     // For now, we'll allow access and let the client-side handle role verification
-    // In a production environment, you should validate the JWT server-side
+    // This is a security consideration that should be addressed before deployment
   }
   
   return NextResponse.next();
 }
 
+// Middleware configuration
 export const config = {
   matcher: [
     /*

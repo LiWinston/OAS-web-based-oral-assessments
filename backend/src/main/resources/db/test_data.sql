@@ -31,3 +31,25 @@ INSERT INTO sys_student (user_id, token, student_number)
 VALUES
     (2, 'token_bob_abc123', 'S2025001'),  -- bob: activated sysStudent
     (3, 'token_carol_xyz45', 'S2025002'); -- carol: not activated (maybe pending approval)
+
+-- ----------------------------
+-- Test data for Epic 4.1: Course Management (Simplified)
+-- ----------------------------
+
+-- Insert courses/subjects with embedded academic year and semester
+INSERT INTO subject (subject_code, subject_name, description, academic_year, semester, admin_user_id, is_active, status, create_time, creator, update_time, updater)
+VALUES
+    -- 2025 Semester 1 courses
+    ('SWEN90017', 'Software Engineering Project Management', 'Master-level software engineering project management course focusing on real-world software development practices.', 2025, '1', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    ('COMP90024', 'Cluster and Cloud Computing', 'Advanced course covering distributed computing, cloud architectures, and big data processing.', 2025, '1', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    ('SWEN90016', 'Software Engineering Research Project', 'Research-focused software engineering course for advanced students.', 2025, '1', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    ('INFO30005', 'Web Information Technologies', 'Modern web development technologies and frameworks.', 2025, '1', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    
+    -- 2025 Semester 2 courses
+    ('SWEN90014', 'Masters Software Engineering Project', 'Capstone project course for Masters of Software Engineering students.', 2025, '2', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    ('COMP90082', 'Software Project Management', 'Learn to manage software projects effectively.', 2025, '2', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    ('SWEN90009', 'Software Engineering Process', 'Software engineering methodologies and practices.', 2025, '2', 1, 1, 'active', NOW(), 1, NOW(), 1),
+    
+    -- 2024 historical data (archived)
+    ('INFO20003', 'Database Systems', 'Database design and implementation.', 2024, '2', 1, 0, 'archived', NOW(), 1, NOW(), 1),
+    ('COMP30024', 'Machine Learning', 'Introduction to machine learning concepts and applications.', 2024, '1', 1, 0, 'archived', NOW(), 1, NOW(), 1);

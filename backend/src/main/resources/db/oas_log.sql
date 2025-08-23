@@ -96,3 +96,61 @@ CREATE TABLE sys_student_group (
                                    FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE,
                                    FOREIGN KEY (group_id) REFERENCES sys_group(group_id) ON DELETE CASCADE
 );
+
+-- ----------------------------
+-- Epic 4.1 Course Management (Simplified for Frontend Compatibility)
+-- ----------------------------
+
+-- Subject/Course table with embedded academic period information
+-- Matches frontend expectations: courseName, courseCode, academicYear, semester, etc.
+DROP TABLE IF EXISTS `subject`;
+CREATE TABLE `subject` (
+    `subject_id` BIGINT PRIMARY KEY AUTO_INCREMENT,
+    `subject_code` VARCHAR(20) NOT NULL COMMENT 'Subject code (e.g., SWEN90017, COMP90082)',
+    `subject_name` VARCHAR(200) NOT NULL COMMENT 'Subject full name',
+    `description` TEXT COMMENT 'Subject description',
+    `academic_year` INT NOT NULL COMMENT 'Academic year (e.g., 2024, 2025)',
+    `semester` VARCHAR(20) NOT NULL COMMENT 'Semester (e.g., "1", "2", "summer")',
+    `admin_user_id` BIGINT NOT NULL COMMENT 'Administrator user ID (logical reference)',
+    `is_active` TINYINT(1) DEFAULT 1 COMMENT '1=active, 0=inactive',
+    `status` VARCHAR(20) DEFAULT 'active' COMMENT 'Status: active, archived, etc.',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `creator` BIGINT COMMENT 'Creator user ID (logical reference)',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `updater` BIGINT COMMENT 'Updater user ID (logical reference)',
+    UNIQUE KEY `uk_subject_year_semester` (`subject_code`, `academic_year`, `semester`),
+    KEY `idx_subject_admin` (`admin_user_id`),
+    KEY `idx_subject_active` (`is_active`),
+    KEY `idx_subject_code` (`subject_code`),
+    KEY `idx_subject_year` (`academic_year`),
+    KEY `idx_subject_semester` (`semester`),
+    KEY `idx_subject_status` (`status`)
+);
+
+DROP TABLE IF EXISTS assignment;
+CREATE TABLE assignment (
+                            id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key ID',
+                            subject_id BIGINT NOT NULL COMMENT 'Subject ID, foreign key',
+                            name VARCHAR(255) NOT NULL COMMENT 'Assignment name',
+                            description TEXT COMMENT 'Assignment description',
+                            type VARCHAR(50) NOT NULL COMMENT 'Assignment type',
+                            start_date DATETIME NOT NULL COMMENT 'Start date',
+                            end_date DATETIME NOT NULL COMMENT 'End date',
+                            weight DECIMAL(5,2) DEFAULT 0.00 COMMENT 'Weight percentage',
+                            progress DECIMAL(5,2) DEFAULT 0.00 COMMENT 'Progress percentage',
+                            status VARCHAR(20) NOT NULL DEFAULT 'PENDING' COMMENT 'Assignment status',
+                            rubric_meta_info TEXT COMMENT 'Rubric meta information in JSON format: {name, description, totalPoints}',
+                            rubrics_info TEXT COMMENT 'Rubric detailed information in JSON format: {description, weight, scaleType, performanceLevels}',
+                            creator BIGINT NOT NULL COMMENT 'Creator user ID',
+                            updater BIGINT COMMENT 'Updater user ID',
+                            create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+                            update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+
+    -- 外键约束，级联删除
+                            CONSTRAINT fk_assignment_subject
+                            FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
+                            ON DELETE CASCADE,
+
+    -- 索引
+                            KEY idx_assignment_subject (subject_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';

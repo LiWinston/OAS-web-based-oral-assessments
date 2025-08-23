@@ -9,7 +9,9 @@ import org.swen90017.oas.entity.SysRole;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.entity.SysUserRole;
+import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserRole;
+import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysStudentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
@@ -114,7 +116,9 @@ public class BaseCsvImportService {
         for (T dto : toInsert) {
             SysUser user = new SysUser();
             user.setUserName(userNameExtractor.apply(dto));
-            user.setStatus("2"); // 0:active, 1:deleted, 2:inactive
+            user.setStatus(UserStatus.INACTIVE.code());
+            user.setRegistrationStatus(RegistrationStatus.INVITED.code());
+            user.setInvitedAt(new Date());
             user.setPassword("123456");
             users.add(user);
         }

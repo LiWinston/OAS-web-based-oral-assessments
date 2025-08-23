@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Oral Assessment System (OAS) is a web-based platform for universities to conduct oral examinations efficiently. It addresses the current manual, time-consuming process of scheduling oral exams, coordinating examiners, and collecting results 1. OAS streamlines these tasks by providing integrated tools for user management, assessment configuration, scheduling and booking, assessment execution, mark aggregation, and result dissemination 1. The platform integrates with the Canvas Learning Management System via CSV import/export and includes basic email notifications to keep users informed 1. Overall, OAS aims to improve the user experience for administrators, examiners, and students by centralizing the oral exam workflow in a single, easy-to-use interface.
+The Oral Assessment System (OAS) is a web-based platform for universities to conduct oral examinations efficiently. It addresses the current manual, time-consuming process of scheduling oral exams, coordinating examiners, and collecting results. OAS streamlines these tasks by providing integrated tools for user management, assessment configuration, scheduling and booking, assessment execution, mark aggregation, and result dissemination. The platform integrates with the Canvas Learning Management System via CSV import/export and includes basic email notifications to keep users informed. Overall, OAS aims to improve the user experience for administrators, examiners, and students by centralizing the oral exam workflow in a single, easy-to-use interface.
+
+**Technical Architecture Update**: The system is implemented as a full-stack Next.js 15 application with integrated API routes and MySQL database, providing a unified codebase for both frontend and backend functionality.
 
 ## Goals
 

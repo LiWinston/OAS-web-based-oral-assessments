@@ -9,6 +9,7 @@ public enum QueryType {
     GREATER_THAN_OR_EQUAL_TO(" >= "),
     LESS_THAN(" < "),
     LESS_THAN_OR_EQUAL_TO(" <= "),
+    IN(" IN "),
     IS_NULL(" IS NULL "),
     IS_NOT_NULL(" IS NOT NULL ");
 

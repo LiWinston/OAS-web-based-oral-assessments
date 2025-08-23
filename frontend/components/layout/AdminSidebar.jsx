@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/button';
 
+// Navigation structure for Course Admin sidebar
 const navigationItems = [
   {
     section: 'MAIN',
@@ -31,6 +32,17 @@ const navigationItems = [
   }
 ];
 
+/**
+ * Admin Sidebar Component
+ * 
+ * Navigation sidebar for Course Administrators.
+ * Features collapsible sections, active state highlighting,
+ * and responsive design with mobile overlay.
+ * 
+ * @param {Object} props - Component props
+ * @param {boolean} props.isOpen - Whether sidebar is open (mobile)
+ * @param {Function} props.onToggle - Toggle sidebar visibility
+ */
 export function AdminSidebar({ isOpen, onToggle }) {
   const pathname = usePathname();
   const { user, smartLogout } = useAuthStore();

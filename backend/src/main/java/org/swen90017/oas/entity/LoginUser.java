@@ -23,6 +23,10 @@ public class LoginUser implements UserDetails {
     private Long userId;
 
     /**
+     * User email
+     */
+    private String email;
+    /**
      * Username
      */
     private String username;

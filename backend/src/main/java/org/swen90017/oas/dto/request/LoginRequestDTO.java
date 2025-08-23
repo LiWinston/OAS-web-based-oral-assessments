@@ -16,8 +16,8 @@ public class LoginRequestDTO implements Serializable {
     /**
      * Username
      */
-    @NotBlank(message = "Username cannot be empty")
-    private String username;
+    @NotBlank(message = "Email cannot be empty")
+    private String email;
     
     /**
      * Password

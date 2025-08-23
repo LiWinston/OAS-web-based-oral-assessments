@@ -5,13 +5,17 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.swen90017.oas.constant.Constants;
 import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.entity.RefreshToken;
+import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.mapper.RefreshTokenMapper;
+import org.swen90017.oas.mapper.SysUserMapper;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
@@ -28,6 +32,8 @@ import java.util.UUID;
  */
 @Component
 public class TokenService {
+    private static final Logger log = LoggerFactory.getLogger(TokenService.class);
+
 
     @Autowired
     private RefreshTokenMapper refreshTokenMapper;
@@ -52,6 +58,9 @@ public class TokenService {
 
     private SecretKey key;
 
+    @Autowired
+    private SysUserMapper userMapper;
+
     @PostConstruct
     public void init() {
         this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
@@ -62,7 +71,7 @@ public class TokenService {
      */
     public String createAccessToken(LoginUser loginUser) {
         String token = UUID.randomUUID().toString();
-        
+
         // Set user information in claims
         Map<String, Object> claims = new HashMap<>();
         claims.put(Constants.LOGIN_USER_KEY, token);
@@ -72,7 +81,16 @@ public class TokenService {
         
         // Generate JWT token using java.time API for time calculation
         LocalDateTime expiryDateTime = LocalDateTime.now().plusMinutes(accessTokenExpireTime);
-        return createToken(claims, expiryDateTime);
+        String jwt = createToken(claims, expiryDateTime);
+        try {
+            // On successful login, update user's last_login_at for all roles
+            SysUser user = userMapper.selectById(loginUser.getUserId());
+            if (user != null) {
+                user.setLastLoginAt(new java.util.Date());
+                userMapper.updateById(user);
+            }
+        } catch (Exception ignored) {}
+        return jwt;
     }
     
     /**
@@ -175,6 +193,27 @@ public class TokenService {
     public void revokeAllRefreshTokens(Long userId) {
         refreshTokenMapper.revokeAllByUserId(userId);
     }
+
+  /**
+   * Revoke a single refresh token by its token string
+   */
+  public void revokeRefreshToken(String refreshToken,Long userId) {
+    // Check if the token exists
+    RefreshToken existingToken = refreshTokenMapper.findActiveByUserId(userId);
+    log.info("Revoke refresh token: {}", refreshToken);
+    log.info("Existing token: {}", existingToken);
+
+    if (existingToken == null || !existingToken.getToken().equals(refreshToken)) {
+        log.error("Invalid or non-existent refresh token: {}", refreshToken);
+        throw new IllegalArgumentException("Invalid or non-existent refresh token");
+    }
+    log.info("Revoke refresh token for userId: {}", userId);
+    int num = refreshTokenMapper.revokeAllByUserId(userId);
+    log.info("Number of tokens revoked: {}", num);
+    if (num <= 0) {
+        throw new IllegalArgumentException("Failed to revoke refresh token");
+    }
+  }
     
     /**
      * Generate JWT token from claims with expiry date

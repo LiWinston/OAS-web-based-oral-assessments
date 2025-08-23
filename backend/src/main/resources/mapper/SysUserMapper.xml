@@ -6,12 +6,20 @@
 <mapper namespace="org.swen90017.oas.mapper.SysUserMapper">
 
     <!-- 批量插入 sys_user -->
-    <insert id="batchInsert" parameterType="list" useGeneratedKeys="true" keyProperty="userId">
+    <insert id="batchInsert" parameterType="list" useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
         INSERT INTO sys_user (user_name, password, status, create_time, update_time)
         VALUES
         <foreach collection="list" item="u" separator=",">
             (#{u.userName}, #{u.password}, #{u.status}, #{u.createTime}, #{u.updateTime})
         </foreach>
+    </insert>
+
+    <!-- 覆盖单条插入，强制使用数据库自增主键并回填 -->
+    <insert id="insert" parameterType="org.swen90017.oas.entity.SysUser" useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
+        INSERT INTO sys_user
+        (user_name, email, password, status, registration_status, invited_at, registered_at, create_time, creator, update_time, updater, last_login_at)
+        VALUES
+        (#{userName}, #{email}, #{password}, #{status}, #{registrationStatus}, #{invitedAt}, #{registeredAt}, #{createTime}, #{creator}, #{updateTime}, #{updater}, #{lastLoginAt})
     </insert>
 
 
