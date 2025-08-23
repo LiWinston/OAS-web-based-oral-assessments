@@ -1,3 +1,18 @@
+-- Password reset codes table
+CREATE TABLE IF NOT EXISTS password_reset_codes (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  code_hash VARCHAR(128) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL,
+  attempt_count INT DEFAULT 0,
+  created_at DATETIME NOT NULL,
+  last_sent_at DATETIME NULL,
+  created_ip VARCHAR(64),
+  user_agent VARCHAR(255),
+  INDEX idx_password_reset_user_id (user_id),
+  INDEX idx_password_reset_expires_at (expires_at)
+);
 -- ----------------------------
 -- Operation log table structure
 -- ----------------------------

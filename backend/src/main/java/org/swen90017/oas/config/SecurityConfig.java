@@ -99,6 +99,7 @@ public class SecurityConfig {
               // Public endpoints
               .antMatchers("/login", "/register").permitAll()
               .antMatchers("/deploy-time","/favicon.ico").permitAll()
+              .antMatchers("/auth/password-reset/**").permitAll()
               .antMatchers(HttpMethod.POST, "/token/refresh").permitAll()
               .antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
               .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js").permitAll()
