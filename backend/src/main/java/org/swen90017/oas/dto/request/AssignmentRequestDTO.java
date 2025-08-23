@@ -1,5 +1,7 @@
 package org.swen90017.oas.dto.request;
 
+import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.TableField;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import org.swen90017.oas.dto.RubricMetaInfo;
@@ -21,12 +23,6 @@ import java.util.List;
 @Schema(description = "Assignment creation and update request data")
 @Data
 public class AssignmentRequestDTO {
-
-    /**
-     * Assignment ID (for update operations)
-     */
-    @Schema(description = "Assignment ID (for update operations)", example = "1")
-    private Long id;
 
     /**
      * Subject ID (Foreign Key to subject table)
@@ -83,18 +79,18 @@ public class AssignmentRequestDTO {
     /**
      * Assignment progress (0.0 to 100.0)
      */
-    @Schema(description = "Assignment progress (0.0 to 100.0)", example = "0.0", defaultValue = "0.0")
+    @Schema(description = "Assignment progress (0.0 to 100.0)")
     @DecimalMin(value = "0.0", message = "Progress must be greater than or equal to 0.0")
     @DecimalMax(value = "100.0", message = "Progress must be less than or equal to 100.0")
-    private Double progress = 0.0;
+    private Double progress;
 
     /**
      * Assignment status
      */
-    @Schema(description = "Assignment status", example = "PENDING", allowableValues = {"PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"}, defaultValue = "PENDING")
+    @Schema(description = "Assignment status", example = "PENDING", allowableValues = {"PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"})
     @NotBlank(message = "Assignment status cannot be blank")
     @Size(max = 20, message = "Assignment status cannot exceed 20 characters")
-    private String status = "PENDING";
+    private String status;
 
     /**
      * Rubric meta information (JSON string)
@@ -102,6 +98,12 @@ public class AssignmentRequestDTO {
      */
     @Schema(description = "Rubric meta information")
     private RubricMetaInfo rubricMetaInfo;
+
+    /**
+     * Creator user ID
+     */
+    @Schema(description = "Creator user ID", example = "1")
+    private Long creator;
 
     /**
      * Rubrics information list
