@@ -7,7 +7,7 @@ export const superadminCourseService = {
   // Get all courses (superadmin view)
   async getCourses(filters = {}) {
     try {
-      const response = await api.get('/courses', { params: filters });
+      const response = await api.get('/api/courses', { params: filters });
       
       // Debug: Log the raw response to see what backend returns
       console.log('=== COURSES API DEBUG ===');

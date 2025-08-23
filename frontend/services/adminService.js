@@ -16,7 +16,7 @@ export const adminService = {
   // Invite a new course administrator
   async inviteAdmin(adminData) {
     try {
-      const response = await api.post('/superadmin/admins/invite', adminData);
+      const response = await api.post('/api/superadmin/admins/invite', adminData);
       return { success: true, data: response.data };
     } catch (error) {
       // Log the error for debugging
@@ -36,7 +36,7 @@ export const adminService = {
   // Get list of all administrators with filtering
   async getAdminList(filters = {}) {
     try {
-      const response = await api.post('/superadmin/admins', filters);
+      const response = await api.post('/api/superadmin/admins', filters);
 
       // Debug: Log the raw response to see what backend returns
       console.log('=== ADMIN LIST API DEBUG ===');
@@ -179,7 +179,7 @@ export const adminService = {
   // Update admin status (activate/deactivate)
   async updateAdminStatus(adminId, status) {
     try {
-      const response = await api.post(`/superadmin/admins/${adminId}/status`, { status });
+      const response = await api.post(`/api/superadmin/admins/${adminId}/status`, { status });
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Update admin status API error:', error);
@@ -190,7 +190,7 @@ export const adminService = {
   // Revoke admin access
   async revokeAccess(adminId) {
     try {
-      const response = await api.post(`/superadmin/admins/revoke/${adminId}`);
+      const response = await api.post(`/api/superadmin/admins/revoke/${adminId}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Revoke access API error:', error);
@@ -201,7 +201,7 @@ export const adminService = {
   // Check if email is already in use
   async checkDuplicateEmail(email) {
     try {
-      const response = await api.get(`/superadmin/admins/check-email/${encodeURIComponent(email)}`);
+      const response = await api.get(`/api/superadmin/admins/check-email/${encodeURIComponent(email)}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Check duplicate email API error:', error);
@@ -212,7 +212,7 @@ export const adminService = {
   // Get admin details
   async getAdminDetails(adminId) {
     try {
-      const response = await api.get(`/superadmin/admins/${adminId}`);
+      const response = await api.get(`/api/superadmin/admins/${adminId}`);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Get admin details API error:', error);
@@ -230,7 +230,7 @@ export const adminService = {
   // Get admin statistics
   async getAdminStats() {
     try {
-      const response = await api.get('/superadmin/admins/status');
+      const response = await api.get('/api/superadmin/admins/status');
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Get admin stats API error:', error);
