@@ -130,7 +130,7 @@ CREATE TABLE `subject` (
 DROP TABLE IF EXISTS assignment;
 CREATE TABLE assignment (
                             id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key ID',
-                            subjectId BIGINT NOT NULL COMMENT 'Subject ID, foreign key',
+                            subject_id BIGINT NOT NULL COMMENT 'Subject ID, foreign key',
                             name VARCHAR(255) NOT NULL COMMENT 'Assignment name',
                             description TEXT COMMENT 'Assignment description',
                             type VARCHAR(50) NOT NULL COMMENT 'Assignment type',
@@ -148,9 +148,9 @@ CREATE TABLE assignment (
 
     -- 外键约束，级联删除
                             CONSTRAINT fk_assignment_subject
-                            FOREIGN KEY (subjectId) REFERENCES subject(subject_id)
+                            FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
                             ON DELETE CASCADE,
 
     -- 索引
-                            KEY idx_assignment_subject (subjectId)
+                            KEY idx_assignment_subject (subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';
