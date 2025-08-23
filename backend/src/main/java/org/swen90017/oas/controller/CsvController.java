@@ -2,13 +2,11 @@ package org.swen90017.oas.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
+import org.swen90017.oas.dto.request.CSVImportDTO;
 import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.dto.response.GroupPreviewCSVResponseDTO;
@@ -56,15 +54,15 @@ public class CsvController {
     @Operation(summary = "Import CSV", description = "Import CSV data for student/group and send activation emails")
     @PostMapping("/import")
     public Result<?> importCsv(@RequestParam("file") MultipartFile file,
-                          @RequestParam("type") String type) throws IOException {
-        List<?> csvData = csvService.importCsv(file.getInputStream(), type);
+                          @ModelAttribute CSVImportDTO dto) throws IOException {
+        List<?> csvData = csvService.importCsv(file.getInputStream(), dto.getType());
         if (csvData == null || csvData.isEmpty()) {
             return Result.error(BusinessError.CSV_READ_FAILED);
         }
 
-        if ("student".equalsIgnoreCase(type)) {
-            return importStudentCsv((List<StudentCSVRequestDTO>) csvData);
-        } else if ("group".equalsIgnoreCase(type)) {
+        if ("student".equalsIgnoreCase(dto.getType())) {
+            return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
+        } else if ("group".equalsIgnoreCase(dto.getType())) {
             return importGroupCsv((List<GroupCSVRequestDTO>) csvData);
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
@@ -90,9 +88,9 @@ public class CsvController {
     /**
      * Import student CSV
      */
-    private Result<List<SysStudent>> importStudentCsv(List<StudentCSVRequestDTO> studentDTOs) {
+    private Result<List<SysStudent>> importStudentCsv(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
-            List<SysStudent> invited = studentService.inviteStudent(studentDTOs);
+            List<SysStudent> invited = studentService.inviteStudent(studentDTOs, assignmentId);
             emailService.sendActivationEmail(invited);
             return invited;
         });

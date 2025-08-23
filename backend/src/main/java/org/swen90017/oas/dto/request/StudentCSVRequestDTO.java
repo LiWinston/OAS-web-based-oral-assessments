@@ -10,4 +10,6 @@ public class StudentCSVRequestDTO {
     private String sisLoginId;
     private String section;
     private String studentId;
+    private String courseId;
+    private String assignmentId;
 }

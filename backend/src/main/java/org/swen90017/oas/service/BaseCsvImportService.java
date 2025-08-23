@@ -5,10 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.swen90017.oas.entity.SysRole;
-import org.swen90017.oas.entity.SysStudent;
-import org.swen90017.oas.entity.SysUser;
-import org.swen90017.oas.entity.SysUserRole;
+import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.enums.UserStatus;
@@ -53,7 +50,6 @@ public class BaseCsvImportService {
                                               Function<T, String> userNameExtractor,
                                               Function<T, String> sisUserIdExtractor) {
         log.info("Processing {} records from CSV data", csvData.size());
-
         // Extract and deduplicate student IDs
         List<String> studentIds = csvData.stream()
                 .map(studentIdExtractor)
@@ -86,6 +82,10 @@ public class BaseCsvImportService {
         
         // Create student records
         List<SysStudent> sysStudents = createStudents(users, toInsert, studentIdExtractor, sisUserIdExtractor);
+        sysStudents.forEach(student ->
+                log.info("Created student: {} with ID: {}", student.getStudentNumber(), student.getUserId())
+        );
+
 
         return sysStudents;
     }
