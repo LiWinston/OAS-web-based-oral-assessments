@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
@@ -118,6 +119,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         if (dto.getRubricsInfo() != null) {
             existingAssignment.setRubricsInfo(convertRubricsInfoToJson(dto.getRubricsInfo()));
         }
+
+        if (dto.getRubricMetaInfo() != null) {
+            existingAssignment.setRubricMetaInfo(convertRubricsMeteInfoToJson(dto.getRubricMetaInfo()));
+        }
+
+
         
         assignmentMapper.updateById(existingAssignment);
         return convertToDTO(existingAssignment);
@@ -239,6 +246,18 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         try {
             ObjectMapper mapper = new ObjectMapper();
             return mapper.writeValueAsString(rubricsInfo);
+        } catch (JsonProcessingException e) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_FORMAT);
+        }
+    }
+
+    /**
+     * Convert RubricsInfoDto list to JSON string
+     */
+    private String convertRubricsMeteInfoToJson(RubricMetaInfo rubricMetaInfo) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(rubricMetaInfo);
         } catch (JsonProcessingException e) {
             throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_FORMAT);
         }
