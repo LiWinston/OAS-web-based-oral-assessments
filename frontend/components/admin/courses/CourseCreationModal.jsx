@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
+import { courseService } from '../../../services/courseService';
+import { useAuthStore } from '../../../store/authStore';
 
 export function CourseCreationModal({ isOpen, onClose, onCourseCreated }) {
+  const { user } = useAuthStore();
   const [formData, setFormData] = useState({
     courseName: '',
     courseCode: '',
@@ -17,6 +20,7 @@ export function CourseCreationModal({ isOpen, onClose, onCourseCreated }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdCourse, setCreatedCourse] = useState(null);
+  const [apiError, setApiError] = useState('');
 
   // Smart defaults - set current year and upcoming semester
   useEffect(() => {
@@ -98,46 +102,48 @@ export function CourseCreationModal({ isOpen, onClose, onCourseCreated }) {
     }
 
     setIsSubmitting(true);
+    setApiError(''); // Clear previous errors
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Call real course service API
+      const result = await courseService.createCourse({
+        courseCode: formData.courseCode,
+        courseName: formData.courseName,
+        description: formData.description || '',
+        academicYear: parseInt(formData.academicYear),
+        semester: formData.semester,
+        adminUserId: user?.userId || 1, // Get from user context
+        status: formData.isActive ? 'active' : 'archived'
+      });
       
-      // Create course object
-      const newCourse = {
-        ...formData,
-        id: Date.now(), // Mock ID
-        students: 0,
-        assignments: 0,
-        status: formData.isActive ? 'active' : 'archived',
-        createdAt: new Date().toISOString()
-      };
-
-      // Success! Show celebration first
-      setCreatedCourse(newCourse);
-      setShowSuccess(true);
-      
-      // Call parent callback after delay to show success
-      setTimeout(() => {
-        onCourseCreated(newCourse);
+      if (result.success) {
+        // Success handling
+        setCreatedCourse(result.data);
+        setShowSuccess(true);
         
-        // Reset form
-        setFormData({
-          courseName: '',
-          courseCode: '',
-          academicYear: '',
-          semester: '',
-          description: '',
-          isActive: true
-        });
-        setValidationErrors({});
-        setShowSuccess(false);
-        setCreatedCourse(null);
-      }, 3000);
-      
+        setTimeout(() => {
+          onCourseCreated(result.data);
+          
+          // Reset form
+          setFormData({
+            courseName: '',
+            courseCode: '',
+            academicYear: '',
+            semester: '',
+            description: '',
+            isActive: true
+          });
+          setValidationErrors({});
+          setShowSuccess(false);
+          setCreatedCourse(null);
+        }, 3000);
+      } else {
+        // API error response
+        setApiError(result.message || 'Failed to create course');
+      }
     } catch (error) {
       console.error('Failed to create course:', error);
-      // TODO: Show error notification
+      setApiError(error.message || 'Network error occurred. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -208,6 +214,16 @@ export function CourseCreationModal({ isOpen, onClose, onCourseCreated }) {
               ></div>
             </div>
           </div>
+
+          {/* Error Display */}
+          {apiError && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center">
+                <i className="fas fa-exclamation-circle text-red-600 dark:text-red-400 mr-2"></i>
+                <span className="text-sm text-red-700 dark:text-red-300">{apiError}</span>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-5">
             {/* Course Information Section */}

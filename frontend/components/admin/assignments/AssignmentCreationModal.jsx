@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../ui/button';
 import { useNotification } from '../../../hooks/useNotification';
-import { assignmentService } from '../../../services/assignmentService';
 
 export function AssignmentCreationModal({ 
   isOpen, 
@@ -12,7 +11,13 @@ export function AssignmentCreationModal({
   courseId,
   courseName = 'Software Project Management',
   courseCode = 'COMP90082',
-  courseSemester = '2025 Semester 2'
+  courseSemester = '2025 Semester 2',
+  // API functions passed from parent
+  createAssignment,
+  previewStudentCsv,
+  previewExaminerCsv,
+  uploadStudentCsv,
+  uploadExaminerCsv
 }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -22,16 +27,30 @@ export function AssignmentCreationModal({
     type: 'individual',
     startDate: '',
     endDate: '',
-    weight: 25,
-    csvFile: null,
-    csvFileName: '',
-    csvData: null
+    weight: 25
+  });
+
+  // CSV upload data - independent structure
+  const [csvData, setCsvData] = useState({
+    student: {
+      file: null,
+      type: 'student',
+      previewData: null
+    },
+    examiner: {
+      file: null,
+      previewData: null
+    }
   });
 
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [csvUploadStatus, setCsvUploadStatus] = useState({
+    student: { uploading: false, error: null },
+    examiner: { uploading: false, error: null }
+  });
   const fileInputRef = useRef(null);
   const { showNotification } = useNotification();
 
@@ -46,15 +65,31 @@ export function AssignmentCreationModal({
         type: 'individual',
         startDate: '',
         endDate: '',
-        weight: 25,
-        csvFile: null,
-        csvFileName: '',
-        csvData: null
+        weight: 25
+      });
+      setCsvData({
+        student: { file: null, type: 'student', previewData: null },
+        examiner: { file: null, previewData: null }
       });
       setValidationErrors({});
       setShowSuccess(false);
     }
   }, [isOpen, courseId]);
+
+  // Update CSV type when assignment type changes
+  useEffect(() => {
+    if (formData.type === 'group' || formData.type === 'mixed') {
+      setCsvData(prev => ({
+        ...prev,
+        student: { ...prev.student, type: 'group' }
+      }));
+    } else {
+      setCsvData(prev => ({
+        ...prev,
+        student: { ...prev.student, type: 'student' }
+      }));
+    }
+  }, [formData.type]);
 
   // Calculate step completion
   const getStepCompletion = () => {
@@ -64,18 +99,10 @@ export function AssignmentCreationModal({
       3: false
     };
 
-    // Step 1: Basic details
-    if (formData.name && formData.type && formData.startDate && formData.endDate && formData.weight) {
-      completion[1] = true;
+    // Simple logic: current step and all previous steps are complete
+    for (let i = 1; i <= 3; i++) {
+      completion[i] = step > i;
     }
-
-    // Step 2: CSV upload (optional, but if started should be completed)
-    if (!formData.csvFileName || formData.csvData) {
-      completion[2] = true;
-    }
-
-    // Step 3: Ready to configure
-    completion[3] = completion[1] && completion[2];
 
     return completion;
   };
@@ -130,7 +157,7 @@ export function AssignmentCreationModal({
     }
   };
 
-  // Handle file upload
+  // Handle file select
   const handleFileSelect = async (file) => {
     if (!file) return;
 
@@ -139,23 +166,110 @@ export function AssignmentCreationModal({
       return;
     }
 
-    setFormData(prev => ({
+    setCsvData(prev => ({
       ...prev,
-      csvFile: file,
-      csvFileName: file.name
+      student: { ...prev.student, file: file }
     }));
 
-    // Simulate CSV processing
-    setTimeout(() => {
-      setFormData(prev => ({
+    setCsvUploadStatus(prev => ({
+      ...prev,
+      student: { uploading: false, error: null }
+    }));
+  };
+
+  // Handle examiner file select
+  const handleExaminerFileSelect = async (file) => {
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      showNotification('error', 'Please upload a CSV file');
+      return;
+    }
+
+    setCsvData(prev => ({
+      ...prev,
+      examiner: { ...prev.examiner, file: file }
+    }));
+
+    setCsvUploadStatus(prev => ({
+      ...prev,
+      examiner: { uploading: false, error: null }
+    }));
+  };
+
+  // Handle CSV upload
+  const handleCsvPreview = async (type) => {
+    if (type === "student") {
+      if (!csvData.student.file) {
+        showNotification('error', 'Please select a CSV file first');
+        return;
+      }
+
+      setCsvUploadStatus(prev => ({
         ...prev,
-        csvData: {
-          students: 45,
-          groups: formData.type === 'group' || formData.type === 'mixed' ? 12 : 0
-        }
+        student: { ...prev.student, uploading: true, error: null }
       }));
-      showNotification('success', 'CSV file processed successfully');
-    }, 1500);
+
+      try {
+        // Use parent's preview function with simplified parameters
+        const result = await previewStudentCsv(csvData.student.file, csvData.student.type);
+
+        setCsvUploadStatus(prev => ({
+          ...prev,
+          student: { ...prev.student, uploading: false, error: null },
+        }));
+
+        // Store preview data
+        setCsvData(prev => ({
+          ...prev,
+          student: { ...prev.student, previewData: result.data }
+        }));
+
+        showNotification('success', 'CSV file validated successfully');
+      } catch (error) {
+        console.error("CSV upload error:", error);
+        setCsvUploadStatus(prev => ({
+          ...prev,
+          student: { ...prev.student, uploading: false, error: error.message },
+        }));
+        showNotification('error', error.message);
+      }
+    } else if (type === "examiner") {
+      if (!csvData.examiner.file) {
+        showNotification('error', 'Please select a CSV file first');
+        return;
+      }
+
+      setCsvUploadStatus(prev => ({
+        ...prev,
+        examiner: { ...prev.examiner, uploading: true, error: null }
+      }));
+
+      try {
+        // Use parent's preview function with simplified parameters
+        const result = await previewExaminerCsv(csvData.examiner.file);
+
+        setCsvUploadStatus(prev => ({
+          ...prev,
+          examiner: { ...prev.examiner, uploading: false, error: null },
+        }));
+
+        // Store preview data
+        setCsvData(prev => ({
+          ...prev,
+          examiner: { ...prev.examiner, previewData: result.data }
+        }));
+
+        showNotification('success', 'Examiner CSV file validated successfully');
+      } catch (error) {
+        console.error("Examiner CSV upload error:", error);
+        setCsvUploadStatus(prev => ({
+          ...prev,
+          examiner: { ...prev.examiner, uploading: false, error: error.message },
+        }));
+        showNotification('error', error.message);
+      }
+    }
   };
 
   // Handle drag and drop
@@ -175,6 +289,20 @@ export function AssignmentCreationModal({
     
     const file = e.dataTransfer.files[0];
     handleFileSelect(file);
+  };
+
+  // Handle examiner drag and drop
+  const handleExaminerDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleExaminerDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    handleExaminerFileSelect(file);
   };
 
   // Navigate between steps
@@ -198,19 +326,32 @@ export function AssignmentCreationModal({
     setIsSubmitting(true);
 
     try {
-      const result = await assignmentService.createAssignment({
-        ...formData,
-        status: isDraft ? 'draft' : 'active'
-      });
+      // Create assignment using parent's function
+      const result = await createAssignment(formData, isDraft);
 
       if (result.success) {
-        setShowSuccess(true);
-        
-        // Upload CSV if provided
-        if (formData.csvFile && !isDraft) {
-          await assignmentService.uploadStudentData(result.data.id, formData.csvFile);
+        // If not draft, upload CSV data
+        if (!isDraft) {
+          try {
+            // Upload student CSV data
+            if (csvData.student.file) {
+              const uploadResult = await uploadStudentCsv(csvData.student.file, csvData.student.type);
+              console.log('Student CSV uploaded successfully');
+            }
+
+            // Upload examiner CSV data
+            if (csvData.examiner.file) {
+              const uploadResult = await uploadExaminerCsv(csvData.examiner.file);
+              console.log('Examiner CSV uploaded successfully');
+            }
+          } catch (uploadError) {
+            console.error('CSV upload error:', uploadError);
+            showNotification('warning', 'Assignment created but CSV upload failed. You can upload CSV data later.');
+          }
         }
 
+        setShowSuccess(true);
+        
         // Celebration animation
         setTimeout(() => {
           onAssignmentCreated(result.data);
@@ -264,7 +405,7 @@ export function AssignmentCreationModal({
   const stepCompletion = getStepCompletion();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
@@ -300,7 +441,7 @@ export function AssignmentCreationModal({
                     ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
                   `}
                 >
-                  {stepCompletion[num] && step !== num ? (
+                  {stepCompletion[num] ? (
                     <i className="fas fa-check"></i>
                   ) : (
                     num
@@ -546,6 +687,7 @@ export function AssignmentCreationModal({
           {/* Step 2: CSV Upload */}
           {step === 2 && (
             <div className="space-y-6 animate-fadeIn">
+              {/* Student CSV Upload */}
               <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-5 border border-sky-200 dark:border-sky-800">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center mr-3 shadow-lg">
@@ -557,99 +699,168 @@ export function AssignmentCreationModal({
                 </div>
 
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Upload a CSV file with student information. This step is optional for initial setup.
+                  Upload a CSV file with student information. This step is optional for initial setup. The CSV data will be uploaded after the assignment is created.
                 </p>
 
-                {!formData.csvData ? (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    className={`
-                      border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-                      ${isDragging 
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                      }
-                    `}
-                  >
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => handleFileSelect(e.target.files[0])}
-                      className="hidden"
-                    />
-                    
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                      <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
-                    </div>
-                    
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">
-                      Drag and drop your CSV file here, or
-                    </p>
-                    
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current.click()}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+{!csvData.student.previewData ? (
+                  !csvData.student.file ? (
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      className={`
+                        border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
+                        ${isDragging 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                        }
+                      `}
                     >
-                      Browse Files
-                    </button>
-                    
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                      Supported format: CSV (.csv)
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center">
-                        <i className="fas fa-file-alt text-green-600 mr-3"></i>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-white">
-                            {formData.csvFileName}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Successfully processed
-                          </p>
-                        </div>
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleFileSelect(e.target.files[0])}
+                        className="hidden"
+                        id="student-file-input"
+                      />
+                      
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
                       </div>
+                      
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        Drag and drop your CSV file here, or
+                      </p>
+                      
                       <button
+                        type="button"
                         onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            csvFile: null,
-                            csvFileName: '',
-                            csvData: null
-                          }));
+                          const fileInput = document.getElementById('student-file-input');
+                          if (fileInput) fileInput.click();
                         }}
-                        className="text-red-600 hover:text-red-700 p-2"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        <i className="fas fa-times"></i>
+                        Browse Files
                       </button>
+                      
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                        Supported format: CSV (.csv)
+                      </p>
                     </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-blue-600">
-                          {formData.csvData.students}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Students Imported
-                        </p>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <i className="fas fa-file-alt text-green-600 mr-3"></i>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {csvData.student.file ? csvData.student.file.name : ''}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              File selected, ready to upload
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCsvData(prev => ({
+                              ...prev,
+                              student: { file: null, type: prev.student.type, previewData: null }
+                            }));
+                            setCsvUploadStatus(prev => ({
+                              ...prev,
+                              student: { uploading: false, error: null }
+                            }));
+                          }}
+                          className="text-red-600 hover:text-red-700 p-2"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
                       </div>
-                      {formData.csvData.groups > 0 && (
-                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 text-center">
-                          <p className="text-2xl font-bold text-purple-600">
-                            {formData.csvData.groups}
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Groups Created
+
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => handleCsvPreview("student")}
+                          disabled={csvUploadStatus.student.uploading}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                        >
+                          {csvUploadStatus.student.uploading ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin mr-2"></i>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-upload mr-2"></i>
+                              Upload Student Data
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Error display */}
+                      {csvUploadStatus.student.error && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            <i className="fas fa-exclamation-triangle mr-2"></i>
+                            {csvUploadStatus.student.error}
                           </p>
                         </div>
                       )}
                     </div>
+                  )
+                ) : (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <i className="fas fa-check-circle text-green-600 mr-2"></i>
+                        <span className="font-medium text-green-800 dark:text-green-200">
+                          Upload Successful
+                        </span>
+                      </div>
+                      <div className="text-sm text-green-600 dark:text-green-400">
+                        <span className="mr-3">Total: {csvData.student.previewData?.totalCount || 0}</span>
+                        <span className="mr-3 text-blue-600">New: {csvData.student.previewData?.newCount || 0}</span>
+                        <span className="text-orange-600">Existing: {csvData.student.previewData?.existingCount || 0}</span>
+                      </div>
+                    </div>
+
+                    {/* Statistics Summary */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                          {csvData.student.previewData?.newCount || 0}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400">New Students</div>
+                      </div>
+                      <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                          {csvData.student.previewData?.existingCount || 0}
+                        </div>
+                        <div className="text-xs text-orange-600 dark:text-orange-400">Existing Students</div>
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                          {csvData.student.previewData?.totalCount || 0}
+                        </div>
+                        <div className="text-xs text-green-600 dark:text-green-400">Total</div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCsvData(prev => ({
+                          ...prev,
+                          student: { file: null, type: prev.student.type, previewData: null }
+                        }));
+                      }}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      <i className="fas fa-redo mr-1"></i>
+                      Re-upload
+                    </button>
                   </div>
                 )}
 
@@ -662,6 +873,196 @@ export function AssignmentCreationModal({
                         <li>Individual: StudentID, Name, Email</li>
                         <li>Group: StudentID, Name, Email, GroupID, GroupName</li>
                         <li>Mixed: Include both individual and group columns</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Examiner CSV Upload */}
+              <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-5 border border-sky-200 dark:border-sky-800">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center mr-3 shadow-lg">
+                    <i className="fas fa-user-tie text-white"></i>
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Upload Examiner Data
+                  </h4>
+                </div>
+                
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Upload a CSV file with examiner information. This step is optional for initial setup. The CSV data will be uploaded after the assignment is created.
+                </p>
+
+{!csvData.examiner.previewData ? (
+                  !csvData.examiner.file ? (
+                    <div
+                      onDragOver={handleExaminerDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleExaminerDrop}
+                      className={`
+                        border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
+                        ${isDragging 
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                        }
+                      `}
+                    >
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleExaminerFileSelect(e.target.files[0])}
+                        className="hidden"
+                        id="examiner-file-input"
+                      />
+                      
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+                      </div>
+                      
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        Drag and drop your CSV file here, or
+                      </p>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fileInput = document.getElementById('examiner-file-input');
+                          if (fileInput) fileInput.click();
+                        }}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                      >
+                        Browse Files
+                      </button>
+                      
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                        Supported format: CSV (.csv)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <i className="fas fa-file-alt text-green-600 mr-3"></i>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {csvData.examiner.file ? csvData.examiner.file.name : ''}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              File selected, ready to upload
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCsvData(prev => ({
+                              ...prev,
+                              examiner: { file: null, previewData: null }
+                            }));
+                            setCsvUploadStatus(prev => ({
+                              ...prev,
+                              examiner: { uploading: false, error: null }
+                            }));
+                          }}
+                          className="text-red-600 hover:text-red-700 p-2"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => handleCsvPreview("examiner")}
+                          disabled={csvUploadStatus.examiner.uploading}
+                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                        >
+                          {csvUploadStatus.examiner.uploading ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin mr-2"></i>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-upload mr-2"></i>
+                              Upload Examiner Data
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Error display */}
+                      {csvUploadStatus.examiner.error && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            <i className="fas fa-exclamation-triangle mr-2"></i>
+                            {csvUploadStatus.examiner.error}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <i className="fas fa-check-circle text-green-600 mr-2"></i>
+                        <span className="font-medium text-green-800 dark:text-green-200">
+                          Upload Successful
+                        </span>
+                      </div>
+                      <div className="text-sm text-green-600 dark:text-green-400">
+                        <span className="mr-3">Total: {csvData.examiner.previewData?.totalCount || 0}</span>
+                        <span className="mr-3 text-blue-600">New: {csvData.examiner.previewData?.newCount || 0}</span>
+                        <span className="text-orange-600">Existing: {csvData.examiner.previewData?.existingCount || 0}</span>
+                      </div>
+                    </div>
+
+                    {/* Statistics Summary for Examiners */}
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                          {csvData.examiner.previewData?.newCount || 0}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400">New Examiners</div>
+                      </div>
+                      <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                          {csvData.examiner.previewData?.existingCount || 0}
+                        </div>
+                        <div className="text-xs text-orange-600 dark:text-orange-400">Existing Examiners</div>
+                      </div>
+                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                          {csvData.examiner.previewData?.totalCount || 0}
+                        </div>
+                        <div className="text-xs text-green-600 dark:text-green-400">Total</div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCsvData(prev => ({
+                          ...prev,
+                          examiner: { file: null, previewData: null }
+                        }));
+                      }}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      <i className="fas fa-redo mr-1"></i>
+                      Re-upload
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                  <div className="flex items-start">
+                    <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
+                    <div className="text-sm text-amber-800 dark:text-amber-200">
+                      <p className="font-medium mb-1">Examiner CSV Format:</p>
+                      <ul className="list-disc list-inside space-y-1 text-xs">
+                        <li>ExaminerID, Name, Email, Department</li>
                       </ul>
                     </div>
                   </div>
@@ -709,12 +1110,20 @@ export function AssignmentCreationModal({
                     <span className="font-medium text-gray-900 dark:text-white">{formData.weight}%</span>
                   </div>
                   
-                  {formData.csvData && (
+                  {csvData.student.file && (
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Participants</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Student CSV</span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {formData.csvData.students} students
-                        {formData.csvData.groups > 0 && `, ${formData.csvData.groups} groups`}
+                        {csvData.student.file.name}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {csvData.examiner.file && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Examiner CSV</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {csvData.examiner.file.name}
                       </span>
                     </div>
                   )}
@@ -799,8 +1208,8 @@ export function AssignmentCreationModal({
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                   Assignment Created!
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Your assignment has been successfully created.
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Upload completed, ready for assignment creation
                 </p>
                 <div className="mt-4">
                   <div className="inline-flex items-center justify-center space-x-1">
@@ -863,7 +1272,7 @@ export function AssignmentCreationModal({
                 type="button"
                 onClick={() => handleSubmit(false)}
                 disabled={isSubmitting}
-                className="px-6 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 flex items-center"
+                className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
               >
                 {isSubmitting ? (
                   <>

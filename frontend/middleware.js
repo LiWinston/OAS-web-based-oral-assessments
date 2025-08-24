@@ -1,51 +1,72 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
 
 /**
  * Next.js Middleware
- * 
+ *
  * Handles authentication and route protection for the application.
  * Runs before every request to check authentication status and enforce
  * role-based access control.
  */
 export function middleware(request) {
   const { pathname } = request.nextUrl;
-  
-  // Get JWT token from cookies
-  const token = request.cookies.get('auth-token')?.value;
-  
-  // Public routes that don't require authentication
-  const publicRoutes = ['/login', '/superadmin-login'];
-  
-  // Check if it's a public route
-  if (publicRoutes.includes(pathname)) {
-    // Allow access to login pages regardless of authentication status
-    // Users should be able to switch accounts or access different login portals
+
+  // Dev/testing bypass: allow navigation without login when enabled
+  const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === "true";
+  if (bypassAuth) {
     return NextResponse.next();
   }
+
+  // Get JWT token from cookies
+  const token =
+    request.cookies.get("access-token")?.value ||
+    request.cookies.get("auth-token")?.value;
   
-  // Protected routes - require authentication
-  if (!token && !publicRoutes.includes(pathname)) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  // const token = "test-token-123";
+
+  // Public routes that don't require authentication
+  const publicRoutes = [
+    "/login",
+    "/superadmin-login",
+    "/onboarding",
+    "/onboarding-test",
+    "/forgot-password",
+    "/reset-password",
+  ];
+
+  // Check if it's a public route or starts with a public route prefix
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+
+  if (isPublicRoute) {
+    // Allow access to login and onboarding pages regardless of authentication status
+    // Users should be able to switch accounts, access different login portals, or complete onboarding
+    return NextResponse.next();
   }
-  
+
+  // Protected routes - require authentication
+  if (!token && !isPublicRoute) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   // Role-based route protection mapping
   const roleRoutes = {
-    '/student': ['STUDENT'],
-    '/examiner': ['EXAMINER'],
-    '/admin': ['COURSE_ADMIN'],
-    '/superadmin': ['SUPER_ADMIN'],
+    "/student": ["STUDENT"],
+    "/examiner": ["EXAMINER"],
+    "/admin": ["COURSE_ADMIN"],
+    "/superadmin": ["SUPER_ADMIN"],
   };
-  
+
   // Get the base route (first segment after /)
-  const baseRoute = '/' + pathname.split('/')[1];
-  
+  const baseRoute = "/" + pathname.split("/")[1];
+
   // If route has role restrictions, check them
   if (roleRoutes[baseRoute]) {
     // TODO: In production, decode and validate JWT to check user role
     // For now, we'll allow access and let the client-side handle role verification
     // This is a security consideration that should be addressed before deployment
   }
-  
+
   return NextResponse.next();
 }
 
@@ -60,6 +81,6 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (public directory)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

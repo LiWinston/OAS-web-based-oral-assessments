@@ -113,13 +113,27 @@ function DialogTitle({
 
 function DialogDescription({
   className,
+  asChild = false,
   ...props
 }) {
+  const Comp = asChild ? DialogPrimitive.Description : 'div';
+  
+  if (asChild) {
+    return (
+      <DialogPrimitive.Description
+        data-slot="dialog-description"
+        className={cn("text-muted-foreground text-sm", className)}
+        {...props} />
+    );
+  }
+  
   return (
-    <DialogPrimitive.Description
-      data-slot="dialog-description"
-      className={cn("text-muted-foreground text-sm", className)}
-      {...props} />
+    <DialogPrimitive.Description asChild>
+      <div
+        data-slot="dialog-description"
+        className={cn("text-muted-foreground text-sm", className)}
+        {...props} />
+    </DialogPrimitive.Description>
   );
 }
 

@@ -4,7 +4,7 @@ import useAuthStore from "../store/authStore";
 const useAuth = () => {
   const {
     user,
-    token,
+    accessToken,
     isAuthenticated,
     isLoading,
     login,
@@ -19,7 +19,7 @@ const useAuth = () => {
 
   // Check if user is authenticated
   const checkAuth = () => {
-    return isAuthenticated && token && user;
+    return Boolean(isAuthenticated && accessToken && user);
   };
 
   // Check if user has specific role
@@ -76,18 +76,14 @@ const useAuth = () => {
 
   // Initialize auth state on mount
   useEffect(() => {
-    // Check if we have stored auth data
-    if (token && user && !isAuthenticated) {
-      // Validate token with backend if needed
-      // For now, just set as authenticated
-      login(user, token);
-    }
-  }, [token, user, isAuthenticated, login]);
+    // If we have persisted auth data, do not re-login here. The store persists state.
+    // Optionally, we could validate token here with backend.
+  }, []);
 
   return {
     // State
     user,
-    token,
+    token: accessToken,
     isAuthenticated: checkAuth(),
     isLoading,
     role: getRole(),

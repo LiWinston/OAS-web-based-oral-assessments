@@ -3,7 +3,7 @@ import { persist } from "zustand/middleware";
 
 /**
  * Authentication Store
- * 
+ *
  * Global state management for authentication using Zustand.
  * Handles user session data, JWT tokens, and authentication status.
  * Persists state to localStorage for session continuity across page reloads.
@@ -12,14 +12,14 @@ const useAuthStore = create(
   persist(
     (set, get) => ({
       // State
-      user: null,           // Current user object with id, email, name, role, etc.
-      userId: null,         // User ID from backend
-      accessToken: null,    // JWT access token
-      refreshToken: null,   // JWT refresh token
-      tokenType: 'Bearer',  // Token type from backend
-      expiresIn: null,      // Token expiration time in seconds
+      user: null, // Current user object with id, email, name, role, etc.
+      userId: null, // User ID from backend
+      accessToken: null, // JWT access token
+      refreshToken: null, // JWT refresh token
+      tokenType: "Bearer", // Token type from backend
+      expiresIn: null, // Token expiration time in seconds
       isAuthenticated: false, // Authentication status flag
-      isLoading: false,     // Loading state for auth operations
+      isLoading: false, // Loading state for auth operations
 
       // Actions
       /**
@@ -28,32 +28,49 @@ const useAuthStore = create(
        */
       login: (loginData) => {
         // Extract data from backend response
-        const { userId, username, role, email, accessToken, refreshToken, tokenType, expiresIn } = loginData;
-        
+        const {
+          userId,
+          username,
+          role,
+          email,
+          accessToken,
+          refreshToken,
+          tokenType,
+          expiresIn,
+        } = loginData;
+
         // Map backend roles to frontend roles
         const roleMapping = {
-          'ROLE_ADMIN': 'COURSE_ADMIN',      // Backend ROLE_ADMIN = Frontend COURSE_ADMIN
-          'ROLE_STUDENT': 'STUDENT',
-          'ROLE_EXAMINER': 'EXAMINER',
-          'ROLE_SUPER_ADMIN': 'SUPER_ADMIN',
+          ROLE_ADMIN: "COURSE_ADMIN", // Backend ROLE_ADMIN = Frontend COURSE_ADMIN
+          ROLE_STUDENT: "STUDENT",
+          ROLE_EXAMINER: "EXAMINER",
+          ROLE_SUPER_ADMIN: "SUPER_ADMIN",
         };
-        
+
         const normalizedRole = roleMapping[role] || role;
-        
+
         // Store tokens in cookies for security
-        if (typeof document !== 'undefined') {
+        if (typeof document !== "undefined") {
+          const isSecure =
+            typeof window !== "undefined" &&
+            window.location.protocol === "https:";
+          const secureFlag = isSecure ? " Secure;" : "";
           // Access token with shorter expiry
-          document.cookie = `access-token=${accessToken}; path=/; secure; samesite=strict; max-age=${expiresIn || 900}`; // Default 15 minutes
+          document.cookie = `access-token=${accessToken}; Path=/;${secureFlag} SameSite=Strict; Max-Age=${
+            expiresIn || 900
+          }`; // Default 15 minutes
           // Refresh token with longer expiry
-          document.cookie = `refresh-token=${refreshToken}; path=/; secure; samesite=strict; max-age=${7 * 24 * 60 * 60}`; // 7 days
+          document.cookie = `refresh-token=${refreshToken}; Path=/;${secureFlag} SameSite=Strict; Max-Age=${
+            7 * 24 * 60 * 60
+          }`; // 7 days
         }
-        
+
         set({
           user: {
             id: userId,
             username,
             email,
-            role: normalizedRole,  // Use normalized role for frontend
+            role: normalizedRole, // Use normalized role for frontend
           },
           userId,
           accessToken,
@@ -69,42 +86,46 @@ const useAuthStore = create(
        * Handle user logout
        * @param {string} redirectTo - Path to redirect after logout (default: '/login')
        */
-      logout: async (redirectTo = '/login') => {
+      logout: async (redirectTo = "/login") => {
         const state = get();
         const { userId, refreshToken } = state;
-        
+
         // Call backend logout if we have the required data
         if (userId && refreshToken) {
           try {
-            const { authService } = await import('@/services/authService');
+            const { authService } = await import("@/services/authService");
             await authService.logout(userId, refreshToken);
           } catch (error) {
-            console.warn('Backend logout failed:', error);
+            console.warn("Backend logout failed:", error);
           }
         }
-        
+
         // Clear authentication cookies
-        if (typeof document !== 'undefined') {
-          document.cookie = 'access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-          document.cookie = 'refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        if (typeof document !== "undefined") {
+          document.cookie =
+            "access-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+          document.cookie =
+            "refresh-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+          document.cookie =
+            "auth-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
         }
-        
+
         // Clear localStorage completely to ensure clean logout
-        localStorage.removeItem('oas-auth-storage');
-        
+        localStorage.removeItem("oas-auth-storage");
+
         set({
           user: null,
           userId: null,
           accessToken: null,
           refreshToken: null,
-          tokenType: 'Bearer',
+          tokenType: "Bearer",
           expiresIn: null,
           isAuthenticated: false,
           isLoading: false,
         });
 
         // Redirect based on user role or provided path
-        if (typeof window !== 'undefined') {
+        if (typeof window !== "undefined") {
           window.location.href = redirectTo;
         }
       },
@@ -160,10 +181,9 @@ const useAuthStore = create(
        */
       smartLogout: () => {
         const currentUser = get().user;
-        const redirectPath = currentUser?.role === 'SUPER_ADMIN' 
-          ? '/superadmin-login' 
-          : '/login';
-        
+        const redirectPath =
+          currentUser?.role === "SUPER_ADMIN" ? "/superadmin-login" : "/login";
+
         get().logout(redirectPath);
       },
     }),

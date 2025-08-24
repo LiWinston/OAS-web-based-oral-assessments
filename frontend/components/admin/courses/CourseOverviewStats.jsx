@@ -2,23 +2,65 @@
 
 import { useState, useEffect } from "react";
 import { StatsCard, StatsCardSkeleton } from "../../ui/stats-card";
+import { courseService } from "../../../services/courseService";
 
 export function CourseOverviewStats() {
   const [stats, setStats] = useState({
-    activeCourses: 5,
-    totalStudents: 437,
-    assignments: 24,
-    currentSemester: "2025 S2",
+    activeCourses: 0,
+    totalStudents: 0,
+    assignments: 0,
+    currentSemester: "",
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Simulate loading
+  // Fetch course statistics from API
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchCourseStats();
   }, []);
+
+  const fetchCourseStats = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      const result = await courseService.getCourseStats();
+      
+      if (result.success && result.data) {
+        setStats({
+          activeCourses: result.data.activeCourses || 0,
+          totalStudents: result.data.totalStudents || 0,
+          assignments: result.data.totalAssignments || 0,
+          currentSemester: result.data.currentSemester || "2025 S2",
+        });
+      } else {
+        setError(result.message || 'Failed to fetch course statistics');
+        // Set default values
+        setStats({
+          activeCourses: 0,
+          totalStudents: 0,
+          assignments: 0,
+          currentSemester: "2025 S2",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching course stats:', error);
+      setError('Failed to load course statistics');
+      // Set default values
+      setStats({
+        activeCourses: 0,
+        totalStudents: 0,
+        assignments: 0,
+        currentSemester: "2025 S2",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return <StatsCardSkeleton count={4} />;
+  }
 
   const statsConfig = [
     {
@@ -59,8 +101,35 @@ export function CourseOverviewStats() {
     },
   ];
 
-  if (loading) {
-    return <StatsCardSkeleton count={4} />;
+  if (error) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        {statsConfig.map((stat, index) => (
+          <div
+            key={stat.title}
+            className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow border border-gray-200 dark:border-gray-700"
+          >
+            <div className="flex items-center">
+              <div className={`w-12 h-12 rounded-lg ${stat.iconBg} flex items-center justify-center mr-4`}>
+                <i className={`${stat.icon} text-lg text-gray-600 dark:text-gray-400`}></i>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  {stat.title}
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {stat.value}
+                </p>
+              </div>
+            </div>
+          </div>
+        ))}
+        <div className="col-span-full text-center text-red-600 dark:text-red-400 text-sm">
+          <i className="fas fa-exclamation-triangle mr-2"></i>
+          {error}
+        </div>
+      </div>
+    );
   }
 
   return (

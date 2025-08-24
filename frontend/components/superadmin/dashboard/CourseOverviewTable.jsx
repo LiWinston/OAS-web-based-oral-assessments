@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '../../ui/button';
 import { Card } from '../../ui/card';
 import { Input } from '../../ui/input';
 import { CourseDetailModal } from './CourseDetailModal';
-import { superadminCourseService } from '../../../services/superadminCourseService';
 
 export function CourseOverviewTable() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -13,65 +12,117 @@ export function CourseOverviewTable() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [courses, setCourses] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filteredCourses, setFilteredCourses] = useState([]);
 
-  // Load courses from backend API
-  useEffect(() => {
-    loadCourses();
-  }, []);
-
-  const loadCourses = async () => {
-    try {
-      setIsLoading(true);
-      const response = await superadminCourseService.getCourses();
-      if (response.success) {
-        setCourses(response.data || []);
-      } else {
-        // API failed, set empty data
-        setCourses([]);
-      }
-    } catch (error) {
-      console.error('Failed to load courses:', error);
-      // API error, set empty data
-      setCourses([]);
-    } finally {
-      setIsLoading(false);
+  // Enhanced mock course data with more details
+  const courses = [
+    {
+      id: 1,
+      name: 'Data Structures and Algorithms',
+      code: 'COMP90038',
+      department: 'Computer Science',
+      semester: '2025 Semester 1',
+      admin: 'Dr. John Smith',
+      adminEmail: 'j.smith@student.unimelb.edu.au',
+      students: 145,
+      assignments: 2,
+      activeAssignments: 1,
+      status: 'active',
+      lastActivity: '2025-01-08',
+      description: 'Comprehensive study of fundamental data structures and algorithmic analysis.',
+      venue: 'Doug McDonell Building',
+      examinerCount: 4,
+      completionRate: 87
+    },
+    {
+      id: 2,
+      name: 'Machine Learning Fundamentals',
+      code: 'COMP90049',
+      department: 'Computer Science',
+      semester: '2025 Semester 1',
+      admin: 'Dr. John Smith',
+      adminEmail: 'j.smith@student.unimelb.edu.au',
+      students: 89,
+      assignments: 1,
+      activeAssignments: 0,
+      status: 'setup',
+      lastActivity: '2025-01-07',
+      description: 'Introduction to machine learning concepts and practical applications.',
+      venue: 'Electrical Engineering Building',
+      examinerCount: 3,
+      completionRate: 0
+    },
+    {
+      id: 3,
+      name: 'Advanced Physics Lab',
+      code: 'PHYS30002',
+      department: 'Physics',
+      semester: '2025 Semester 1',
+      admin: 'Prof. Emily Davis',
+      adminEmail: 'e.davis@student.unimelb.edu.au',
+      students: 34,
+      assignments: 3,
+      activeAssignments: 2,
+      status: 'active',
+      lastActivity: '2025-01-08',
+      description: 'Advanced laboratory experiments in quantum and particle physics.',
+      venue: 'Physics Building',
+      examinerCount: 2,
+      completionRate: 94
+    },
+    {
+      id: 4,
+      name: 'Organic Chemistry',
+      code: 'CHEM20006',
+      department: 'Chemistry',
+      semester: '2025 Semester 1',
+      admin: 'Dr. Michael Brown',
+      adminEmail: 'm.brown@student.unimelb.edu.au',
+      students: 67,
+      assignments: 1,
+      activeAssignments: 0,
+      status: 'inactive',
+      lastActivity: '2025-01-05',
+      description: 'Study of organic compounds, reactions, and synthesis methods.',
+      venue: 'Chemistry Building',
+      examinerCount: 2,
+      completionRate: 78
+    },
+    {
+      id: 5,
+      name: 'Software Engineering Principles',
+      code: 'SWEN90006',
+      department: 'Computer Science',
+      semester: '2025 Semester 1',
+      admin: 'Dr. John Smith',
+      adminEmail: 'j.smith@student.unimelb.edu.au',
+      students: 178,
+      assignments: 2,
+      activeAssignments: 1,
+      status: 'active',
+      lastActivity: '2025-01-08',
+      description: 'Principles and practices of large-scale software development.',
+      venue: 'Melbourne School of Engineering',
+      examinerCount: 5,
+      completionRate: 91
     }
-  };
+  ];
 
-  // Get unique departments from courses
-  const departments = courses && courses.length > 0 ? [...new Set(courses.map(course => course.department))] : [];
+  const departments = [...new Set(courses.map(course => course.department))];
 
   // Filter courses based on search and filters
-  useEffect(() => {
-    let filtered = courses || [];
-
-    if (searchTerm) {
-      filtered = filtered.filter(course =>
-        (course.name && course.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (course.code && course.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (course.department && course.department.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    if (filterDepartment !== 'all') {
-      filtered = filtered.filter(course => course.department === filterDepartment);
-    }
-
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(course => course.status === filterStatus);
-    }
-
-    setFilteredCourses(filtered);
-  }, [courses, searchTerm, filterDepartment, filterStatus]);
+  const filteredCourses = courses.filter(course => {
+    const matchesSearch = 
+      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.admin.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesDepartment = filterDepartment === 'all' || course.department === filterDepartment;
+    const matchesStatus = filterStatus === 'all' || course.status === filterStatus;
+    
+    return matchesSearch && matchesDepartment && matchesStatus;
+  });
 
   const getStatusBadge = (status) => {
-    if (!status || typeof status !== 'string') {
-      status = 'inactive';
-    }
-    
     const statusConfig = {
       active: { 
         color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700', 
@@ -104,23 +155,11 @@ export function CourseOverviewTable() {
   };
 
   const handleCourseClick = (course) => {
-    if (!course || !course.id) {
-      console.warn('Invalid course data for detail view');
-      return;
-    }
     setSelectedCourse(course);
     setIsDetailModalOpen(true);
   };
 
   const getAdminAvatar = (adminName) => {
-    if (!adminName || typeof adminName !== 'string') {
-      return (
-        <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-md">
-          <i className="fas fa-user text-white text-sm"></i>
-        </div>
-      );
-    }
-    
     const initials = adminName.split(' ').map(n => n[0]).join('').toUpperCase();
     const colors = [
       'from-blue-400 to-blue-600',
@@ -138,58 +177,6 @@ export function CourseOverviewTable() {
       </div>
     );
   };
-
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            System-wide Course Overview
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Loading course data...
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400">Loading course data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if no data
-  if (!courses || courses.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            System-wide Course Overview
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            No course data available
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">Unable to load course data</p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">Please check your connection and try again</p>
-            <Button 
-              onClick={loadCourses}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              Retry
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -235,8 +222,8 @@ export function CourseOverviewTable() {
               className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:border-orange-500 dark:focus:border-orange-400 shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
             >
               <option value="all">All Departments</option>
-              {departments.map((dept, index) => (
-                <option key={dept || `dept-${index}`} value={dept || ''}>{dept || 'Unknown'}</option>
+              {departments.map(dept => (
+                <option key={dept} value={dept}>{dept}</option>
               ))}
             </select>
           </div>
@@ -340,12 +327,12 @@ export function CourseOverviewTable() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredCourses.map((course, index) => (
+              {filteredCourses.map((course) => (
                 <tr 
-                  key={course?.id || `course-${index}`}
+                  key={course.id} 
                   className="group hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 transition-all duration-300 cursor-pointer border-b border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800"
                   onClick={() => handleCourseClick(course)}
-                  data-course-id={course?.id || `course-${index}`}
+                  data-course-id={course.id}
                 >
                   <td className="px-6 py-6">
                     <div className="group-hover:translate-x-1 transition-transform duration-300">
@@ -353,11 +340,11 @@ export function CourseOverviewTable() {
                         {course.name}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        <span className="font-medium">{course.code || 'N/A'}</span> • {course.semester || 'N/A'}
+                        <span className="font-medium">{course.code}</span> • {course.semester}
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                         <i className="fas fa-map-marker-alt mr-1"></i>
-                        {course.venue || 'TBD'}
+                        {course.venue}
                       </div>
                     </div>
                   </td>
@@ -372,10 +359,10 @@ export function CourseOverviewTable() {
                       {getAdminAvatar(course.admin)}
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {course.admin || 'Unassigned'}
+                          {course.admin}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {course.adminEmail || 'No email'}
+                          {course.adminEmail}
                         </div>
                       </div>
                     </div>
@@ -385,9 +372,9 @@ export function CourseOverviewTable() {
                       <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
                         <i className="fas fa-user-graduate text-purple-600 dark:text-purple-400 text-sm"></i>
                       </div>
-                                              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {course.students || 0}
-                        </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {course.students}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-6">
@@ -397,12 +384,12 @@ export function CourseOverviewTable() {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {course.assignments || 0} total
+                          {course.assignments} total
                         </div>
-                        {(course.activeAssignments || 0) > 0 && (
+                        {course.activeAssignments > 0 && (
                           <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
                             <i className="fas fa-play-circle mr-1"></i>
-                            {course.activeAssignments || 0} active
+                            {course.activeAssignments} active
                           </div>
                         )}
                       </div>
@@ -415,11 +402,11 @@ export function CourseOverviewTable() {
                   </td>
                   <td className="px-6 py-6">
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                      {course.lastActivity || 'No activity'}
+                      {course.lastActivity}
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                       <i className="fas fa-clock mr-1"></i>
-                      {course.completionRate || 0}% complete
+                      {course.completionRate}% complete
                     </div>
                   </td>
                 </tr>

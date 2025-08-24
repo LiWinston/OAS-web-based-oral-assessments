@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '../../ui/button';
+import { courseService } from '../../../services/courseService';
+import { useNotification } from '../../../hooks/useNotification';
 
 export function EditCourseModal({ isOpen, onClose, onCourseUpdated, course }) {
+  const { showNotification } = useNotification();
   const [formData, setFormData] = useState({
     courseName: '',
     courseCode: '',
@@ -110,10 +113,24 @@ export function EditCourseModal({ isOpen, onClose, onCourseUpdated, course }) {
 
   // Handle input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Ensure semester value remains as raw value (not formatted text)
+      // This prevents any accidental conversion from "1" to "Semester 1"
+      if (field === 'semester' && typeof value === 'string') {
+        // Make sure we store the raw semester value
+        if (value === 'Semester 1') newData.semester = '1';
+        else if (value === 'Semester 2') newData.semester = '2'; 
+        else if (value === 'Summer Term') newData.semester = 'summer';
+        else newData.semester = value;
+      }
+      
+      return newData;
+    });
     
     // Clear validation error when user starts typing
     if (validationErrors[field]) {
@@ -135,33 +152,56 @@ export function EditCourseModal({ isOpen, onClose, onCourseUpdated, course }) {
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1200));
+      // Ensure semester is in the correct raw format before sending to backend
+      let semesterValue = formData.semester;
+      if (semesterValue === 'Semester 1') semesterValue = '1';
+      else if (semesterValue === 'Semester 2') semesterValue = '2';
+      else if (semesterValue === 'Summer Term') semesterValue = 'summer';
       
-      // Create updated course object
-      const updatedCourse = {
-        ...course,
-        name: formData.courseName,
-        code: formData.courseCode,
-        year: parseInt(formData.academicYear),
-        semester: formData.semester,
+      // Prepare data for backend API according to CourseUpdateRequestDTO
+      const updateData = {
+        courseCode: formData.courseCode,
+        courseName: formData.courseName,
         description: formData.description,
-        isActive: formData.isActive,
+        academicYear: parseInt(formData.academicYear),
+        semester: semesterValue,
+        adminUserId: course.adminUserId || 1, // Use existing adminUserId or default
         status: formData.isActive ? 'active' : 'archived',
-        updatedAt: new Date().toISOString()
+        isActive: formData.isActive
       };
 
-      // Success! Call parent callback
-      onCourseUpdated(updatedCourse);
+      // Call backend API
+      const response = await courseService.updateCourse(course.id, updateData);
       
-      // Reset state
-      setOriginalData(formData);
-      setHasChanges(false);
-      setValidationErrors({});
+      if (response.success) {
+        // Create updated course object for UI update
+        const updatedCourse = {
+          ...course,
+          name: formData.courseName,
+          code: formData.courseCode,
+          year: parseInt(formData.academicYear),
+          semester: formData.semester,
+          description: formData.description,
+          isActive: formData.isActive,
+          status: formData.isActive ? 'active' : 'archived',
+          updatedAt: new Date().toISOString()
+        };
+
+        // Success! Call parent callback and show notification
+        onCourseUpdated(updatedCourse);
+        showNotification('success', 'Course updated successfully');
+        
+        // Reset state
+        setOriginalData(formData);
+        setHasChanges(false);
+        setValidationErrors({});
+      } else {
+        throw new Error(response.message || 'Failed to update course');
+      }
       
     } catch (error) {
       console.error('Failed to update course:', error);
-      // TODO: Show error notification
+      showNotification('error', error.message || 'Failed to update course');
     } finally {
       setIsSubmitting(false);
     }

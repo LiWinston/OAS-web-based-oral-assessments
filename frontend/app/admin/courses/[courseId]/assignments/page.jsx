@@ -11,10 +11,12 @@ import { AssignmentCreationModal } from "../../../../../components/admin/assignm
 import { EditAssignmentModal } from "../../../../../components/admin/assignments/EditAssignmentModal";
 import { WelcomeAnimation } from "../../../../../components/ui/welcome-animation";
 import { courseService } from "../../../../../services/courseService";
+import { assignmentService } from "../../../../../services/assignmentService";
 import { useNotification } from "../../../../../hooks/useNotification";
 
 export default function CourseAssignmentsPage() {
   const { user } = useAuthStore();
+  const getUserId = useAuthStore((state) => state.getUserId);
   const router = useRouter();
   const params = useParams();
   const { showNotification } = useNotification();
@@ -33,38 +35,107 @@ export default function CourseAssignmentsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
 
-  // Fetch course details
+  const [assignments, setAssignments] = useState([]);
+  const [assignmentStats, setAssignmentStats] = useState({
+    total: 0,
+    active: 0,
+    upcoming: 0,
+    completed: 0,
+    totalWeight: 0,
+  });
+  const [dataLoading, setDataLoading] = useState(true);
+
+  // Fetch all data when component mounts
   useEffect(() => {
-    fetchCourseDetails();
+    let isMounted = true;
+    
+    const fetchAllData = async () => {
+      try {
+        setLoading(true);
+        setDataLoading(true);
+
+        const [courseResult, assignmentsResult, statsResult] = await Promise.all([
+          courseService.getCourse(courseId).catch(err => ({ success: false, error: err })),
+          courseId ? assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false }),
+          // 暂时禁用统计接口
+          Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+        ]);
+        
+        if (!isMounted) return;
+
+        if (courseResult.success && courseResult.data.length > 0) {
+          const foundCourse = courseResult.data.find(
+            (c) => c.id.toString() === courseId
+          );
+          if (foundCourse) {
+            setCourse(foundCourse);
+          } else {
+            showNotification("error", "Course not found");
+            router.push("/admin/courses");
+            return;
+          }
+        }
+        
+        // 处理作业列表数据
+        if (assignmentsResult.success) {
+          setAssignments(assignmentsResult.data);
+        }
+        
+        // 处理统计数据
+        if (statsResult.success) {
+          setAssignmentStats(statsResult.data);
+        }
+        
+      } catch (error) {
+        if (isMounted) {
+          showNotification("error", "Failed to load data");
+          console.error("Failed to fetch data:", error);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          setDataLoading(false);
+        }
+      }
+    };
+
+    if (courseId) {
+      fetchAllData();
+    }
 
     // Ensure welcome animation doesn't get stuck
     const welcomeTimer = setTimeout(() => {
       setShowWelcomeAnimation(false);
     }, 3000);
 
-    return () => clearTimeout(welcomeTimer);
-  }, [courseId]);
+    return () => {
+      isMounted = false;
+      clearTimeout(welcomeTimer);
+    };
+  }, [courseId, router, showNotification]);
 
-  const fetchCourseDetails = async () => {
+  const refreshData = async () => {
     try {
-      setLoading(true);
-      const result = await courseService.getCourses();
-      if (result.success && result.data.length > 0) {
-        // Find the course by ID
-        const foundCourse = result.data.find(
-          (c) => c.id.toString() === courseId
-        );
-        if (foundCourse) {
-          setCourse(foundCourse);
-        } else {
-          showNotification("error", "Course not found");
-          router.push("/admin/courses");
-        }
+      setDataLoading(true);
+      
+      const [assignmentsResult, statsResult] = await Promise.all([
+        assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })),
+        // 暂时禁用统计接口
+        Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+      ]);
+      
+      if (assignmentsResult.success) {
+        setAssignments(assignmentsResult.data);
+      }
+      
+      if (statsResult.success) {
+        setAssignmentStats(statsResult.data);
       }
     } catch (error) {
-      showNotification("error", "Failed to load course details");
+      showNotification("error", "Failed to refresh data");
+      console.error("Failed to refresh data:", error);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
@@ -76,7 +147,86 @@ export default function CourseAssignmentsPage() {
   const handleAssignmentCreated = (assignment) => {
     showNotification("success", "Assignment created successfully!");
     setIsCreateModalOpen(false);
-    // Refresh the assignment list (handled by child component)
+    refreshData();
+  };
+
+  // Create assignment - integrated from AssignmentCreationModal
+  const createAssignment = async (formData, isDraft = false) => {
+    try {
+      const currentUserId = getUserId();
+      const assignmentData = {
+        subjectId: formData.courseId,
+        name: formData.name,
+        description: formData.description,
+        type: formData.type,
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        weight: Number(formData.weight),
+        progress: 0,
+        status: isDraft ? 'DRAFT' : 'PENDING',
+        creator: currentUserId
+      };
+
+      const result = await assignmentService.createAssignment(assignmentData);
+      return result;
+    } catch (error) {
+      console.error("Failed to create assignment:", error);
+      throw error;
+    }
+  };
+
+  // CSV Preview functions
+  const previewStudentCsv = async (file, type) => {
+    try {
+      const result = await assignmentService.previewStudentCsv(file, type);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to preview CSV");
+      }
+      return result;
+    } catch (error) {
+      console.error("CSV preview error:", error);
+      throw error;
+    }
+  };
+
+  const previewExaminerCsv = async (file) => {
+    try {
+      const result = await assignmentService.previewExaminerCsv(file);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to preview CSV");
+      }
+      return result;
+    } catch (error) {
+      console.error("Examiner CSV preview error:", error);
+      throw error;
+    }
+  };
+
+  // CSV Upload functions
+  const uploadStudentCsv = async (file, type) => {
+    try {
+      const result = await assignmentService.uploadStudentCsv(file, type);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload CSV");
+      }
+      return result;
+    } catch (error) {
+      console.error("Student CSV upload error:", error);
+      throw error;
+    }
+  };
+
+  const uploadExaminerCsv = async (file) => {
+    try {
+      const result = await assignmentService.uploadExaminerCsv(file);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload CSV");
+      }
+      return result;
+    } catch (error) {
+      console.error("Examiner CSV upload error:", error);
+      throw error;
+    }
   };
 
   // Handle assignment editing
@@ -89,7 +239,13 @@ export default function CourseAssignmentsPage() {
     showNotification("success", "Assignment updated successfully!");
     setIsEditModalOpen(false);
     setSelectedAssignment(null);
-    // Refresh the assignment list (handled by child component)
+    refreshData();
+  };
+
+  // Handle assignment deletion
+  const handleAssignmentDeleted = () => {
+    // 刷新数据
+    refreshData();
   };
 
   if (loading) {
@@ -206,7 +362,10 @@ export default function CourseAssignmentsPage() {
       </div>
 
       {/* Assignment Statistics */}
-      <AssignmentOverviewStats courseId={parseInt(courseId)} />
+      <AssignmentOverviewStats 
+        stats={assignmentStats} 
+        loading={dataLoading} 
+      />
 
       {/* Quick Tips */}
       <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
@@ -302,10 +461,9 @@ export default function CourseAssignmentsPage() {
                 className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200"
               >
                 <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="upcoming">Upcoming</option>
-                <option value="completed">Completed</option>
-                <option value="draft">Draft</option>
+                <option value="PENDING">Pending</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="COMPLETED">Completed</option>
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                 <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
@@ -316,12 +474,14 @@ export default function CourseAssignmentsPage() {
 
         {/* Assignment List */}
         <AssignmentList
-          courseId={parseInt(courseId)}
+          assignments={assignments}
+          loading={dataLoading}
           viewMode={viewMode}
           searchTerm={searchTerm}
           statusFilter={statusFilter}
           onCreateAssignment={handleCreateAssignment}
           onEditAssignment={handleEditAssignment}
+          onAssignmentDeleted={handleAssignmentDeleted}
         />
       </div>
 
@@ -334,6 +494,12 @@ export default function CourseAssignmentsPage() {
         courseName={course?.courseName}
         courseCode={course?.courseCode}
         courseSemester={`${course?.academicYear} ${course?.semester}`}
+        // API functions passed from parent
+        createAssignment={createAssignment}
+        previewStudentCsv={previewStudentCsv}
+        previewExaminerCsv={previewExaminerCsv}
+        uploadStudentCsv={uploadStudentCsv}
+        uploadExaminerCsv={uploadExaminerCsv}
       />
 
       {/* Edit Assignment Modal */}

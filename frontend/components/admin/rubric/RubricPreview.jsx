@@ -28,7 +28,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
     }
   };
 
-  const totalWeight = rubric.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+  const totalWeight = rubric.criteria ? rubric.criteria.reduce((sum, c) => sum + (c.weight || 0), 0) : 0;
 
   return (
     <div className="dashboard-card animate-fade-in sticky top-6">
@@ -64,7 +64,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
             <div className="flex items-center gap-1">
               <Award className="w-4 h-4 text-gray-400" />
               <span className="text-gray-600 dark:text-gray-400">
-                Criteria: <strong>{rubric.criteria.length}</strong>
+                Criteria: <strong>{rubric.criteria ? rubric.criteria.length : 0}</strong>
               </span>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
 
         {/* Preview Content */}
         <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
-          {rubric.criteria.length === 0 ? (
+          {!rubric.criteria || rubric.criteria.length === 0 ? (
             <div className="text-center py-12">
               <Award className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
               <p className="text-gray-500 dark:text-gray-400">
@@ -92,7 +92,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
               </p>
             </div>
           ) : (
-            rubric.criteria.map((criterion, index) => (
+            rubric.criteria && rubric.criteria.map((criterion, index) => (
               <div key={criterion.id} className="space-y-3">
                 {/* Criterion Header */}
                 <div className="flex items-start justify-between">
@@ -173,7 +173,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
                 )}
 
                 {/* Divider */}
-                {index < rubric.criteria.length - 1 && (
+                {rubric.criteria && index < rubric.criteria.length - 1 && (
                   <div className="border-t border-gray-200 dark:border-gray-700 mt-4"></div>
                 )}
               </div>
