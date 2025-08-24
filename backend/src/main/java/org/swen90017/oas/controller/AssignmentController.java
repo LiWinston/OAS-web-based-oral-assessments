@@ -54,6 +54,18 @@ public class AssignmentController {
     }
 
     /**
+     * Get assignment count by subject ID
+     */
+    @Operation(summary = "Get assignment count by subject ID", description = "Retrieve assignment count for a specific subject (cached)")
+    @GetMapping("/subject/{subjectId}/count")
+    @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
+    public ResponseEntity<Result<Integer>> getAssignmentCountBySubject(
+            @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
+        Integer count = assignmentService.getAssignmentCountBySubject(subjectId);
+        return ResponseEntity.ok(Result.success(count));
+    }
+
+    /**
      * Create new assignment
      */
     @Operation(summary = "Create assignment", description = "Create a new assignment")

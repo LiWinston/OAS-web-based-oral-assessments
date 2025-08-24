@@ -190,10 +190,10 @@ public class CourseController {
         dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
         dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
         
-        // Get actual assignment count for this subject
+        // Use cached assignment count for better performance
         try {
-            List<AssignmentResponseDTO> assignments = assignmentService.getAssignmentsBySubject(subject.getSubjectId());
-            dto.setAssignments(assignments.size());
+            Integer assignmentCount = assignmentService.getAssignmentCountBySubject(subject.getSubjectId());
+            dto.setAssignments(assignmentCount);
         } catch (Exception e) {
             // In case of error, fall back to 0
             dto.setAssignments(0);

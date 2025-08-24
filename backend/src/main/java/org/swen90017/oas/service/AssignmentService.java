@@ -37,4 +37,14 @@ public interface AssignmentService extends IService<Assignment> {
      * Get assignments by subject ID
      */
     List<AssignmentResponseDTO> getAssignmentsBySubject(Long subjectId);
+
+    /**
+     * Get assignment count by subject ID (with caching)
+     */
+    Integer getAssignmentCountBySubject(Long subjectId);
+
+    /**
+     * Clear assignments cache for specific subject
+     */
+    void clearAssignmentsCache(Long subjectId);
 }
