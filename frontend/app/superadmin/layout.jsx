@@ -1,28 +1,28 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
-import { SuperAdminSidebar } from '../../components/layout/SuperAdminSidebar';
-import { SuperAdminTopNav } from '../../components/layout/SuperAdminTopNav';
+import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { SuperAdminSidebar } from "../../components/layout/SuperAdminSidebar";
+import { SuperAdminTopNav } from "../../components/layout/SuperAdminTopNav";
 
 export default function SuperAdminLayout({ children }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
-  
+
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Sidebar */}
       <SuperAdminSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-      
+
       {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 max-h-screen overflow-hidden">
         {/* Top header */}
         <SuperAdminTopNav onSidebarToggle={toggleSidebar} />
-        
+
         {/* Main content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           {/* Page title and breadcrumbs */}
@@ -37,7 +37,7 @@ export default function SuperAdminLayout({ children }) {
               </p>
             </div>
           </div>
-          
+
           {children}
         </main>
       </div>

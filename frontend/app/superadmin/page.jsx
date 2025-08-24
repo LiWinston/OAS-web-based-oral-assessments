@@ -1,15 +1,15 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useAuthStore } from '../../store/authStore';
-import { Card } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { AdminManagementHub } from '../../components/superadmin/dashboard/AdminManagementHub';
-import { CourseOverviewTable } from '../../components/superadmin/dashboard/CourseOverviewTable';
+import { useState } from "react";
+import { useAuthStore } from "../../store/authStore";
+import { Card } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { AdminManagementHub } from "../../components/superadmin/dashboard/AdminManagementHub";
+import { CourseOverviewTable } from "../../components/superadmin/dashboard/CourseOverviewTable";
 
 export default function SuperAdminDashboard() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
 
   // Mock stats for dashboard cards
   const stats = {
@@ -18,13 +18,13 @@ export default function SuperAdminDashboard() {
     totalAdmins: 12,
     pendingInvitations: 2,
     totalStudents: 1847,
-    systemHealth: 'excellent'
+    systemHealth: "excellent",
   };
 
   const tabs = [
-    { id: 'overview', name: 'System Overview', icon: 'fas fa-tachometer-alt' },
-    { id: 'admins', name: 'Course Admins', icon: 'fas fa-user-shield' },
-    { id: 'courses', name: 'All Courses', icon: 'fas fa-university' }
+    { id: "overview", name: "System Overview", icon: "fas fa-tachometer-alt" },
+    { id: "admins", name: "Course Admins", icon: "fas fa-user-shield" },
+    { id: "courses", name: "All Courses", icon: "fas fa-university" },
   ];
 
   return (
@@ -37,7 +37,8 @@ export default function SuperAdminDashboard() {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-white">
-              Welcome back, {user?.username || user?.email?.split('@')[0] || 'Super Admin'}!
+              Welcome back,{" "}
+              {user?.username || user?.email?.split("@")[0] || "Super Admin"}!
             </h1>
             <p className="text-lg text-orange-100 mt-1">
               System-wide oversight and management at your fingertips
@@ -51,8 +52,12 @@ export default function SuperAdminDashboard() {
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Courses</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalCourses}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total Courses
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.totalCourses}
+              </p>
               <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1">
                 <i className="fas fa-arrow-up mr-1"></i>
                 {stats.activeCourses} active
@@ -67,8 +72,12 @@ export default function SuperAdminDashboard() {
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Course Admins</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalAdmins}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Course Admins
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.totalAdmins}
+              </p>
               <p className="text-xs text-orange-600 dark:text-orange-400 flex items-center mt-1">
                 <i className="fas fa-envelope mr-1"></i>
                 {stats.pendingInvitations} invitations sent
@@ -83,8 +92,12 @@ export default function SuperAdminDashboard() {
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Students</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalStudents.toLocaleString()}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Total Students
+              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {stats.totalStudents.toLocaleString()}
+              </p>
               <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center mt-1">
                 <i className="fas fa-users mr-1"></i>
                 Across all courses
@@ -99,8 +112,12 @@ export default function SuperAdminDashboard() {
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">System Health</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">Excellent</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                System Health
+              </p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                Excellent
+              </p>
               <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1">
                 <i className="fas fa-check-circle mr-1"></i>
                 All systems operational
@@ -122,8 +139,8 @@ export default function SuperAdminDashboard() {
               onClick={() => setActiveTab(tab.id)}
               className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === tab.id
-                  ? 'border-orange-500 text-orange-600 dark:text-orange-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                  ? "border-orange-500 text-orange-600 dark:text-orange-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
               }`}
             >
               <i className={`${tab.icon} mr-2`}></i>
@@ -135,7 +152,7 @@ export default function SuperAdminDashboard() {
 
       {/* Tab Content */}
       <div className="min-h-96">
-        {activeTab === 'overview' && (
+        {activeTab === "overview" && (
           <div className="space-y-6">
             {/* Quick Actions */}
             <Card className="p-6">
@@ -143,8 +160,8 @@ export default function SuperAdminDashboard() {
                 Quick Actions
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => setActiveTab('admins')}
+                <Button
+                  onClick={() => setActiveTab("admins")}
                   className="h-16 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
                 >
                   <div className="text-center">
@@ -152,9 +169,9 @@ export default function SuperAdminDashboard() {
                     <span className="text-sm">Invite Course Admin</span>
                   </div>
                 </Button>
-                
-                <Button 
-                  onClick={() => setActiveTab('courses')}
+
+                <Button
+                  onClick={() => setActiveTab("courses")}
                   variant="outline"
                   className="h-16 border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900"
                 >
@@ -163,8 +180,8 @@ export default function SuperAdminDashboard() {
                     <span className="text-sm">View All Courses</span>
                   </div>
                 </Button>
-                
-                <Button 
+
+                <Button
                   variant="outline"
                   className="h-16 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900"
                 >
@@ -191,11 +208,13 @@ export default function SuperAdminDashboard() {
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         Course Admin registered: Dr. Sarah Chen
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">2 hours ago</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        2 hours ago
+                      </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
@@ -205,11 +224,13 @@ export default function SuperAdminDashboard() {
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         New course created: Advanced Machine Learning
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">1 day ago</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        1 day ago
+                      </p>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
@@ -219,7 +240,9 @@ export default function SuperAdminDashboard() {
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         Invitation sent: Prof. James Wilson
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">2 days ago</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        2 days ago
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -228,8 +251,8 @@ export default function SuperAdminDashboard() {
           </div>
         )}
 
-        {activeTab === 'admins' && <AdminManagementHub />}
-        {activeTab === 'courses' && <CourseOverviewTable />}
+        {activeTab === "admins" && <AdminManagementHub />}
+        {activeTab === "courses" && <CourseOverviewTable />}
       </div>
     </div>
   );
