@@ -1,34 +1,39 @@
-'use client';
+"use client";
 
-import { Button } from '../../ui/button';
-import { Card } from '../../ui/card';
+import { Button } from "../../ui/button";
+import { Card } from "../../ui/card";
 
 export function CourseDetailModal({ course, isOpen, onClose }) {
   if (!isOpen || !course) return null;
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      active: { 
-        color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700', 
-        icon: 'fas fa-check-circle', 
-        text: 'Active' 
+      active: {
+        color:
+          "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700",
+        icon: "fas fa-check-circle",
+        text: "Active",
       },
-      setup: { 
-        color: 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700', 
-        icon: 'fas fa-cog', 
-        text: 'Setup' 
+      setup: {
+        color:
+          "bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700",
+        icon: "fas fa-cog",
+        text: "Setup",
       },
-      inactive: { 
-        color: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 dark:border-gray-700', 
-        icon: 'fas fa-pause-circle', 
-        text: 'Inactive' 
-      }
+      inactive: {
+        color:
+          "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 dark:border-gray-700",
+        icon: "fas fa-pause-circle",
+        text: "Inactive",
+      },
     };
 
     const config = statusConfig[status] || statusConfig.inactive;
-    
+
     return (
-      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium shadow-sm ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium shadow-sm ${config.color}`}
+      >
         <i className={`${config.icon} mr-2`}></i>
         {config.text}
       </span>
@@ -36,50 +41,43 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
   };
 
   const getAdminAvatar = (adminName) => {
-    const initials = adminName.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!adminName || typeof adminName !== "string") {
+      return (
+        <div className="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-md">
+          <i className="fas fa-user text-white text-lg"></i>
+        </div>
+      );
+    }
+
+    const initials = adminName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
     const colors = [
-      'from-blue-400 to-blue-600',
-      'from-purple-400 to-purple-600', 
-      'from-green-400 to-green-600',
-      'from-orange-400 to-orange-600',
-      'from-pink-400 to-pink-600',
-      'from-indigo-400 to-indigo-600'
+      "from-blue-400 to-blue-600",
+      "from-purple-400 to-purple-600",
+      "from-green-400 to-green-600",
+      "from-orange-400 to-orange-600",
+      "from-pink-400 to-pink-600",
+      "from-indigo-400 to-indigo-600",
     ];
     const colorIndex = adminName.length % colors.length;
-    
+
     return (
-      <div className={`w-12 h-12 bg-gradient-to-br ${colors[colorIndex]} rounded-full flex items-center justify-center shadow-md`}>
+      <div
+        className={`w-12 h-12 bg-gradient-to-br ${colors[colorIndex]} rounded-full flex items-center justify-center shadow-md`}
+      >
         <span className="text-white text-lg font-semibold">{initials}</span>
       </div>
     );
   };
 
-  // Mock assignment data
-  const assignments = [
-    {
-      id: 1,
-      name: 'Oral Assessment 1',
-      type: 'Individual',
-      status: 'Active',
-      dueDate: '2025-02-15',
-      students: 89,
-      examiners: 3,
-      completion: 78
-    },
-    {
-      id: 2,
-      name: 'Group Presentation',
-      type: 'Group',
-      status: 'Setup',
-      dueDate: '2025-03-10',
-      students: 156,
-      examiners: 4,
-      completion: 0
-    }
-  ];
+  // Use real assignment data from course object, with fallback to empty array
+  const assignments = course.assignments || course.assignmentList || [];
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header with X button in top right */}
         <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-white relative">
@@ -90,14 +88,16 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
           >
             <i className="fas fa-times text-gray-700 text-lg"></i>
           </button>
-          
+
           <div className="flex items-center space-x-4 pr-12">
             <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
               <i className="fas fa-university text-2xl"></i>
             </div>
             <div>
               <h2 className="text-2xl font-bold">{course.name}</h2>
-              <p className="text-orange-100 text-lg">{course.code} • {course.semester}</p>
+              <p className="text-orange-100 text-lg">
+                {course.code} • {course.semester}
+              </p>
               <p className="text-orange-200 text-sm">{course.department}</p>
             </div>
           </div>
@@ -116,19 +116,27 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                 </h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Description</label>
-                    <p className="text-gray-900 dark:text-gray-100 mt-1">{course.description}</p>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Description
+                    </label>
+                    <p className="text-gray-900 dark:text-gray-100 mt-1">
+                      {course.description}
+                    </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Venue</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Venue
+                      </label>
                       <p className="text-gray-900 dark:text-gray-100 mt-1 flex items-center">
                         <i className="fas fa-map-marker-alt text-gray-400 mr-2"></i>
                         {course.venue}
                       </p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                        Status
+                      </label>
                       <div className="mt-2">
                         {getStatusBadge(course.status)}
                       </div>
@@ -144,46 +152,89 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                   Assignments ({assignments.length})
                 </h3>
                 <div className="space-y-3">
-                  {assignments.map((assignment) => (
-                    <div key={assignment.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{assignment.name}</h4>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {assignment.type} • Due: {assignment.dueDate}
-                          </p>
+                  {assignments.length > 0 ? (
+                    assignments.map((assignment) => (
+                      <div
+                        key={
+                          assignment.id ||
+                          assignment.assignmentId ||
+                          Math.random()
+                        }
+                        className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {assignment.name ||
+                                assignment.assignmentName ||
+                                assignment.title ||
+                                "Unnamed Assignment"}
+                            </h4>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              {assignment.type ||
+                                assignment.assignmentType ||
+                                "Individual"}{" "}
+                              • Due:{" "}
+                              {assignment.dueDate ||
+                                assignment.due ||
+                                assignment.deadline ||
+                                "TBD"}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                              {assignment.completion ||
+                                assignment.progress ||
+                                0}
+                              % complete
+                            </div>
+                            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                              <div
+                                className="h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-300"
+                                style={{
+                                  width: `${
+                                    assignment.completion ||
+                                    assignment.progress ||
+                                    0
+                                  }%`,
+                                }}
+                              ></div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            {assignment.completion}% complete
-                          </div>
-                          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                            <div 
-                              className="h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-300"
-                              style={{ width: `${assignment.completion}%` }}
-                            ></div>
-                          </div>
+                        <div className="flex items-center space-x-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
+                          <span className="flex items-center">
+                            <i className="fas fa-user-graduate mr-1"></i>
+                            {assignment.students ||
+                              assignment.studentCount ||
+                              0}{" "}
+                            students
+                          </span>
+                          <span className="flex items-center">
+                            <i className="fas fa-user-tie mr-1"></i>
+                            {assignment.examiners ||
+                              assignment.examinerCount ||
+                              0}{" "}
+                            examiners
+                          </span>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              (assignment.status || "Unknown") === "Active"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                            }`}
+                          >
+                            {assignment.status || "Unknown"}
+                          </span>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
-                        <span className="flex items-center">
-                          <i className="fas fa-user-graduate mr-1"></i>
-                          {assignment.students} students
-                        </span>
-                        <span className="flex items-center">
-                          <i className="fas fa-user-tie mr-1"></i>
-                          {assignment.examiners} examiners
-                        </span>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          assignment.status === 'Active' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                        }`}>
-                          {assignment.status}
-                        </span>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <i className="fas fa-clipboard-list text-4xl mb-3 opacity-50"></i>
+                      <p>No assignments available for this course</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </Card>
             </div>
@@ -199,10 +250,15 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                 <div className="flex items-center space-x-3">
                   {getAdminAvatar(course.admin)}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{course.admin}</h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.adminEmail}</p>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {course.admin || "Unassigned"}
+                    </h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {course.adminEmail || "No email available"}
+                    </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Last activity: {course.lastActivity}
+                      Last activity:{" "}
+                      {course.lastActivity || "No activity recorded"}
                     </p>
                   </div>
                 </div>
@@ -216,28 +272,48 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Enrolled Students</span>
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{course.students}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Enrolled Students
+                    </span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {course.students}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Total Assignments</span>
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{course.assignments}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Total Assignments
+                    </span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {course.assignmentCount || course.assignments || 0}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Active Assignments</span>
-                    <span className="text-lg font-semibold text-green-600 dark:text-green-400">{course.activeAssignments}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Active Assignments
+                    </span>
+                    <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                      {course.activeAssignments}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Examiners</span>
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{course.examinerCount}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Examiners
+                    </span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {course.examinerCount}
+                    </span>
                   </div>
                   <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Completion Rate</span>
-                      <span className="text-lg font-semibold text-orange-600 dark:text-orange-400">{course.completionRate}%</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Completion Rate
+                      </span>
+                      <span className="text-lg font-semibold text-orange-600 dark:text-orange-400">
+                        {course.completionRate}%
+                      </span>
                     </div>
                     <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full">
-                      <div 
+                      <div
                         className="h-3 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-500"
                         style={{ width: `${course.completionRate}%` }}
                       ></div>
@@ -253,22 +329,22 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                   Quick Actions
                 </h3>
                 <div className="space-y-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-left border-orange-200 dark:border-orange-800 hover:bg-orange-50 dark:hover:bg-orange-900/20"
                   >
                     <i className="fas fa-chart-line mr-2 text-orange-500"></i>
                     View Analytics
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-left border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                   >
                     <i className="fas fa-download mr-2 text-blue-500"></i>
                     Export Report
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full justify-start text-left border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20"
                   >
                     <i className="fas fa-envelope mr-2 text-green-500"></i>
@@ -287,7 +363,7 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
               <i className="fas fa-eye mr-2"></i>
               Read-only view • Super Admin access
             </div>
-            <Button 
+            <Button
               onClick={onClose}
               className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-6"
             >

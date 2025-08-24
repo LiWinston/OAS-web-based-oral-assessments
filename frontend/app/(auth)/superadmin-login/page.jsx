@@ -71,19 +71,33 @@ export default function SuperAdminLoginPage() {
 
     try {
       const response = await authService.login(data.email, data.password);
-      console.log('Login response:', response);
-      
-      // Verify this is actually a super admin
-      if (response.data.user.role !== 'SUPER_ADMIN') {
+
+      // Ensure successful response with expected data shape
+      if (!(response.success && response.data)) {
+        throw new Error(response.message || 'Login failed. Please check your credentials.');
+      }
+
+      // Map backend roles (ROLE_*) to frontend roles
+      const roleMapping = {
+        ROLE_ADMIN: 'COURSE_ADMIN',
+        ROLE_STUDENT: 'STUDENT',
+        ROLE_EXAMINER: 'EXAMINER',
+        ROLE_SUPER_ADMIN: 'SUPER_ADMIN',
+      };
+
+      const frontendRole = roleMapping[response.data.role] || response.data.role;
+
+      // Strictly require SUPER_ADMIN for this portal
+      if (frontendRole !== 'SUPER_ADMIN') {
         throw new Error('Access denied. This portal is restricted to Super Administrators only.');
       }
-      
-      // Store auth data
-      login(response.data.token, response.data.user);
-      
+
+      // Persist auth using the same store contract as main login
+      // The store handles cookie setting and role normalization
+      login(response.data);
+
       // Redirect to super admin dashboard
       router.push('/superadmin');
-      
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
     } finally {

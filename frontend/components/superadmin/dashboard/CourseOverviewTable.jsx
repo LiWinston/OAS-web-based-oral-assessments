@@ -1,153 +1,118 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '../../ui/button';
-import { Card } from '../../ui/card';
-import { Input } from '../../ui/input';
-import { CourseDetailModal } from './CourseDetailModal';
+import { useState, useEffect } from "react";
+import { Button } from "../../ui/button";
+import { Card } from "../../ui/card";
+import { Input } from "../../ui/input";
+import { CourseDetailModal } from "./CourseDetailModal";
+import { superadminCourseService } from "../../../services/superadminCourseService";
 
 export function CourseOverviewTable() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDepartment, setFilterDepartment] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterDepartment, setFilterDepartment] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filteredCourses, setFilteredCourses] = useState([]);
 
-  // Enhanced mock course data with more details
-  const courses = [
-    {
-      id: 1,
-      name: 'Data Structures and Algorithms',
-      code: 'COMP90038',
-      department: 'Computer Science',
-      semester: '2025 Semester 1',
-      admin: 'Dr. John Smith',
-      adminEmail: 'j.smith@student.unimelb.edu.au',
-      students: 145,
-      assignments: 2,
-      activeAssignments: 1,
-      status: 'active',
-      lastActivity: '2025-01-08',
-      description: 'Comprehensive study of fundamental data structures and algorithmic analysis.',
-      venue: 'Doug McDonell Building',
-      examinerCount: 4,
-      completionRate: 87
-    },
-    {
-      id: 2,
-      name: 'Machine Learning Fundamentals',
-      code: 'COMP90049',
-      department: 'Computer Science',
-      semester: '2025 Semester 1',
-      admin: 'Dr. John Smith',
-      adminEmail: 'j.smith@student.unimelb.edu.au',
-      students: 89,
-      assignments: 1,
-      activeAssignments: 0,
-      status: 'setup',
-      lastActivity: '2025-01-07',
-      description: 'Introduction to machine learning concepts and practical applications.',
-      venue: 'Electrical Engineering Building',
-      examinerCount: 3,
-      completionRate: 0
-    },
-    {
-      id: 3,
-      name: 'Advanced Physics Lab',
-      code: 'PHYS30002',
-      department: 'Physics',
-      semester: '2025 Semester 1',
-      admin: 'Prof. Emily Davis',
-      adminEmail: 'e.davis@student.unimelb.edu.au',
-      students: 34,
-      assignments: 3,
-      activeAssignments: 2,
-      status: 'active',
-      lastActivity: '2025-01-08',
-      description: 'Advanced laboratory experiments in quantum and particle physics.',
-      venue: 'Physics Building',
-      examinerCount: 2,
-      completionRate: 94
-    },
-    {
-      id: 4,
-      name: 'Organic Chemistry',
-      code: 'CHEM20006',
-      department: 'Chemistry',
-      semester: '2025 Semester 1',
-      admin: 'Dr. Michael Brown',
-      adminEmail: 'm.brown@student.unimelb.edu.au',
-      students: 67,
-      assignments: 1,
-      activeAssignments: 0,
-      status: 'inactive',
-      lastActivity: '2025-01-05',
-      description: 'Study of organic compounds, reactions, and synthesis methods.',
-      venue: 'Chemistry Building',
-      examinerCount: 2,
-      completionRate: 78
-    },
-    {
-      id: 5,
-      name: 'Software Engineering Principles',
-      code: 'SWEN90006',
-      department: 'Computer Science',
-      semester: '2025 Semester 1',
-      admin: 'Dr. John Smith',
-      adminEmail: 'j.smith@student.unimelb.edu.au',
-      students: 178,
-      assignments: 2,
-      activeAssignments: 1,
-      status: 'active',
-      lastActivity: '2025-01-08',
-      description: 'Principles and practices of large-scale software development.',
-      venue: 'Melbourne School of Engineering',
-      examinerCount: 5,
-      completionRate: 91
+  // Load courses from backend API
+  useEffect(() => {
+    loadCourses();
+  }, []);
+
+  const loadCourses = async () => {
+    try {
+      setIsLoading(true);
+      const response = await superadminCourseService.getCourses();
+      if (response.success) {
+        setCourses(response.data || []);
+      } else {
+        // API failed, set empty data
+        setCourses([]);
+      }
+    } catch (error) {
+      console.error("Failed to load courses:", error);
+      // API error, set empty data
+      setCourses([]);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
-  const departments = [...new Set(courses.map(course => course.department))];
+  // Get unique departments from courses
+  const departments =
+    courses && courses.length > 0
+      ? [...new Set(courses.map((course) => course.department))]
+      : [];
 
   // Filter courses based on search and filters
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = 
-      course.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.admin.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDepartment = filterDepartment === 'all' || course.department === filterDepartment;
-    const matchesStatus = filterStatus === 'all' || course.status === filterStatus;
-    
-    return matchesSearch && matchesDepartment && matchesStatus;
-  });
+  useEffect(() => {
+    let filtered = courses || [];
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (course) =>
+          (course.name &&
+            course.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (course.code &&
+            course.code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (course.department &&
+            course.department.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    if (filterDepartment !== "all") {
+      filtered = filtered.filter(
+        (course) => course.department === filterDepartment
+      );
+    }
+
+    if (filterStatus !== "all") {
+      filtered = filtered.filter((course) => course.status === filterStatus);
+    }
+
+    setFilteredCourses(filtered);
+  }, [courses, searchTerm, filterDepartment, filterStatus]);
 
   const getStatusBadge = (status) => {
+    if (!status || typeof status !== "string") {
+      status = "inactive";
+    }
+
     const statusConfig = {
-      active: { 
-        color: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700', 
-        icon: 'fas fa-check-circle', 
-        text: 'Active',
-        pulse: true
+      active: {
+        color:
+          "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700",
+        icon: "fas fa-check-circle",
+        text: "Active",
+        pulse: true,
       },
-      setup: { 
-        color: 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700', 
-        icon: 'fas fa-cog fa-spin', 
-        text: 'Setup',
-        pulse: false
+      setup: {
+        color:
+          "bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700",
+        icon: "fas fa-cog fa-spin",
+        text: "Setup",
+        pulse: false,
       },
-      inactive: { 
-        color: 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 dark:border-gray-700', 
-        icon: 'fas fa-pause-circle', 
-        text: 'Inactive',
-        pulse: false
-      }
+      inactive: {
+        color:
+          "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 dark:border-gray-700",
+        icon: "fas fa-pause-circle",
+        text: "Inactive",
+        pulse: false,
+      },
     };
 
     const config = statusConfig[status] || statusConfig.inactive;
-    
+
     return (
-      <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md ${config.color} ${config.pulse ? 'animate-pulse' : ''}`}>
+      <span
+        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md ${
+          config.color
+        } ${config.pulse ? "animate-pulse" : ""}`}
+      >
         <i className={`${config.icon} mr-2`}></i>
         {config.text}
       </span>
@@ -155,28 +120,104 @@ export function CourseOverviewTable() {
   };
 
   const handleCourseClick = (course) => {
+    if (!course || !course.id) {
+      console.warn("Invalid course data for detail view");
+      return;
+    }
     setSelectedCourse(course);
     setIsDetailModalOpen(true);
   };
 
   const getAdminAvatar = (adminName) => {
-    const initials = adminName.split(' ').map(n => n[0]).join('').toUpperCase();
+    if (!adminName || typeof adminName !== "string") {
+      return (
+        <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-md">
+          <i className="fas fa-user text-white text-sm"></i>
+        </div>
+      );
+    }
+
+    const initials = adminName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
     const colors = [
-      'from-blue-400 to-blue-600',
-      'from-purple-400 to-purple-600', 
-      'from-green-400 to-green-600',
-      'from-orange-400 to-orange-600',
-      'from-pink-400 to-pink-600',
-      'from-indigo-400 to-indigo-600'
+      "from-blue-400 to-blue-600",
+      "from-purple-400 to-purple-600",
+      "from-green-400 to-green-600",
+      "from-orange-400 to-orange-600",
+      "from-pink-400 to-pink-600",
+      "from-indigo-400 to-indigo-600",
     ];
     const colorIndex = adminName.length % colors.length;
-    
+
     return (
-      <div className={`w-10 h-10 bg-gradient-to-br ${colors[colorIndex]} rounded-full flex items-center justify-center shadow-md transition-transform duration-200 hover:scale-110`}>
+      <div
+        className={`w-10 h-10 bg-gradient-to-br ${colors[colorIndex]} rounded-full flex items-center justify-center shadow-md transition-transform duration-200 hover:scale-110`}
+      >
         <span className="text-white text-sm font-semibold">{initials}</span>
       </div>
     );
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            System-wide Course Overview
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Loading course data...
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Loading course data...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no data
+  if (!courses || courses.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            System-wide Course Overview
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            No course data available
+          </p>
+        </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
+              Unable to load course data
+            </p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
+              Please check your connection and try again
+            </p>
+            <Button
+              onClick={loadCourses}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <i className="fas fa-redo mr-2"></i>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -205,7 +246,7 @@ export function CourseOverviewTable() {
               />
               {searchTerm && (
                 <button
-                  onClick={() => setSearchTerm('')}
+                  onClick={() => setSearchTerm("")}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                 >
                   <i className="fas fa-times"></i>
@@ -213,7 +254,7 @@ export function CourseOverviewTable() {
               )}
             </div>
           </div>
-          
+
           {/* Enhanced Department filter - same width and height */}
           <div className="w-44">
             <select
@@ -222,12 +263,14 @@ export function CourseOverviewTable() {
               className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:border-orange-500 dark:focus:border-orange-400 shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
             >
               <option value="all">All Departments</option>
-              {departments.map(dept => (
-                <option key={dept} value={dept}>{dept}</option>
+              {departments.map((dept, index) => (
+                <option key={dept || `dept-${index}`} value={dept || ""}>
+                  {dept || "Unknown"}
+                </option>
               ))}
             </select>
           </div>
-          
+
           {/* Enhanced Status filter - same width and height */}
           <div className="w-44">
             <select
@@ -241,11 +284,11 @@ export function CourseOverviewTable() {
               <option value="inactive">Inactive</option>
             </select>
           </div>
-          
+
           {/* Enhanced Export button - exactly same width and height */}
           <div className="w-44">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full px-4 py-3 border-2 border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-300 dark:hover:border-orange-700 transition-all duration-200 hover:shadow-md rounded-xl text-sm h-12"
             >
               <i className="fas fa-download mr-2"></i>
@@ -253,39 +296,44 @@ export function CourseOverviewTable() {
             </Button>
           </div>
         </div>
-        
+
         {/* Enhanced Results count with filter indicators */}
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            Showing <span className="font-semibold text-gray-800 dark:text-gray-200">{filteredCourses.length}</span> of <span className="font-semibold">{courses.length}</span> courses
+            Showing{" "}
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              {filteredCourses.length}
+            </span>{" "}
+            of <span className="font-semibold">{courses.length}</span> courses
           </div>
-          
+
           {/* Active filter indicators */}
           <div className="flex items-center space-x-2">
             {searchTerm && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                <i className="fas fa-search mr-1"></i>
-                "{searchTerm}"
+                <i className="fas fa-search mr-1"></i>"{searchTerm}"
               </span>
             )}
-            {filterDepartment !== 'all' && (
+            {filterDepartment !== "all" && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                 <i className="fas fa-building mr-1"></i>
                 {filterDepartment}
               </span>
             )}
-            {filterStatus !== 'all' && (
+            {filterStatus !== "all" && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <i className="fas fa-circle mr-1"></i>
                 {filterStatus}
               </span>
             )}
-            {(searchTerm || filterDepartment !== 'all' || filterStatus !== 'all') && (
+            {(searchTerm ||
+              filterDepartment !== "all" ||
+              filterStatus !== "all") && (
               <button
                 onClick={() => {
-                  setSearchTerm('');
-                  setFilterDepartment('all');
-                  setFilterStatus('all');
+                  setSearchTerm("");
+                  setFilterDepartment("all");
+                  setFilterStatus("all");
                 }}
                 className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
@@ -327,12 +375,12 @@ export function CourseOverviewTable() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredCourses.map((course) => (
-                <tr 
-                  key={course.id} 
+              {filteredCourses.map((course, index) => (
+                <tr
+                  key={course?.id || `course-${index}`}
                   className="group hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 transition-all duration-300 cursor-pointer border-b border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800"
                   onClick={() => handleCourseClick(course)}
-                  data-course-id={course.id}
+                  data-course-id={course?.id || `course-${index}`}
                 >
                   <td className="px-6 py-6">
                     <div className="group-hover:translate-x-1 transition-transform duration-300">
@@ -340,18 +388,23 @@ export function CourseOverviewTable() {
                         {course.name}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        <span className="font-medium">{course.code}</span> • {course.semester}
+                        <span className="font-medium">
+                          {course.code || "N/A"}
+                        </span>{" "}
+                        • {course.semester || "N/A"}
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                         <i className="fas fa-map-marker-alt mr-1"></i>
-                        {course.venue}
+                        {course.venue || "TBD"}
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-6">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 mr-2 shadow-sm"></div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{course.department}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {course.department}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-6">
@@ -359,10 +412,10 @@ export function CourseOverviewTable() {
                       {getAdminAvatar(course.admin)}
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {course.admin}
+                          {course.admin || "Unassigned"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          {course.adminEmail}
+                          {course.adminEmail || "No email"}
                         </div>
                       </div>
                     </div>
@@ -373,7 +426,7 @@ export function CourseOverviewTable() {
                         <i className="fas fa-user-graduate text-purple-600 dark:text-purple-400 text-sm"></i>
                       </div>
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {course.students}
+                        {course.students || 0}
                       </span>
                     </div>
                   </td>
@@ -384,12 +437,12 @@ export function CourseOverviewTable() {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                          {course.assignments} total
+                          {course.assignments || 0} total
                         </div>
-                        {course.activeAssignments > 0 && (
+                        {(course.activeAssignments || 0) > 0 && (
                           <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
                             <i className="fas fa-play-circle mr-1"></i>
-                            {course.activeAssignments} active
+                            {course.activeAssignments || 0} active
                           </div>
                         )}
                       </div>
@@ -402,31 +455,35 @@ export function CourseOverviewTable() {
                   </td>
                   <td className="px-6 py-6">
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                      {course.lastActivity}
+                      {course.lastActivity || "No activity"}
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                       <i className="fas fa-clock mr-1"></i>
-                      {course.completionRate}% complete
+                      {course.completionRate || 0}% complete
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          
+
           {filteredCourses.length === 0 && (
             <div className="text-center py-16">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-search text-gray-400 text-2xl"></i>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No courses found</h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-4">No courses match your current search criteria</p>
-              <Button 
-                variant="outline" 
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                No courses found
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                No courses match your current search criteria
+              </p>
+              <Button
+                variant="outline"
                 onClick={() => {
-                  setSearchTerm('');
-                  setFilterDepartment('all');
-                  setFilterStatus('all');
+                  setSearchTerm("");
+                  setFilterDepartment("all");
+                  setFilterStatus("all");
                 }}
                 className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/20"
               >
@@ -447,29 +504,37 @@ export function CourseOverviewTable() {
           <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
             {courses.length}
           </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Courses</div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Courses
+          </div>
         </Card>
-        
+
         <Card className="p-6 text-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             <i className="fas fa-check-circle text-white text-lg"></i>
           </div>
           <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
-            {courses.filter(c => c.status === 'active').length}
+            {courses.filter((c) => c.status === "active").length}
           </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Courses</div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Active Courses
+          </div>
         </Card>
-        
+
         <Card className="p-6 text-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             <i className="fas fa-user-graduate text-white text-lg"></i>
           </div>
           <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-            {courses.reduce((sum, course) => sum + course.students, 0).toLocaleString()}
+            {courses
+              .reduce((sum, course) => sum + course.students, 0)
+              .toLocaleString()}
           </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Students</div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Students
+          </div>
         </Card>
-        
+
         <Card className="p-6 text-center bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-800/20 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
           <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
             <i className="fas fa-building text-white text-lg"></i>
@@ -477,7 +542,9 @@ export function CourseOverviewTable() {
           <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">
             {departments.length}
           </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Departments</div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Departments
+          </div>
         </Card>
       </div>
 

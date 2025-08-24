@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { CourseOverviewTable } from '@/components/superadmin/dashboard/CourseOverviewTable'
+import { CourseOverviewTable } from "@/components/superadmin/dashboard/CourseOverviewTable";
 
 export default function CoursesOverview() {
   return (
@@ -12,9 +12,7 @@ export default function CoursesOverview() {
             <i className="fas fa-university text-orange-500 text-2xl"></i>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-white">
-              Courses Overview
-            </h1>
+            <h1 className="text-3xl font-bold text-white">Courses Overview</h1>
             <p className="text-lg text-orange-100 mt-1">
               System-wide oversight of all courses and their administration
             </p>
@@ -25,5 +23,5 @@ export default function CoursesOverview() {
       {/* Enhanced Course Overview Table */}
       <CourseOverviewTable />
     </div>
-  )
+  );
 }
