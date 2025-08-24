@@ -1,8 +1,11 @@
 package org.swen90017.oas.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
@@ -21,6 +24,7 @@ import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -45,6 +49,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
     @Override
     @Transactional
+    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#dto.subjectId")
     public AssignmentResponseDTO createAssignment(AssignmentRequestDTO dto) {
         // Validate subject exists
         Subject subject = subjectMapper.selectById(dto.getSubjectId());
@@ -86,6 +91,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
     @Override
     @Transactional
+    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#dto.subjectId")
     public AssignmentResponseDTO updateAssignment(Long id, AssignmentRequestDTO dto) {
         Assignment existingAssignment = assignmentMapper.selectById(id);
         if (existingAssignment == null) {
@@ -138,13 +144,20 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
+        // Get subjectId before deletion to clear cache
+        Long subjectId = assignment.getSubjectId();
+
         // Check if assignment can be deleted (e.g., no submissions)
         // This would be implemented when submission service is created
         
         assignmentMapper.deleteById(id);
+        
+        // Clear cache after successful deletion
+        clearAssignmentsCache(subjectId);
     }
 
     @Override
+    @Cacheable(value = "subjectAssignments", key = "#subjectId")
     public List<AssignmentResponseDTO> getAssignmentsBySubject(Long subjectId) {
         // Validate subject exists
         Subject subject = subjectMapper.selectById(subjectId);
@@ -163,6 +176,55 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         return assignments.stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Cacheable(value = "subjectAssignmentCount", key = "#subjectId")
+    public Integer getAssignmentCountBySubject(Long subjectId) {
+        // Validate subject exists
+        Subject subject = subjectMapper.selectById(subjectId);
+        if (subject == null) {
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
+        }
+
+        // Get assignment count for the subject
+        Integer count = Math.toIntExact(assignmentMapper.selectCount(
+                new LambdaQueryWrapper<Assignment>()
+                        .eq(Assignment::getSubjectId, subjectId)
+        ));
+
+        return count;
+    }
+
+    @Override
+    public Map<Long, Integer> getAssignmentCountsBySubjectIds(List<Long> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return new java.util.HashMap<>();
+        }
+
+        // Use SQL aggregation for batch query
+        List<Map<String, Object>> results = assignmentMapper.selectAssignmentCountsBySubjectIds(subjectIds);
+        
+        // Convert to Map<Long, Integer>
+        Map<Long, Integer> countMap = new java.util.HashMap<>();
+        for (Map<String, Object> result : results) {
+            Long subjectId = ((Number) result.get("subjectId")).longValue();
+            Integer count = ((Number) result.get("assignmentCount")).intValue();
+            countMap.put(subjectId, count);
+        }
+        
+        // Fill in 0 for subjects with no assignments
+        for (Long subjectId : subjectIds) {
+            countMap.putIfAbsent(subjectId, 0);
+        }
+        
+        return countMap;
+    }
+
+    @Override
+    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#subjectId")
+    public void clearAssignmentsCache(Long subjectId) {
+        // This method only serves to clear cache, no business logic needed
     }
 
     /**

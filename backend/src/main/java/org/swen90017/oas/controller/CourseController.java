@@ -25,6 +25,8 @@ import org.swen90017.oas.service.SubjectService;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -59,10 +61,8 @@ public class CourseController {
             queryDTO.getStatus()
         );
         
-        // Transform data to CourseResponseDTO
-        List<CourseResponseDTO> courseDTOs = result.getRecords().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        // Transform data to CourseResponseDTO with dual-path optimization
+        List<CourseResponseDTO> courseDTOs = convertToDTOsWithDualPath(result.getRecords());
         
         CourseListResponseDTO response = new CourseListResponseDTO(
             courseDTOs, 
@@ -175,6 +175,93 @@ public class CourseController {
     }
 
     /**
+     * Convert Subject entities to CourseResponseDTOs with dual-path optimization
+     * Uses parallel execution: cache-based vs SQL aggregation, whichever finishes first
+     */
+    private List<CourseResponseDTO> convertToDTOsWithDualPath(List<Subject> subjects) {
+        if (subjects == null || subjects.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+
+        // Extract subject IDs
+        List<Long> subjectIds = subjects.stream()
+                .map(Subject::getSubjectId)
+                .collect(Collectors.toList());
+
+        try {
+            // Path 1: Cache-based approach (async)
+            CompletableFuture<Map<Long, Integer>> cacheBasedFuture = CompletableFuture.supplyAsync(() -> {
+                Map<Long, Integer> cacheCountMap = new java.util.HashMap<>();
+                for (Long subjectId : subjectIds) {
+                    try {
+                        Integer count = assignmentService.getAssignmentCountBySubject(subjectId);
+                        cacheCountMap.put(subjectId, count);
+                    } catch (Exception e) {
+                        cacheCountMap.put(subjectId, 0);
+                    }
+                }
+                return cacheCountMap;
+            });
+
+            // Path 2: SQL aggregation approach (async)
+            CompletableFuture<Map<Long, Integer>> sqlBasedFuture = CompletableFuture.supplyAsync(() -> {
+                try {
+                    return assignmentService.getAssignmentCountsBySubjectIds(subjectIds);
+                } catch (Exception e) {
+                    // Fallback to empty map
+                    Map<Long, Integer> fallbackMap = new java.util.HashMap<>();
+                    for (Long subjectId : subjectIds) {
+                        fallbackMap.put(subjectId, 0);
+                    }
+                    return fallbackMap;
+                }
+            });
+
+            // Race condition: use whichever completes first
+            CompletableFuture<Map<Long, Integer>> winnerFuture = CompletableFuture.anyOf(
+                    cacheBasedFuture, sqlBasedFuture
+            ).thenApply(result -> (Map<Long, Integer>) result);
+
+            // Get the result with timeout
+            Map<Long, Integer> assignmentCountMap = winnerFuture.get(3, TimeUnit.SECONDS);
+
+            // Convert subjects to DTOs using the winning result
+            return subjects.stream()
+                    .map(subject -> convertToDTOWithCount(subject, assignmentCountMap.getOrDefault(subject.getSubjectId(), 0)))
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            // Fallback: use original single-path approach
+            return subjects.stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        }
+    }
+
+    /**
+     * Convert Subject entity to CourseResponseDTO with pre-computed assignment count
+     */
+    private CourseResponseDTO convertToDTOWithCount(Subject subject, Integer assignmentCount) {
+        CourseResponseDTO dto = new CourseResponseDTO();
+        dto.setId(subject.getSubjectId());
+        dto.setCourseCode(subject.getSubjectCode());
+        dto.setCourseName(subject.getSubjectName());
+        dto.setDescription(subject.getDescription());
+        dto.setAcademicYear(subject.getAcademicYear());
+        dto.setSemester(subject.getSemester());
+        dto.setAdminUserId(subject.getAdminUserId());
+        dto.setIsActive(subject.getIsActive());
+        dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
+        dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
+        dto.setAssignments(assignmentCount); // Use pre-computed count
+        dto.setCreateTime(subject.getCreateTime());
+        dto.setCreator(subject.getCreator());
+        dto.setUpdateTime(subject.getUpdateTime());
+        dto.setUpdater(subject.getUpdater());
+        return dto;
+    }
+
+    /**
      * Convert Subject entity to CourseResponseDTO
      */
     private CourseResponseDTO convertToDTO(Subject subject) {
@@ -190,10 +277,10 @@ public class CourseController {
         dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
         dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
         
-        // Get actual assignment count for this subject
+        // Use cached assignment count for better performance
         try {
-            List<AssignmentResponseDTO> assignments = assignmentService.getAssignmentsBySubject(subject.getSubjectId());
-            dto.setAssignments(assignments.size());
+            Integer assignmentCount = assignmentService.getAssignmentCountBySubject(subject.getSubjectId());
+            dto.setAssignments(assignmentCount);
         } catch (Exception e) {
             // In case of error, fall back to 0
             dto.setAssignments(0);

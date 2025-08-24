@@ -23,6 +23,16 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  redis:
+    url: ${REDIS_URL:rediss://red-d2li6ljipnbc7389b7jg:wX3WFQmNQeqX9hGXLfSolL1WvKmiq1da@singapore-keyvalue.render.com:6379}
+    timeout: 3000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
   jackson:
     time-zone: "Australia/Melbourne"
     date-format: yyyy-MM-dd HH:mm:ss
