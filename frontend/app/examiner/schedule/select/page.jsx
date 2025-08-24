@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
@@ -13,7 +13,7 @@ import { useAuthStore } from "../../../../store/authStore";
  * Step 1: Assessment Selection
  * Step 2: Timeslot Selection
  */
-export default function TimeslotSelection() {
+function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
@@ -38,7 +38,7 @@ export default function TimeslotSelection() {
       setSelectedAssessment("final");
       setCurrentStep(2);
     }
-  }, [searchParams]);
+  }, [searchParams, setCurrentStep]);
 
   const dateHasSlots = (date) => {
     return [
@@ -810,5 +810,13 @@ export default function TimeslotSelection() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function TimeslotSelection() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TimeslotSelectionContent />
+    </Suspense>
   );
 }

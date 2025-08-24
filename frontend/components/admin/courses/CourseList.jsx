@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../../ui/button';
 import { courseService } from '../../../services/courseService';
 
@@ -13,14 +13,9 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
   const [loading, setLoading] = useState(true);
 
   // Define colors for courses
-  const courseColors = ['blue', 'indigo', 'yellow', 'green', 'purple'];
+  const courseColors = useMemo(() => ['blue', 'indigo', 'yellow', 'green', 'purple'], []);
 
-  // Fetch courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       setLoading(true);
       const result = await courseService.getCourses();
@@ -46,7 +41,12 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseColors]);
+
+  // Fetch courses on mount
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   // Filter courses based on search and filters with smooth transitions
   useEffect(() => {
