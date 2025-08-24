@@ -229,13 +229,13 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     public SysAdmin inviteAdmin(AdminInviteDTO dto) {
         // Determine email: prefer sisLoginId@unimelb.edu.au; fallback to provided email
         String email = null;
-        if (dto.getSisLoginId() != null && !dto.getSisLoginId().isEmpty()) {
-            email = dto.getSisLoginId() + "@student.unimelb.edu.au";
-        } else {
+        if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
             email = dto.getEmail();
+        } else {
+            email = dto.getSisLoginId() + "@unimelb.edu.au";
         }
         // Validate email domain
-        if (email == null || !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
+        if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au")) {
             throw new BusinessException("Invalid email domain (must be @unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
         }
 
