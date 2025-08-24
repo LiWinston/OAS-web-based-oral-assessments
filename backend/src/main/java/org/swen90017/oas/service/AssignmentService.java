@@ -49,9 +49,4 @@ public interface AssignmentService extends IService<Assignment> {
      * Returns Map<subjectId, assignmentCount>
      */
     Map<Long, Integer> getAssignmentCountsBySubjectIds(List<Long> subjectIds);
-
-    /**
-     * Clear assignments cache for specific subject
-     */
-    void clearAssignmentsCache(Long subjectId);
 }
