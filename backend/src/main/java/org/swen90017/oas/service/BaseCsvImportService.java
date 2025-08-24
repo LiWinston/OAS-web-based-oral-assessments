@@ -75,7 +75,7 @@ public class BaseCsvImportService {
         }
 
         // Create users
-        List<SysUser> users = createUsers(toInsert, userNameExtractor);
+        List<SysUser> users = createUsers(toInsert, userNameExtractor, sisUserIdExtractor);
         
         // Create user role relationships
         createUserRoles(users);
@@ -111,7 +111,7 @@ public class BaseCsvImportService {
     /**
      * Create user records
      */
-    private <T> List<SysUser> createUsers(List<T> toInsert, Function<T, String> userNameExtractor) {
+    private <T> List<SysUser> createUsers(List<T> toInsert, Function<T, String> userNameExtractor,Function<T, String> sisUserIdExtractor) {
         List<SysUser> users = new ArrayList<>();
         for (T dto : toInsert) {
             SysUser user = new SysUser();
@@ -120,10 +120,12 @@ public class BaseCsvImportService {
             user.setRegistrationStatus(RegistrationStatus.INVITED.code());
             user.setInvitedAt(new Date());
             user.setPassword("123456");
+            user.setEmail(sisUserIdExtractor.apply(dto)+"@student.unimelb.edu.au"); // Assuming SIS User ID is used as email
             users.add(user);
+            log.info("Prepared SysUser object for user: {}", user);
         }
 
-        log.debug("Prepared {} SysUser objects for insertion", users.size());
+        log.info("Prepared {} SysUser objects for insertion", users.size());
         sysUserMapper.batchInsert(users);
         log.info("Inserted {} users into sys_user table", users.size());
         

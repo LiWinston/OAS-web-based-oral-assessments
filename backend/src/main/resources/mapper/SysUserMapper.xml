@@ -5,12 +5,19 @@
 
 <mapper namespace="org.swen90017.oas.mapper.SysUserMapper">
 
-    <!-- 批量插入 sys_user -->
     <insert id="batchInsert" parameterType="list" useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
-        INSERT INTO sys_user (user_name, password, status, create_time, update_time)
+        INSERT INTO sys_user (
+        user_name, email, password, status,
+        registration_status, invited_at, registered_at,
+        create_time, creator, update_time, updater, last_login_at
+        )
         VALUES
         <foreach collection="list" item="u" separator=",">
-            (#{u.userName}, #{u.password}, #{u.status}, #{u.createTime}, #{u.updateTime})
+            (
+            #{u.userName}, #{u.email}, #{u.password}, #{u.status},
+            #{u.registrationStatus}, #{u.invitedAt}, #{u.registeredAt},
+            #{u.createTime}, #{u.creator}, #{u.updateTime}, #{u.updater}, #{u.lastLoginAt}
+            )
         </foreach>
     </insert>
 

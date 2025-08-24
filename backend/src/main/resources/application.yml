@@ -46,6 +46,7 @@ mybatis-plus:
   type-aliases-package: org.swen90017.oas.entity
   configuration:
     map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 logging:
   level:
