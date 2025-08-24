@@ -204,14 +204,19 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
         SysAdmin admin = sysAdminMapper.selectByUserId(userId);
         if (admin == null) {
-            admin = new SysAdmin();
+            admin = Convert.convertObject(user, SysAdmin.class);
+            log.info("[GetAdminDetail] No sys_admin found for userId={}, creating empty admin record", admin);
             admin.setUserId(userId);
         }
 
         // Assemble response fields
         admin.setId(String.valueOf(userId));
+        admin.setInvitedAt(user.getInvitedAt());
+        admin.setLastLoginAt(user.getLastLoginAt());
+        admin.setRegisteredAt(user.getRegisteredAt());
         admin.setEmail(user.getEmail());
         admin.setName(user.getUserName());
+
         transStatus(user, admin);
 
         // Placeholder empty lists for courses and recentActivity per API spec
