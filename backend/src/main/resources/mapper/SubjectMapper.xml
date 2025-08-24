@@ -17,7 +17,6 @@
                 subject_id,
                 COUNT(*) as assignment_count
             FROM assignment 
-            WHERE is_active = 1
             GROUP BY subject_id
         ) a ON s.subject_id = a.subject_id
         WHERE s.is_active = 1
