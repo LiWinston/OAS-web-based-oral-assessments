@@ -1,36 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { assignmentService } from "../../../services/assignmentService";
 import { StatsCard, StatsCardSkeleton } from "../../ui/stats-card";
 
-export function AssignmentOverviewStats({ courseId }) {
-  const [stats, setStats] = useState({
-    total: 0,
-    active: 0,
-    upcoming: 0,
-    completed: 0,
-    totalWeight: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchStats();
-  }, [courseId]);
-
-  const fetchStats = async () => {
-    try {
-      setLoading(true);
-      const result = await assignmentService.getAssignmentStats(courseId);
-      if (result.success) {
-        setStats(result.data);
-      }
-    } catch (error) {
-      console.error("Failed to fetch assignment stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export function AssignmentOverviewStats({ stats, loading }) {
 
   const statsConfig = [
     {

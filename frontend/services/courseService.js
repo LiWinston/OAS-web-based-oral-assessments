@@ -1,7 +1,7 @@
 import { api } from './apiClient';
 
 // For development - mock API responses
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
 
 // Mock courses data with proper IDs
 const mockCourses = [
@@ -133,8 +133,17 @@ export const courseService = {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourses(filters);
     }
-    const response = await api.get('/courses', { params: filters });
-    return response.data;
+    const response = await api.get('/api/courses', { params: filters });
+    // Handle nested data structure from API response
+    const result = response.data;
+    if (result.success && result.data?.data) {
+      // If the API returns nested data structure, flatten it
+      return {
+        ...result,
+        data: result.data.data
+      };
+    }
+    return result;
   },
 
   // Get course statistics for dashboard
@@ -142,8 +151,17 @@ export const courseService = {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourseStats();
     }
-    const response = await api.get('/courses/stats');
-    return response.data;
+    const response = await api.get('/api/courses/stats');
+    // Handle nested data structure from API response
+    const result = response.data;
+    if (result.success && result.data?.data) {
+      // If the API returns nested data structure, flatten it to match expected format
+      return {
+        success: result.success,
+        data: result.data.data
+      };
+    }
+    return result;
   },
 
   // Get a single course by ID
@@ -151,49 +169,49 @@ export const courseService = {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourse(courseId);
     }
-    const response = await api.get(`/courses/${courseId}`);
+    const response = await api.get(`/api/courses/${courseId}`);
     return response.data;
   },
 
   // Create a new course
   async createCourse(courseData) {
-    const response = await api.post('/courses', courseData);
+    const response = await api.post('/api/courses', courseData);
     return response.data;
   },
 
   // Update an existing course
   async updateCourse(courseId, courseData) {
-    const response = await api.put(`/courses/${courseId}`, courseData);
+    const response = await api.put(`/api/courses/${courseId}`, courseData);
     return response.data;
   },
 
   // Delete a course
   async deleteCourse(courseId) {
-    const response = await api.delete(`/courses/${courseId}`);
+    const response = await api.delete(`/api/courses/${courseId}`);
     return response.data;
   },
 
   // Check if course code is available for a specific year
   async checkCourseCodeAvailability(courseCode, year) {
-    const response = await api.get(`/courses/check-availability/${courseCode}/${year}`);
+    const response = await api.get(`/api/courses/check-availability/${courseCode}/${year}`);
     return response.data;
   },
 
   // Get available years for course creation
   async getAvailableYears() {
-    const response = await api.get('/courses/available-years');
+    const response = await api.get('/api/courses/available-years');
     return response.data;
   },
 
   // Get course enrollment statistics
   async getCourseEnrollment(courseId) {
-    const response = await api.get(`/courses/${courseId}/enrollment`);
+    const response = await api.get(`/api/courses/${courseId}/enrollment`);
     return response.data;
   },
 
   // Activate/deactivate a course
   async toggleCourseStatus(courseId) {
-    const response = await api.patch(`/courses/${courseId}/toggle-status`);
+    const response = await api.patch(`/api/courses/${courseId}/toggle-status`);
     return response.data;
   }
 };

@@ -1,4 +1,5 @@
-import { USE_MOCK_API } from '@/lib/config';
+// For development - mock API responses
+const USE_MOCK_API = false;
 import api from './apiClient';
 
 // Mock data
@@ -253,45 +254,135 @@ const mockRubricService = {
 // Real API service (to be implemented when backend is ready)
 const realRubricService = {
   async getRubricsByCourse(courseId) {
-    const response = await api.get(`/courses/${courseId}/rubrics`);
+    const response = await api.get(`/api/courses/${courseId}/rubrics`);
     return response.data;
   },
 
   async getRubricsByAssignment(assignmentId) {
-    const response = await api.get(`/assignments/${assignmentId}/rubrics`);
+    const response = await api.get(`/api/assignments/${assignmentId}/rubrics`);
     return response.data;
   },
 
   async getRubricById(rubricId) {
-    const response = await api.get(`/rubrics/${rubricId}`);
+    const response = await api.get(`/api/assignments/rubric/${rubricId}`);
     return response.data;
   },
 
   async createRubric(rubricData) {
-    const response = await api.post('/rubrics', rubricData);
+    // Based on the backend API documentation, rubric should be updated as part of assignment
+    // Use the exact format that works in Swagger
+    const requestData = {
+      id: parseInt(rubricData.assignmentId),
+      subjectId: parseInt(rubricData.courseId),
+      name: rubricData.assignmentName || rubricData.name,
+      description: rubricData.assignmentDescription || "Assignment description",
+      type: rubricData.assignmentType || "individual", 
+      startDate: rubricData.startDate || new Date().toISOString(),
+      endDate: rubricData.endDate || new Date().toISOString(),
+      weight: rubricData.weight || 25,
+      progress: rubricData.progress || 0,
+      status: rubricData.status || "PENDING",
+      rubricMetaInfo: {
+        name: rubricData.name,
+        description: rubricData.description,
+        totalPoints: rubricData.totalPoints
+      },
+      rubricsInfo: rubricData.criteria.map(criterion => {
+        const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
+          description: level.description || level.name,
+          startPoint: level.minPoints,
+          endPoint: level.maxPoints
+        })) : [];
+        
+        console.log("Mapping criterion:", criterion.title, "with levels:", performanceLevels);
+        
+        return {
+          description: criterion.title,
+          weight: criterion.weight,
+          scaleType: criterion.markingScale || "points",
+          performanceLevel: performanceLevels
+        };
+      })
+    };
+    
+    console.log("Sending request data:", requestData);
+    const response = await api.put(`/api/assignments/${rubricData.assignmentId}`, requestData);
     return response.data;
   },
 
   async updateRubric(rubricId, updates) {
-    const response = await api.put(`/rubrics/${rubricId}`, updates);
+    // Use assignment update endpoint for rubric updates - same format as createRubric
+    const requestData = {
+      id: parseInt(updates.assignmentId),
+      subjectId: parseInt(updates.courseId),
+      name: updates.assignmentName || updates.name,
+      description: updates.assignmentDescription || "Assignment description",
+      type: updates.assignmentType || "individual",
+      startDate: updates.startDate || new Date().toISOString(),
+      endDate: updates.endDate || new Date().toISOString(),
+      weight: updates.weight || 25,
+      progress: updates.progress || 0,
+      status: updates.status || "PENDING",
+      rubricMetaInfo: {
+        name: updates.name,
+        description: updates.description,
+        totalPoints: updates.totalPoints
+      },
+      rubricsInfo: updates.criteria.map(criterion => {
+        const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
+          description: level.description || level.name,
+          startPoint: level.minPoints,
+          endPoint: level.maxPoints
+        })) : [];
+        
+        return {
+          description: criterion.title,
+          weight: criterion.weight,
+          scaleType: criterion.markingScale || "points",
+          performanceLevel: performanceLevels
+        };
+      })
+    };
+    
+    console.log("Updating rubric with data:", requestData);
+    const response = await api.put(`/api/assignments/${updates.assignmentId}`, requestData);
     return response.data;
   },
 
   async deleteRubric(rubricId) {
-    const response = await api.delete(`/rubrics/${rubricId}`);
+    const response = await api.delete(`/api/assignments/rubric/${rubricId}`);
     return response.data;
   },
 
   async duplicateRubric(rubricId, newAssignmentId) {
-    const response = await api.post(`/rubrics/${rubricId}/duplicate`, {
+    const response = await api.post(`/api/assignments/rubric/${rubricId}/duplicate`, {
       assignmentId: newAssignmentId
     });
     return response.data;
   },
 
   async validateRubric(rubricData) {
-    const response = await api.post('/rubrics/validate', rubricData);
-    return response.data;
+    // Client-side validation since backend doesn't seem to have this endpoint
+    const errors = [];
+    
+    if (!rubricData.name || rubricData.name.trim().length === 0) {
+      errors.push('Rubric name is required');
+    }
+    
+    if (!rubricData.criteria || rubricData.criteria.length === 0) {
+      errors.push('At least one criterion is required');
+    }
+    
+    // Check total weight
+    const totalWeight = rubricData.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+    if (totalWeight !== 100) {
+      errors.push(`Total weight must equal 100% (current: ${totalWeight}%)`);
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 };
 

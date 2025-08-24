@@ -77,14 +77,6 @@ Open http://localhost:3000 to view the frontend. Ensure the backend is running a
 | Examiner | eve@student.unimelb.edu.au | password5 | eve |
 | Super Admin | yunchen6@unimelb.edu.au | 123456 | Yun Chen |
 
-**Legacy Mock Accounts (Deprecated):**
-| Role | Email | Password |
-| ------------ | ---------------------- | ----------- |
-| Super Admin | superadmin@example.com | password123 |
-| Course Admin | admin@example.com | password123 |
-| Examiner | examiner@example.com | password123 |
-| Student | student@example.com | password123 |
-
 ## 🎯 Project Overview
 
 ### Technology Stack
@@ -118,6 +110,13 @@ The system now uses a separated architecture:
 
 **✅ Integration Complete**: Mock Next.js API routes have been replaced with direct Spring Boot integration. Legacy routes remain for backward compatibility but return deprecation messages.
 
+### Onboarding Flow (Docs)
+
+- Unified onboarding for Course Admins, Students, and Examiners begins from an email link and finishes at role dashboards.
+- Start here for the full design and API contracts:
+  - Docs/Design/Onboarding-Flow.md
+  - Docs/API/Onboarding-Contracts.md
+
 ### Authentication Flow (✅ Fully Integrated)
 
 **Current Implementation**: Direct Spring Boot integration with JWT tokens
@@ -127,6 +126,8 @@ The system now uses a separated architecture:
 - POST `/login` (email/password) → returns user data with accessToken/refreshToken
 - POST `/logout` (userId/refreshToken) → invalidates session
 - POST `/token/refresh` (refreshToken) → returns new access token
+- POST `/auth/password-reset/request` (email) → sends verification code via email
+- POST `/auth/password-reset/confirm` (email, code, newPassword) → resets password
 
 **Frontend Flow**:
 
@@ -162,7 +163,9 @@ frontend/
 ├── app/                          # Next.js 15 App Router
 │   ├── (auth)/                   # Public auth pages (no main layout)
 │   │   ├── layout.jsx           # Minimal auth layout
-│   │   └── login/page.jsx       # Common login page
+│   │   ├── login/page.jsx       # Common login page
+│   │   ├── onboarding/page.jsx  # Unified onboarding entry point
+│   │   └── onboarding-test/page.jsx # Onboarding test scenarios
 │   ├── admin/                   # Course Admin interface
 │   │   ├── layout.jsx           # Admin layout with sidebar
 │   │   ├── page.jsx             # Admin dashboard
@@ -176,6 +179,7 @@ frontend/
 │   │   ├── documentation/       # Documentation & FAQ
 │   │   │   └── page.jsx         # Comprehensive help system
 │   │   ├── users/               # User management
+│   │   │   └── page.jsx         # Centralized members UI (Students | Examiners)
 │   │   └── settings/            # Admin settings
 │   ├── examiner/                # Examiner interface
 │   │   ├── layout.jsx           # Examiner layout
@@ -210,6 +214,15 @@ frontend/
 │   │   ├── error-boundary.jsx   # Error boundary with fallbacks
 │   │   ├── notification.jsx     # Toast notification system
 │   │   └── api-status.jsx       # Development API status indicator
+│   ├── onboarding/              # Unified onboarding components
+│   │   ├── OnboardingLayout.jsx # Role-aware layout with progress
+│   │   ├── OnboardingWizard.jsx # Main wizard orchestrator
+│   │   └── steps/               # Onboarding step components
+│   │       ├── OnboardingWelcome.jsx      # Welcome with context
+│   │       ├── OnboardingBasicInfo.jsx    # Email/name verification
+│   │       ├── OnboardingDepartment.jsx   # Department selection (admin)
+│   │       ├── OnboardingPassword.jsx     # Password creation
+│   │       └── OnboardingComplete.jsx     # Success confirmation
 │   ├── layout/                  # Layout components
 │   │   ├── AdminSidebar.jsx     # Course Admin navigation sidebar
 │   │   ├── AdminTopNav.jsx      # Course Admin header navigation
@@ -234,6 +247,12 @@ frontend/
 │   │   │   ├── EditCourseModal.jsx         # Course editing interface
 │   │   │   ├── CourseOverviewStats.jsx     # Course statistics cards
 │   │   │   └── CourseList.jsx              # Course table & card views
+│   │   ├── users/               # User Management components
+│   │   │   ├── ScopeSelector.jsx           # Course → Assignment scope picker
+│   │   │   ├── UsersTable.jsx              # Role-aware table with selection/actions
+│   │   │   ├── AddUserModal.jsx            # Add member (ROLE_STUDENT/ROLE_EXAMINER)
+│   │   │   ├── UsersEmptyState.jsx         # Empty state for tabs
+│   │   │   └── ConfirmDialog.jsx           # Polished delete confirmation
 │   │   └── dashboard/           # Course Admin dashboard components
 │   │       ├── StatsCard.jsx    # Statistics cards
 │   │       ├── AssignmentStatusTable.jsx # Assignment progress table
@@ -254,10 +273,11 @@ frontend/
 ├── services/                    # API integration layer
 │   ├── apiClient.js             # Axios configuration (baseURL points to Spring Boot)
 │   ├── authService.js           # Authentication APIs (temporary Next.js route → will call Spring Boot /login)
+│   ├── onboardingService.js     # Onboarding APIs with mock support
 │   ├── adminService.js          # Course Admin management (calls Spring Boot endpoints)
 │   ├── courseService.js         # Course management operations
 │   ├── assignmentService.js     # Assignment CRUD operations with mock data
-│   ├── userService.js           # User management
+│   ├── userService.js           # User management (assignment-centric members API)
 │   └── schedulingService.js     # Booking and scheduling
 │
 ├── store/                       # State management
@@ -448,6 +468,9 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 2. **Access Login**: http://localhost:3000/login
 3. **Use Test Accounts**: Click "Fill" buttons for quick access
 4. **Test Features**: Navigate through role-specific interfaces
+5. **Dev Toggles** (optional):
+   - `NEXT_PUBLIC_USE_MOCK_API=true` to use local mocks for services
+   - `NEXT_PUBLIC_BYPASS_AUTH=true` to bypass middleware auth in development
 
 ## 🔗 Implementation Status
 
@@ -468,6 +491,35 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 - User data display from backend in all dashboards
 - Secure token storage and automatic header attachment
 - Test accounts updated with real backend credentials
+
+**✅ Onboarding System Integration Complete:**
+
+- Full Spring Boot integration for onboarding token verification (`GET /onboarding/verify`)
+- Complete user registration flow with Spring Boot (`POST /onboarding/register`) 
+- Role-based onboarding wizard (Course Admin, Student, Examiner)
+- Token-based email invitation system integration
+- Automatic login after successful registration
+- Role-based redirection after onboarding completion
+- Comprehensive error handling for expired/invalid tokens
+- Department selection for Course Admin onboarding
+
+**✅ User Management UI:**
+
+- Admin User Management implemented under `/admin/users`
+- Assignment-centric member APIs integrated at the service layer
+- Polished delete confirmations and UX refinements
+
+**✅ Password Reset System Integration Complete:**
+
+- Complete password reset flow using email verification codes
+- Spring Boot backend integration with `POST /auth/password-reset/request` and `POST /auth/password-reset/confirm`
+- Two-step UI flow: forgot password (`/forgot-password`) → reset password (`/reset-password`)
+- Security features: account enumeration prevention, rate limiting (60s cooldown), attempt tracking
+- Comprehensive error handling for validation errors (code 4006, invalid codes, expired codes, weak passwords)
+- Real-time password strength validation with visual feedback
+- Session management with automatic cleanup on successful reset
+- User-friendly error messages without technical popups
+- React Error Boundary implementation for graceful error handling
 
 **🔄 Next Integration Priorities:**
 
@@ -569,6 +621,13 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Current: Full Spring Boot integration with JWT authentication; direct backend API calls for login/logout; role mapping and user data display from backend.
 - Implementation: Integrated with Spring Boot POST `/login`, POST `/logout`, and POST `/token/refresh`; server-side authorization with JWT tokens.
 - User can: Login with backend test accounts (alice, bob, eve, Yun Chen); automatic role-based redirection; secure logout with token invalidation; view actual user details in dashboards.
+
+### User Onboarding System — ✅ Complete (backend integrated)
+
+- Current: Complete unified onboarding UI for all three roles (Course Admin, Student, Examiner); fully integrated with Spring Boot backend; role-aware theming and flows.
+- Implementation: Token-based invitation verification via Spring Boot `/onboarding/verify`; complete registration via `/onboarding/register`; 4-step flow for admins (with department), 3-step for students/examiners; course/assignment context display.
+- User can: Complete full end-to-end onboarding from email invitation links; register new accounts with Spring Boot backend; auto-login after successful registration; role-based redirection to appropriate dashboards.
+- Integration: Fully connected to Spring Boot endpoints with comprehensive error handling and role mapping.
 
 ### Course & Assignment Configuration — 🚧 Frontend Ready (mock)
 
@@ -734,6 +793,7 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Centralized Axios client with interceptors
 - Service layer with domain-specific modules
   - **authService**: Authentication and session management
+  - **onboardingService**: User onboarding with token verification and registration
   - **adminService**: Super Admin and Course Admin operations
   - **courseService**: Course creation, editing, and management
   - **userService**: User management and role assignment
@@ -752,6 +812,7 @@ The following reflects the current state of the frontend only. Backend capabilit
 **✅ Completed**
 
 - **Authentication System**: JWT-based auth with separate login portals and role-based routing
+- **Unified Onboarding System**: Complete onboarding flows for all three roles with token verification, role-aware theming, and course/assignment context display
 - **API Infrastructure**: Authentication, admin management, and partial course management endpoints
 - **Course Admin Interface**: Complete dashboard, course management, assignment configuration, and rubric builder
 - **Super Admin Interface**: Full admin management system with invitation workflow and course oversight
@@ -768,6 +829,18 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **Time Slot Management**: No implementation for scheduling, venues, or conflict detection
 - **Assessment Execution**: No examiner marking interface or draft saving
 - **Results System**: No mark aggregation, release control, or Canvas export
+### User Management (Admin)
+
+Admin users can manage assignment members at `/admin/users` with an assignment‑scoped flow:
+
+- UI: Two‑pane layout (Course → Assignment scope on the left; members on the right) with tabs for Students | Examiners, search, add, and remove (single/bulk) with polished confirmations.
+- API (aligned to backend contracts):
+  - GET `/api/assignments/{assignmentId}/members?role=ROLE_STUDENT|ROLE_EXAMINER&q=&pageNum=&pageSize=`
+  - POST `/api/assignments/{assignmentId}/members` (payload includes `role: ROLE_STUDENT|ROLE_EXAMINER` and optional IDs/group)
+  - DELETE `/api/assignments/{assignmentId}/members/{assignmentUserId}` (cascades: cancels bookings, clears examiner slots)
+- Response wrapper: `{ success, code, data }` with lists in `data: { pageNum, pageSize, total, data: [...] }`
+- Mocks: Fully aligned to the above for seamless backend integration.
+
 - **Database Integration**: API routes still use mock data
 
 **📋 Next Phase Priorities**
@@ -778,155 +851,3 @@ The following reflects the current state of the frontend only. Backend capabilit
 4. **Scheduling System**: Create time slot management with venue assignment
 5. **Database Connection**: Connect API routes to MySQL database
 6. **Results Management**: Implement mark aggregation and Canvas export
-
-#### ✅ **Features Implemented**
-
-**🎯 Assignment Configuration System**
-
-- **Complete Assignment Management Workflow**: Full `/admin/courses/[courseId]/assignments` page with comprehensive assignment lifecycle management and stunning visual interactions
-- **Revolutionary Assignment Creation Modal**: 3-step wizard with assignment type selection, CSV file upload, and real-time progress tracking with celebration animations
-- **Enhanced Assignment List Interface**: Dual view (table/card) with advanced filtering, search, and status management featuring animated progress bars and configuration tracking
-- **Assignment Overview Statistics**: Statistical dashboard showing total assignments, active count, upcoming assignments, and total weight validation with animated counters
-- **Dynamic Course Integration**: Course-specific assignment routing with breadcrumb navigation and context-aware course information display
-- **Stunning Visual "Aha Moments"**:
-  - **3-Step Wizard Progress**: Glowing progress bar with step completion tracking and smooth transitions
-  - **Assignment Type Cards**: Interactive animated cards for individual, group, and mixed assignment selection with hover effects
-  - **CSV Upload Interface**: Drag-and-drop file upload with validation feedback and file preview capabilities
-  - **Success Celebrations**: Confetti animations and celebration modal on assignment creation with emoji feedback
-  - **Card Hover Effects**: Assignment cards with lift animations, hover transforms, and personality-driven micro-interactions
-  - **Progress Visualization**: Animated progress bars showing session completion with gradient effects and shimmer animations
-- **Professional Design Integration**:
-  - **Enhanced Animation System**: Custom CSS animations including fadeInUp, bounceIn, scaleIn, and shimmer effects in globals.css
-  - **Configuration Status Tracking**: Visual indicators for rubric setup, time slot scheduling, and examiner assignment status
-  - **Responsive Design**: Desktop-optimized with consistent spacing, typography, and visual hierarchy
-  - **Dark Mode Excellence**: Full theme switching with enhanced shadow effects and color schemes
-- **Advanced Technical Features**:
-  - **Assignment Service API**: Complete `assignmentService.js` with CRUD operations, filtering, and statistics generation
-  - **Mock Data Integration**: Realistic assignment data with proper course association and status management
-  - **Form Validation**: Comprehensive validation for assignment creation with inline error feedback
-  - **File Upload System**: CSV file handling with drag-and-drop interface and file validation
-- **Course Integration**: Seamless navigation from course management to assignment configuration with proper course context
-- **PRD Compliance**: Fully aligned with Epic 5.1 requirements for assignment configuration and oral assessment setup
-- Files: `app/admin/courses/[courseId]/assignments/page.jsx`, `components/admin/assignments/AssignmentCreationModal.jsx`, `components/admin/assignments/AssignmentList.jsx`, `components/admin/assignments/AssignmentOverviewStats.jsx`, `components/admin/assignments/EditAssignmentModal.jsx`, `services/assignmentService.js`, enhanced `globals.css` with assignment animations
-
-**🎨 Advanced Rubric Configuration System**
-
-- **Complete Rubric Builder Interface**: Full `/admin/courses/[courseId]/assignments/[assignmentId]/rubric` page with comprehensive rubric creation and management capabilities
-- **Stunning Visual Design**: Professional interface with gradient headers, animated welcome screen, and real-time preview panel
-- **Drag-and-Drop Criteria Management**: Reorderable criteria with smooth animations and visual feedback during drag operations
-- **Dynamic Performance Levels**: Customizable performance levels with color-coded indicators and point range configuration
-- **Predefined Comments System**: Organized comment templates by performance level for consistent examiner feedback
-- **Visual Excellence Features**:
-  - **Welcome Animation**: Stunning gradient overlay with bouncing award icon and fade-in effects
-  - **Criterion Cards**: Expandable/collapsible cards with hover effects and smooth transitions
-  - **Performance Level Colors**: Visual color picker with animated color dots (green, blue, yellow, orange, red)
-  - **Real-time Preview**: Live rubric preview showing examiner view with proper formatting
-  - **Weight Validation**: Visual indicators for total weight validation with success/error states
-  - **Drag Effects**: Transform and opacity changes during drag operations
-- **Advanced Functionality**:
-  - **Criterion Management**: Add, edit, duplicate, and delete criteria with validation
-  - **Inline Editing**: Click-to-edit titles with visual confirmation
-  - **Marking Scales**: Support for descriptive, letter grade, and numeric scales
-  - **Comment Library**: Add, edit, and organize predefined comments by performance level
-  - **Auto-save Indicators**: Visual feedback for unsaved changes with save button states
-- **Technical Implementation**:
-  - **Rubric Service**: Complete `rubricService.js` with CRUD operations and validation
-  - **Component Architecture**: Modular components (RubricCriterion, PerformanceLevel, CommentManager, RubricPreview)
-  - **State Management**: Complex nested state handling for criteria, levels, and comments
-  - **Animations**: Custom CSS animations including fade-in, scale-in, slide-up/down, and bounce effects
-  - **Mock Data**: Comprehensive sample rubric for testing and development
-- **PRD Compliance**: Fully aligned with Epic 5.2 requirements for flexible rubric builder with hierarchy support
-- Files: `app/admin/courses/[courseId]/assignments/[assignmentId]/rubric/page.jsx`, `components/admin/rubric/RubricCriterion.jsx`, `components/admin/rubric/PerformanceLevel.jsx`, `components/admin/rubric/CommentManager.jsx`, `components/admin/rubric/RubricPreview.jsx`, `services/rubricService.js`, enhanced `globals.css` with rubric-specific animations
-
-**🎯 Enhanced Course Admin Management System**
-
-- **Dedicated Admin Management Page**: Complete `/superadmin/admins` page with comprehensive Course Admin lifecycle management
-- **Professional Invitation Workflow**: Form validation, university email checking, duplicate prevention, and real-time error feedback
-- **7-Day Invitation Expiry**: Automatic expiry tracking with visual countdown, cleanup automation, and resend capabilities
-- **Advanced Status Tracking**: Real-time admin status monitoring (Invited → Registered → Active → Inactive) with visual indicators
-- **Comprehensive Admin Analytics**: Activity tracking, course counts, student management statistics, and last login monitoring
-- **Enhanced API Integration**: Complete `adminService.js` with mock and real API support for all admin management operations (ready for Java/Spring Boot backend integration)
-- **Professional UX Design**: Error boundaries, global notification system, API status tracking, form validation, and desktop-optimized interface
-- **Search and Filtering**: Advanced filtering across admin data with real-time search capabilities
-- **Management Actions**: Resend invitations, revoke access, view admin details, and comprehensive admin controls
-- Files: `app/superadmin/admins/page.jsx`, `services/adminService.js`, enhanced `AdminManagementHub.jsx`
-
-**🔧 Production-Ready Enhancements**
-
-- **Error Boundary System**: Complete error handling with graceful fallbacks, retry mechanisms, and development error details
-- **Global Notification System**: Professional toast notifications with success/error/warning/info types, auto-dismiss, and action buttons
-- **API Status Indicator**: Development tool showing mock vs real API status, backend connectivity, and integration readiness
-- **Environment Configuration**: `.env.example` with all necessary environment variables for backend integration
-- **Backend Integration Architecture**: Service layer pattern enabling seamless mock-to-real API switching
-- Files: `components/ui/error-boundary.jsx`, `components/ui/notification.jsx`, `components/ui/api-status.jsx`, `.env.example`
-
-**🎯 Enhanced Course Overview Workflow**
-
-- **Polished Course Overview Interface**: Complete redesign of course overview with visual excellence and micro-interactions
-- **Advanced Course Table**: Enhanced table with gradient hover effects, smooth animations, and improved data visualization
-- **Course Detail Modal**: Read-only course insight modal with comprehensive course information, assignment tracking, and admin details
-- **Enhanced Filtering System**: Advanced search with visual filter indicators, clear states, and smooth transitions
-- **Beautiful Statistics Cards**: Gradient-themed cards with hover animations and improved visual hierarchy
-- **Micro-interactions**: Smooth hover effects, scale transforms, color transitions, and loading states throughout
-- **Orange Theme Consistency**: Maintained super admin gradient design language with orange/red color schemes
-- **Professional Typography**: Improved font weights, sizing, and spacing for better readability and visual impact
-- **Responsive Design**: Desktop-optimized layout with consistent spacing and alignment
-- Files: `components/superadmin/dashboard/CourseOverviewTable.jsx`, `components/superadmin/dashboard/CourseDetailModal.jsx`, `app/superadmin/courses/page.jsx`
-
-#### ✅ **Features Implemented**
-
-**🎯 Enhanced Course Management System with Visual Excellence**
-
-- **Complete Course Creation Workflow**: Full `/admin/courses` page with comprehensive course lifecycle management and stunning visual interactions
-- **Revolutionary Course Creation Modal**: Multi-section form with real-time progress tracking, smart defaults, celebration animations, and contextual validation
-- **Enhanced Course Editing**: Full-featured `EditCourseModal` with unsaved changes detection, visual diff preview, and intelligent form state management
-- **Course Overview Dashboard**: Statistics cards showing active courses, total students, assignments, and current semester with animated counters
-- **Dual View Course List**: Table and card view toggle with advanced filtering (search, year, status), staggered animations, and hover effects
-- **Stunning Visual "Aha Moments"**:
-  - **Magical Animations**: Staggered card animations with shimmer effects and 3D transforms
-  - **Interactive Progress Tracking**: Glowing progress bar with shimmer animation and real-time percentage updates
-  - **Success Celebrations**: Confetti animations and celebration modal on course creation with emoji feedback
-  - **Smart Hover Effects**: Cards lift, scale, and glow with personality-driven micro-interactions
-  - **Form Section Interactions**: Color-coded sections (blue, purple, green) that respond to user hover with subtle animations
-  - **Unsaved Changes Warning**: Visual indicators for pending changes with amber pulsing dots and change summary previews
-- **Best Practice UX Features**:
-  - Auto-population of current year/semester as smart defaults
-  - Course code format validation (University of Melbourne standard: COMP90082)
-  - Live form summary preview with instant feedback and change tracking
-  - "What's Next" guidance showing post-creation workflow with actionable steps
-  - Contextual tooltips and inline help throughout forms
-- **Professional Design Integration**:
-  - **Enhanced Animation System**: Custom CSS animations including fadeInUp, wiggle, rainbow, and shimmer effects
-  - **Gradient Magic**: Beautiful gradient progress bars, buttons, and hover effects throughout
-  - **3D Transform Effects**: Cards and buttons that scale, rotate, and transform with smooth easing functions
-  - **Responsive Design**: Desktop-optimized with consistent spacing, typography, and visual hierarchy
-  - **Dark Mode Excellence**: Full theme switching with enhanced shadow effects and color schemes
-- **Advanced Technical Features**:
-  - **Enhanced CSS Animation Library**: Custom keyframes for fadeInUp, slideIn, wiggle, pulse-slow, rainbow, and shimmer
-  - **Course Card Interaction System**: Shine effects, hover transforms, and personality-driven animations
-  - **Button Magic Effects**: Ripple animations, scale transforms, and gradient backgrounds
-  - **Form Section Hover System**: Lift effects, shadow animations, and visual feedback on interaction
-- **Mock API Integration**: Complete `courseService.js` with realistic data, error simulation, and backend-ready architecture
-- **PRD Compliance**: Fully aligned with Epic 4.1 requirements for academic period setup and course configuration
-- Files: `app/admin/courses/page.jsx`, `components/admin/courses/CourseCreationModal.jsx`, `components/admin/courses/EditCourseModal.jsx`, `components/admin/courses/CourseOverviewStats.jsx`, `components/admin/courses/CourseList.jsx`, `services/courseService.js`, enhanced `globals.css` with animation library
-
-**📚 Professional Documentation & FAQ System**
-
-- **Comprehensive FAQ Content**: Created extensive documentation covering all user workflows from PRD analysis (Getting Started, Course Management, Assignments, Scheduling, Assessment, Results, Technical Support)
-- **Advanced Search & Filtering**: Real-time search across questions and answers with category-based filtering system for efficient information discovery
-- **Interactive Design**: Expandable FAQ sections with smooth animations, category icons, and visual hierarchy for enhanced user experience
-- **Context-Aware Content**: FAQ answers based on actual user stories and workflows, providing practical guidance for new Course Administrators
-- **Quick Access Integration**: Direct links to relevant system sections (Courses, Assignments, Settings) for seamless workflow transition
-- **Professional Support Interface**: Contact support and issue reporting functionality with clear escalation paths
-- **Responsive & Accessible**: Full dark mode support, mobile-friendly design, and WCAG-compliant interface for all users
-- **Breadcrumb Navigation**: Consistent with other admin pages for intuitive navigation and user orientation
-- Files: `app/admin/documentation/page.jsx`
-
-**📋 Next Phase Priorities**
-
-1. Rubric builder with drag-drop functionality and criteria management
-2. Time slot scheduling interface with conflict detection and venue management
-3. Student booking system with group coordination and availability matching
-4. Examiner marking interface with comment templates and real-time feedback
-5. Results and reporting system with Canvas export and grade aggregation
-6. Student and examiner user management with bulk operations

@@ -19,7 +19,14 @@ export const authService = {
       email,
       password,
     });
-    return response.data;
+    
+    // Handle backend response structure
+    const responseData = response.data.data || response.data;
+    
+    return {
+      success: response.data.success !== false,
+      data: responseData
+    };
   },
 
   /**
@@ -76,28 +83,47 @@ export const authService = {
   },
 
   /**
-   * Request password reset email
-   * @param {string} email - Email address to send reset link
-   * @returns {Promise<Object>} Success response
+   * Request password reset verification code
+   * @param {string} email - Email address to send verification code
+   * @returns {Promise<Object>} Success response (always returns 200 for security)
    */
   async requestPasswordReset(email) {
-    const response = await api.post('/auth/forgot-password', {
+    const response = await api.post('/auth/password-reset/request', {
       email,
     });
-    return response.data;
+    
+    // Handle backend response structure
+    const responseData = response.data.data || response.data;
+    
+    return {
+      success: response.data.success !== false,
+      message: responseData.message || responseData || "If an account exists, a verification code has been sent."
+    };
   },
 
   /**
-   * Reset password using token from email
-   * @param {string} token - Password reset token
+   * Confirm password reset with verification code
+   * @param {string} email - User email
+   * @param {string} code - 6-digit verification code
    * @param {string} newPassword - New password to set
    * @returns {Promise<Object>} Success response
    */
-  async resetPassword(token, newPassword) {
-    const response = await api.post('/auth/reset-password', {
-      token,
+  async confirmPasswordReset(email, code, newPassword) {
+    const response = await api.post('/auth/password-reset/confirm', {
+      email,
+      code,
       newPassword,
     });
-    return response.data;
+    
+    // Handle backend response structure
+    const responseData = response.data.data || response.data;
+    
+    return {
+      success: response.data.success !== false,
+      message: responseData.message || responseData || "Password has been reset successfully."
+    };
   },
 };
+
+// Export as default for backward compatibility
+export default authService;

@@ -36,14 +36,6 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
   };
 
   const getAdminAvatar = (adminName) => {
-    if (!adminName || typeof adminName !== 'string') {
-      return (
-        <div className="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-md">
-          <i className="fas fa-user text-white text-lg"></i>
-        </div>
-      );
-    }
-    
     const initials = adminName.split(' ').map(n => n[0]).join('').toUpperCase();
     const colors = [
       'from-blue-400 to-blue-600',
@@ -62,11 +54,32 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
     );
   };
 
-  // Use real assignment data from course object, with fallback to empty array
-  const assignments = course.assignments || course.assignmentList || [];
+  // Mock assignment data
+  const assignments = [
+    {
+      id: 1,
+      name: 'Oral Assessment 1',
+      type: 'Individual',
+      status: 'Active',
+      dueDate: '2025-02-15',
+      students: 89,
+      examiners: 3,
+      completion: 78
+    },
+    {
+      id: 2,
+      name: 'Group Presentation',
+      type: 'Group',
+      status: 'Setup',
+      dueDate: '2025-03-10',
+      students: 156,
+      examiners: 4,
+      completion: 0
+    }
+  ];
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header with X button in top right */}
         <div className="bg-gradient-to-r from-orange-500 to-red-500 p-6 text-white relative">
@@ -131,55 +144,46 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                   Assignments ({assignments.length})
                 </h3>
                 <div className="space-y-3">
-                  {assignments.length > 0 ? (
-                    assignments.map((assignment) => (
-                      <div key={assignment.id || assignment.assignmentId || Math.random()} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {assignment.name || assignment.assignmentName || assignment.title || 'Unnamed Assignment'}
-                            </h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              {assignment.type || assignment.assignmentType || 'Individual'} • Due: {assignment.dueDate || assignment.due || assignment.deadline || 'TBD'}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                              {assignment.completion || assignment.progress || 0}% complete
-                            </div>
-                            <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
-                              <div 
-                                className="h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-300"
-                                style={{ width: `${assignment.completion || assignment.progress || 0}%` }}
-                              ></div>
-                            </div>
-                          </div>
+                  {assignments.map((assignment) => (
+                    <div key={assignment.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{assignment.name}</h4>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {assignment.type} • Due: {assignment.dueDate}
+                          </p>
                         </div>
-                        <div className="flex items-center space-x-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
-                          <span className="flex items-center">
-                            <i className="fas fa-user-graduate mr-1"></i>
-                            {assignment.students || assignment.studentCount || 0} students
-                          </span>
-                          <span className="flex items-center">
-                            <i className="fas fa-user-tie mr-1"></i>
-                            {assignment.examiners || assignment.examinerCount || 0} examiners
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            (assignment.status || 'Unknown') === 'Active' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                          }`}>
-                            {assignment.status || 'Unknown'}
-                          </span>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            {assignment.completion}% complete
+                          </div>
+                          <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full">
+                            <div 
+                              className="h-2 bg-gradient-to-r from-orange-400 to-red-500 rounded-full transition-all duration-300"
+                              style={{ width: `${assignment.completion}%` }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                      <i className="fas fa-clipboard-list text-4xl mb-3 opacity-50"></i>
-                      <p>No assignments available for this course</p>
+                      <div className="flex items-center space-x-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
+                        <span className="flex items-center">
+                          <i className="fas fa-user-graduate mr-1"></i>
+                          {assignment.students} students
+                        </span>
+                        <span className="flex items-center">
+                          <i className="fas fa-user-tie mr-1"></i>
+                          {assignment.examiners} examiners
+                        </span>
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          assignment.status === 'Active' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                        }`}>
+                          {assignment.status}
+                        </span>
+                      </div>
                     </div>
-                  )}
+                  ))}
                 </div>
               </Card>
             </div>
@@ -195,14 +199,10 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                 <div className="flex items-center space-x-3">
                   {getAdminAvatar(course.admin)}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {course.admin || 'Unassigned'}
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {course.adminEmail || 'No email available'}
-                    </p>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{course.admin}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{course.adminEmail}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      Last activity: {course.lastActivity || 'No activity recorded'}
+                      Last activity: {course.lastActivity}
                     </p>
                   </div>
                 </div>
@@ -221,7 +221,7 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Total Assignments</span>
-                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{course.assignmentCount || course.assignments || 0}</span>
+                    <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{course.assignments}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600 dark:text-gray-400">Active Assignments</span>

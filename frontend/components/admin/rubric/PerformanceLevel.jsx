@@ -12,7 +12,7 @@ export default function PerformanceLevel({
   onDelete,
 }) {
   const [editingName, setEditingName] = useState(false);
-  const [tempName, setTempName] = useState(level.name);
+  const [tempName, setTempName] = useState(level.name || '');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const colors = ["green", "blue", "yellow", "orange", "red", "gray"];
@@ -162,7 +162,7 @@ export default function PerformanceLevel({
           <div className="grid grid-cols-1 gap-3">
             <div className="w-full">
               <textarea
-                value={level.description}
+                value={level.description || ''}
                 onChange={(e) =>
                   onUpdate({ ...level, description: e.target.value })
                 }
@@ -175,7 +175,7 @@ export default function PerformanceLevel({
               <div className="flex-1">
                 <input
                   type="number"
-                  value={level.minPoints}
+                  value={level.minPoints || 0}
                   onChange={(e) =>
                     onUpdate({
                       ...level,
@@ -191,7 +191,7 @@ export default function PerformanceLevel({
               <div className="flex-1">
                 <input
                   type="number"
-                  value={level.maxPoints}
+                  value={level.maxPoints || 0}
                   onChange={(e) =>
                     onUpdate({
                       ...level,

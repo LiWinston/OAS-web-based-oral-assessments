@@ -1,14 +1,19 @@
 import { api } from "./apiClient";
 
 // For development - mock API responses
-const USE_MOCK_API = true;
+const USE_MOCK_API = false;
+
+// Utility function to convert date strings to datetime format for Java backend
+const formatDateForBackend = (dateString) => {
+  return dateString ? `${dateString}T00:00:00` : dateString;
+};
 
 // Mock assignments data
 const mockAssignments = [
   {
     id: 1,
     courseId: 1,
-    title: "Project Proposal Presentation",
+    name: "Project Proposal Presentation",
     description: "Students present initial project ideas",
     type: "group",
     startDate: "2025-03-10",
@@ -28,7 +33,7 @@ const mockAssignments = [
   {
     id: 2,
     courseId: 1,
-    title: "Mid-Semester Project Update",
+    name: "Mid-Semester Project Update",
     description: "Progress report on project development",
     type: "individual",
     startDate: "2025-04-15",
@@ -48,7 +53,7 @@ const mockAssignments = [
   {
     id: 3,
     courseId: 1,
-    title: "Final Project Deliverable & Demo",
+    name: "Final Project Deliverable & Demo",
     description: "Group demo and individual Q&A session",
     type: "mixed",
     startDate: "2025-05-20",
@@ -188,7 +193,8 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignments(courseId);
     }
-    const response = await api.get(`/courses/${courseId}/assignments`);
+    const response = await api.get(`/api/assignments/subject/${courseId}`);
+    // const response = await api.get(`/api/courses/${courseId}/assignments`);
     return response.data;
   },
 
@@ -196,7 +202,16 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.createAssignment(data);
     }
-    const response = await api.post("/assignments", data);
+    
+    // Convert date strings to datetime format for Java backend
+    const formattedData = {
+      ...data,
+      startDate: formatDateForBackend(data.startDate),
+      endDate: formatDateForBackend(data.endDate),
+      dueDate: formatDateForBackend(data.dueDate),
+    };
+    
+    const response = await api.post("/api/assignments", formattedData);
     return response.data;
   },
 
@@ -204,7 +219,16 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.updateAssignment(id, data);
     }
-    const response = await api.put(`/assignments/${id}`, data);
+    
+    // Convert date strings to datetime format for Java backend
+    const formattedData = {
+      ...data,
+      startDate: formatDateForBackend(data.startDate),
+      endDate: formatDateForBackend(data.endDate),
+      dueDate: formatDateForBackend(data.dueDate),
+    };
+    
+    const response = await api.put(`/api/assignments/${id}`, formattedData);
     return response.data;
   },
 
@@ -212,7 +236,7 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.deleteAssignment(id);
     }
-    const response = await api.delete(`/assignments/${id}`);
+    const response = await api.delete(`/api/assignments/${id}`);
     return response.data;
   },
 
@@ -220,7 +244,7 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignmentById(id);
     }
-    const response = await api.get(`/assignments/${id}`);
+    const response = await api.get(`/api/assignments/${id}`);
     return response.data;
   },
 
@@ -234,7 +258,7 @@ export const assignmentService = {
     const formData = new FormData();
     formData.append("csv", csvFile);
     const response = await api.post(
-      `/assignments/${assignmentId}/upload-students`,
+      `/api/assignments/${assignmentId}/upload-students`,
       formData,
       {
         headers: {
@@ -249,7 +273,174 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignmentStats(courseId);
     }
-    const response = await api.get(`/courses/${courseId}/assignments/stats`);
+    const response = await api.get(`/api/courses/${courseId}/assignments/stats`);
     return response.data;
   },
+
+  // Student CSV Preview - Preview student/group CSV data before import
+  async previewStudentCsv(file, type) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Mock student/group CSV preview based on CSV file
+      const mockData = {
+        totalRecords: 2,
+        groupCount: type === "group" ? 1 : 0,
+        preview: [
+          { 
+            Student: "Yun Chen", 
+            ID: "395809", 
+            "SIS User ID": "1412174", 
+            "SIS Login ID": "yunchen6", 
+            Section: "Elements of Data Processing (COMP20008_2025_SM1), Lecture 1 (1), Lecture 2 (1), and Tutorial 1 (4)", 
+            "Student Id": "1412174" 
+          },
+          { 
+            Student: "Benyuan Wang", 
+            ID: "395810", 
+            "SIS User ID": "1492846", 
+            "SIS Login ID": "benyuanw", 
+            Section: "Elements of Data Processing (COMP20008_2025_SM1), Lecture 1 (1), Lecture 2 (1), and Tutorial 1 (4)", 
+            "Student Id": "1492846" 
+          }
+        ]
+      };
+      
+      return {
+        success: true,
+        data: mockData
+      };
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+      
+      const response = await api.post("/api/csv/preview", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to preview CSV",
+        code: error.response?.status || 500,
+      };
+    }
+  },
+
+  // Student CSV Upload - Upload student/group CSV data to backend
+  async uploadStudentCsv(file, type) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // Mock student/group CSV upload
+      return {
+        success: true,
+        data: {
+          totalCount: 25,
+          uploaded: 25,
+          groupsCreated: type === "group" ? 8 : 0,
+          errors: []
+        }
+      };
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", type);
+      
+      const response = await api.post("/api/csv/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to upload CSV",
+        code: error.response?.status || 500,
+      };
+    }
+  },
+
+  // Examiner CSV Preview - Preview examiner CSV data before import
+  async previewExaminerCsv(file) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Mock examiner CSV preview
+      return {
+        success: true,
+        data: {
+          totalRecords: 3,
+          preview: [
+            { ExaminerID: "E001", Name: "Dr. John Smith", Email: "john.smith@unimelb.edu.au", Department: "Computer Science" },
+            { ExaminerID: "E002", Name: "Dr. Sarah Johnson", Email: "sarah.johnson@unimelb.edu.au", Department: "Software Engineering" },
+            { ExaminerID: "E003", Name: "Prof. Michael Brown", Email: "michael.brown@unimelb.edu.au", Department: "Information Systems" }
+          ]
+        }
+      };
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "examiner");
+      
+      const response = await api.post("/api/csv/preview", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to preview CSV",
+        code: error.response?.status || 500,
+      };
+    }
+  },
+
+  // Examiner CSV Upload - Upload examiner CSV data to backend
+  async uploadExaminerCsv(file) {
+    if (USE_MOCK_API) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      
+      // Mock examiner CSV upload
+      return {
+        success: true,
+        data: {
+          totalCount: 8,
+          uploaded: 8,
+          errors: []
+        }
+      };
+    }
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "examiner");
+      
+      const response = await api.post("/api/csv/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to upload CSV",
+        code: error.response?.status || 500,
+      };
+    }
+  }
 };

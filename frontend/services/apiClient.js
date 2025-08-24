@@ -3,7 +3,7 @@ import useAuthStore from "../store/authStore";
 
 /**
  * API Client Configuration
- * 
+ *
  * Centralized Axios instance for all API communications.
  * Handles authentication, error responses, and provides a consistent
  * interface for making HTTP requests throughout the application.
@@ -12,7 +12,7 @@ import useAuthStore from "../store/authStore";
 // Create axios instance with base configuration
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "/api", // Points to Spring Boot backend
-  timeout: 10000,
+  timeout: 20000,
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,7 +21,7 @@ const apiClient = axios.create({
 
 /**
  * Request Interceptor
- * 
+ *
  * Automatically attaches JWT token to all outgoing requests.
  * Token is retrieved from the auth store.
  */
@@ -43,7 +43,7 @@ apiClient.interceptors.request.use(
 
 /**
  * Response Interceptor
- * 
+ *
  * Global error handling for all API responses.
  * Handles authentication errors, validation errors, and network issues.
  */
@@ -100,7 +100,7 @@ apiClient.interceptors.response.use(
 
 /**
  * API Helper Methods
- * 
+ *
  * Convenience methods for common HTTP operations.
  * All methods automatically include authentication headers and error handling.
  */
@@ -114,7 +114,7 @@ export const api = {
 
 /**
  * File Upload Helper
- * 
+ *
  * Handles file uploads with progress tracking.
  * @param {string} url - Upload endpoint
  * @param {File} file - File to upload

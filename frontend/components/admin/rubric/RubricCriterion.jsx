@@ -34,7 +34,7 @@ export default function RubricCriterion({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCommentManager, setShowCommentManager] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState(criterion.title);
+  const [tempTitle, setTempTitle] = useState(criterion.title || '');
 
   const handleUpdateLevel = (levelIndex, updatedLevel) => {
     const newLevels = [...criterion.levels];
@@ -205,7 +205,7 @@ export default function RubricCriterion({
                 Description
               </label>
               <textarea
-                value={criterion.description}
+                value={criterion.description || ''}
                 onChange={(e) => onUpdate({ ...criterion, description: e.target.value })}
                 className="form-control"
                 rows={2}
@@ -219,7 +219,7 @@ export default function RubricCriterion({
                 </label>
                 <input
                   type="number"
-                  value={criterion.weight}
+                  value={criterion.weight || 0}
                   onChange={(e) => onUpdate({ ...criterion, weight: parseInt(e.target.value) || 0 })}
                   className="form-control"
                   min={0}
@@ -231,7 +231,7 @@ export default function RubricCriterion({
                   Scale Type
                 </label>
                 <select
-                  value={criterion.markingScale}
+                  value={criterion.markingScale || 'descriptive'}
                   onChange={(e) => onUpdate({ ...criterion, markingScale: e.target.value })}
                   className="form-control"
                 >

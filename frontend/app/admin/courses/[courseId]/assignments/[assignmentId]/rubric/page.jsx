@@ -70,11 +70,19 @@ export default function RubricConfigurationPage() {
     try {
       setIsLoading(true);
 
+      console.log("Fetching data for:", {
+        courseId: params.courseId,
+        assignmentId: params.assignmentId
+      });
+
       // Fetch course and assignment details
-      const [courseResponse, assignmentData] = await Promise.all([
+      const [courseResponse, assignmentResponse] = await Promise.all([
         courseService.getCourse(params.courseId),
         assignmentService.getAssignmentById(params.assignmentId),
       ]);
+
+      console.log("Course response:", courseResponse);
+      console.log("Assignment response:", assignmentResponse);
 
       // Handle course response
       if (!courseResponse.success) {
@@ -82,19 +90,79 @@ export default function RubricConfigurationPage() {
       }
 
       setCourse(courseResponse.data);
-      setAssignment(assignmentData);
+      
+      // Handle assignment response - check if it's wrapped in a success structure
+      let assignmentData = assignmentResponse;
+      if (assignmentResponse.success !== undefined) {
+        assignmentData = assignmentResponse.data;
+      }
+      
+      // Map backend field names to frontend expected names
+      const mappedAssignment = {
+        id: assignmentData.id,
+        title: assignmentData.name || assignmentData.title,
+        description: assignmentData.description,
+        type: assignmentData.type,
+        dueDate: assignmentData.endDate || assignmentData.dueDate,
+        startDate: assignmentData.startDate,
+        weight: assignmentData.weight,
+        status: assignmentData.status,
+        rubricId: assignmentData.rubricId
+      };
 
-      // Fetch existing rubric if available
-      if (assignmentData.rubricId) {
-        const rubricData = await rubricService.getRubricById(
-          assignmentData.rubricId
-        );
-        setRubric(rubricData);
+      setAssignment(mappedAssignment);
+
+      // Check if assignment has rubric data
+      // Handle both rubricInfo and rubricsInfo (backend inconsistency)
+      const rubricInfoArray = assignmentData.rubricInfo || assignmentData.rubricsInfo;
+      let rubricMetaInfo = assignmentData.rubricMetaInfo;
+      
+      // Parse rubricMetaInfo if it's a string
+      if (typeof rubricMetaInfo === 'string') {
+        try {
+          rubricMetaInfo = JSON.parse(rubricMetaInfo);
+        } catch (e) {
+          console.warn('Failed to parse rubricMetaInfo:', e);
+          rubricMetaInfo = null;
+        }
+      }
+      
+      if (rubricMetaInfo && rubricInfoArray && Array.isArray(rubricInfoArray)) {
+        // Convert backend rubric format to frontend format
+        const convertedRubric = {
+          id: assignmentData.id + "_rubric", // Generate a consistent ID
+          name: rubricMetaInfo.name || `${mappedAssignment.title} Rubric`,
+          description: rubricMetaInfo.description || "",
+          totalPoints: rubricMetaInfo.totalPoints || 100,
+          criteria: rubricInfoArray.map((criterion, index) => ({
+            id: `criterion_${index}`,
+            title: criterion.description,
+            description: "",
+            weight: criterion.weight,
+            markingScale: criterion.scaleType || "descriptive",
+            levels: criterion.performanceLevel && Array.isArray(criterion.performanceLevel) 
+              ? criterion.performanceLevel.map((level, levelIndex) => ({
+                  id: `level_${levelIndex}`,
+                  name: level.description || `Level ${levelIndex + 1}`,
+                  description: level.description || "",
+                  minPoints: level.startPoint,
+                  maxPoints: level.endPoint,
+                  color: ["green", "blue", "yellow", "orange", "red"][levelIndex] || "gray"
+                }))
+              : [], // Default empty levels if not provided
+            comments: []
+          }))
+        };
+        
+        console.log("Converted rubric from backend:", convertedRubric);
+        setRubric(convertedRubric);
+        setHasChanges(false); // Reset changes flag when loading existing data
       } else {
+        console.log("No valid rubric data found, initializing with default");
         // Initialize with default criterion
         setRubric({
           ...rubric,
-          name: `${assignmentData.title} Rubric`,
+          name: `${mappedAssignment.title} Rubric`,
           criteria: [createDefaultCriterion()],
         });
       }
@@ -168,7 +236,7 @@ export default function RubricConfigurationPage() {
     const newCriterion = createDefaultCriterion();
     setRubric({
       ...rubric,
-      criteria: [...rubric.criteria, newCriterion],
+      criteria: [...(rubric.criteria || []), newCriterion],
     });
     setHasChanges(true);
     showNotification({
@@ -179,14 +247,14 @@ export default function RubricConfigurationPage() {
   };
 
   const handleUpdateCriterion = (index, updatedCriterion) => {
-    const newCriteria = [...rubric.criteria];
+    const newCriteria = [...(rubric.criteria || [])];
     newCriteria[index] = updatedCriterion;
     setRubric({ ...rubric, criteria: newCriteria });
     setHasChanges(true);
   };
 
   const handleDeleteCriterion = (index) => {
-    if (rubric.criteria.length === 1) {
+    if (!rubric.criteria || rubric.criteria.length === 1) {
       showNotification({
         type: "error",
         title: "Cannot delete",
@@ -206,6 +274,7 @@ export default function RubricConfigurationPage() {
   };
 
   const handleDuplicateCriterion = (index) => {
+    if (!rubric.criteria || !rubric.criteria[index]) return;
     const criterionToDuplicate = rubric.criteria[index];
     const duplicatedCriterion = {
       ...criterionToDuplicate,
@@ -217,7 +286,7 @@ export default function RubricConfigurationPage() {
       })),
     };
 
-    const newCriteria = [...rubric.criteria];
+    const newCriteria = [...(rubric.criteria || [])];
     newCriteria.splice(index + 1, 0, duplicatedCriterion);
     setRubric({ ...rubric, criteria: newCriteria });
     setHasChanges(true);
@@ -241,7 +310,7 @@ export default function RubricConfigurationPage() {
 
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === dropIndex) return;
+    if (draggedIndex === null || draggedIndex === dropIndex || !rubric.criteria) return;
 
     const draggedCriterion = rubric.criteria[draggedIndex];
     const newCriteria = [...rubric.criteria];
@@ -260,8 +329,14 @@ export default function RubricConfigurationPage() {
   };
 
   const handleSaveRubric = async () => {
+    console.log("Save Rubric clicked!");
+    console.log("Current rubric:", rubric);
+    console.log("Has changes:", hasChanges);
+    console.log("Button disabled?", isSaving);
+    
     // Validate rubric
     if (!rubric.name.trim()) {
+      console.error("Validation failed: No rubric name");
       showNotification({
         type: "error",
         title: "Validation error",
@@ -270,7 +345,8 @@ export default function RubricConfigurationPage() {
       return;
     }
 
-    if (rubric.criteria.length === 0) {
+    if (!rubric.criteria || rubric.criteria.length === 0) {
+      console.error("Validation failed: No criteria");
       showNotification({
         type: "error",
         title: "Validation error",
@@ -278,6 +354,8 @@ export default function RubricConfigurationPage() {
       });
       return;
     }
+    
+    console.log("Criteria validation passed:", rubric.criteria.length, "criteria found");
 
     // Validate total weight equals 100%
     const totalWeight = rubric.criteria.reduce(
@@ -296,23 +374,42 @@ export default function RubricConfigurationPage() {
     try {
       setIsSaving(true);
 
-      // Save rubric
-      const savedRubric = rubric.id
-        ? await rubricService.updateRubric(rubric.id, rubric)
-        : await rubricService.createRubric({
-            ...rubric,
-            assignmentId: params.assignmentId,
-            courseId: params.courseId,
-          });
+      const rubricSaveData = {
+        ...rubric,
+        assignmentId: params.assignmentId,
+        courseId: params.courseId,
+        // Include assignment data for the backend
+        assignmentName: assignment?.title,
+        assignmentDescription: assignment?.description,
+        assignmentType: assignment?.type,
+        startDate: assignment?.startDate,
+        endDate: assignment?.dueDate,
+        weight: assignment?.weight,
+        status: assignment?.status,
+      };
 
-      // Update assignment with rubric ID
-      if (!rubric.id) {
-        await assignmentService.updateAssignment(params.assignmentId, {
-          rubricId: savedRubric.id,
+      console.log("Saving rubric with data:", rubricSaveData);
+      console.log("Assignment data:", assignment);
+      console.log("Course ID:", params.courseId);
+
+      // Save rubric (both create and update use the same method now)
+      const rubricResponse = await rubricService.createRubric(rubricSaveData);
+
+      // Handle rubric response structure
+      const savedRubric = rubricResponse.success !== undefined ? rubricResponse.data : rubricResponse;
+      
+      // If we have a saved rubric with updated information, use it
+      // Otherwise, keep the current rubric but mark as saved
+      if (savedRubric && savedRubric.id) {
+        setRubric(savedRubric);
+      } else {
+        // If no ID returned, just mark as saved by adding an ID
+        setRubric({
+          ...rubric,
+          id: rubric.id || Date.now().toString()
         });
       }
 
-      setRubric(savedRubric);
       setHasChanges(false);
 
       showNotification({
@@ -321,10 +418,11 @@ export default function RubricConfigurationPage() {
         message: "The rubric has been saved successfully",
       });
     } catch (error) {
+      console.error("Save rubric error:", error);
       showNotification({
         type: "error",
         title: "Save failed",
-        message: error.message,
+        message: error.response?.data?.message || error.message || "Failed to save rubric",
       });
     } finally {
       setIsSaving(false);
@@ -444,9 +542,9 @@ export default function RubricConfigurationPage() {
             </button>
             <button
               onClick={handleSaveRubric}
-              disabled={isSaving || !hasChanges}
+              disabled={isSaving}
               className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
-                hasChanges
+                !isSaving
                   ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
               }`}
@@ -554,7 +652,7 @@ export default function RubricConfigurationPage() {
                   </label>
                   <input
                     type="text"
-                    value={rubric.name}
+                    value={rubric.name || ''}
                     onChange={(e) => {
                       setRubric({ ...rubric, name: e.target.value });
                       setHasChanges(true);
@@ -568,7 +666,7 @@ export default function RubricConfigurationPage() {
                     Description
                   </label>
                   <textarea
-                    value={rubric.description}
+                    value={rubric.description || ''}
                     onChange={(e) => {
                       setRubric({ ...rubric, description: e.target.value });
                       setHasChanges(true);
@@ -584,7 +682,7 @@ export default function RubricConfigurationPage() {
                   </label>
                   <input
                     type="number"
-                    value={rubric.totalPoints}
+                    value={rubric.totalPoints || 100}
                     onChange={(e) => {
                       setRubric({
                         ...rubric,
@@ -618,7 +716,7 @@ export default function RubricConfigurationPage() {
             </div>
 
             {/* Weight Validation Alert */}
-            {rubric.criteria.length > 0 && (
+            {rubric.criteria && rubric.criteria.length > 0 && (
               <div
                 className={`p-4 rounded-lg flex items-center gap-3 ${
                   rubric.criteria.reduce(
@@ -655,12 +753,12 @@ export default function RubricConfigurationPage() {
 
             {/* Criteria Components */}
             <div className="space-y-4">
-              {rubric.criteria.map((criterion, index) => (
+              {rubric.criteria && rubric.criteria.map((criterion, index) => (
                 <RubricCriterion
                   key={criterion.id}
                   criterion={criterion}
                   index={index}
-                  totalCriteria={rubric.criteria.length}
+                  totalCriteria={rubric.criteria ? rubric.criteria.length : 0}
                   onUpdate={(updated) => handleUpdateCriterion(index, updated)}
                   onDelete={() => handleDeleteCriterion(index)}
                   onDuplicate={() => handleDuplicateCriterion(index)}
@@ -672,7 +770,7 @@ export default function RubricConfigurationPage() {
               ))}
             </div>
 
-            {rubric.criteria.length === 0 && (
+            {(!rubric.criteria || rubric.criteria.length === 0) && (
               <div className="text-center py-12 dashboard-card">
                 <Award className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400 mb-4">

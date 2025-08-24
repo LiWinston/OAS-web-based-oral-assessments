@@ -6,25 +6,20 @@ import { assignmentService } from "../../../services/assignmentService";
 import { useNotification } from "../../../hooks/useNotification";
 
 export function AssignmentList({
-  courseId,
+  assignments,
+  loading,
   viewMode,
   searchTerm,
   statusFilter,
   onCreateAssignment,
   onEditAssignment,
+  onAssignmentDeleted,
 }) {
-  const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
   const [isFiltering, setIsFiltering] = useState(false);
   const { showNotification } = useNotification();
-
-  // Fetch assignments
-  useEffect(() => {
-    fetchAssignments();
-  }, [courseId]);
 
   // Filter assignments with smooth transitions
   useEffect(() => {
@@ -32,7 +27,7 @@ export function AssignmentList({
 
     // Add a small delay to show filtering animation
     const filterTimeout = setTimeout(() => {
-      let filtered = assignments;
+      let filtered = assignments || [];
 
       // Search filter
       if (searchTerm) {
@@ -59,27 +54,16 @@ export function AssignmentList({
     return () => clearTimeout(filterTimeout);
   }, [assignments, searchTerm, statusFilter]);
 
-  const fetchAssignments = async () => {
-    try {
-      setLoading(true);
-      const result = await assignmentService.getAssignments(courseId);
-      if (result.success) {
-        setAssignments(result.data);
-      }
-    } catch (error) {
-      showNotification("error", "Failed to load assignments");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Handle delete
   const handleDelete = async (assignmentId) => {
     try {
       const result = await assignmentService.deleteAssignment(assignmentId);
       if (result.success) {
         showNotification("success", "Assignment deleted successfully");
-        fetchAssignments();
+        // 通知父组件刷新数据
+        if (onAssignmentDeleted) {
+          onAssignmentDeleted();
+        }
       }
     } catch (error) {
       showNotification("error", "Failed to delete assignment");
@@ -114,45 +98,68 @@ export function AssignmentList({
           gradientColor: "from-teal-500 to-cyan-600",
           icon: "fa-layer-group",
         };
+      case "Project":
+        return {
+          bgColor: "bg-blue-100 dark:bg-blue-900/50",
+          textColor: "text-blue-700 dark:text-blue-300",
+          borderColor: "border-blue-500",
+          gradientColor: "from-blue-500 to-indigo-600",
+          icon: "fa-project-diagram",
+        };
+      case "Challenge":
+        return {
+          bgColor: "bg-orange-100 dark:bg-orange-900/50",
+          textColor: "text-orange-700 dark:text-orange-300",
+          borderColor: "border-orange-500",
+          gradientColor: "from-orange-500 to-red-600",
+          icon: "fa-trophy",
+        };
+      default:
+        return {
+          bgColor: "bg-gray-100 dark:bg-gray-900/50",
+          textColor: "text-gray-700 dark:text-gray-300",
+          borderColor: "border-gray-500",
+          gradientColor: "from-gray-500 to-gray-600",
+          icon: "fa-tasks",
+        };
     }
   };
 
   // Get status styles
   const getStatusStyles = (status) => {
     switch (status) {
-      case "active":
-        return {
-          bgColor: "bg-green-100 dark:bg-green-900/50",
-          textColor: "text-green-700 dark:text-green-300",
-          icon: "fa-check-circle",
-        };
-      case "upcoming":
+      case "PENDING":
         return {
           bgColor: "bg-blue-100 dark:bg-blue-900/50",
           textColor: "text-blue-700 dark:text-blue-300",
           icon: "fa-clock",
         };
-      case "completed":
+      case "IN_PROGRESS":
+        return {
+          bgColor: "bg-green-100 dark:bg-green-900/50",
+          textColor: "text-green-700 dark:text-green-300",
+          icon: "fa-play-circle",
+        };
+      case "COMPLETED":
         return {
           bgColor: "bg-gray-100 dark:bg-gray-900/50",
           textColor: "text-gray-700 dark:text-gray-300",
-          icon: "fa-archive",
+          icon: "fa-check-circle",
         };
-      case "draft":
+      default:
         return {
           bgColor: "bg-amber-100 dark:bg-amber-900/50",
           textColor: "text-amber-700 dark:text-amber-300",
-          icon: "fa-edit",
+          icon: "fa-question",
         };
     }
   };
 
-  // Calculate progress percentage
   const getProgressPercentage = (assignment) => {
-    if (assignment.totalSessions === 0) return 0;
-    return Math.round(
-      (assignment.completedSessions / assignment.totalSessions) * 100
-    );
+    if (typeof assignment.progress === 'number') {
+      return Math.round(assignment.progress);
+    }
+    return 0;
   };
 
   if (loading) {
@@ -322,7 +329,7 @@ export function AssignmentList({
                           </button>
 
                           <Link
-                            href={`/admin/courses/${courseId}/assignments/${assignment.id}/rubric`}
+                            href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/rubric`}
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasRubric ? "animate-pulse" : ""
                             }`}
@@ -577,7 +584,7 @@ export function AssignmentList({
 
                       <div className="flex space-x-3">
                         <Link
-                          href={`/admin/courses/${courseId}/assignments/${assignment.id}/rubric`}
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/rubric`}
                           className={`text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasRubric ? "animate-pulse" : ""
                           }`}
