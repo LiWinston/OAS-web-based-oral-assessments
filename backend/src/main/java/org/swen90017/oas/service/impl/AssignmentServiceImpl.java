@@ -24,6 +24,7 @@ import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -193,6 +194,31 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         ));
 
         return count;
+    }
+
+    @Override
+    public Map<Long, Integer> getAssignmentCountsBySubjectIds(List<Long> subjectIds) {
+        if (subjectIds == null || subjectIds.isEmpty()) {
+            return new java.util.HashMap<>();
+        }
+
+        // Use SQL aggregation for batch query
+        List<Map<String, Object>> results = assignmentMapper.selectAssignmentCountsBySubjectIds(subjectIds);
+        
+        // Convert to Map<Long, Integer>
+        Map<Long, Integer> countMap = new java.util.HashMap<>();
+        for (Map<String, Object> result : results) {
+            Long subjectId = ((Number) result.get("subjectId")).longValue();
+            Integer count = ((Number) result.get("assignmentCount")).intValue();
+            countMap.put(subjectId, count);
+        }
+        
+        // Fill in 0 for subjects with no assignments
+        for (Long subjectId : subjectIds) {
+            countMap.putIfAbsent(subjectId, 0);
+        }
+        
+        return countMap;
     }
 
     @Override

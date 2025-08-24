@@ -6,6 +6,7 @@ import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Assignment Service Interface
@@ -34,7 +35,7 @@ public interface AssignmentService extends IService<Assignment> {
     void deleteAssignment(Long id);
 
     /**
-     * Get assignments by subject ID
+     * Get assignments by subject ID (with caching)
      */
     List<AssignmentResponseDTO> getAssignmentsBySubject(Long subjectId);
 
@@ -42,6 +43,12 @@ public interface AssignmentService extends IService<Assignment> {
      * Get assignment count by subject ID (with caching)
      */
     Integer getAssignmentCountBySubject(Long subjectId);
+
+    /**
+     * Batch get assignment counts by subject IDs (SQL aggregation - no cache)
+     * Returns Map<subjectId, assignmentCount>
+     */
+    Map<Long, Integer> getAssignmentCountsBySubjectIds(List<Long> subjectIds);
 
     /**
      * Clear assignments cache for specific subject
