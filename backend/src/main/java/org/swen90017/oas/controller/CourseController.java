@@ -135,7 +135,6 @@ public class CourseController {
      */
     @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses")
     @GetMapping("/stats")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
     public Result<CourseStatsResponseDTO> getCourseStats() {
         // Use optimized SQL aggregation query (single query instead of N+1)
