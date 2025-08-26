@@ -919,6 +919,1016 @@
     transform-origin: 50% 50%;
   }
 
+  /* OAS Schedule specific styles */
+  .oas-schedule .dashboard-card {
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: 1px solid #e5e7eb;
+  }
+
+  .dark .oas-schedule .dashboard-card {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .oas-schedule .progress-container {
+    width: 100%;
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+
+  .dark .oas-schedule .progress-container {
+    background-color: #374151;
+  }
+
+  .oas-schedule .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+    transition: width 0.3s ease;
+    border-radius: 9999px;
+  }
+
+  .oas-schedule .card-section {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  .dark .oas-schedule .card-section {
+    background: #111827;
+    border-color: #374151;
+  }
+
+  .oas-schedule .card-section-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .oas-schedule .card-section-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+  }
+
+  .oas-schedule .card-section-icon.icon-blue {
+    background-color: #dbeafe;
+    color: #2563eb;
+  }
+
+  .dark .oas-schedule .card-section-icon.icon-blue {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #60a5fa;
+  }
+
+  .oas-schedule .card-section-icon.icon-green {
+    background-color: #dcfce7;
+    color: #16a34a;
+  }
+
+  .dark .oas-schedule .card-section-icon.icon-green {
+    background-color: rgba(22, 163, 74, 0.2);
+    color: #4ade80;
+  }
+
+  .oas-schedule .card-section-icon.icon-purple {
+    background-color: #f3e8ff;
+    color: #9333ea;
+  }
+
+  .dark .oas-schedule .card-section-icon.icon-purple {
+    background-color: rgba(147, 51, 234, 0.2);
+    color: #c084fc;
+  }
+
+  .oas-schedule .number-input-container {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .oas-schedule .number-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .oas-schedule .number-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .dark .oas-schedule .number-btn {
+    background: #374151;
+    border-color: #4b5563;
+    color: #d1d5db;
+  }
+
+  .dark .oas-schedule .number-btn:hover {
+    background: #4b5563;
+    color: #f3f4f6;
+  }
+
+  .oas-schedule .number-input {
+    width: 4rem;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.375rem;
+    text-align: center;
+    background: white;
+    color: #111827;
+  }
+
+  .dark .oas-schedule .number-input {
+    background: #374151;
+    border-color: #4b5563;
+    color: #f9fafb;
+  }
+
+  .oas-schedule .btn {
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .oas-schedule .btn-primary {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .oas-schedule .btn-primary:hover {
+    background: #2563eb;
+  }
+
+  .oas-schedule .btn-primary:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+
+  .oas-schedule .btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border-color: #d1d5db;
+  }
+
+  .oas-schedule .btn-secondary:hover {
+    background: #e5e7eb;
+  }
+
+  .dark .oas-schedule .btn-secondary {
+    background: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+  }
+
+  .dark .oas-schedule .btn-secondary:hover {
+    background: #4b5563;
+  }
+
+  .oas-schedule .btn-success {
+    background: #10b981;
+    color: white;
+  }
+
+  .oas-schedule .btn-success:hover {
+    background: #059669;
+  }
+
+  .oas-schedule .btn-outline {
+    background: transparent;
+    color: #3b82f6;
+    border-color: #3b82f6;
+  }
+
+  .oas-schedule .btn-outline:hover {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .oas-schedule .time-slot-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  .dark .oas-schedule .time-slot-card {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .oas-schedule .time-slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .oas-schedule .time-slot-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .oas-schedule .time-slot-action-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .oas-schedule .action-edit {
+    color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  .oas-schedule .action-edit:hover {
+    background: #dbeafe;
+  }
+
+  .dark .oas-schedule .action-edit {
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .dark .oas-schedule .action-edit:hover {
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  /* Calendar styles */
+  .oas-schedule .calendar-container {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #e5e7eb;
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+
+  .dark .oas-schedule .calendar-container {
+    background: #374151;
+  }
+
+  .oas-schedule .calendar-day {
+    background: white;
+    min-height: 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    padding: 0.25rem;
+  }
+
+  .dark .oas-schedule .calendar-day {
+    background: #1f2937;
+    color: #d1d5db;
+  }
+
+  .oas-schedule .calendar-day:hover {
+    background: #f3f4f6;
+  }
+
+  .dark .oas-schedule .calendar-day:hover {
+    background: #374151;
+  }
+
+  .oas-schedule .calendar-day.selected {
+    background: #3b82f6;
+    color: white;
+  }
+
+  .oas-schedule .calendar-day .date {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .oas-schedule .calendar-day .day-status {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.125rem;
+  }
+
+  .oas-schedule .calendar-day .slot-count {
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+
+  .oas-schedule .calendar-day.selected .slot-count {
+    color: #e5e7eb;
+  }
+
+  .oas-schedule .status-indicator {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .oas-schedule .status-full {
+    background: #10b981;
+  }
+
+  .oas-schedule .status-partial {
+    background: #f59e0b;
+  }
+
+  .oas-schedule .status-empty {
+    background: #ef4444;
+  }
+
+  /* Time slot management styles */
+  .oas-schedule .time-slot-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+
+  .dark .oas-schedule .time-slot-item {
+    background: #1f2937;
+    border-color: #374151;
+  }
+
+  .oas-schedule .action-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.875rem;
+  }
+
+  .oas-schedule .action-btn-primary {
+    color: #3b82f6;
+    background: #eff6ff;
+  }
+
+  .oas-schedule .action-btn-primary:hover {
+    background: #dbeafe;
+  }
+
+  .dark .oas-schedule .action-btn-primary {
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .dark .oas-schedule .action-btn-primary:hover {
+    background: rgba(59, 130, 246, 0.2);
+  }
+
+  .oas-schedule .examiner-chip {
+    display: inline-block;
+    background: #eff6ff;
+    color: #1e40af;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .dark .oas-schedule .examiner-chip {
+    background: rgba(30, 64, 175, 0.2);
+    color: #93c5fd;
+  }
+
+  .oas-schedule .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+    text-align: center;
+  }
+
+  .oas-schedule .empty-state-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .dark .oas-schedule .empty-state-icon {
+    background: #374151;
+    color: #6b7280;
+  }
+
+  .oas-schedule .add-time-slot-btn {
+    transition: all 0.2s;
+  }
+
+  .oas-schedule .add-time-slot-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Additional styles for better visual matching */
+  .oas-schedule .calendar-day.selected {
+    background: #3b82f6 !important;
+    color: white !important;
+  }
+
+  .oas-schedule .calendar-day.selected .slot-count {
+    color: #e5e7eb !important;
+  }
+
+  .oas-schedule .calendar-day {
+    position: relative;
+  }
+
+  .oas-schedule .calendar-day.border-2 {
+    border-color: #60a5fa !important;
+  }
+
+  /* Breadcrumb styles */
+  .oas-schedule .breadcrumb-link {
+    color: #3b82f6;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .oas-schedule .breadcrumb-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+  }
+
+  .dark .oas-schedule .breadcrumb-link {
+    color: #60a5fa;
+  }
+
+  .dark .oas-schedule .breadcrumb-link:hover {
+    color: #93c5fd;
+  }
+
+  /* Better spacing and typography */
+  .oas-schedule h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .oas-schedule h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .oas-schedule h3 {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  /* Project info card improvements */
+  .oas-schedule .project-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .oas-schedule .project-info-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  /* Calendar navigation buttons */
+  .oas-schedule .calendar-nav-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+
+  .oas-schedule .calendar-nav-btn:hover {
+    background: #f3f4f6;
+  }
+
+  .dark .oas-schedule .calendar-nav-btn:hover {
+    background: #374151;
+  }
+
+  /* Status indicators in legend */
+  .oas-schedule .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .oas-schedule .legend-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+  }
+
+  /* Additional styles for prototype matching */
+  .oas-schedule .form-field {
+    position: relative;
+    margin-bottom: 1.5rem;
+  }
+
+  .oas-schedule .form-field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #4b5563;
+    transition: color 0.3s ease;
+  }
+
+  .dark .oas-schedule .form-field label {
+    color: #d1d5db;
+  }
+
+  .oas-schedule .custom-input {
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+    background-color: #f9fafb;
+    transition: all 0.3s ease;
+  }
+
+  .dark .oas-schedule .custom-input {
+    border-color: #4b5563;
+    color: #d1d5db;
+    background-color: #374151;
+  }
+
+  .oas-schedule .custom-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+
+  .dark .oas-schedule .custom-input:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+  }
+
+  .oas-schedule .helper-text {
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-top: 0.25rem;
+  }
+
+  .dark .oas-schedule .helper-text {
+    color: #9ca3af;
+  }
+
+  .oas-schedule .time-picker {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .oas-schedule .time-separator {
+    font-weight: bold;
+    color: #6b7280;
+  }
+
+  .dark .oas-schedule .time-separator {
+    color: #9ca3af;
+  }
+
+  .oas-schedule .am-pm-toggle {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #e5e7eb;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #4b5563;
+    transition: all 0.3s ease;
+  }
+
+  .dark .oas-schedule .am-pm-toggle {
+    background-color: #4b5563;
+    color: #d1d5db;
+  }
+
+  .oas-schedule .am-pm-toggle.selected {
+    background-color: #3b82f6;
+    color: white;
+  }
+
+  .dark .oas-schedule .am-pm-toggle.selected {
+    background-color: #60a5fa;
+  }
+
+  .oas-schedule .time-display {
+    background-color: #f3f4f6;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+  }
+
+  .dark .oas-schedule .time-display {
+    background-color: #374151;
+    color: #d1d5db;
+    border-color: #4b5563;
+  }
+
+  .oas-schedule .action-duplicate {
+    background-color: #e0e7ff;
+    color: #4338ca;
+  }
+
+  .dark .oas-schedule .action-duplicate {
+    background-color: rgba(67, 56, 202, 0.2);
+    color: #a5b4fc;
+  }
+
+  .oas-schedule .action-delete {
+    background-color: #fee2e2;
+    color: #b91c1c;
+  }
+
+  .dark .oas-schedule .action-delete {
+    background-color: rgba(185, 28, 28, 0.2);
+    color: #fca5a5;
+  }
+
+  .oas-schedule .animate-fade-in {
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .oas-schedule .info-tooltip {
+    position: relative;
+    display: inline-block;
+    margin-left: 0.25rem;
+  }
+
+  .oas-schedule .info-tooltip i {
+    color: #9ca3af;
+    font-size: 0.75rem;
+  }
+
+  .oas-schedule .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #1f2937;
+    color: #f9fafb;
+    text-align: center;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .oas-schedule .tooltip-text {
+    background-color: #4b5563;
+  }
+
+  .oas-schedule .info-tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* Examiner Dashboard Specific Styles */
+  .dashboard-card {
+    @apply bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700;
+  }
+
+  .stats-card {
+    @apply p-5 rounded-lg flex items-start;
+  }
+
+  .stats-icon {
+    @apply w-10 h-10 rounded-full flex items-center justify-center mr-4 flex-shrink-0;
+  }
+
+  .sidebar-link {
+    @apply block px-4 py-2 text-sm rounded-md mx-2 transition-colors;
+  }
+
+  .calendar-day {
+    @apply h-28 p-1 border border-gray-200 dark:border-gray-700 overflow-hidden hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors;
+  }
+
+  /* Calendar specific styles */
+  .calendar-header {
+    @apply text-center p-3 text-sm font-medium text-gray-500 dark:text-gray-400;
+  }
+
+  .calendar-day-header {
+    @apply flex items-center justify-between mb-2;
+  }
+
+  .date-number {
+    @apply font-medium text-sm;
+  }
+
+  .today {
+    @apply bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800;
+  }
+
+  .other-month {
+    @apply bg-gray-50 dark:bg-gray-800/50 text-gray-400 dark:text-gray-600;
+  }
+
+  .event-item {
+    @apply px-2 py-1 rounded text-xs mb-1 whitespace-nowrap overflow-hidden text-ellipsis cursor-pointer transition-colors;
+  }
+
+  .event-group {
+    @apply bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800/50;
+  }
+
+  .event-individual {
+    @apply bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-800/50;
+  }
+
+  /* Form control style for consistency */
+  .form-control {
+    @apply w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+
+  /* Animation delay utilities */
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 600ms;
+  }
+
+  .animation-delay-700 {
+    animation-delay: 700ms;
+  }
+
+  .animation-delay-800 {
+    animation-delay: 800ms;
+  }
+
+  .animation-delay-900 {
+    animation-delay: 900ms;
+  }
+
+  .animation-delay-1000 {
+    animation-delay: 1000ms;
+  }
+
+  /* Onboarding Animations */
+  @keyframes scaleIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .animate-scaleIn {
+    animation: scaleIn 0.5s ease-out;
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  /* Onboarding specific colors */
+  .bg-purple-100 { background-color: rgb(243 232 255); }
+  .dark .bg-purple-900\/30 { background-color: rgb(88 28 135 / 0.3); }
+  .text-purple-600 { color: rgb(147 51 234); }
+  .dark .text-purple-400 { color: rgb(196 181 253); }
+  .border-purple-200 { border-color: rgb(233 213 255); }
+  .dark .border-purple-800 { border-color: rgb(107 33 168); }
+  .bg-purple-600 { background-color: rgb(147 51 234); }
+  .hover\:bg-purple-700:hover { background-color: rgb(126 34 206); }
+  .focus\:ring-purple-300:focus { --tw-ring-color: rgb(196 181 253); }
+
+  .bg-green-100 { background-color: rgb(220 252 231); }
+  .dark .bg-green-900\/30 { background-color: rgb(20 83 45 / 0.3); }
+  .text-green-600 { color: rgb(22 163 74); }
+  .dark .text-green-400 { color: rgb(134 239 172); }
+  .border-green-200 { border-color: rgb(187 247 208); }
+  .dark .border-green-800 { border-color: rgb(22 101 52); }
+  .bg-green-600 { background-color: rgb(22 163 74); }
+  .hover\:bg-green-700:hover { background-color: rgb(21 128 61); }
+  .focus\:ring-green-300:focus { --tw-ring-color: rgb(134 239 172); }
+
+  /* Enhanced Calendar Event Styles */
+  .event-active {
+    @apply bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 border-green-400 animate-pulse;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+  }
+
+  .event-completed {
+    @apply bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-400 opacity-75;
+  }
+
+  .event-soon {
+    @apply bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 border-orange-400;
+    animation: eventPulse 2s ease-in-out infinite;
+  }
+
+  .event-upcoming {
+    @apply transition-all duration-200 hover:scale-105;
+  }
+
+  /* Calendar Event Animations */
+  @keyframes eventPulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02);
+    }
+  }
+
+  @keyframes liveDot {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.3;
+      transform: scale(1.2);
+    }
+  }
+
+  .live-indicator {
+    animation: liveDot 1.5s ease-in-out infinite;
+  }
+
+  /* Assessment Status Indicators */
+  .status-urgent {
+    @apply animate-bounce;
+  }
+
+  .status-deadline-soon {
+    animation: urgentGlow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes urgentGlow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
+    }
+  }
+
+  /* Filter Dropdown Enhancements */
+  .filter-dropdown {
+    transition: all 0.3s ease;
+  }
+
+  .filter-dropdown:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  }
+
+  /* Interactive Button Effects */
+  .btn-urgent {
+    animation: urgentPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes urgentPulse {
+    0%, 100% {
+      transform: scale(1);
+      box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+    }
+  }
+
+  /* Enhanced Hover States for Assessment Cards */
+  .assessment-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .assessment-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .assessment-card:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Calendar Legend Improvements */
+  .legend-item {
+    transition: all 0.2s ease;
+  }
+
+  .legend-item:hover {
+    transform: scale(1.05);
+  }
+
+  /* Time Slot Status Colors */
+  .slot-available {
+    @apply bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800;
+  }
+
+  .slot-full {
+    @apply bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800;
+  }
+
+  .slot-starting-soon {
+    @apply bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800;
+    animation: eventPulse 2s ease-in-out infinite;
+  }
+
+  /* Progress Ring Animation */
+  .progress-ring {
+    transition: stroke-dasharray 0.35s;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
   /* Loading Skeleton Animations */
   @keyframes skeleton {
     0% {
