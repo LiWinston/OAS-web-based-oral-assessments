@@ -19,7 +19,6 @@
             FROM assignment 
             GROUP BY subject_id
         ) a ON s.subject_id = a.subject_id
-        WHERE s.is_active = 1
     </select>
 
     <!-- Get the most recent academic year from active courses -->

@@ -129,6 +129,10 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         Subject subject = new Subject();
         BeanUtils.copyProperties(dto, subject);
         
+        // Set default status and isActive
+        subject.setIsActive(true);
+        subject.setStatus("active");
+        
         subjectMapper.insert(subject);
         return subject;
     }
@@ -193,7 +197,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     @Transactional
     public void deleteSubject(Long subjectId) {
         Subject subject = subjectMapper.selectById(subjectId);
-        if (subject == null) {
+        if (subject == null || !subject.getIsActive()) {
             throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
 
@@ -203,8 +207,9 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             assignmentService.deleteAssignment(assignment.getId());
         }
         
-        // Then delete the subject
+        // Then delete the subject - set both isActive and status
         subject.setIsActive(false);
+        subject.setStatus("archived");
         subjectMapper.updateById(subject);
     }
 
@@ -238,9 +243,20 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     }
 
     /**
-     * Get subject by ID
+     * Get subject by ID (only returns active subjects)
      */
     public Subject getSubjectById(Long subjectId) {
+        Subject subject = subjectMapper.selectById(subjectId);
+        if (subject == null || !subject.getIsActive()) {
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
+        }
+        return subject;
+    }
+
+    /**
+     * Get subject by ID including inactive subjects (for admin purposes)
+     */
+    public Subject getSubjectByIdIncludeInactive(Long subjectId) {
         Subject subject = subjectMapper.selectById(subjectId);
         if (subject == null) {
             throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);

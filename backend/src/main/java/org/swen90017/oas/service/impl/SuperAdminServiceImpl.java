@@ -249,8 +249,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
             email = dto.getSisLoginId() + "@unimelb.edu.au";
         }
         // Validate email domain
-        if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au")) {
-            throw new BusinessException("Invalid email domain (must be @unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
+        if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
+            throw new BusinessException("Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
         }
 
         // Check email uniqueness

@@ -34,7 +34,7 @@ public class EmailServiceImpl implements EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(s.getSisUserId() + "@student.unimelb.edu.au");
             message.setSubject("Account Activation");
-            message.setText("Click the link to activate: https://example.com/activate?token=" + s.getToken());
+            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + s.getToken());
             batch.add(message);
 
             if (batch.size() >= batchSize) {
@@ -72,7 +72,7 @@ public class EmailServiceImpl implements EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(to);
             message.setSubject("Admin Invitation");
-            message.setText("Click the link to activate: https://example.com/activate?token=" + a.getToken());
+            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + a.getToken());
             batch.add(message);
 
             if (batch.size() >= batchSize) {

@@ -6,13 +6,14 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Moon } from "lucide-react";
+import { Moon, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useAuthStore } from "@/store/authStore";
 import { authService } from "@/services/authService";
+import { Spinner } from "@/components/ui/spinner";
 
 // Validation schema for login form
 const loginSchema = z.object({
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const theme = localStorage.getItem("theme");
@@ -74,6 +76,7 @@ export default function LoginPage() {
 
 
   const onSubmit = async (data) => {
+    if (isLoading) return; // Prevent double submit during slow networks
     setIsLoading(true);
     setError("");
 
@@ -240,6 +243,7 @@ export default function LoginPage() {
                       {...register("email")}
                       disabled={isLoading}
                       className="h-12 text-base"
+                      autoComplete="email"
                     />
                     {errors.email && (
                       <p className="text-sm text-destructive mt-1">
@@ -252,14 +256,28 @@ export default function LoginPage() {
                     <Label htmlFor="password" className="text-base font-medium">
                       Password
                     </Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      {...register("password")}
-                      disabled={isLoading}
-                      className="h-12 text-base"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        {...register("password")}
+                        disabled={isLoading}
+                        className="h-12 text-base pr-10"
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                        aria-pressed={showPassword}
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                        disabled={isLoading}
+                        tabIndex={0}
+                      >
+                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
                     {errors.password && (
                       <p className="text-sm text-destructive mt-1">
                         {errors.password.message}
@@ -277,8 +295,16 @@ export default function LoginPage() {
                     type="submit"
                     className="w-full h-12 text-base font-medium"
                     disabled={isLoading}
+                    aria-busy={isLoading}
                   >
-                    {isLoading ? "Signing in..." : "Sign In"}
+                    {isLoading ? (
+                      <>
+                        <Spinner size="sm" className="mr-1" />
+                        Signing in...
+                      </>
+                    ) : (
+                      "Sign In"
+                    )}
                   </Button>
                 </form>
 

@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
 import { useAuthStore } from "../../../../store/authStore";
+import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
+import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
+import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
+import SelectionSummary from "../../../../components/examiner/schedule/SelectionSummary";
 
 /**
  * TimeslotSelection Component
@@ -13,162 +18,286 @@ import { useAuthStore } from "../../../../store/authStore";
  * Step 1: Assessment Selection
  * Step 2: Timeslot Selection
  */
-export default function TimeslotSelection() {
+function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedAssessment, setSelectedAssessment] = useState("");
+  const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [allocatedSlots, setAllocatedSlots] = useState([]);
   const [currentAllocation, setCurrentAllocation] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [submitError, setSubmitError] = useState(null);
+  const [submitResult, setSubmitResult] = useState(null);
+  const [selectionMessage, setSelectionMessage] = useState(null);
 
-  // Mock configuration - will come from API
-  const minAllocation = 3;
-  const maxAllocation = 8;
+  // Get examiner ID with dev fallback for deep-link and local testing
+  const devFallbackUser = {
+    id: 'debug-examiner-123',
+    role: 'EXAMINER',
+    username: 'debug_examiner',
+    email: 'debug@examiner.test'
+  };
+  const effectiveUser = user || devFallbackUser;
+  const examinerId = effectiveUser?.id || effectiveUser?.userId;
+  
+  // Debug logging for development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Debug - Auth Store Data:', {
+        user: user,
+        userId: user?.id,
+        userIdAlt: user?.userId,
+        examinerId: examinerId,
+        isAuthenticated: user ? 'Yes' : 'No'
+      });
+    }
+  }, [user, examinerId]);
+
+  // Fetch available assignments with debugging
+  const { 
+    data: assignmentsData, 
+    isLoading: isLoadingAssignments, 
+    error: assignmentsError,
+    refetch: refetchAssignments
+  } = useQuery({
+    queryKey: ['availableAssignments', examinerId],
+    queryFn: async () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🌐 API Call - Getting available assignments for examiner:', examinerId);
+      }
+      try {
+        const result = await examinerTimeslotService.getAvailableAssignments(examinerId);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📦 API Response - Available assignments:', result);
+        }
+        return result;
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ API Error - Failed to fetch assignments:', error);
+        }
+        throw error;
+      }
+    },
+    enabled: !!examinerId && currentStep === 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
+
+  // Debug assignments data changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && assignmentsData) {
+      console.log('📊 Debug - Assignments data updated:', {
+        success: assignmentsData?.success,
+        dataLength: assignmentsData?.data?.data?.length || 0,
+        totalAssignments: assignmentsData?.data?.total || 0,
+        errorPresent: !!assignmentsError
+      });
+    }
+  }, [assignmentsData, assignmentsError]);
+
+  // Fetch available timeslots when assignment is selected and on step 2
+  const { 
+    data: timeslotsData, 
+    isLoading: isLoadingTimeslots, 
+    error: timeslotsError,
+    refetch: refetchTimeslots
+  } = useQuery({
+    queryKey: ['availableTimeslots', selectedAssignment?.assignmentId, examinerId],
+    queryFn: async () => {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🌐 API Call - Getting available timeslots:', {
+          assignmentId: selectedAssignment.assignmentId,
+          examinerId: examinerId
+        });
+      }
+      try {
+        const result = await examinerTimeslotService.getAvailableTimeslots(
+          selectedAssignment.assignmentId, 
+          { examinerId }
+        );
+        if (process.env.NODE_ENV === 'development') {
+          console.log('📦 API Response - Available timeslots:', result);
+        }
+        return result;
+      } catch (error) {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ API Error - Failed to fetch timeslots:', error);
+        }
+        throw error;
+      }
+    },
+    enabled: !!selectedAssignment && !!examinerId && currentStep === 2,
+    refetchInterval: 30000, // 30 seconds
+    staleTime: 10000, // 10 seconds
+    retry: 3,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
   // Pre-fill if coming from assignment link
   useEffect(() => {
     const assignmentId = searchParams.get("assignmentId");
-    if (assignmentId) {
-      setSelectedSubject("COMP90082");
-      setSelectedAssessment("final");
-      setCurrentStep(2);
+    if (assignmentId && assignmentsData?.success) {
+      const assignment = assignmentsData.data.data.find(
+        a => a.assignmentId === parseInt(assignmentId)
+      );
+      if (assignment) {
+        setSelectedAssignment(assignment);
+        setCurrentStep(2);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, assignmentsData]);
+
+  // Get available dates from API data
+  const getAvailableDates = () => {
+    if (!timeslotsData?.success || !timeslotsData.data.timeSlots) {
+      return [];
+    }
+    
+    const dates = new Set();
+    timeslotsData.data.timeSlots.forEach(slot => {
+      const date = new Date(slot.start).toISOString().split('T')[0];
+      dates.add(date);
+    });
+    
+    return Array.from(dates);
+  };
 
   const dateHasSlots = (date) => {
-    return [
-      "2025-04-15",
-      "2025-04-16",
-      "2025-04-18",
-      "2025-04-22",
-      "2025-04-23",
-    ].includes(date);
+    return getAvailableDates().includes(date);
+  };
+
+  const hasConflict = (a, b) => {
+    const aStart = new Date(a.start).getTime();
+    const aEnd = new Date(a.end).getTime();
+    const bStart = new Date(b.start).getTime();
+    const bEnd = new Date(b.end).getTime();
+    return aStart < bEnd && bStart < aEnd;
   };
 
   const selectSlot = (slot) => {
-    const slotIndex = allocatedSlots.findIndex((s) => s.id === slot.id);
+    setSelectionMessage(null);
+    const slotIndex = allocatedSlots.findIndex((s) => s.slotId === slot.slotId);
     if (slotIndex >= 0) {
-      const removedSessions = allocatedSlots[slotIndex].sessions;
-      const newSlots = allocatedSlots.filter((s) => s.id !== slot.id);
+      const removedSessions = allocatedSlots[slotIndex].sessionCount;
+      const newSlots = allocatedSlots.filter((s) => s.slotId !== slot.slotId);
       setAllocatedSlots(newSlots);
       setCurrentAllocation(currentAllocation - removedSessions);
     } else {
-      if (currentAllocation + slot.sessions <= maxAllocation) {
-        setAllocatedSlots([...allocatedSlots, slot]);
-        setCurrentAllocation(currentAllocation + slot.sessions);
-      } else {
-        alert("You have reached the maximum allocation limit.");
+      const maxSessions = selectedAssignment?.examinerInfo?.maxSessions || 12;
+      if (currentAllocation + slot.sessionCount > maxSessions) {
+        setSelectionMessage({ type: 'error', text: `You have reached your maximum allocation of ${maxSessions} sessions.` });
+        return;
       }
+      const conflict = allocatedSlots.find((s) => hasConflict(s, slot));
+      if (conflict) {
+        setSelectionMessage({ type: 'error', text: 'This time slot conflicts with another selected slot. Please choose a different time.' });
+        return;
+      }
+      setAllocatedSlots([...allocatedSlots, slot]);
+      setCurrentAllocation(currentAllocation + slot.sessionCount);
     }
   };
 
   const isSlotSelected = (slotId) => {
-    return allocatedSlots.some((slot) => slot.id === slotId);
+    return allocatedSlots.some((slot) => slot.slotId === slotId);
   };
 
   const removeSlot = (slotId) => {
-    const slotIndex = allocatedSlots.findIndex((s) => s.id === slotId);
+    const slotIndex = allocatedSlots.findIndex((s) => s.slotId === slotId);
     if (slotIndex >= 0) {
-      const removedSessions = allocatedSlots[slotIndex].sessions;
-      const newSlots = allocatedSlots.filter((s) => s.id !== slotId);
+      const removedSessions = allocatedSlots[slotIndex].sessionCount;
+      const newSlots = allocatedSlots.filter((s) => s.slotId !== slotId);
       setAllocatedSlots(newSlots);
       setCurrentAllocation(currentAllocation - removedSessions);
     }
   };
 
   const canSubmit = () => {
-    return (
-      currentAllocation >= minAllocation && currentAllocation <= maxAllocation
-    );
+    // No minimum requirement as per MVP notes, just need at least one slot
+    return allocatedSlots.length > 0;
   };
 
   const nextStep = () => {
     if (currentStep === 1) {
-      if (selectedSubject && selectedAssessment) {
+      if (selectedAssignment) {
         setCurrentStep(2);
       } else {
-        alert("Please select a subject and an assessment.");
+        alert("Please select an assessment.");
       }
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep--;
+      setCurrentStep(currentStep - 1);
+      // Clear timeslot selections when going back
+      setAllocatedSlots([]);
+      setCurrentAllocation(0);
+      setSelectedDate(null);
+      setSelectionMessage(null);
     }
   };
 
   const handleSubmit = async () => {
-    if (!canSubmit()) return;
+    if (!canSubmit() || !selectedAssignment) return;
 
-    setIsLoading(true);
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setSubmitResult(null);
+    
     try {
-      // Mock submission - will use real API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const slotAssignments = allocatedSlots.map(slot => ({
+        slotId: slot.slotId
+      }));
 
-      alert("Your time slot selections have been submitted successfully!");
-      router.push("/examiner/schedule");
+      const result = await examinerTimeslotService.assignExaminerToTimeslots(
+        selectedAssignment.assignmentId,
+        {
+          examinerId,
+          slotAssignments
+        }
+      );
+
+      setSubmitResult(result);
+
+      if (result.success) {
+        if (result.data.partial) {
+          // Partial success - show both assigned and failed slots
+          alert(`Partial success: ${result.data.assignedSlots.length} slots assigned, ${result.data.failedSlots.length} failed.`);
+        } else {
+          // Full success
+          alert(`Success: All ${result.data.assignedSlots.length} slots assigned successfully!`);
+        }
+        
+        // Wait a moment to show result, then redirect
+        setTimeout(() => {
+          router.push("/examiner/schedule");
+        }, 2000);
+      } else {
+        setSubmitError(result.message || 'Failed to submit selections');
+      }
     } catch (error) {
-      alert("Failed to submit selections. Please try again.");
+      console.error('Submit error:', error);
+      setSubmitError('Failed to submit selections. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const getDaysInMonth = () => {
-    const currentMonth = new Date(2025, 3); // April 2025
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
 
-    const days = [];
-
-    // Previous month's trailing days
-    const prevMonth = new Date(year, month - 1, 0);
-    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-      days.push({
-        date: prevMonth.getDate() - i,
-        isCurrentMonth: false,
-        fullDate: new Date(year, month - 1, prevMonth.getDate() - i),
-        dateString: new Date(year, month - 1, prevMonth.getDate() - i)
-          .toISOString()
-          .split("T")[0],
-      });
-    }
-
-    // Current month's days
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push({
-        date: day,
-        isCurrentMonth: true,
-        fullDate: new Date(year, month, day),
-        dateString: new Date(year, month, day).toISOString().split("T")[0],
-      });
-    }
-
-    // Next month's leading days
-    const remainingDays = 42 - days.length;
-    for (let day = 1; day <= remainingDays; day++) {
-      days.push({
-        date: day,
-        isCurrentMonth: false,
-        fullDate: new Date(year, month + 1, day),
-        dateString: new Date(year, month + 1, day).toISOString().split("T")[0],
-      });
-    }
-
-    return days;
+  const navigateMonth = (direction) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(newMonth.getMonth() + direction);
+    setCurrentMonth(newMonth);
+    setSelectedDate(null); // Clear selected date when changing months
   };
 
-  const days = getDaysInMonth();
+  // Calendar layout and formatting handled by child components
 
   return (
     <div className="space-y-6">
@@ -288,156 +417,17 @@ export default function TimeslotSelection() {
 
       {/* Step 1: Assessment Selection */}
       {currentStep === 1 && (
-        <div className="space-y-6">
-          <div className="dashboard-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                <i className="fas fa-book text-blue-600 dark:text-blue-400 mr-2"></i>
-                Select Assessment
-              </h2>
-            </div>
-
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-800 dark:text-blue-200 mb-6">
-              <i className="fas fa-info-circle mr-2"></i>
-              Select a subject and assessment to view available time slots.
-              You'll need to select between 3-8 sessions based on administrator
-              requirements.
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Subject Selection */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Subject
-                </label>
-                <select
-                  className="form-control"
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                >
-                  <option value="">Select a subject</option>
-                  <option value="COMP90082">
-                    COMP90082 - Software Project Management
-                  </option>
-                  <option value="INFO30005">
-                    INFO30005 - Web Information Technologies
-                  </option>
-                  <option value="COMP90018">
-                    COMP90018 - Mobile Computing Systems
-                  </option>
-                  <option value="INFO20003">
-                    INFO20003 - Database Systems
-                  </option>
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  <i className="fas fa-filter mr-1"></i>
-                  Showing subjects you are eligible to assess
-                </p>
-              </div>
-
-              {/* Assessment Selection */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assessment
-                </label>
-                <select
-                  className="form-control"
-                  value={selectedAssessment}
-                  onChange={(e) => setSelectedAssessment(e.target.value)}
-                  disabled={!selectedSubject}
-                >
-                  <option value="">Select an assessment</option>
-                  {selectedSubject === "COMP90082" && (
-                    <>
-                      <option value="final">
-                        Final Project Defense (Group)
-                      </option>
-                      <option value="midterm">
-                        Mid-semester Project Update (Group)
-                      </option>
-                    </>
-                  )}
-                  {selectedSubject === "INFO30005" && (
-                    <>
-                      <option value="usability">
-                        Usability Testing Presentation (Group)
-                      </option>
-                      <option value="final">
-                        Final Project Demonstration (Group)
-                      </option>
-                    </>
-                  )}
-                </select>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  <i className="fas fa-calendar-alt mr-1"></i>
-                  Showing assessments currently open for scheduling
-                </p>
-              </div>
-            </div>
-
-            {/* Assessment Details */}
-            {selectedSubject && selectedAssessment && (
-              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
-                  <i className="fas fa-info-circle text-blue-600 dark:text-blue-400 mr-2"></i>
-                  Assessment Details
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Subject
-                      </span>
-                      <span className="text-sm font-medium">
-                        Software Project Management (COMP90082)
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Assessment
-                      </span>
-                      <span className="text-sm font-medium">
-                        Final Project Defense
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Type
-                      </span>
-                      <span className="text-sm font-medium">Group</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Session Length
-                      </span>
-                      <span className="text-sm font-medium">30 minutes</span>
-                    </div>
-                    <div className="flex justify-between border-b border-gray-200 dark:border-gray-700 pb-1">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">
-                        Required Examiners
-                      </span>
-                      <span className="text-sm font-medium">2 per session</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="mt-6 flex justify-end">
-              <Button
-                onClick={nextStep}
-                disabled={!selectedSubject || !selectedAssessment}
-                className="flex items-center"
-              >
-                Continue to Time Slot Selection
-                <i className="fas fa-arrow-right ml-2"></i>
-              </Button>
-            </div>
-          </div>
-        </div>
+        <AssessmentSelectionStep
+          isLoading={isLoadingAssignments}
+          error={assignmentsError}
+          assignments={assignmentsData?.data?.data || []}
+          selectedAssignment={selectedAssignment}
+          onSelectAssignment={setSelectedAssignment}
+          onRetry={() => refetchAssignments()}
+          onNext={nextStep}
+          showDevInfo={process.env.NODE_ENV === 'development'}
+          queryEnabled={!!examinerId && currentStep === 1}
+        />
       )}
 
       {/* Step 2: Timeslot Selection */}
@@ -452,330 +442,72 @@ export default function TimeslotSelection() {
               </h2>
             </div>
 
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                <i className="fas fa-book text-gray-400 mr-2"></i>
-                <span className="text-sm font-medium">COMP90082</span>
+            {selectedAssignment && (
+              <div className="flex flex-wrap gap-4">
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+                  <i className="fas fa-book text-gray-400 mr-2"></i>
+                  <span className="text-sm font-medium">{selectedAssignment.courseCode}</span>
+                </div>
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+                  <i className="fas fa-clipboard-check text-gray-400 mr-2"></i>
+                  <span className="text-sm font-medium">
+                    {selectedAssignment.assignmentName}
+                  </span>
+                </div>
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+                  <i className="fas fa-users text-gray-400 mr-2"></i>
+                  <span className="text-sm font-medium">{selectedAssignment.assessmentType} Assessment</span>
+                </div>
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+                  <i className="fas fa-clock text-gray-400 mr-2"></i>
+                  <span className="text-sm font-medium">{selectedAssignment.sessionDurationMinutes} min per session</span>
+                </div>
+                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
+                  <i className="fas fa-chart-bar text-gray-400 mr-2"></i>
+                  <span className="text-sm font-medium">Sessions: {currentAllocation}/{selectedAssignment.examinerInfo.maxSessions}</span>
+                </div>
               </div>
-              <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                <i className="fas fa-clipboard-check text-gray-400 mr-2"></i>
-                <span className="text-sm font-medium">
-                  Final Project Defense
-                </span>
-              </div>
-              <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                <i className="fas fa-users text-gray-400 mr-2"></i>
-                <span className="text-sm font-medium">Group Assessment</span>
-              </div>
-              <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                <i className="fas fa-clock text-gray-400 mr-2"></i>
-                <span className="text-sm font-medium">30 min per session</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Timeslot Selection Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Calendar */}
-            <div className="dashboard-card p-5 lg:col-span-1">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                  <i className="fas fa-calendar-alt text-blue-600 dark:text-blue-400 mr-2"></i>
-                  April 2025
-                </h2>
-              </div>
-
-              {/* Calendar header */}
-              <div className="grid grid-cols-7 mb-2">
-                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
-                  (day) => (
-                    <div
-                      key={day}
-                      className="text-xs text-center font-medium text-gray-500 dark:text-gray-400 p-2"
-                    >
-                      {day}
-                    </div>
-                  )
-                )}
-              </div>
-
-              {/* Calendar days */}
-              <div className="grid grid-cols-7 gap-1">
-                {days.map((day, index) => {
-                  const hasSlots = dateHasSlots(day.dateString);
-                  const isSelected = selectedDate === day.dateString;
-                  const isToday = day.dateString === "2025-04-23";
-
-                  return (
-                    <div
-                      key={index}
-                      className={`
-                        aspect-square flex flex-col items-center justify-center rounded cursor-pointer text-xs
-                        ${
-                          !day.isCurrentMonth
-                            ? "text-gray-400 dark:text-gray-600"
-                            : ""
-                        }
-                        ${
-                          hasSlots
-                            ? "border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            : ""
-                        }
-                        ${
-                          isSelected
-                            ? "bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700"
-                            : ""
-                        }
-                        ${
-                          isToday
-                            ? "font-bold text-blue-600 dark:text-blue-400"
-                            : ""
-                        }
-                      `}
-                      onClick={() =>
-                        hasSlots && setSelectedDate(day.dateString)
-                      }
-                    >
-                      <span>{day.date}</span>
-                      {hasSlots && (
-                        <div className="w-1 h-1 bg-blue-500 rounded-full mt-1"></div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-4 space-y-2 text-xs">
-                <div className="flex items-center">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-                  <span>Available slots</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-3 h-3 border border-blue-500 bg-blue-100 dark:bg-blue-900/30 rounded-full mr-2"></div>
-                  <span>Selected date</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Available Time Slots */}
+            <TimeslotSelectionCalendar
+              currentMonth={currentMonth}
+              onNavigateMonth={navigateMonth}
+              availableDates={getAvailableDates()}
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+            />
             <div className="dashboard-card p-5 lg:col-span-2">
-              {selectedDate ? (
-                <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                      <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-                      Available Slots -{" "}
-                      {new Date(selectedDate).toLocaleDateString("en-US", {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </h2>
-                  </div>
-
-                  <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">
-                      <i className="fas fa-info-circle text-gray-500 mr-2"></i>
-                      Click on time slots to select them. Your selections will
-                      be shown in the summary below.
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                    {/* Mock time slots */}
-                    <div
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        isSlotSelected("slot-1")
-                          ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                      onClick={() =>
-                        selectSlot({
-                          id: "slot-1",
-                          date: selectedDate,
-                          startTime: "9:00 AM",
-                          endTime: "9:30 AM",
-                          venue: "Engineering Building, Room 405",
-                          sessions: 1,
-                        })
-                      }
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium text-sm">
-                            9:00 AM - 9:30 AM
-                          </span>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            <i className="fas fa-map-marker-alt mr-1"></i>
-                            Engineering Building, Room 405
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 mr-2">
-                            1 session
-                          </span>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSlotSelected("slot-1")
-                                ? "bg-blue-500 border-blue-500"
-                                : "border-gray-300 dark:border-gray-600"
-                            }`}
-                          >
-                            {isSlotSelected("slot-1") && (
-                              <i className="fas fa-check text-white text-xs"></i>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-                        isSlotSelected("slot-2")
-                          ? "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                      }`}
-                      onClick={() =>
-                        selectSlot({
-                          id: "slot-2",
-                          date: selectedDate,
-                          startTime: "10:00 AM",
-                          endTime: "11:00 AM",
-                          venue: "Engineering Building, Room 405",
-                          sessions: 2,
-                        })
-                      }
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="font-medium text-sm">
-                            10:00 AM - 11:00 AM
-                          </span>
-                          <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            <i className="fas fa-map-marker-alt mr-1"></i>
-                            Engineering Building, Room 405
-                          </div>
-                        </div>
-                        <div className="flex items-center">
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 mr-2">
-                            2 sessions
-                          </span>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                              isSlotSelected("slot-2")
-                                ? "bg-blue-500 border-blue-500"
-                                : "border-gray-300 dark:border-gray-600"
-                            }`}
-                          >
-                            {isSlotSelected("slot-2") && (
-                              <i className="fas fa-check text-white text-xs"></i>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-calendar-day text-gray-400 dark:text-gray-500 text-2xl"></i>
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    Select a date from the calendar to view available time slots
-                  </p>
-                </div>
-              )}
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <i className="fas fa-info-circle text-gray-500 mr-2"></i>
+                  Click on time slots to select them. Your selections will be shown in the summary below.
+                  {isLoadingTimeslots && <span className="text-blue-600 dark:text-blue-400"> Updating...</span>}
+                </p>
+              </div>
+              <TimeslotList
+                isLoading={isLoadingTimeslots}
+                error={timeslotsError}
+                onRetry={() => refetchTimeslots()}
+                timeSlots={timeslotsData?.data?.timeSlots || []}
+                selectedDate={selectedDate}
+                onToggleSlot={selectSlot}
+                isSlotSelected={isSlotSelected}
+                selectionMessage={selectionMessage}
+              />
             </div>
           </div>
 
           {/* Selection Summary */}
           {allocatedSlots.length > 0 && (
-            <div className="dashboard-card p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                  <i className="fas fa-list-check text-blue-600 dark:text-blue-400 mr-2"></i>
-                  Selection Summary
-                </h2>
-                <button
-                  className="text-xs text-red-600 dark:text-red-400 hover:underline"
-                  onClick={() => {
-                    setAllocatedSlots([]);
-                    setCurrentAllocation(0);
-                  }}
-                >
-                  <i className="fas fa-trash-alt mr-1"></i>
-                  Clear All
-                </button>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-700 text-left">
-                      <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Date
-                      </th>
-                      <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Time
-                      </th>
-                      <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Venue
-                      </th>
-                      <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Sessions
-                      </th>
-                      <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {allocatedSlots.map((slot) => (
-                      <tr
-                        key={slot.id}
-                        className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        <td className="px-3 py-2 text-sm">
-                          {new Date(slot.date).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </td>
-                        <td className="px-3 py-2 text-sm">
-                          {slot.startTime} - {slot.endTime}
-                        </td>
-                        <td className="px-3 py-2 text-sm">{slot.venue}</td>
-                        <td className="px-3 py-2 text-sm">{slot.sessions}</td>
-                        <td className="px-3 py-2 text-sm">
-                          <button
-                            onClick={() => removeSlot(slot.id)}
-                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                          >
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <td
-                        colSpan="3"
-                        className="px-3 py-2 text-sm font-medium text-right"
-                      >
-                        Total Sessions
-                      </td>
-                      <td className="px-3 py-2 text-sm font-medium">
-                        {currentAllocation}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
+            <SelectionSummary
+              allocatedSlots={allocatedSlots}
+              totalSessions={currentAllocation}
+              onRemoveSlot={removeSlot}
+              onClear={() => { setAllocatedSlots([]); setCurrentAllocation(0); }}
+            />
           )}
 
           {/* Action buttons */}
@@ -789,26 +521,46 @@ export default function TimeslotSelection() {
               Back to Assessment Selection
             </Button>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={!canSubmit() || isLoading}
-              className="flex items-center"
-            >
-              {isLoading ? (
-                <>
-                  <i className="fas fa-spinner fa-spin mr-2"></i>
-                  Submitting...
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-check mr-2"></i>
-                  Confirm Selections
-                </>
+            <div className="flex flex-col items-end gap-2">
+              {submitError && (
+                <div className="text-sm text-red-600 dark:text-red-400">
+                  {submitError}
+                </div>
               )}
-            </Button>
+              {submitResult?.success && submitResult.data.partial && (
+                <div className="text-sm text-yellow-600 dark:text-yellow-400">
+                  Partial success: {submitResult.data.assignedSlots.length} assigned, {submitResult.data.failedSlots.length} failed
+                </div>
+              )}
+              <Button
+                onClick={handleSubmit}
+                disabled={!canSubmit() || isSubmitting}
+                className="flex items-center"
+              >
+                {isSubmitting ? (
+                  <>
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-check mr-2"></i>
+                    Confirm {allocatedSlots.length} Selection{allocatedSlots.length !== 1 ? 's' : ''}
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function TimeslotSelection() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TimeslotSelectionContent />
+    </Suspense>
   );
 }

@@ -391,15 +391,30 @@ export const getAvailableTimeslots = async (assignmentId, options = {}) => {
   
   try {
     await delay(Math.random() * 700 + 300); // 300-1000ms delay
+    // Find assignment details first so we can use its fields below
+    const assignment = mockAssignments.find(
+      a => a.assignmentId === parseInt(assignmentId)
+    );
+    if (!assignment) {
+      return {
+        success: false,
+        code: 'NOT_FOUND',
+        data: null,
+        message: 'Assignment not found'
+      };
+    }
     
     // Generate realistic available timeslots based on assignment
-    const generateTimeslot = (id, dayOffset, hour, minute, duration, venueId, isFull = false) => {
+    const duration = assignment.sessionDurationMinutes;
+    const requiredExaminersForAssignment = assignment.requiredExaminers;
+    
+    const generateTimeslot = (id, dayOffset, hour, minute, durationMinutes, venueId, isFull = false) => {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() + dayOffset);
       startDate.setHours(hour, minute, 0, 0);
       
       const endDate = new Date(startDate);
-      endDate.setMinutes(endDate.getMinutes() + duration);
+      endDate.setMinutes(endDate.getMinutes() + durationMinutes);
       
       const venues = [
         { venueId: 31, name: "Engineering", building: "ENG", room: "405" },
@@ -411,7 +426,7 @@ export const getAvailableTimeslots = async (assignmentId, options = {}) => {
       ];
       
       const venue = venues[venueId % venues.length];
-      const requiredExaminers = assignment.requiredExaminers;
+      const requiredExaminers = requiredExaminersForAssignment;
       const currentExaminers = isFull ? requiredExaminers : Math.floor(Math.random() * requiredExaminers);
       
       return {
@@ -432,7 +447,6 @@ export const getAvailableTimeslots = async (assignmentId, options = {}) => {
     };
     
     const mockTimeslots = [];
-    const duration = assignment.sessionDurationMinutes;
     
     // Generate timeslots for the next week based on assignment availability
     let slotId = 6001;
@@ -452,17 +466,6 @@ export const getAvailableTimeslots = async (assignmentId, options = {}) => {
           }
         }
       }
-    }
-    
-    // Find assignment details
-    const assignment = mockAssignments.find(a => a.assignmentId === parseInt(assignmentId));
-    if (!assignment) {
-      return {
-        success: false,
-        code: 'NOT_FOUND',
-        data: null,
-        message: 'Assignment not found'
-      };
     }
     
     let filteredSlots = [...mockTimeslots];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -54,19 +54,7 @@ export default function RubricConfigurationPage() {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Fetch data on mount
-  useEffect(() => {
-    fetchData();
-
-    // Ensure welcome animation doesn't get stuck
-    const welcomeTimer = setTimeout(() => {
-      setShowWelcome(false);
-    }, 3000);
-
-    return () => clearTimeout(welcomeTimer);
-  }, [params.courseId, params.assignmentId]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setIsLoading(true);
 
@@ -160,11 +148,11 @@ export default function RubricConfigurationPage() {
       } else {
         console.log("No valid rubric data found, initializing with default");
         // Initialize with default criterion
-        setRubric({
-          ...rubric,
+        setRubric(r => ({
+          ...r,
           name: `${mappedAssignment.title} Rubric`,
           criteria: [createDefaultCriterion()],
-        });
+        }));
       }
     } catch (error) {
       console.error("Error loading rubric data:", error);
@@ -178,7 +166,19 @@ export default function RubricConfigurationPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.courseId, params.assignmentId, showNotification]);
+
+  // Fetch data on mount
+  useEffect(() => {
+    fetchData();
+
+    // Ensure welcome animation doesn't get stuck
+    const welcomeTimer = setTimeout(() => {
+      setShowWelcome(false);
+    }, 3000);
+
+    return () => clearTimeout(welcomeTimer);
+  }, [fetchData]);
 
   const createDefaultCriterion = () => ({
     id: Date.now().toString(),

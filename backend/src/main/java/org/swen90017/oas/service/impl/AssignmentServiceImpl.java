@@ -8,6 +8,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.swen90017.oas.common.BusinessError;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,6 +24,7 @@ import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
+import org.swen90017.oas.service.cache.AssignmentCacheSupport;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
     private final AssignmentMapper assignmentMapper;
     private final SubjectMapper subjectMapper;
+    private final AssignmentCacheSupport cacheSupport;
 
     @Override
     public AssignmentResponseDTO getAssignmentById(Long id) {
@@ -49,7 +53,6 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
     @Override
     @Transactional
-    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#dto.subjectId")
     public AssignmentResponseDTO createAssignment(AssignmentRequestDTO dto) {
         // Validate subject exists
         Subject subject = subjectMapper.selectById(dto.getSubjectId());
@@ -79,24 +82,35 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         Assignment assignment = new Assignment();
         BeanUtils.copyProperties(dto, assignment);
-        
+
         // Convert rubricsInfo list to JSON string for storage
         if (dto.getRubricsInfo() != null) {
             assignment.setRubricsInfo(convertRubricsInfoToJson(dto.getRubricsInfo()));
         }
-        
+
         assignmentMapper.insert(assignment);
+        // Evict caches AFTER transaction commits successfully
+        final Long sidForEvict = dto.getSubjectId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    cacheSupport.evictBySubjectId(sidForEvict);
+                } catch (Exception ignore) {
+                }
+            }
+        });
         return convertToDTO(assignment);
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#dto.subjectId")
     public AssignmentResponseDTO updateAssignment(Long id, AssignmentRequestDTO dto) {
         Assignment existingAssignment = assignmentMapper.selectById(id);
         if (existingAssignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
+        Long oldSubjectId = existingAssignment.getSubjectId();
 
         // Validate subject exists
         Subject subject = subjectMapper.selectById(dto.getSubjectId());
@@ -120,7 +134,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         }
 
         BeanUtils.copyProperties(dto, existingAssignment, "id", "createTime", "creator");
-        
+
         // Convert rubricsInfo list to JSON string for storage
         if (dto.getRubricsInfo() != null) {
             existingAssignment.setRubricsInfo(convertRubricsInfoToJson(dto.getRubricsInfo()));
@@ -131,8 +145,21 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         }
 
 
-        
         assignmentMapper.updateById(existingAssignment);
+        // If subject changed, evict both old and new subject caches AFTER commit
+        final Long newSubjectId = dto.getSubjectId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    if (oldSubjectId != null && !oldSubjectId.equals(newSubjectId)) {
+                        cacheSupport.evictBySubjectId(oldSubjectId);
+                    }
+                    cacheSupport.evictBySubjectId(newSubjectId);
+                } catch (Exception ignore) {
+                }
+            }
+        });
         return convertToDTO(existingAssignment);
     }
 
@@ -149,11 +176,20 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         // Check if assignment can be deleted (e.g., no submissions)
         // This would be implemented when submission service is created
-        
+
         assignmentMapper.deleteById(id);
-        
-        // Clear cache after successful deletion
-        clearAssignmentsCache(subjectId);
+
+        // Clear cache AFTER successful deletion commit
+        final Long sidForEvict = subjectId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    cacheSupport.evictBySubjectId(sidForEvict);
+                } catch (Exception ignore) {
+                }
+            }
+        });
     }
 
     @Override
@@ -167,9 +203,9 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         // Get all assignments for the subject
         List<Assignment> assignments = assignmentMapper.selectList(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Assignment>()
-                .eq(Assignment::getSubjectId, subjectId)
-                .orderByDesc(Assignment::getCreateTime)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Assignment>()
+                        .eq(Assignment::getSubjectId, subjectId)
+                        .orderByDesc(Assignment::getCreateTime)
         );
 
         // Convert to DTOs
@@ -204,7 +240,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         // Use SQL aggregation for batch query
         List<Map<String, Object>> results = assignmentMapper.selectAssignmentCountsBySubjectIds(subjectIds);
-        
+
         // Convert to Map<Long, Integer>
         Map<Long, Integer> countMap = new java.util.HashMap<>();
         for (Map<String, Object> result : results) {
@@ -212,19 +248,13 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             Integer count = ((Number) result.get("assignmentCount")).intValue();
             countMap.put(subjectId, count);
         }
-        
+
         // Fill in 0 for subjects with no assignments
         for (Long subjectId : subjectIds) {
             countMap.putIfAbsent(subjectId, 0);
         }
-        
-        return countMap;
-    }
 
-    @Override
-    @CacheEvict(value = {"subjectAssignments", "subjectAssignmentCount"}, key = "#subjectId")
-    public void clearAssignmentsCache(Long subjectId) {
-        // This method only serves to clear cache, no business logic needed
+        return countMap;
     }
 
     /**
@@ -233,20 +263,20 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     private AssignmentResponseDTO convertToDTO(Assignment assignment) {
         AssignmentResponseDTO dto = new AssignmentResponseDTO();
         BeanUtils.copyProperties(assignment, dto);
-        
+
         // Convert JSON string back to RubricsInfoDto list
         if (assignment.getRubricsInfo() != null && !assignment.getRubricsInfo().trim().isEmpty()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
-                List<RubricsInfoDto> rubricsInfo = mapper.readValue(assignment.getRubricsInfo(), 
-                    mapper.getTypeFactory().constructCollectionType(List.class, RubricsInfoDto.class));
+                List<RubricsInfoDto> rubricsInfo = mapper.readValue(assignment.getRubricsInfo(),
+                        mapper.getTypeFactory().constructCollectionType(List.class, RubricsInfoDto.class));
                 dto.setRubricsInfo(rubricsInfo);
             } catch (JsonProcessingException e) {
                 // If JSON parsing fails, set to null
                 dto.setRubricsInfo(null);
             }
         }
-        
+
         return dto;
     }
 
@@ -286,8 +316,8 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                     throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION);
                 }
                 if (performance.getStartPoint() == null || performance.getEndPoint() == null ||
-                    performance.getStartPoint() < 0.0 || performance.getEndPoint() < 0.0 ||
-                    performance.getStartPoint() > performance.getEndPoint()) {
+                        performance.getStartPoint() < 0.0 || performance.getEndPoint() < 0.0 ||
+                        performance.getStartPoint() > performance.getEndPoint()) {
                     throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_PERFORMANCE_POINTS);
                 }
             }
