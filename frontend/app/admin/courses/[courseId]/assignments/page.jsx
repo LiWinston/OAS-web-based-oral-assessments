@@ -361,7 +361,7 @@ export default function CourseAssignmentsPage() {
           <div className="mt-4 md:mt-0">
             <Button
               onClick={handleCreateAssignment}
-              className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all duration-200 btn-magic"
             >
               <i className="fas fa-plus"></i>
               <span>New Assignment</span>
@@ -409,8 +409,8 @@ export default function CourseAssignmentsPage() {
 
       {/* Assignment List Controls */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
-          <div className="flex items-center space-x-2 mb-3 md:mb-0">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
               Assignments
             </h2>
@@ -420,10 +420,10 @@ export default function CourseAssignmentsPage() {
               <button
                 onClick={() => setViewMode("table")}
                 className={`
-                  px-3 py-1.5 text-sm font-medium transition-all duration-200
+                  px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105
                   ${
                     viewMode === "table"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }
                 `}
@@ -433,10 +433,10 @@ export default function CourseAssignmentsPage() {
               <button
                 onClick={() => setViewMode("card")}
                 className={`
-                  px-3 py-1.5 text-sm font-medium transition-all duration-200
+                  px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105
                   ${
                     viewMode === "card"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }
                 `}
@@ -458,7 +458,7 @@ export default function CourseAssignmentsPage() {
                 placeholder="Search assignments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent px-3 py-2 transition-all duration-200"
+                className="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent px-3 py-2 transition-all duration-200 hover:shadow-md"
               />
             </div>
 
@@ -467,7 +467,7 @@ export default function CourseAssignmentsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200"
+                className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200 hover:shadow-md"
               >
                 <option value="">All Status</option>
                 <option value="PENDING">Pending</option>

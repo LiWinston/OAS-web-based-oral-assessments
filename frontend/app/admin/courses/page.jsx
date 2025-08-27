@@ -233,11 +233,11 @@ export default function CoursesPage() {
 
       {/* Enhanced Course Filters and View Toggle */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
-          <div className="flex items-center space-x-2 mb-3 md:mb-0">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
-              Your Courses
-            </h2>
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
+                          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
+                Courses
+              </h2>
 
             {/* Enhanced View Mode Toggle with Gradient */}
             <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">

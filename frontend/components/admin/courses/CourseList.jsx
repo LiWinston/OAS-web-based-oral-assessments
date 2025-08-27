@@ -2,10 +2,31 @@
 
 import Link from 'next/link';
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../../ui/button';
 import { courseService } from '../../../services/courseService';
 
+function Tooltip({ children, show, x, y }) {
+  if (!show) return null;
+  
+  return createPortal(
+    <div 
+      className="fixed px-2 py-1 bg-gray-900 text-white text-xs rounded pointer-events-none whitespace-nowrap z-[9999] animate-fade-in"
+      style={{
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -100%) translateY(-8px)'
+      }}
+    >
+      {children}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>,
+    document.body
+  );
+}
+
 export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onCreateCourse, onEditCourse, onRefresh, onCoursesLoaded }) {
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -190,9 +211,13 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
                       <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[300px]">
                         {course.courseName}
                       </div>
-                      {course.description && (
+                      {course.description ? (
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate max-w-[300px]">
                           {course.description}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 italic">
+                          Click edit to add some description...
                         </div>
                       )}
                     </div>
@@ -221,7 +246,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
                     <div className="flex justify-center items-center space-x-2">
                       <button
                         onClick={() => onEditCourse(course)}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative"
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative cursor-pointer"
                         title="Edit Course"
                       >
                         <i className="fas fa-edit text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
@@ -233,7 +258,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
                       </button>
                       <Link
                         href={`/admin/courses/${course.id}/assignments`}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative"
+                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative cursor-pointer"
                         title="Manage Assignments"
                       >
                         <i className="fas fa-tasks text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
@@ -251,7 +276,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
           </table>
         </div>
         
-        <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex items-center justify-between">
+        <div className="bg-gray-50 dark:bg-gray-700 px-6 py-3 flex items-center justify-between border-t border-gray-200 dark:border-gray-700">
           <span className="text-sm text-gray-500 dark:text-gray-400">
             Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalCourses)}</span> of <span className="font-medium">{totalCourses}</span> courses
           </span>
@@ -278,13 +303,17 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
 
   // Card View
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+    <>
+      <Tooltip show={tooltip.show} x={tooltip.x} y={tooltip.y}>
+        {tooltip.text}
+      </Tooltip>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
 
 
       {filteredCourses.map((course, index) => (
         <div 
           key={course.id} 
-          className="course-card bg-white dark:bg-gray-800 rounded-lg shadow relative cursor-pointer transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2"
+          className="course-card bg-white dark:bg-gray-800 rounded-lg shadow relative transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2"
         >
           <div className={`p-1 ${getColorClasses(course.color)} rounded-t-lg relative overflow-hidden`}>
             {/* Color bar */}
@@ -351,7 +380,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
             <div className="pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <button
                 onClick={() => onEditCourse(course)}
-                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105"
+                className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105 cursor-pointer"
               >
                 <i className="fas fa-edit mr-1 hover:animate-wiggle"></i> Edit
               </button>
@@ -359,15 +388,19 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
               <div className="flex space-x-3">
                 <Link
                   href={`/admin/courses/${course.id}/assignments`}
-                  className="group/item text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-110 relative"
-                  title="Manage Assignments"
+                  className="inline-block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-110"
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltip({
+                      show: true,
+                      text: 'Manage Assignments',
+                      x: rect.left + rect.width / 2,
+                      y: rect.top
+                    });
+                  }}
+                  onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                 >
                   <i className="fas fa-tasks hover:animate-wiggle"></i>
-                  {/* Enhanced tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover/item:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                    Manage Assignments
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                  </div>
                 </Link>
               </div>
             </div>
@@ -395,5 +428,6 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
         </div>
       )}
     </div>
+    </>
   );
 }

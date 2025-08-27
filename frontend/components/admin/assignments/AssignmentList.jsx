@@ -1,9 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { assignmentService } from "../../../services/assignmentService";
 import { useNotification } from "../../../hooks/useNotification";
+
+function Tooltip({ children, show, x, y }) {
+  if (!show) return null;
+  
+  return createPortal(
+    <div 
+      className="fixed px-2 py-1 bg-gray-900 text-white text-xs rounded pointer-events-none whitespace-nowrap z-[9999] animate-fade-in"
+      style={{
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -100%) translateY(-8px)'
+      }}
+    >
+      {children}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>,
+    document.body
+  );
+}
 
 export function AssignmentList({
   assignments,
@@ -18,6 +38,7 @@ export function AssignmentList({
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const [isFiltering, setIsFiltering] = useState(false);
   const { showNotification } = useNotification();
 
@@ -202,6 +223,9 @@ export function AssignmentList({
 
   return (
     <>
+      <Tooltip show={tooltip.show} x={tooltip.x} y={tooltip.y}>
+        {tooltip.text}
+      </Tooltip>
       {viewMode === "table" ? (
         // Enhanced Table View with hover effects
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
@@ -318,8 +342,17 @@ export function AssignmentList({
                         <div className="flex justify-center items-center space-x-2">
                           <button
                             onClick={() => onEditAssignment(assignment)}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110"
-                            title="Edit Assignment"
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 cursor-pointer"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Edit Assignment',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-edit text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
                           </button>
@@ -329,7 +362,16 @@ export function AssignmentList({
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasRubric ? "animate-pulse" : ""
                             }`}
-                            title="Configure Rubric"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Configure Rubric',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-clipboard-list text-amber-600 dark:text-amber-400 group-hover:animate-wiggle"></i>
                           </Link>
@@ -339,15 +381,33 @@ export function AssignmentList({
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasTimeSlots ? "animate-pulse" : ""
                             }`}
-                            title="Schedule Time Slots"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Schedule Time Slots',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-calendar-week text-green-600 dark:text-green-400 group-hover:animate-wiggle"></i>
                           </Link>
 
                           <button
                             onClick={() => setShowDeleteConfirm(assignment.id)}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110"
-                            title="Delete Assignment"
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 cursor-pointer"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Delete Assignment',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-trash text-red-600 dark:text-red-400 group-hover:animate-wiggle"></i>
                           </button>
@@ -586,7 +646,7 @@ export function AssignmentList({
                     <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
                       <button
                         onClick={() => onEditAssignment(assignment)}
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105"
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                       >
                         <i className="fas fa-edit mr-1 hover:animate-wiggle"></i>{" "}
                         Edit
@@ -598,7 +658,16 @@ export function AssignmentList({
                           className={`text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasRubric ? "animate-pulse" : ""
                           }`}
-                          title="Configure Rubric"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Configure Rubric',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-clipboard-list hover:animate-wiggle"></i>
                         </Link>
@@ -608,15 +677,33 @@ export function AssignmentList({
                           className={`text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasTimeSlots ? "animate-pulse" : ""
                           }`}
-                          title="Schedule Time Slots"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Schedule Time Slots',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-calendar-week hover:animate-wiggle"></i>
                         </Link>
 
                         <button
                           onClick={() => setShowDeleteConfirm(assignment.id)}
-                          className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 transform hover:scale-110"
-                          title="Delete Assignment"
+                          className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Delete Assignment',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-trash hover:animate-wiggle"></i>
                         </button>
