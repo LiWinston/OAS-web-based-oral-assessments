@@ -298,14 +298,14 @@ export default function CourseAssignmentsPage() {
 
       {/* Breadcrumb Navigation */}
       <div className="mb-4">
-        <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
-          <ol className="flex items-center space-x-2">
+        <nav className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+          <ol className="flex items-center">
             <li className="flex items-center">
               <Link
                 href="/admin"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
               >
-                <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">
+                <span className="font-bold text-blue-600 dark:text-blue-400 mr-3">
                   OAS
                 </span>
                 <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -314,31 +314,20 @@ export default function CourseAssignmentsPage() {
               </Link>
             </li>
             <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+              <i className="fas fa-chevron-right text-gray-400 ml-2 mr-2 text-xs"></i>
               <Link
                 href="/admin/courses"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
               >
                 <span className="text-sm text-gray-600 dark:text-gray-300">
-                  My Courses
+                  Courses
                 </span>
               </Link>
             </li>
             <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <Link
-                href="/admin/courses"
-                className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
-              >
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  {course?.courseCode || "Course"}
-                </span>
-              </Link>
-            </li>
-            <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Assignments
+              <i className="fas fa-chevron-right text-gray-400 ml-2 mr-2 text-xs"></i>
+              <span className="text-blue-600 dark:text-blue-400 text-sm">
+                {course?.courseName || "Course"}
               </span>
             </li>
           </ol>
@@ -491,19 +480,19 @@ export default function CourseAssignmentsPage() {
             </div>
           </div>
         </div>
-
-        {/* Assignment List */}
-        <AssignmentList
-          assignments={assignments}
-          loading={dataLoading}
-          viewMode={viewMode}
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          onCreateAssignment={handleCreateAssignment}
-          onEditAssignment={handleEditAssignment}
-          onAssignmentDeleted={handleAssignmentDeleted}
-        />
       </div>
+
+      {/* Assignment List */}
+      <AssignmentList
+        assignments={assignments}
+        loading={dataLoading}
+        viewMode={viewMode}
+        searchTerm={searchTerm}
+        statusFilter={statusFilter}
+        onCreateAssignment={handleCreateAssignment}
+        onEditAssignment={handleEditAssignment}
+        onAssignmentDeleted={handleAssignmentDeleted}
+      />
 
       {/* Assignment Creation Modal */}
       <AssignmentCreationModal

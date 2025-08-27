@@ -27,25 +27,43 @@ export default function AdminDashboard() {
       {/* Enhanced Welcome Animation Overlay */}
       {showWelcomeAnimation && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900/90 via-indigo-900/90 to-purple-900/90 backdrop-blur-sm animate-fade-in cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900/90 via-indigo-900/90 to-purple-900/90 backdrop-blur-sm animate-fade-in cursor-pointer min-h-screen h-full"
           onClick={() => setShowWelcomeAnimation(false)}
         >
-          <div className="text-center text-white animate-scale-in">
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <i className="fas fa-tachometer-alt text-8xl text-blue-400 animate-bounce-slow"></i>
-                <i className="fas fa-sparkles text-2xl text-yellow-300 absolute -top-2 -right-2 animate-pulse"></i>
+          <div className="text-center text-white max-w-2xl px-8">
+            <div className="relative mb-8 animate-scale-in">
+              <div className="text-8xl mb-4 relative">
+                <i className="fas fa-tachometer-alt text-white animate-bounce-slow"></i>
+                <div className="absolute -top-4 -left-4 text-2xl">
+                  <i className="fas fa-sparkles text-yellow-300 animate-ping"></i>
+                </div>
+                <div className="absolute -top-2 -right-6 text-xl">
+                  <i className="fas fa-star text-yellow-400 animate-ping" style={{ animationDelay: "0.5s" }}></i>
+                </div>
+                <div className="absolute -bottom-2 -left-6 text-lg">
+                  <i className="fas fa-sparkles text-blue-300 animate-ping" style={{ animationDelay: "1s" }}></i>
+                </div>
+                <div className="absolute -bottom-4 -right-2 text-xl">
+                  <i className="fas fa-star text-purple-300 animate-ping" style={{ animationDelay: "1.5s" }}></i>
+                </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4 animate-slide-up">
-              Administrator Dashboard
-            </h1>
-            <p className="text-xl opacity-90 animate-slide-up animation-delay-200">
-              Welcome back! Manage your courses and assessments with ease
-            </p>
-            <p className="text-sm opacity-70 mt-6 animate-fade-in">
-              Click anywhere to continue
-            </p>
+            <div className="animate-slide-up animation-delay-200">
+              <h1 className="text-4xl font-bold mb-4 text-white">Administrator Dashboard</h1>
+              <p className="text-xl text-blue-100 leading-tight">Welcome back!</p>
+              <p className="text-xl text-blue-100 mb-8">Manage your courses and assessments with ease</p>
+              <div className="animate-fade-in animation-delay-500">
+                <p className="text-sm text-blue-200 mb-2 flex items-center justify-center">
+                  <i className="fas fa-mouse-pointer mr-2 animate-bounce"></i>
+                  Click anywhere to continue
+                </p>
+                <div className="flex justify-center">
+                  <div className="w-6 h-1 bg-white/30 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-white/60 rounded-full animate-shimmer"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

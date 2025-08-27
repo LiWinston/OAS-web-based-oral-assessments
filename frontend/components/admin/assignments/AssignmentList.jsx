@@ -206,28 +206,28 @@ export function AssignmentList({
         // Enhanced Table View with hover effects
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[280px]">
                     Assignment
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[100px]">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[180px]">
                     Schedule
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[80px]">
                     Weight
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
                     Progress
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[140px]">
                     Actions
                   </th>
                 </tr>
@@ -241,22 +241,21 @@ export function AssignmentList({
                   return (
                     <tr
                       key={assignment.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 animate-fadeInUp transform hover:scale-[1.01]"
-                      style={{ animationDelay: `${index * 0.05}s` }}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 transform hover:scale-[1.01]"
                     >
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[320px]">
                             {assignment.name}
                           </div>
                           {assignment.description && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate max-w-[320px]">
                               {assignment.description}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 hover:scale-105`}
                         >
@@ -264,27 +263,27 @@ export function AssignmentList({
                           {assignment.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div className="text-sm text-gray-900 dark:text-gray-300">
                           <div className="flex items-center group/item">
                             <i className="fas fa-calendar-alt text-gray-400 mr-2 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
-                            {new Date(
-                              assignment.startDate
-                            ).toLocaleDateString()}{" "}
-                            -{" "}
-                            {new Date(assignment.endDate).toLocaleDateString()}
+                            <span>
+                              {new Date(assignment.startDate).getFullYear()}/{String(new Date(assignment.startDate).getMonth() + 1).padStart(2, '0')}/{String(new Date(assignment.startDate).getDate()).padStart(2, '0')}{" "}
+                              -{" "}
+                              {new Date(assignment.endDate).getFullYear()}/{String(new Date(assignment.endDate).getMonth() + 1).padStart(2, '0')}/{String(new Date(assignment.endDate).getDate()).padStart(2, '0')}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {assignment.weight}%
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div>
-                          <div className="flex items-center">
-                            <div className="flex-1 mr-3">
+                          <div className="flex items-center justify-center">
+                            <div className="flex-1 mr-3 max-w-[80px]">
                               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full transition-all duration-500 rounded-full progress-bar-glow ${
@@ -304,13 +303,10 @@ export function AssignmentList({
                               {progress}%
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {assignment.completedSessions}/
-                            {assignment.totalSessions} sessions
-                          </div>
+
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles.bgColor} ${statusStyles.textColor} transition-all duration-200 hover:scale-105`}
                         >
@@ -318,8 +314,8 @@ export function AssignmentList({
                           {assignment.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end items-center space-x-2">
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center items-center space-x-2">
                           <button
                             onClick={() => onEditAssignment(assignment)}
                             className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110"
@@ -400,15 +396,7 @@ export function AssignmentList({
               return (
                 <div
                   key={assignment.id}
-                  className={`
-                  course-card bg-white dark:bg-gray-800 rounded-lg shadow group relative overflow-hidden
-                  animate-fadeInUp min-h-[400px] flex flex-col ${
-                    hoveredAssignment === assignment.id ? "hovered" : ""
-                  }
-                `}
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                  }}
+                  className="course-card bg-white dark:bg-gray-800 rounded-lg shadow group relative overflow-hidden transition-all duration-500 hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px] flex flex-col"
                   onMouseEnter={() => setHoveredAssignment(assignment.id)}
                   onMouseLeave={() => setHoveredAssignment(null)}
                 >
@@ -457,7 +445,9 @@ export function AssignmentList({
                     {/* Content section */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center text-sm group/item">
-                        <i className="fas fa-calendar-alt text-gray-400 w-5 mr-2 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i className="fas fa-calendar-alt text-gray-400 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {new Date(assignment.startDate).toLocaleDateString()}{" "}
                           - {new Date(assignment.endDate).toLocaleDateString()}
@@ -465,20 +455,24 @@ export function AssignmentList({
                       </div>
 
                       <div className="flex items-center text-sm group/item">
-                        <i
-                          className="fas fa-percentage text-gray-400 w-5 mr-2 group-hover/item:text-green-500 transition-colors duration-300 group-hover:animate-wiggle"
-                          style={{ animationDelay: "0.1s" }}
-                        ></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i
+                            className="fas fa-percentage text-gray-400 group-hover/item:text-green-500 transition-colors duration-300 group-hover:animate-wiggle"
+                            style={{ animationDelay: "0.1s" }}
+                          ></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {assignment.weight}% of final grade
                         </span>
                       </div>
 
                       <div className="flex items-center text-sm group/item">
-                        <i
-                          className="fas fa-users text-gray-400 w-5 mr-2 group-hover/item:text-purple-500 transition-colors duration-300 group-hover:animate-wiggle"
-                          style={{ animationDelay: "0.2s" }}
-                        ></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i
+                            className="fas fa-users text-gray-400 group-hover/item:text-purple-500 transition-colors duration-300 group-hover:animate-wiggle"
+                            style={{ animationDelay: "0.2s" }}
+                          ></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {assignment.students} students
                           {assignment.groups > 0 &&
@@ -633,25 +627,17 @@ export function AssignmentList({
               );
             })}
 
-          {/* Enhanced Add New Assignment Card with Magic Effects */}
+          {/* Create New Assignment Card */}
           {!isFiltering && (
             <div
-              className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 
-                       hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 cursor-pointer group
-                       flex items-center justify-center min-h-[320px] animate-fadeInUp hover:shadow-xl relative overflow-hidden"
+              className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px]"
               onClick={onCreateAssignment}
-              style={{
-                animationDelay: `${filteredAssignments.length * 100}ms`,
-              }}
             >
-              <div className="text-center p-6">
-                <div
-                  className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4 
-                              group-hover:scale-110 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-all duration-300 group-hover:rotate-12"
-                >
-                  <i className="fas fa-plus text-blue-600 dark:text-blue-400 text-2xl group-hover:rotate-90 transition-transform duration-300 group-hover:scale-125"></i>
+              <div className="text-center p-8">
+                <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors duration-300">
+                  <i className="fas fa-plus text-blue-600 dark:text-blue-400 text-lg group-hover:scale-110 transition-transform duration-200"></i>
                 </div>
-                <h3 className="font-medium text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   Create New Assignment
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">

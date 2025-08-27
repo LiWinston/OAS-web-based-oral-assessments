@@ -129,21 +129,22 @@ const mockCourseService = {
 
 export const courseService = {
   // Get all courses for the current admin
-  async getCourses(filters = {}) {
+  async getCourses(page = 1, pageSize = 10, filters = {}) {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourses(filters);
     }
-    const response = await api.get('/api/courses', { params: filters });
-    // Handle nested data structure from API response
-    const result = response.data;
-    if (result.success && result.data?.data) {
-      // If the API returns nested data structure, flatten it
-      return {
-        ...result,
-        data: result.data.data
-      };
-    }
-    return result;
+    const response = await api.get('/api/courses', { 
+      params: {
+        ...filters,
+        pageNum: page,
+        pageSize,
+        year: filters.yearFilter,
+        semester: filters.semesterFilter,
+        status: filters.statusFilter,
+        courseCode: filters.searchTerm
+      }
+    });
+    return response.data;
   },
 
   // Get course statistics for dashboard
