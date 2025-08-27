@@ -270,7 +270,7 @@ All endpoints require authentication. Users must have appropriate roles:
 **Response:** List of assignments created by the specified user
 
 ### 10. Get Assignment Status Statistics
-**GET** `/api/assignments/stats/status`
+**GET** `/api/assignments/stats`
 
 **Description:** Retrieve statistics about assignment statuses across all subjects
 
