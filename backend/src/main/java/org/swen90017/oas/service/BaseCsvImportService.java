@@ -117,7 +117,7 @@ public class BaseCsvImportService {
             SysUser user = new SysUser();
             user.setUserName(userNameExtractor.apply(dto));
             user.setStatus(UserStatus.INACTIVE.code());
-            user.setRegistrationStatus(RegistrationStatus.INVITED.code());
+            user.setRegistrationStatus(RegistrationStatus.Pending.code());
             user.setInvitedAt(new Date());
             user.setPassword("123456");
             user.setEmail(sisUserIdExtractor.apply(dto)+"@student.unimelb.edu.au"); // Assuming SIS User ID is used as email

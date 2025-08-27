@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class ListAdminsRequestDTO extends PageRequestDTO {
     private String status; // INVITED, REGISTERED, ACTIVE, INACTIVE, EXPIRED
+    private String registrationStatus; // PENDING, REGISTERED, EXPIRED
     private String department;
     private String name;   // fuzzy match on user_name
     private String email;  // fuzzy match on email

@@ -11,6 +11,5 @@ import java.util.List;
 
 public interface StudentService {
      List<SysStudent> inviteStudent(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId);
-     SysUser register(RegisterRequestDTO requestDTO);
      PreviewCSVResponseDTO previewStudentImport(List<StudentCSVRequestDTO> studentDTOs);
 }

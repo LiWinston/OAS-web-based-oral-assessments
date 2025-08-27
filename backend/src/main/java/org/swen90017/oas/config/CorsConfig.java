@@ -25,7 +25,7 @@ public class CorsConfig {
      * Reads from CORS_ALLOWED_ORIGINS environment variable via application.yml.
      * Defaults to common development environment URLs if not specified.
      */
-    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://172.22.82.23:3000,http://172.22.215.14:3000,http://172.22.240.185:3000}")
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001,http://172.22.82.23:3000,http://172.22.215.14:3000,http://172.22.240.185:3000,http://172.22.178.108:3000,http://177.22.240.162:3000}")
     private String allowedOrigins;
 
     /**

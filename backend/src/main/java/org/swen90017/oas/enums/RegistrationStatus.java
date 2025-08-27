@@ -4,7 +4,7 @@ package org.swen90017.oas.enums;
  * Registration workflow status (stored in sys_user.registration_status)
  */
 public enum RegistrationStatus {
-    INVITED("0"),
+    Pending("0"),
     REGISTERED("1"),
     EXPIRED("2");
 
