@@ -3,6 +3,7 @@ package org.swen90017.oas.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 
 import java.util.List;
@@ -49,4 +50,16 @@ public interface AssignmentService extends IService<Assignment> {
      * Returns Map<subjectId, assignmentCount>
      */
     Map<Long, Integer> getAssignmentCountsBySubjectIds(List<Long> subjectIds);
+
+    /**
+     * Get assignment status statistics
+     * Returns statistics about assignment statuses
+     */
+    AssignmentStatusStatsResponseDTO getAssignmentStatusStats();
+
+    /**
+     * Get assignment status statistics by subject ID
+     * Returns statistics about assignment statuses for a specific subject
+     */
+    AssignmentStatusStatsResponseDTO getAssignmentStatusStatsBySubject(Long subjectId);
 }
