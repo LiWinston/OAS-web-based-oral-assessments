@@ -60,7 +60,7 @@ export function AssignmentList({
       const result = await assignmentService.deleteAssignment(assignmentId);
       if (result.success) {
         showNotification("success", "Assignment deleted successfully");
-        // 通知父组件刷新数据
+        // Notify parent component to refresh data
         if (onAssignmentDeleted) {
           onAssignmentDeleted();
         }

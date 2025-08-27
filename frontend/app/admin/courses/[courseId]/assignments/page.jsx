@@ -62,34 +62,30 @@ export default function CourseAssignmentsPage() {
         
         if (!isMounted) return;
 
-        if (courseResult.success && courseResult.data.length > 0) {
-          const foundCourse = courseResult.data.find(
-            (c) => c.id.toString() === courseId
-          );
-          if (foundCourse) {
-            setCourse(foundCourse);
-          } else {
-            showNotification("error", "Course not found");
-            router.push("/admin/courses");
-            return;
-          }
+        if (courseResult.success && courseResult.data) {
+          // Use the returned course data directly since API returns a single course object
+          setCourse(courseResult.data);
+        } else {
+          showNotification("error", "Course not found");
+          router.push("/admin/courses");
+          return;
         }
         
-        // 处理作业列表数据
+        // Process assignment list data
         if (assignmentsResult.success) {
           setAssignments(assignmentsResult.data);
         }
         
-        // 处理统计数据
+        // Process statistics data
         if (statsResult.success) {
           const stats = statsResult.data;
           const totalWeight = Object.values(stats.statusPercentages || {}).reduce((sum, percentage) => sum + percentage, 0);
           
           setAssignmentStats({
             total: stats.totalCount || 0,
-            active: 0, // 暂时设为0，后续可以根据需要调整
+            active: 0, // Temporarily set to 0, can be adjusted later
             upcoming: stats.statusCounts?.PENDING || 0,
-            completed: 0, // 暂时设为0，后续可以根据需要调整
+            completed: 0, // Temporarily set to 0, can be adjusted later
             totalWeight: totalWeight
           });
         }
@@ -141,9 +137,9 @@ export default function CourseAssignmentsPage() {
         
         setAssignmentStats({
           total: stats.totalCount || 0,
-          active: 0, // 暂时设为0，后续可以根据需要调整
+          active: 0, // Temporarily set to 0, can be adjusted later
           upcoming: stats.statusCounts?.PENDING || 0,
-          completed: 0, // 暂时设为0，后续可以根据需要调整
+          completed: 0, // Temporarily set to 0, can be adjusted later
           totalWeight: totalWeight
         });
       }
@@ -269,7 +265,7 @@ export default function CourseAssignmentsPage() {
 
   // Handle assignment deletion
   const handleAssignmentDeleted = () => {
-    // 刷新数据
+    // Refresh data
     refreshData();
   };
 
@@ -368,8 +364,7 @@ export default function CourseAssignmentsPage() {
               </span>
               <span className="flex items-center">
                 <i className="fas fa-calendar mr-2"></i>
-                {course?.academicYear || "2025"} •{" "}
-                {course?.semester || "Semester"}
+                {course?.academicYear || "2025"} Semester {course?.semester || "1"}
               </span>
             </div>
           </div>
