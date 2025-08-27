@@ -201,28 +201,28 @@ export default function CoursesPage() {
       <CourseOverviewStats />
 
       {/* Enhanced Quick Tips Section */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
         <div className="flex items-start">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center mr-3 flex-shrink-0">
-            <i className="fas fa-lightbulb text-emerald-600 dark:text-emerald-400"></i>
+          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center mr-3 flex-shrink-0">
+            <i className="fas fa-lightbulb text-amber-600 dark:text-amber-400"></i>
           </div>
           <div>
-            <h3 className="font-medium text-emerald-900 dark:text-emerald-100 mb-1">
+            <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
               Course Management Tips
             </h3>
-            <ul className="text-sm text-emerald-800 dark:text-emerald-200 space-y-1">
+            <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Set up courses at the beginning of each semester with clear
                 naming conventions
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Use descriptive course codes that follow your institution's
                 standards
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Add detailed descriptions to help students and examiners
                 understand course content
               </li>

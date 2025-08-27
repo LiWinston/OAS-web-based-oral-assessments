@@ -376,15 +376,15 @@ export default function CourseAssignmentsPage() {
         loading={dataLoading} 
       />
 
-      {/* Quick Tips */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+      {/* Enhanced Quick Tips Section */}
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
         <div className="flex items-start">
           <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center mr-3 flex-shrink-0">
             <i className="fas fa-lightbulb text-amber-600 dark:text-amber-400"></i>
           </div>
           <div>
             <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-              Quick Tips
+              Assignment Management Tips
             </h3>
             <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <li className="flex items-start">
