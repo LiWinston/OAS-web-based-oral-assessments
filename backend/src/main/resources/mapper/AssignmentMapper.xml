@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.AssignmentMapper">
+
+    <!-- Batch get assignment counts by subject IDs using SQL aggregation -->
+    <select id="selectAssignmentCountsBySubjectIds" resultType="map">
+        <if test="subjectIds != null and subjectIds.size() > 0">
+            SELECT subject_id as subjectId, COUNT(*) as assignmentCount
+            FROM assignment
+            WHERE subject_id IN
+            <foreach collection="subjectIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+            GROUP BY subject_id
+        </if>
+        <if test="subjectIds == null or subjectIds.size() == 0">
+            SELECT 0 as subjectId, 0 as assignmentCount WHERE 1=0
+        </if>
+    </select>
+
+</mapper>
