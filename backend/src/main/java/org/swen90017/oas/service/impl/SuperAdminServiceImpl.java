@@ -429,6 +429,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
     public SuperAdminCourseListResponseDTO listCourses(SuperAdminCourseQueryRequestDTO req) {
         String normalizedSemester = normalizeSemester(req.getSemester());
+        if (req.getStatus() != null) {
+            req.setStatus(req.getStatus().toLowerCase());
+        }
         IPage<Subject> pageResult = subjectService.getCourses(
                 req.getPage(),
                 Math.min(Math.max(req.getLimit(), 1), 100),
