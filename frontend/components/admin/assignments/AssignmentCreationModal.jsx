@@ -1240,7 +1240,7 @@ export function AssignmentCreationModal({
 
           {/* Success Animation */}
           {showSuccess && (
-            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center animate-bounceIn">
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                   <i className="fas fa-check text-3xl text-green-600 animate-scaleIn"></i>

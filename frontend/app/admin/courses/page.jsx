@@ -82,11 +82,9 @@ export default function CoursesPage() {
     fetchCourses(1);
   }, [searchTerm, yearFilter, statusFilter, viewMode]);
 
-  // Expose refresh method to child components
+  // 初始化 courseListRef
   useEffect(() => {
-    if (courseListRef.current) {
-      courseListRef.current = fetchCourses;
-    }
+    courseListRef.current = fetchCourses;
   }, [fetchCourses]);
 
   // 初始化年份选项
@@ -113,16 +111,12 @@ export default function CoursesPage() {
     setIsModalOpen(false);
   };
 
-  const handleCourseCreated = (courseData) => {
+  const handleCourseCreated = async (courseData) => {
     // Handle successful course creation
     console.log("Course created:", courseData);
     setIsModalOpen(false);
-    // Refresh course list to update available years
-    if (courseListRef.current) {
-      courseListRef.current();
-    }
-    // TODO: Show success notification
-    // Navigate to assignment configuration if desired
+    // 直接调用 fetchCourses 刷新数据
+    await fetchCourses(1);
   };
 
   const handleEditCourse = (course) => {
