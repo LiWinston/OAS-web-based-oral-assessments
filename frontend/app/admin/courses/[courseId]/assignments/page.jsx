@@ -83,7 +83,7 @@ export default function CourseAssignmentsPage() {
           
           setAssignmentStats({
             total: stats.totalCount || 0,
-            active: 0, // Temporarily set to 0, can be adjusted later
+            active: stats.statusCounts?.IN_PROGRESS || 0,
             upcoming: stats.statusCounts?.PENDING || 0,
             completed: 0, // Temporarily set to 0, can be adjusted later
             totalWeight: totalWeight
@@ -137,7 +137,7 @@ export default function CourseAssignmentsPage() {
         
         setAssignmentStats({
           total: stats.totalCount || 0,
-          active: 0, // Temporarily set to 0, can be adjusted later
+          active: stats.statusCounts?.IN_PROGRESS || 0,
           upcoming: stats.statusCounts?.PENDING || 0,
           completed: 0, // Temporarily set to 0, can be adjusted later
           totalWeight: totalWeight
