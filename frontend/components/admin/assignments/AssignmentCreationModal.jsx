@@ -428,49 +428,73 @@ export function AssignmentCreationModal({
 
         {/* Progress Steps */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between max-w-md mx-auto">
-            {[1, 2, 3].map((num) => (
-              <div key={num} className="flex items-center">
-                <div
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all duration-300
-                    ${step >= num 
-                      ? 'bg-blue-600 text-white scale-110 shadow-lg' 
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                    }
-                    ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
-                  `}
-                >
-                  {stepCompletion[num] ? (
-                    <i className="fas fa-check"></i>
-                  ) : (
-                    num
+          <div className="max-w-md mx-auto">
+            {/* Step circles with flex layout */}
+            <div className="flex items-center justify-center">
+              {[1, 2, 3].map((num, index) => (
+                <div key={num} className="flex items-center">
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all duration-300
+                      ${step >= num 
+                        ? 'bg-blue-600 text-white scale-110 shadow-lg' 
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }
+                      ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                    `}
+                  >
+                    {stepCompletion[num] ? (
+                      <i className="fas fa-check"></i>
+                    ) : (
+                      num
+                    )}
+                  </div>
+                  {index < 2 && (
+                    <div 
+                      className={`
+                        h-1 w-32 mx-3 rounded-full transition-all duration-500
+                        ${step > num 
+                          ? 'bg-blue-600' 
+                          : 'bg-gray-200 dark:bg-gray-700'
+                        }
+                      `}
+                    />
                   )}
                 </div>
-                {num < 3 && (
-                  <div 
-                    className={`
-                      h-1 w-20 mx-2 rounded-full transition-all duration-500
-                      ${step > num 
-                        ? 'bg-blue-600' 
-                        : 'bg-gray-200 dark:bg-gray-700'
-                      }
-                    `}
-                  />
-                )}
+              ))}
+            </div>
+            
+            {/* Step labels with precise positioning */}
+            <div className="flex justify-center mt-2 relative">
+              <div className="flex items-center">
+                {/* First label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Details & Type
+                  </span>
+                </div>
+                
+                {/* Spacer for first line */}
+                <div style={{ width: '152px' }}></div>
+                
+                {/* Second label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Participants
+                  </span>
+                </div>
+                
+                {/* Spacer for second line */}
+                <div style={{ width: '152px' }}></div>
+                
+                {/* Third label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Configure
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-xs mt-2">
-            <span className={step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Details & Type
-            </span>
-            <span className={step >= 2 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Participants
-            </span>
-            <span className={step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Configure
-            </span>
+            </div>
           </div>
         </div>
 
