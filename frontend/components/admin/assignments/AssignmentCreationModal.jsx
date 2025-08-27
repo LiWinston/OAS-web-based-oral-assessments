@@ -420,7 +420,7 @@ export function AssignmentCreationModal({
               Create New Assignment
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {courseName} ({courseCode}) • {courseSemester}
+              {courseName} ({courseCode}) • {courseSemester.split(' ')[0]} Semester {courseSemester.split(' ')[1]}
             </p>
           </div>
           <button
@@ -476,7 +476,7 @@ export function AssignmentCreationModal({
                 {/* First label */}
                 <div className="w-10 flex justify-center">
                   <span className={`text-xs whitespace-nowrap ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                    Details & Type
+                    Assignment Details
                   </span>
                 </div>
                 
@@ -496,7 +496,7 @@ export function AssignmentCreationModal({
                 {/* Third label */}
                 <div className="w-10 flex justify-center">
                   <span className={`text-xs whitespace-nowrap ${step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-                    Configure
+                    Summary
                   </span>
                 </div>
               </div>
@@ -536,7 +536,7 @@ export function AssignmentCreationModal({
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                         transition-all duration-200
                       `}
-                      placeholder="e.g., Mid-Semester Project Presentation"
+                      placeholder="e.g. Mid-Semester Project Presentation"
                     />
                     {validationErrors.name && (
                       <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -554,7 +554,7 @@ export function AssignmentCreationModal({
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       rows={3}
                       className="w-full rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                      placeholder="Provide a brief description of the assignment..."
+                      placeholder="Provide a brief description of this assignment..."
                     />
                   </div>
                 </div>

@@ -25,92 +25,33 @@ function Tooltip({ children, show, x, y }) {
   );
 }
 
-export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onCreateCourse, onEditCourse, onRefresh, onCoursesLoaded }) {
+export function CourseList({ 
+  viewMode, 
+  courses = [], 
+  currentPage = 1, 
+  totalCourses = 0, 
+  pageSize = 10,
+  loading = false, 
+  onCreateCourse, 
+  onEditCourse, 
+  onPageChange 
+}) {
   const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
-  const [courses, setCourses] = useState([]);
-  const [filteredCourses, setFilteredCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-
+  
   // Define colors for courses
   const courseColors = useMemo(() => ['blue', 'indigo', 'yellow', 'green', 'purple'], []);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalCourses, setTotalCourses] = useState(0);
-  const pageSize = 10;
-
-  const fetchCourses = useCallback(async (page = 1) => {
-    try {
-      setLoading(true);
-      const filters = {
-        yearFilter: yearFilter || undefined,
-        statusFilter: statusFilter || undefined,
-        searchTerm: searchTerm || undefined
-      };
-      
-      const result = await courseService.getCourses(page, pageSize, filters);
-      
-      if (result.success) {
-        console.log('API Response:', result);
-        
-        // Get pagination info
-        const { total, current, data: coursesData } = result.data;
-        setTotalCourses(total);
-        setCurrentPage(current);
-        
-        // Map the data to the expected format and add colors
-        const mappedCourses = coursesData.map((course, index) => ({
-          id: course.id,
-          courseName: course.courseName,
-          courseCode: course.courseCode,
-          academicYear: course.academicYear,
-          semester: course.semester,
-          description: course.description,
-          students: course.students,
-          assignments: course.assignments,
-          status: course.status,
-          color: courseColors[index % courseColors.length]
-        }));
-        
-        console.log('Mapped courses:', mappedCourses);
-        setCourses(mappedCourses);
-        setFilteredCourses(mappedCourses);
-        
-        // Pass course data to parent component for year generation
-        if (onCoursesLoaded) {
-          onCoursesLoaded(coursesData);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch courses:', error);
-    } finally {
-      setLoading(false);
+  // Map courses with colors
+  const mappedCourses = useMemo(() => {
+    if (!Array.isArray(courses)) {
+      console.error('Courses is not an array:', courses);
+      return [];
     }
-  }, [courseColors]);
-
-  // Fetch courses on mount
-  useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
-
-  // Fetch courses when filters change
-  useEffect(() => {
-    fetchCourses(1); // Reset to first page when filters change
-  }, [searchTerm, yearFilter, statusFilter]);
-
-  // Handle course updated (for future use)
-  const handleCourseUpdated = (updatedCourse) => {
-    setCourses(prev => prev.map(course => 
-      course.id === updatedCourse.id ? updatedCourse : course
-    ));
-    // TODO: Show success notification
-  };
-
-  // Expose refresh method to parent component
-  useEffect(() => {
-    if (onRefresh) {
-      onRefresh.current = fetchCourses;
-    }
-  }, [onRefresh, fetchCourses]);
+    return courses.map((course, index) => ({
+      ...course,
+      color: courseColors[index % courseColors.length]
+    }));
+  }, [courses, courseColors]);
 
   const getStatusBadge = (status) => {
     const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
@@ -144,30 +85,24 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
   }
 
   // Empty state
-  if (filteredCourses.length === 0) {
+  if (mappedCourses.length === 0 && !loading) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
         <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
           <i className="fas fa-graduation-cap text-blue-600 dark:text-blue-400 text-2xl"></i>
         </div>
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-          {courses.length === 0
-            ? "No courses yet"
-            : "No courses found"}
+          No courses yet
         </h3>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
-          {courses.length === 0
-            ? "Get started by creating your first course for assessment."
-            : "Try adjusting your search or filters."}
+          Get started by creating your first course for assessment.
         </p>
-        {courses.length === 0 && (
-          <button
-            onClick={onCreateCourse}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center transition-colors transform hover:scale-105 btn-magic"
-          >
-            <i className="fas fa-plus mr-2"></i> Create First Course
-          </button>
-        )}
+        <button
+          onClick={onCreateCourse}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center transition-colors transform hover:scale-105 btn-magic"
+        >
+          <i className="fas fa-plus mr-2"></i> Create First Course
+        </button>
       </div>
     );
   }
@@ -201,7 +136,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredCourses.map((course, index) => (
+              {mappedCourses.map((course, index) => (
                 <tr 
                   key={course.id} 
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 transform hover:scale-[1.01]"
@@ -284,14 +219,14 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
             <button
               className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               disabled={currentPage === 1}
-              onClick={() => fetchCourses(currentPage - 1)}
+              onClick={() => onPageChange(currentPage - 1)}
             >
               <i className="fas fa-chevron-left mr-1"></i> Previous
             </button>
             <button
               className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-sm disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               disabled={currentPage * pageSize >= totalCourses}
-              onClick={() => fetchCourses(currentPage + 1)}
+              onClick={() => onPageChange(currentPage + 1)}
             >
               Next <i className="fas fa-chevron-right ml-1"></i>
             </button>
@@ -310,7 +245,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
 
 
-      {filteredCourses.map((course, index) => (
+      {mappedCourses.map((course, index) => (
         <div 
           key={course.id} 
           className="course-card bg-white dark:bg-gray-800 rounded-lg shadow relative transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2"
@@ -411,7 +346,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
       {/* Create New Course Card - Enhanced with animations */}
       {(
         <div
-          className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2"
+          className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2 h-[300px]"
           onClick={onCreateCourse}
         >
         <div className="text-center p-8">

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthStore } from "../../../store/authStore";
 import { Button } from "../../../components/ui/button";
 import { CourseOverviewStats } from "../../../components/admin/courses/CourseOverviewStats";
 import { CourseList } from "../../../components/admin/courses/CourseList";
+import { courseService } from "../../../services/courseService";
 import { CourseCreationModal } from "../../../components/admin/courses/CourseCreationModal";
 import { EditCourseModal } from "../../../components/admin/courses/EditCourseModal";
 
@@ -20,7 +21,79 @@ export default function CoursesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
   const [availableYears, setAvailableYears] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const pageSize = 10;
   const courseListRef = useRef();
+
+  // Fetch courses based on view mode and filters
+  const fetchCourses = useCallback(async (page = 1) => {
+    try {
+      setLoading(true);
+      const filters = {
+        year: yearFilter || undefined,
+        semester: undefined,
+        status: statusFilter || undefined,
+        courseCode: searchTerm || undefined,
+        adminUserId: user?.userId
+      };
+
+      let result;
+      if (viewMode === 'table') {
+        // 分页查询
+        console.log('Fetching page:', page, 'with filters:', filters);
+        result = await courseService.getCoursesPaginated(page, pageSize, filters);
+      } else {
+        // 获取所有数据
+        result = await courseService.getAllCourses(filters);
+      }
+
+      console.log('API Response:', result);
+      
+      if (result.success) {
+        const { data } = result;
+        // 如果是表格视图，使用传入的页码，否则使用默认值
+        const { 
+          total = 0, 
+          current = viewMode === 'table' ? page : 1, 
+          data: coursesData = [], 
+          size = pageSize 
+        } = data;
+        
+        // 更新分页信息
+        setTotalCourses(total);
+        setCurrentPage(current);
+        
+        // 设置课程数据（确保是数组）
+        const coursesList = Array.isArray(coursesData) ? coursesData : [];
+        setCourses(coursesList);
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [viewMode, yearFilter, statusFilter, searchTerm, user?.userId]);
+
+  // 初始化和筛选条件变化时获取数据
+  useEffect(() => {
+    fetchCourses(1);
+  }, [searchTerm, yearFilter, statusFilter, viewMode]);
+
+  // Expose refresh method to child components
+  useEffect(() => {
+    if (courseListRef.current) {
+      courseListRef.current = fetchCourses;
+    }
+  }, [fetchCourses]);
+
+  // 初始化年份选项
+  useEffect(() => {
+    const years = generateYearRange();
+    setAvailableYears(years);
+  }, []);
 
   // Initialize welcome animation
   useEffect(() => {
@@ -74,22 +147,14 @@ export default function CoursesPage() {
     }
   };
 
-  // Generate continuous years from min to max
-  const generateYearRange = (courses) => {
-    if (!courses || courses.length === 0) return [];
-    
-    const years = courses.map(course => course.academicYear).filter(year => year != null);
-    if (years.length === 0) return [];
-    
-    const minYear = Math.min(...years);
-    const maxYear = Math.max(...years);
+  // 生成固定范围的年份：当前年份+1年到7年前
+  const generateYearRange = () => {
     const currentYear = new Date().getFullYear();
-    
-    // Generate years from min to max (or current year if max is in the future)
-    const endYear = Math.max(maxYear, currentYear);
+    const maxYear = currentYear + 1;
+    const minYear = currentYear - 6; // 7年前
     const yearRange = [];
     
-    for (let year = endYear; year >= minYear; year--) {
+    for (let year = maxYear; year >= minYear; year--) {
       yearRange.push(year);
     }
     
@@ -325,16 +390,14 @@ export default function CoursesPage() {
       {/* Course List */}
       <CourseList
         viewMode={viewMode}
-        searchTerm={searchTerm}
-        yearFilter={yearFilter}
-        statusFilter={statusFilter}
+        courses={courses}
+        currentPage={currentPage}
+        totalCourses={totalCourses}
+        pageSize={pageSize}
+        loading={loading}
         onCreateCourse={handleCreateCourse}
         onEditCourse={handleEditCourse}
-        onRefresh={courseListRef}
-        onCoursesLoaded={(courseData) => {
-          const years = generateYearRange(courseData);
-          setAvailableYears(years);
-        }}
+        onPageChange={(page) => fetchCourses(page)}
       />
 
       {/* Course Creation Modal */}

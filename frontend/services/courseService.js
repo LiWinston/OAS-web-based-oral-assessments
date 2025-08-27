@@ -128,20 +128,39 @@ const mockCourseService = {
 };
 
 export const courseService = {
-  // Get all courses for the current admin
-  async getCourses(page = 1, pageSize = 10, filters = {}) {
+    // Get all courses without pagination
+  async getAllCourses(filters = {}) {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourses(filters);
     }
     const response = await api.get('/api/courses', { 
       params: {
-        ...filters,
-        pageNum: page,
+        pageSize: 60, // 卡片视图一页显示60个
+        pageNum: 1,
+        year: filters.year,
+        semester: filters.semester,
+        status: filters.status,
+        courseCode: filters.courseCode,
+        adminUserId: filters.adminUserId
+      }
+    });
+    return response.data;
+  },
+
+  // Get courses with pagination
+  async getCoursesPaginated(pageNum = 1, pageSize = 10, filters = {}) {
+    if (USE_MOCK_API) {
+      return await mockCourseService.getCourses(filters);
+    }
+    const response = await api.get('/api/courses', { 
+      params: {
+        pageNum,
         pageSize,
-        year: filters.yearFilter,
-        semester: filters.semesterFilter,
-        status: filters.statusFilter,
-        courseCode: filters.searchTerm
+        year: filters.year,
+        semester: filters.semester,
+        status: filters.status,
+        courseCode: filters.courseCode,
+        adminUserId: filters.adminUserId
       }
     });
     return response.data;

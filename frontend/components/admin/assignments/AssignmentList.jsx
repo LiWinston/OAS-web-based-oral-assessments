@@ -717,7 +717,7 @@ export function AssignmentList({
           {/* Create New Assignment Card */}
           {!isFiltering && (
             <div
-              className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px]"
+              className="course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px] flex flex-col"
               onClick={onCreateAssignment}
             >
               <div className="text-center p-8">
