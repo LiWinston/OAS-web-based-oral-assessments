@@ -8,8 +8,6 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.swen90017.oas.common.BusinessError;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +15,7 @@ import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.enums.AssignmentType;
@@ -75,6 +74,9 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_WEIGHT);
         }
 
+        // Validate total weight for subject
+        validateTotalWeightForSubject(dto.getSubjectId(), dto.getWeight(), null);
+
         // Validate rubrics info if provided
         if (dto.getRubricsInfo() != null) {
             validateRubricsInfo(dto.getRubricsInfo());
@@ -89,17 +91,14 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         }
 
         assignmentMapper.insert(assignment);
-        // Evict caches AFTER transaction commits successfully
-        final Long sidForEvict = dto.getSubjectId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    cacheSupport.evictBySubjectId(sidForEvict);
-                } catch (Exception ignore) {
-                }
-            }
-        });
+        
+        // Clear cache directly - simpler approach
+        try {
+            cacheSupport.evictBySubjectId(dto.getSubjectId());
+        } catch (Exception ignore) {
+            // Log cache eviction failure but don't fail the operation
+        }
+        
         return convertToDTO(assignment);
     }
 
@@ -133,6 +132,9 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_WEIGHT);
         }
 
+        // Validate total weight for subject (exclude current assignment)
+        validateTotalWeightForSubject(dto.getSubjectId(), dto.getWeight(), id);
+
         BeanUtils.copyProperties(dto, existingAssignment, "id", "createTime", "creator");
 
         // Convert rubricsInfo list to JSON string for storage
@@ -146,20 +148,17 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
 
         assignmentMapper.updateById(existingAssignment);
-        // If subject changed, evict both old and new subject caches AFTER commit
-        final Long newSubjectId = dto.getSubjectId();
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    if (oldSubjectId != null && !oldSubjectId.equals(newSubjectId)) {
-                        cacheSupport.evictBySubjectId(oldSubjectId);
-                    }
-                    cacheSupport.evictBySubjectId(newSubjectId);
-                } catch (Exception ignore) {
-                }
+        
+        // Clear cache directly - simpler approach
+        try {
+            if (oldSubjectId != null && !oldSubjectId.equals(dto.getSubjectId())) {
+                cacheSupport.evictBySubjectId(oldSubjectId);
             }
-        });
+            cacheSupport.evictBySubjectId(dto.getSubjectId());
+        } catch (Exception ignore) {
+            // Log cache eviction failure but don't fail the operation
+        }
+        
         return convertToDTO(existingAssignment);
     }
 
@@ -171,25 +170,17 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
-        // Get subjectId before deletion to clear cache
-        Long subjectId = assignment.getSubjectId();
-
         // Check if assignment can be deleted (e.g., no submissions)
         // This would be implemented when submission service is created
 
         assignmentMapper.deleteById(id);
 
-        // Clear cache AFTER successful deletion commit
-        final Long sidForEvict = subjectId;
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    cacheSupport.evictBySubjectId(sidForEvict);
-                } catch (Exception ignore) {
-                }
-            }
-        });
+        // Clear cache directly - simpler approach
+        try {
+            cacheSupport.evictBySubjectId(assignment.getSubjectId());
+        } catch (Exception ignore) {
+            // Log cache eviction failure but don't fail the operation
+        }
     }
 
     @Override
@@ -367,6 +358,100 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             return true;
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    @Override
+    public AssignmentStatusStatsResponseDTO getAssignmentStatusStats() {
+        // Get all assignments
+        List<Assignment> assignments = assignmentMapper.selectList(null);
+        
+        return buildStatusStats(assignments);
+    }
+
+    @Override
+    public AssignmentStatusStatsResponseDTO getAssignmentStatusStatsBySubject(Long subjectId) {
+        // Validate subject exists
+        Subject subject = subjectMapper.selectById(subjectId);
+        if (subject == null) {
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
+        }
+        
+        // Get assignments by subject ID
+        LambdaQueryWrapper<Assignment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Assignment::getSubjectId, subjectId);
+        List<Assignment> assignments = assignmentMapper.selectList(queryWrapper);
+        
+        return buildStatusStats(assignments);
+    }
+
+    /**
+     * Build status statistics from assignment list
+     */
+    private AssignmentStatusStatsResponseDTO buildStatusStats(List<Assignment> assignments) {
+        int totalCount = assignments.size();
+        
+        // Count assignments by status
+        Map<String, Integer> statusCounts = assignments.stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getStatus() != null ? assignment.getStatus() : "UNKNOWN",
+                        Collectors.collectingAndThen(Collectors.counting(), Long::intValue)
+                ));
+        
+        // Calculate total weight by status
+        Map<String, Double> statusWeights = assignments.stream()
+                .collect(Collectors.groupingBy(
+                        assignment -> assignment.getStatus() != null ? assignment.getStatus() : "UNKNOWN",
+                        Collectors.summingDouble(assignment -> assignment.getWeight() != null ? assignment.getWeight() : 0.0)
+                ));
+        
+        // Calculate total weight across all assignments
+        double totalWeight = assignments.stream()
+                .mapToDouble(assignment -> assignment.getWeight() != null ? assignment.getWeight() : 0.0)
+                .sum();
+        
+        // Calculate percentages based on total weight
+        Map<String, Double> statusPercentages = statusWeights.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> totalWeight > 0 ? (entry.getValue()) * 1.0 : 0.0
+                ));
+        
+        return AssignmentStatusStatsResponseDTO.builder()
+                .totalCount(totalCount)
+                .statusCounts(statusCounts)
+                .statusPercentages(statusPercentages)
+                .build();
+    }
+
+    /**
+     * Validate that the total weight of assignments for a subject does not exceed 100%
+     * 
+     * @param subjectId The subject ID to validate
+     * @param newWeight The new weight to be added/updated
+     * @param excludeAssignmentId The assignment ID to exclude from calculation (for updates)
+     */
+    private void validateTotalWeightForSubject(Long subjectId, Double newWeight, Long excludeAssignmentId) {
+        // Get all existing assignments for the subject
+        LambdaQueryWrapper<Assignment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Assignment::getSubjectId, subjectId);
+        
+        // Exclude the current assignment if updating
+        if (excludeAssignmentId != null) {
+            queryWrapper.ne(Assignment::getId, excludeAssignmentId);
+        }
+        
+        List<Assignment> existingAssignments = assignmentMapper.selectList(queryWrapper);
+        
+        // Calculate total weight of existing assignments
+        double existingTotalWeight = existingAssignments.stream()
+                .mapToDouble(assignment -> assignment.getWeight() != null ? assignment.getWeight() : 0.0)
+                .sum();
+        
+        // Check if adding new weight would exceed 100%
+        double totalWeight = existingTotalWeight + newWeight;
+        if (totalWeight > 100.0) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED);
         }
     }
 }

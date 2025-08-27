@@ -35,7 +35,8 @@ public enum BusinessError implements Error {
     ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION("4043", "Invalid performance description"),
     ASSIGNMENT_INVALID_PERFORMANCE_POINTS("4044", "Invalid performance points"),
     ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
-    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format");
+    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format"),
+    ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED("4047", "Total assignment weight for subject cannot exceed 100%");
     
     private final String code;
     private final String message;
