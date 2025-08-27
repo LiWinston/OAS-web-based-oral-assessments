@@ -121,7 +121,7 @@ public class AssignmentController {
     @GetMapping("/subject/{subjectId}/stats")
     @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<AssignmentStatusStatsResponseDTO>> getAssignmentStatusStatsBySubject(
-            @Parameter(description = "Assignment ID") @PathVariable Long subjectId) {
+            @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
         AssignmentStatusStatsResponseDTO stats = assignmentService.getAssignmentStatusStatsBySubject(subjectId);
         return ResponseEntity.ok(Result.success(stats));
     }
