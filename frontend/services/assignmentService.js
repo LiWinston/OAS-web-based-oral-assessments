@@ -5,7 +5,11 @@ const USE_MOCK_API = false;
 
 // Utility function to convert date strings to datetime format for Java backend
 const formatDateForBackend = (dateString) => {
-  return dateString ? `${dateString}T00:00:00` : dateString;
+  if (!dateString) return dateString;
+  // If already in datetime format, return as is
+  if (dateString.includes('T')) return dateString;
+  // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS format
+  return `${dateString}T00:00:00`;
 };
 
 // Mock assignments data

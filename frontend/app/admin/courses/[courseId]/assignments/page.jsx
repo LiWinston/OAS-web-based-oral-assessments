@@ -154,13 +154,22 @@ export default function CourseAssignmentsPage() {
   const createAssignment = async (formData, isDraft = false) => {
     try {
       const currentUserId = getUserId();
+      // Helper function to format date for backend
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return null;
+        // If already in datetime format, return as is
+        if (dateString.includes('T')) return dateString;
+        // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS format
+        return `${dateString}T11:50:17`;
+      };
+
       const assignmentData = {
         subjectId: formData.courseId,
         name: formData.name,
         description: formData.description,
         type: formData.type,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
+        startDate: formatDateForBackend(formData.startDate),
+        endDate: formatDateForBackend(formData.endDate),
         weight: Number(formData.weight),
         progress: 0,
         status: isDraft ? 'DRAFT' : 'PENDING',
