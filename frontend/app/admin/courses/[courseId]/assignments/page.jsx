@@ -57,8 +57,7 @@ export default function CourseAssignmentsPage() {
         const [courseResult, assignmentsResult, statsResult] = await Promise.all([
           courseService.getCourse(courseId).catch(err => ({ success: false, error: err })),
           courseId ? assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false }),
-          // 暂时禁用统计接口
-          Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+          courseId ? assignmentService.getAssignmentStats(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false })
         ]);
         
         if (!isMounted) return;
@@ -83,7 +82,16 @@ export default function CourseAssignmentsPage() {
         
         // 处理统计数据
         if (statsResult.success) {
-          setAssignmentStats(statsResult.data);
+          const stats = statsResult.data;
+          const totalWeight = Object.values(stats.statusPercentages || {}).reduce((sum, percentage) => sum + percentage, 0);
+          
+          setAssignmentStats({
+            total: stats.totalCount || 0,
+            active: 0, // 暂时设为0，后续可以根据需要调整
+            upcoming: stats.statusCounts?.PENDING || 0,
+            completed: 0, // 暂时设为0，后续可以根据需要调整
+            totalWeight: totalWeight
+          });
         }
         
       } catch (error) {
@@ -120,8 +128,7 @@ export default function CourseAssignmentsPage() {
       
       const [assignmentsResult, statsResult] = await Promise.all([
         assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })),
-        // 暂时禁用统计接口
-        Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+        assignmentService.getAssignmentStats(courseId).catch(err => ({ success: false, error: err }))
       ]);
       
       if (assignmentsResult.success) {
@@ -129,7 +136,16 @@ export default function CourseAssignmentsPage() {
       }
       
       if (statsResult.success) {
-        setAssignmentStats(statsResult.data);
+        const stats = statsResult.data;
+        const totalWeight = Object.values(stats.statusPercentages || {}).reduce((sum, percentage) => sum + percentage, 0);
+        
+        setAssignmentStats({
+          total: stats.totalCount || 0,
+          active: 0, // 暂时设为0，后续可以根据需要调整
+          upcoming: stats.statusCounts?.PENDING || 0,
+          completed: 0, // 暂时设为0，后续可以根据需要调整
+          totalWeight: totalWeight
+        });
       }
     } catch (error) {
       showNotification("error", "Failed to refresh data");

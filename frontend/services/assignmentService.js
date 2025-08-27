@@ -277,7 +277,7 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignmentStats(courseId);
     }
-    const response = await api.get(`/api/courses/${courseId}/assignments/stats`);
+    const response = await api.get(`/api/assignments/subject/${courseId}/stats`);
     return response.data;
   },
 
