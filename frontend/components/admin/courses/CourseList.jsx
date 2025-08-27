@@ -28,6 +28,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
           code: course.courseCode,
           year: course.academicYear,
           semester: `Semester ${course.semester}`,
+          description: course.description,
           students: course.students,
           assignments: course.assignments,
           status: course.status,
