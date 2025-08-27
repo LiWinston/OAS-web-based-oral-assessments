@@ -402,7 +402,7 @@ export function AssignmentList({
                   key={assignment.id}
                   className={`
                   course-card bg-white dark:bg-gray-800 rounded-lg shadow group relative overflow-hidden
-                  animate-fadeInUp ${
+                  animate-fadeInUp min-h-[400px] flex flex-col ${
                     hoveredAssignment === assignment.id ? "hovered" : ""
                   }
                 `}
@@ -420,20 +420,32 @@ export function AssignmentList({
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-full group-hover:translate-x-[-200%] transition-transform duration-1000"></div>
                   </div>
 
-                  <div className="p-6 relative z-10">
+                  <div className="p-6 relative z-10 flex-1 flex flex-col">
+                    {/* Header section */}
                     <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {assignment.name}
                         </h3>
-                        {assignment.description && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
-                            {assignment.description}
-                          </p>
-                        )}
+                        {/* Fixed height container for description to ensure alignment */}
+                        <div className="h-[40px] overflow-hidden">
+                          {assignment.description ? (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors overflow-hidden" 
+                               style={{
+                                 display: '-webkit-box',
+                                 WebkitLineClamp: 2,
+                                 WebkitBoxOrient: 'vertical',
+                                 textOverflow: 'ellipsis'
+                               }}>
+                              {assignment.description}
+                            </p>
+                          ) : (
+                            <div className="h-[40px]"></div>
+                          )}
+                        </div>
                       </div>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 group-hover:scale-105`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 group-hover:scale-105 ml-3 flex-shrink-0`}
                       >
                         <i
                           className={`fas ${typeStyles.icon} mr-1 group-hover:animate-wiggle`}
@@ -442,6 +454,7 @@ export function AssignmentList({
                       </span>
                     </div>
 
+                    {/* Content section */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center text-sm group/item">
                         <i className="fas fa-calendar-alt text-gray-400 w-5 mr-2 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
@@ -573,7 +586,10 @@ export function AssignmentList({
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {/* Flexible spacer to push buttons to bottom */}
+                    <div className="flex-1"></div>
+
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
                       <button
                         onClick={() => onEditAssignment(assignment)}
                         className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105"
