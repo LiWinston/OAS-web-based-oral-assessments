@@ -125,7 +125,9 @@ export function AssignmentCreationModal({
         if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
           errors.endDate = 'End date must be after start date';
         }
-        if (!formData.weight || formData.weight < 0 || formData.weight > 100) {
+        if (!formData.weight || formData.weight === '') {
+          errors.weight = 'Weight is required';
+        } else if (formData.weight < 0 || formData.weight > 100) {
           errors.weight = 'Weight must be between 0 and 100';
         }
         break;
@@ -674,7 +676,17 @@ export function AssignmentCreationModal({
                       <input
                         type="number"
                         value={formData.weight}
-                        onChange={(e) => handleInputChange('weight', parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            handleInputChange('weight', '');
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue)) {
+                              handleInputChange('weight', numValue);
+                            }
+                          }
+                        }}
                         min="0"
                         max="100"
                         className={`
@@ -698,7 +710,7 @@ export function AssignmentCreationModal({
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
-                          style={{ width: `${formData.weight}%` }}
+                          style={{ width: `${formData.weight === '' || !formData.weight ? 0 : formData.weight}%` }}
                         />
                       </div>
                     </div>
