@@ -25,6 +25,17 @@ export function EditAssignmentModal({
   const [hasChanges, setHasChanges] = useState(false);
   const { showNotification } = useNotification();
 
+  // Helper function to convert datetime to date format for HTML date input
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    // If datetime format (e.g., "2025-08-20T00:00:00"), extract date part
+    if (dateString.includes('T')) {
+      return dateString.split('T')[0];
+    }
+    // If already in YYYY-MM-DD format, return as is
+    return dateString;
+  };
+
   // Initialize form with assignment data
   useEffect(() => {
     if (assignment && isOpen) {
@@ -32,8 +43,8 @@ export function EditAssignmentModal({
         name: assignment.name || '',
         description: assignment.description || '',
         type: assignment.type || 'individual',
-        startDate: assignment.startDate || '',
-        endDate: assignment.endDate || '',
+        startDate: formatDateForInput(assignment.startDate),
+        endDate: formatDateForInput(assignment.endDate),
         weight: assignment.weight || 25
       });
       setHasChanges(false);
@@ -48,8 +59,8 @@ export function EditAssignmentModal({
         formData.name !== assignment.name ||
         formData.description !== assignment.description ||
         formData.type !== assignment.type ||
-        formData.startDate !== assignment.startDate ||
-        formData.endDate !== assignment.endDate ||
+        formData.startDate !== formatDateForInput(assignment.startDate) ||
+        formData.endDate !== formatDateForInput(assignment.endDate) ||
         formData.weight !== assignment.weight;
       setHasChanges(changed);
     }
@@ -447,11 +458,11 @@ export function EditAssignmentModal({
                       {formData.type !== assignment.type && (
                         <li>Type: {assignment.type} → {formData.type}</li>
                       )}
-                      {formData.startDate !== assignment.startDate && (
-                        <li>Start Date: {assignment.startDate} → {formData.startDate}</li>
+                      {formData.startDate !== formatDateForInput(assignment.startDate) && (
+                        <li>Start Date: {formatDateForInput(assignment.startDate)} → {formData.startDate}</li>
                       )}
-                      {formData.endDate !== assignment.endDate && (
-                        <li>End Date: {assignment.endDate} → {formData.endDate}</li>
+                      {formData.endDate !== formatDateForInput(assignment.endDate) && (
+                        <li>End Date: {formatDateForInput(assignment.endDate)} → {formData.endDate}</li>
                       )}
                       {formData.weight !== assignment.weight && (
                         <li>Weight: {assignment.weight}% → {formData.weight}%</li>
