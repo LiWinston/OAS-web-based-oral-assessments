@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { 
-  GripVertical, 
   ChevronDown, 
   ChevronUp, 
   Trash2, 
@@ -25,11 +24,7 @@ export default function RubricCriterion({
   totalCriteria,
   onUpdate,
   onDelete,
-  onDuplicate,
-  onDragStart,
-  onDragOver,
-  onDrop,
-  isDragging
+  onDuplicate
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showCommentManager, setShowCommentManager] = useState(false);
@@ -96,21 +91,14 @@ export default function RubricCriterion({
 
   return (
     <div
-      className={`dashboard-card transition-all duration-300 ${
-        isDragging ? 'opacity-50 scale-95' : 'hover:shadow-lg transform hover:-translate-y-1'
-      } ${isExpanded ? 'overflow-visible' : 'overflow-hidden'}`}
-      draggable
-      onDragStart={onDragStart}
-      onDragOver={onDragOver}
-      onDrop={onDrop}
+      className={`dashboard-card transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
+        isExpanded ? 'overflow-visible' : 'overflow-hidden'
+      }`}
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <div className="cursor-move p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-              <GripVertical className="w-5 h-5 text-gray-400" />
-            </div>
             
             {editingTitle ? (
               <div className="flex items-center gap-2 flex-1">
@@ -268,6 +256,7 @@ export default function RubricCriterion({
                   markingScale={criterion.markingScale}
                   onUpdate={(updated) => handleUpdateLevel(levelIndex, updated)}
                   onDelete={() => handleDeleteLevel(levelIndex)}
+                  allLevels={criterion.levels} // 传递所有levels用于重合验证
                 />
               ))}
             </div>

@@ -51,7 +51,6 @@ export default function RubricConfigurationPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
-  const [draggedIndex, setDraggedIndex] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -156,11 +155,7 @@ export default function RubricConfigurationPage() {
       }
     } catch (error) {
       console.error("Error loading rubric data:", error);
-      showNotification({
-        type: "error",
-        title: "Error loading data",
-        message: error.message || "Failed to load rubric configuration",
-      });
+      showNotification("error", error.message || "Failed to load rubric configuration");
       // Still hide welcome on error
       setShowWelcome(false);
     } finally {
@@ -239,11 +234,7 @@ export default function RubricConfigurationPage() {
       criteria: [...(rubric.criteria || []), newCriterion],
     });
     setHasChanges(true);
-    showNotification({
-      type: "success",
-      title: "Criterion added",
-      message: "New criterion has been added to the rubric",
-    });
+    showNotification("success", "New criterion has been added to the rubric");
   };
 
   const handleUpdateCriterion = (index, updatedCriterion) => {
@@ -255,22 +246,14 @@ export default function RubricConfigurationPage() {
 
   const handleDeleteCriterion = (index) => {
     if (!rubric.criteria || rubric.criteria.length === 1) {
-      showNotification({
-        type: "error",
-        title: "Cannot delete",
-        message: "Rubric must have at least one criterion",
-      });
+      showNotification("error", "Rubric must have at least one criterion");
       return;
     }
 
     const newCriteria = rubric.criteria.filter((_, i) => i !== index);
     setRubric({ ...rubric, criteria: newCriteria });
     setHasChanges(true);
-    showNotification({
-      type: "success",
-      title: "Criterion deleted",
-      message: "Criterion has been removed from the rubric",
-    });
+    showNotification("success", "Criterion has been removed from the rubric");
   };
 
   const handleDuplicateCriterion = (index) => {
@@ -290,42 +273,43 @@ export default function RubricConfigurationPage() {
     newCriteria.splice(index + 1, 0, duplicatedCriterion);
     setRubric({ ...rubric, criteria: newCriteria });
     setHasChanges(true);
-    showNotification({
-      type: "success",
-      title: "Criterion duplicated",
-      message: "Criterion has been duplicated successfully",
-    });
+    showNotification("success", "Criterion has been duplicated successfully");
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (e, index) => {
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-  };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
 
-  const handleDrop = (e, dropIndex) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === dropIndex || !rubric.criteria) return;
-
-    const draggedCriterion = rubric.criteria[draggedIndex];
-    const newCriteria = [...rubric.criteria];
-
-    // Remove dragged item
-    newCriteria.splice(draggedIndex, 1);
-
-    // Insert at new position
-    const adjustedDropIndex =
-      draggedIndex < dropIndex ? dropIndex - 1 : dropIndex;
-    newCriteria.splice(adjustedDropIndex, 0, draggedCriterion);
-
-    setRubric({ ...rubric, criteria: newCriteria });
-    setDraggedIndex(null);
-    setHasChanges(true);
+  // 检查是否有分数段重合
+  const hasScoreRangeOverlap = () => {
+    if (!rubric.criteria || rubric.criteria.length === 0) return false;
+    
+    for (const criterion of rubric.criteria) {
+      if (!criterion.levels || criterion.levels.length <= 1) continue;
+      
+      // 检查当前criterion的levels是否有重合
+      for (let i = 0; i < criterion.levels.length; i++) {
+        const level1 = criterion.levels[i];
+        const min1 = level1.minPoints || 0;
+        const max1 = level1.maxPoints || 0;
+        
+        if (min1 > max1) return true; // 最小值大于最大值
+        
+        for (let j = i + 1; j < criterion.levels.length; j++) {
+          const level2 = criterion.levels[j];
+          const min2 = level2.minPoints || 0;
+          const max2 = level2.maxPoints || 0;
+          
+          // 检查是否有重合
+          const hasOverlap = 
+            (min1 >= min2 && min1 <= max2) || // level1最小值在level2范围内
+            (max1 >= min2 && max1 <= max2) || // level1最大值在level2范围内
+            (min1 <= min2 && max1 >= max2);   // level1范围包含level2范围
+          
+          if (hasOverlap) return true;
+        }
+      }
+    }
+    
+    return false;
   };
 
   const handleSaveRubric = async () => {
@@ -337,21 +321,13 @@ export default function RubricConfigurationPage() {
     // Validate rubric
     if (!rubric.name.trim()) {
       console.error("Validation failed: No rubric name");
-      showNotification({
-        type: "error",
-        title: "Validation error",
-        message: "Please provide a name for the rubric",
-      });
+      showNotification("error", "Please provide a name for the rubric");
       return;
     }
 
     if (!rubric.criteria || rubric.criteria.length === 0) {
       console.error("Validation failed: No criteria");
-      showNotification({
-        type: "error",
-        title: "Validation error",
-        message: "Rubric must have at least one criterion",
-      });
+      showNotification("error", "Rubric must have at least one criterion");
       return;
     }
     
@@ -363,11 +339,13 @@ export default function RubricConfigurationPage() {
       0
     );
     if (totalWeight !== 100) {
-      showNotification({
-        type: "error",
-        title: "Validation error",
-        message: `Total weight must equal 100%. Current total: ${totalWeight}%`,
-      });
+      showNotification("error", `Total weight must equal 100%. Current total: ${totalWeight}%`);
+      return;
+    }
+
+    // Validate no score range overlap
+    if (hasScoreRangeOverlap()) {
+      showNotification("error", "Cannot save: Score ranges cannot overlap within criteria");
       return;
     }
 
@@ -412,18 +390,13 @@ export default function RubricConfigurationPage() {
 
       setHasChanges(false);
 
-      showNotification({
-        type: "success",
-        title: "Rubric saved",
-        message: "The rubric has been saved successfully",
-      });
+      showNotification("success", "The rubric has been saved successfully");
+      
+      // 自动刷新数据以确保UI与后端同步
+      await fetchData();
     } catch (error) {
       console.error("Save rubric error:", error);
-      showNotification({
-        type: "error",
-        title: "Save failed",
-        message: error.response?.data?.message || error.message || "Failed to save rubric",
-      });
+      showNotification("error", error.response?.data?.message || error.message || "Failed to save rubric");
     } finally {
       setIsSaving(false);
     }
@@ -540,27 +513,42 @@ export default function RubricConfigurationPage() {
               )}
               {showPreview ? "Hide" : "Show"} Preview
             </button>
-            <button
-              onClick={handleSaveRubric}
-              disabled={isSaving}
-              className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
-                !isSaving
-                  ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
-              }`}
-            >
-              {isSaving ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5" />
-                  Save Rubric
-                </>
+            
+            {/* Save button with validation status */}
+            <div className="relative">
+              <button
+                onClick={handleSaveRubric}
+                disabled={isSaving || hasScoreRangeOverlap()}
+                className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
+                  !isSaving && !hasScoreRangeOverlap()
+                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
+                }`}
+                title={hasScoreRangeOverlap() ? "Cannot save: Score ranges overlap" : ""}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5" />
+                    Save Rubric
+                    {hasScoreRangeOverlap() && (
+                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    )}
+                  </>
+                )}
+              </button>
+              
+              {/* Error tooltip when hovering over disabled button */}
+              {hasScoreRangeOverlap() && (
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+                  Score ranges cannot overlap
+                </div>
               )}
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -762,10 +750,6 @@ export default function RubricConfigurationPage() {
                   onUpdate={(updated) => handleUpdateCriterion(index, updated)}
                   onDelete={() => handleDeleteCriterion(index)}
                   onDuplicate={() => handleDuplicateCriterion(index)}
-                  onDragStart={(e) => handleDragStart(e, index)}
-                  onDragOver={handleDragOver}
-                  onDrop={(e) => handleDrop(e, index)}
-                  isDragging={draggedIndex === index}
                 />
               ))}
             </div>

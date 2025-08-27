@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Check, X, Palette } from "lucide-react";
+import { Trash2, Check, X, Palette, AlertCircle } from "lucide-react";
 
 export default function PerformanceLevel({
   level,
@@ -10,10 +10,12 @@ export default function PerformanceLevel({
   markingScale,
   onUpdate,
   onDelete,
+  allLevels, // 新增：所有的performance levels，用于验证重合
 }) {
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(level.name || '');
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   const colors = ["green", "blue", "yellow", "orange", "red", "gray"];
 
@@ -61,6 +63,52 @@ export default function PerformanceLevel({
   const handleNameSave = () => {
     onUpdate({ ...level, name: tempName });
     setEditingName(false);
+  };
+
+  // 验证分数段是否与其他levels重合
+  const validateScoreRange = (minPoints, maxPoints, currentIndex) => {
+    if (!allLevels || allLevels.length <= 1) return "";
+    
+    if (minPoints > maxPoints) {
+      return "Minimum points cannot be greater than maximum points";
+    }
+
+    for (let i = 0; i < allLevels.length; i++) {
+      if (i === currentIndex) continue; // 跳过当前level
+      
+      const otherLevel = allLevels[i];
+      const otherMin = otherLevel.minPoints || 0;
+      const otherMax = otherLevel.maxPoints || 0;
+      
+      // 检查是否有重合
+      const hasOverlap = 
+        (minPoints >= otherMin && minPoints <= otherMax) || // 当前最小值在其他范围内
+        (maxPoints >= otherMin && maxPoints <= otherMax) || // 当前最大值在其他范围内
+        (minPoints <= otherMin && maxPoints >= otherMax);   // 当前范围包含其他范围
+      
+      if (hasOverlap) {
+        return `Score range ${minPoints}-${maxPoints} overlaps with ${otherMin}-${otherMax}`;
+      }
+    }
+    
+    return "";
+  };
+
+  const handlePointsUpdate = (field, value) => {
+    const numValue = parseInt(value) || 0;
+    const updatedLevel = { ...level, [field]: numValue };
+    
+    // 验证分数段
+    const error = validateScoreRange(
+      field === 'minPoints' ? numValue : level.minPoints || 0,
+      field === 'maxPoints' ? numValue : level.maxPoints || 0,
+      index
+    );
+    
+    setValidationError(error);
+    
+    // 即使有错误也更新值，让用户看到实时反馈
+    onUpdate(updatedLevel);
   };
 
   const getLetterGrade = (index, total) => {
@@ -171,38 +219,42 @@ export default function PerformanceLevel({
                 rows={2}
               />
             </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={level.minPoints || 0}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...level,
-                      minPoints: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="form-control text-sm text-center w-full"
-                  placeholder="Min"
-                  min={0}
-                />
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={level.minPoints || 0}
+                    onChange={(e) => handlePointsUpdate('minPoints', e.target.value)}
+                    className={`form-control text-sm text-center w-full ${
+                      validationError ? 'border-red-500 focus:border-red-500' : ''
+                    }`}
+                    placeholder="Min"
+                    min={0}
+                  />
+                </div>
+                <span className="flex items-center text-gray-500 px-2">-</span>
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    value={level.maxPoints || 0}
+                    onChange={(e) => handlePointsUpdate('maxPoints', e.target.value)}
+                    className={`form-control text-sm text-center w-full ${
+                      validationError ? 'border-red-500 focus:border-red-500' : ''
+                    }`}
+                    placeholder="Max"
+                    min={0}
+                  />
+                </div>
               </div>
-              <span className="flex items-center text-gray-500 px-2">-</span>
-              <div className="flex-1">
-                <input
-                  type="number"
-                  value={level.maxPoints || 0}
-                  onChange={(e) =>
-                    onUpdate({
-                      ...level,
-                      maxPoints: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="form-control text-sm text-center w-full"
-                  placeholder="Max"
-                  min={0}
-                />
-              </div>
+              
+              {/* 验证错误提示 */}
+              {validationError && (
+                <div className="flex items-center gap-2 text-red-600 text-xs">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>{validationError}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
