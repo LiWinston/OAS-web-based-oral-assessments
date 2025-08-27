@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../../ui/button';
 import { courseService } from '../../../services/courseService';
 
-export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onCreateCourse, onEditCourse }) {
+export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onCreateCourse, onEditCourse, onRefresh }) {
   const [courses, setCourses] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [hoveredCourse, setHoveredCourse] = useState(null);
@@ -88,6 +88,13 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
     ));
     // TODO: Show success notification
   };
+
+  // Expose refresh method to parent component
+  useEffect(() => {
+    if (onRefresh) {
+      onRefresh.current = fetchCourses;
+    }
+  }, [onRefresh, fetchCourses]);
 
   const getStatusBadge = (status) => {
     const baseClasses = "px-2 py-1 text-xs rounded-full";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuthStore } from "../../../store/authStore";
 import { Button } from "../../../components/ui/button";
@@ -19,6 +19,7 @@ export default function CoursesPage() {
   const [yearFilter, setYearFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
+  const courseListRef = useRef();
 
   // Initialize welcome animation
   useEffect(() => {
@@ -61,7 +62,11 @@ export default function CoursesPage() {
     console.log("Course updated:", updatedCourse);
     setEditModalOpen(false);
     setSelectedCourse(null);
-    // TODO: Refresh course list, show success notification
+    
+    // Refresh course list to show updated data
+    if (courseListRef.current) {
+      courseListRef.current();
+    }
   };
 
   return (
@@ -288,6 +293,7 @@ export default function CoursesPage() {
         statusFilter={statusFilter}
         onCreateCourse={handleCreateCourse}
         onEditCourse={handleEditCourse}
+        onRefresh={courseListRef}
       />
 
       {/* Course Creation Modal */}
