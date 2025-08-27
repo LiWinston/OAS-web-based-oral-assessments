@@ -137,8 +137,11 @@ export function EditAssignmentModal({
       const result = await assignmentService.updateAssignment(assignment.id, updateData);
       
       if (result.success) {
-        showNotification('success', 'Assignment updated successfully');
         onAssignmentUpdated(result.data);
+      } else {
+        // Handle backend validation errors
+        const errorMessage = result.data || result.message || 'Failed to update assignment';
+        showNotification('error', errorMessage);
       }
     } catch (error) {
       showNotification('error', 'Failed to update assignment');

@@ -358,6 +358,10 @@ export function AssignmentCreationModal({
         setTimeout(() => {
           onAssignmentCreated(result.data);
         }, 2500);
+      } else {
+        // Handle backend validation errors
+        const errorMessage = result.data || result.message || 'Failed to create assignment';
+        showNotification('error', errorMessage);
       }
     } catch (error) {
       showNotification('error', 'Failed to create assignment');
