@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.AssignmentSessionConfigMapper">
+
+    <insert id="upsert">
+        INSERT INTO assignment_session_config
+        (assignment_id, session_length_min, gap_time_min, examiners_per_session,
+         default_max_sessions_per_examiner, is_configured, last_modified, updated_by)
+        VALUES
+            (#{c.assignmentId}, #{c.sessionLengthMin}, #{c.gapTimeMin}, #{c.examinersPerSession},
+             #{c.defaultMaxSessionsPerExaminer}, 1, NOW(), #{c.updatedBy})
+        ON DUPLICATE KEY UPDATE
+            session_length_min = VALUES(session_length_min),
+                                     gap_time_min = VALUES(gap_time_min),
+                                                        examiners_per_session = VALUES(examiners_per_session),
+                                                                                    default_max_sessions_per_examiner = VALUES(default_max_sessions_per_examiner),
+                                                                                                                            last_modified = NOW(),
+                                                                                                                            updated_by = VALUES(updated_by)
+    </insert>
+
+</mapper>

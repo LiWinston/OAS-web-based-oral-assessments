@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.SlotSessionMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO slot_sessions
+        (slot_id, session_number, start_at, end_at, status, created_at, updated_at)
+        VALUES
+        <foreach collection="list" item="s" separator=",">
+            (#{s.slotId}, #{s.sessionNumber}, #{s.startAt}, #{s.endAt}, #{s.status},
+            NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <select id="findBySlotId" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT *
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+        ORDER BY session_number ASC
+    </select>
+
+    <update id="book">
+        UPDATE slot_sessions
+        SET status = 'booked',
+            booked_subject_id = #{bookedSubjectId},
+            booked_subject_type = #{bookedSubjectType},
+            booked_at = NOW(),
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND status = 'available'
+    </update>
+
+    <update id="unbook">
+        UPDATE slot_sessions
+        SET status = 'available',
+            booked_subject_id = NULL,
+            booked_subject_type = NULL,
+            booked_at = NULL,
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND status = 'booked'
+    </update>
+
+    <select id="countBookedBySlot" resultType="int">
+        SELECT COUNT(1)
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+          AND status = 'booked'
+    </select>
+
+</mapper>

@@ -1,6 +1,7 @@
 package org.swen90017.oas.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.swen90017.oas.entity.TimeSlot;
@@ -8,7 +9,7 @@ import org.swen90017.oas.entity.TimeSlot;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-
+@Mapper
 public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
 
     int countVenueOverlap(@Param("assignmentId") Long assignmentId,
@@ -19,6 +20,10 @@ public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
     List<TimeSlot> selectByFilters(@Param("assignmentId") Long assignmentId,
                                    @Param("date") LocalDate date,
                                    @Param("status") String status);
+
+    int updateCountersAndStatus(@Param("slotId") Long slotId,
+                                @Param("currentExaminers") int currentExaminers,
+                                @Param("bookedSessions") int bookedSessions);
 
     int sumAssignedSessionsForExaminer(@Param("assignmentId") Long assignmentId,
                                        @Param("examinerId") Long examinerId);

@@ -1,11 +1,13 @@
 package org.swen90017.oas.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.swen90017.oas.entity.TimeSlotExaminer;
 
 import java.util.List;
 
+@Mapper
 public interface TimeSlotExaminersMapper extends BaseMapper<TimeSlotExaminer> {
     int deleteOne(@Param("slotId") Long slotId, @Param("examinerId") Long examinerId);
     List<Long> listExaminerIdsBySlot(@Param("slotId") Long slotId);
