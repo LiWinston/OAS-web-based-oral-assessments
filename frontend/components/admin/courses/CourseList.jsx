@@ -122,6 +122,35 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
     );
   }
 
+  // Empty state
+  if (filteredCourses.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+        <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4">
+          <i className="fas fa-graduation-cap text-blue-600 dark:text-blue-400 text-2xl"></i>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+          {courses.length === 0
+            ? "No courses yet"
+            : "No courses found"}
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md mx-auto">
+          {courses.length === 0
+            ? "Get started by creating your first course for assessment."
+            : "Try adjusting your search or filters."}
+        </p>
+        {courses.length === 0 && (
+          <button
+            onClick={onCreateCourse}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium inline-flex items-center transition-colors transform hover:scale-105 btn-magic"
+          >
+            <i className="fas fa-plus mr-2"></i> Create First Course
+          </button>
+        )}
+      </div>
+    );
+  }
+
   // Table View
   if (viewMode === 'table') {
     return (
@@ -250,26 +279,7 @@ export function CourseList({ viewMode, searchTerm, yearFilter, statusFilter, onC
   // Card View
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-      {/* No results found state */}
-      {filteredCourses.length === 0 && (
-        <div className="col-span-full text-center py-12">
-          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <i className="fas fa-search text-gray-400 text-xl"></i>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No courses found
-          </h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Try adjusting your search terms or filters
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium"
-          >
-            Clear all filters
-          </button>
-        </div>
-      )}
+
 
       {filteredCourses.map((course, index) => (
         <div 
