@@ -46,7 +46,14 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             queryWrapper.eq(Subject::getSemester, semester);
         }
         if (StringUtils.hasText(subjectCode)) {
-            queryWrapper.like(Subject::getSubjectCode, subjectCode);
+            // 在课程代码、课程名称、描述中进行模糊搜索
+            queryWrapper.and(wrapper -> wrapper
+                .like(Subject::getSubjectCode, subjectCode)
+                .or()
+                .like(Subject::getSubjectName, subjectCode)  
+                .or()
+                .like(Subject::getDescription, subjectCode)
+            );
         }
         if (adminUserId != null) {
             queryWrapper.eq(Subject::getAdminUserId, adminUserId);
