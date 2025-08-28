@@ -281,12 +281,14 @@ The time slot and schedule management system follows a structured workflow:
 1. Navigate to Schedule → Release tab
 2. Review validation summary
 3. Set **Release Options**:
-   - Enable/disable student rescheduling
-   - Set booking deadline
+   - Enable/disable student rescheduling (default: enabled)
+   - Set booking deadline (optional)
    - Configure reminder notifications
+   - **Student Booking Lockout**: Enable/disable 24-hour lockout before sessions (default: enabled)
+   - **Lockout Window**: Customize lockout hours (default: 24 hours)
 4. Click "Release Schedule" button
-5. Confirmation dialog with impact summary
-6. **Released**: Students can now book time slots
+5. Confirmation dialog with impact summary showing booking policies
+6. **Released**: Students can now book time slots according to configured policies
 
 #### Post-Release Monitoring
 - **Booking Progress**: Real-time view of student bookings

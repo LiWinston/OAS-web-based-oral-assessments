@@ -785,7 +785,7 @@ HTTP status code: `200 OK`
 ```
 
 **Result**:
- The system returned the expected response. The retrieved course list, pagination details, and status code matched the expected output.
+The system returned the expected response. The retrieved course list, pagination details, and status code matched the expected output.
 
 **Notes**: None
 
@@ -1002,9 +1002,209 @@ HTTP status code: `200 OK`
 
 
 
-### 4. [DELETE] /api/courses/{courseId} (Placeholder)
+### 4. [DELETE] /api/courses/{courseId}
+
+#### Test Case 1: Successfully Delete an Existing Course
+
+##### Description
+
+This is the primary "happy path" test case for the delete functionality. It verifies that an existing course and its associated assignments can be permanently removed from the system using a valid `courseId`. A successful operation should be confirmed by a `200 OK` response. A secondary verification step would be to attempt to `GET` the same course ID, which should now fail with a `4021 Course Not Found` business error.
+
+##### Pre-conditions
+
+A course with a specific ID (e.g., `courseId: 18`) exists in the database. This course can be safely deleted (i.e., it has no critical dependencies that would prevent deletion).
+
+##### Input
+
+```json
+{
+    "method": "DELETE",
+    "path": "/api/courses/{courseId}",
+    "pathParameters": {
+      	"courseId": 18
+    },
+    "headers": {
+      	"Accept": "application/json"
+    },
+    "body": null
+}
+
+{
+    "method": "GET",
+    "path": "/api/courses/{courseId}",
+    "pathParameters": {
+        "courseId": 18
+    },
+    "headers": {
+        "Accept": "application/json"
+    },
+    "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": null
+}
+
+{
+    "success": false,
+    "code": "4021",
+    "data": "Course not found"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 26/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": null
+}
+
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": 18,
+        "courseCode": "WEIRANTEST",
+        "courseName": "weiran_test",
+        "description": "test for deletion",
+        "academicYear": 2025,
+        "semester": "2",
+        "adminUserId": 1,
+        "isActive": false,
+        "status": "active",
+        "students": 0,
+        "assignments": 0,
+        "createTime": "2025-08-26T17:13:43",
+        "creator": 1,
+        "updateTime": "2025-08-26T17:13:49",
+        "updater": null
+    }
+}
+```
+
+**Result**: Fail
+
+**Notes**: The `status` field was still `active,` and it can still be retrieved by the `GET` method.
 
 
+
+### 5. [GET] /api/courses/stats
+
+#### Test Case 1: Successfully Retrieve Course Statistics
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that the API can successfully retrieve the dashboard statistics when the system has data. The core of this test is to assert that the aggregated values returned by the API (e.g., `totalCourses`, `activeCourses`) accurately match the preconditioned state of the database.
+
+##### Pre-conditions
+
+The database is populated with a known set of data. For this test, assume the following state:
+
+- Total number of courses: 18
+- Number of courses marked as 'active': 12
+- Total unique students enrolled across all courses: 0
+- Total number of assignments across all courses: 2
+- The system's current semester is configured as "2026 Semester 1".
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/courses/stats",
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "success": true,
+        "data": {
+            "totalCourses": 18,
+            "activeCourses": 13,
+            "totalStudents": 0,  // not developed yet
+            "totalAssignments": 9, 
+            "currentSemester": "2026 Semester 2"
+        }
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 26/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "success": true,
+        "data": {
+            "totalCourses": 18,
+            "activeCourses": 13,
+            "totalStudents": 0,
+            "totalAssignments": 9,
+            "currentSemester": "2026 Semester 2"
+        }
+    }
+}
+```
+
+**Result**: Pass
+
+**Notes**: None
+
+
+
+### 6. [POST] /api/courses
+
+#### Test Case 1: Successfully Create a New Course
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that a new academic course can be successfully created when all required and optional fields are provided with valid data. The test confirms that the API returns a `200 OK` status and a response body containing the full details of the newly created course, including a system-generated `id` and timestamps.
+
+##### Pre-conditions
+
+- An administrator with `adminUserId: 1` exists and is active in the system.
+- A course with `courseCode: "ENG1001"` does not already exist.
+
+##### Input
+
+```json
+
+```
 
 ##### Expected Output
 
@@ -1018,37 +1218,23 @@ HTTP status code: `200 OK`
 
 **Execution Date**:
 
-**Tester**:
+**Tester**: Weiran
 
 **Actual Output**:
 
 ```json
-{
-    "success": true,
-    "code": "200",
-    "data": {
-        "id": 4,
-        "courseCode": "SWEN90016",
-        "courseName": "Software Processes and Management",
-        "description": "Seems like water",
-        "academicYear": 2023,
-        "semester": "2",
-        "adminUserId": 35,
-        "isActive": true,
-        "status": "active",
-        "students": 0,
-        "assignments": 0,
-        "createTime": null,
-        "creator": null,
-        "updateTime": null,
-        "updater": null
-    }
-}
+
 ```
 
-**Result**: Fail.
+**Result**:
 
 **Notes**:
+
+
+
+
+
+
 
 
 
@@ -1188,7 +1374,7 @@ User has logged in to the superadmin account. The backend works correctly and co
 }
 ```
 
-**Result**: Pass
+**Result**: Pass.
 
 **Notes**: The Swagger API documentation differs from the actual output.
 
@@ -1238,7 +1424,7 @@ User has logged in to the superadmin account. The backend works correctly and co
 }
 ```
 
-**Result**: Pass
+**Result**: Pass.
 
 **Notes**:  Lack of Swagger API documentation.
 
@@ -1271,9 +1457,9 @@ User has logged in to the superadmin account. The backend works correctly and co
     "data": {
         "userId": 35,
         "department": "test",
-        "invitedAt": "2025-08-16T14:05:04",
-        "registeredAt": "2025-08-17T14:05:08",
-        "lastLoginAt": "2025-08-19T14:05:32",
+        "invitedAt": "2025-08-16T14:05:04",  // field in the user table
+        "registeredAt": "2025-08-17T14:05:08",  // field in the user table
+        "lastLoginAt": "2025-08-19T14:05:32",  // field in the user table
         "coursesManaged": 2,
         "studentsManaged": 50,
         "assignmentsCreated": 2,
@@ -1328,9 +1514,48 @@ User has logged in to the superadmin account. The backend works correctly and co
 }
 ```
 
-**Result**: Fail
+**Result**: Fail.
 
 **Notes**: Fields `invitedAt`, `registeredAt`, and `lastLoginAt` are not retrieved. `invitationExpiresAt` is not in the `sys_user` table.
+
+###### Test 2
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "userId": 35,
+        "department": "test",
+        "invitedAt": "2025-08-17 00:05:04",
+        "registeredAt": "2025-08-18 00:05:08",
+        "lastLoginAt": "2025-08-20 00:05:32",
+        "coursesManaged": 2,
+        "studentsManaged": 50,
+        "assignmentsCreated": 2,
+        "id": "35",
+        "email": "test@unimelb.edu.au",
+        "name": "testadmin1",
+        "status": "ACTIVE",
+        "registrationStatus": "PENDING",
+        "sisLoginId": null,
+        "token": "1",
+        "invitationExpiresAt": null,
+        "courses": [],
+        "recentActivity": []
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: `invitationExpiresAt` is still empty. But seems like the field does not need in the frontend.
 
 
 
@@ -1380,6 +1605,8 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Result**: Pass.
 
+**Notes**: None.
+
 
 
 #### Test Case 3: Request for a Non-Existent Resource
@@ -1427,6 +1654,8 @@ User has logged in to the superadmin account. The backend works correctly and co
 ```
 
 **Result**: Pass.
+
+**Notes**: None.
 
 
 
@@ -1486,6 +1715,8 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Result**: Pass.
 
+**Notes**: None.
+
 
 
 #### Test Case 2: Check a Non-Existent but Valid Email
@@ -1542,6 +1773,8 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Result**: Pass.
 
+**Notes**: None.
+
 
 
 #### Test Case 3: Check an Invalid Email Format
@@ -1597,6 +1830,8 @@ User has logged in to the superadmin account. The backend works correctly and co
 ```
 
 **Result**: Pass.
+
+**Notes**: None.
 
 
 
@@ -2049,7 +2284,206 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Notes**: For the `pagination` part, `totalPages` and `totalItems` returned 0, which is wrong. Seems like this part is wrong in logic. The `courses` returned 11 courses, which is larger than the page limitation of 10.
 
+###### Test 2
 
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "courses": [
+            {
+                "id": 21,
+                "code": "TEST54321",
+                "name": "Test Creator",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 5,
+                "code": "COMP90000",
+                "name": "Algorithms and Complex1",
+                "semester": "Semester 2",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            },
+            {
+                "id": 22,
+                "code": "TEST11111",
+                "name": "123",
+                "semester": "Semester 2",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 9,
+                "code": "COMP90024",
+                "name": "Cluster and Cloud Computing",
+                "semester": "Semester 1",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            },
+            {
+                "id": 7,
+                "code": "COMP90050",
+                "name": "Advanced Database Systems",
+                "semester": "Semester 1",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-25T05:27:45"
+            },
+            {
+                "id": 6,
+                "code": "SWEN90010",
+                "name": "High Integrity Systems Engineering",
+                "semester": "Semester 1",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 55,
+                "adminName": "lhc",
+                "adminEmail": "jsmith@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            },
+            {
+                "id": 15,
+                "code": "AIAN12345",
+                "name": "IAN PAPA ",
+                "semester": "Semester 2",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 12,
+                "code": "COMP90082",
+                "name": "Software Project Managment",
+                "semester": "Semester 2",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 24,
+                "code": "SANJ99999",
+                "name": "LINLANG",
+                "semester": "Semester 2",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 10,
+                "code": "SWEN90004",
+                "name": "Modelling Complex Software Systems",
+                "semester": "Semester 2",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 2,
+            "totalItems": 18,
+            "itemsPerPage": 10,
+            "hasNext": true,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Fail.
+
+**Notes**: The API only returns active courses.
 
 
 
@@ -3361,6 +3795,285 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Notes**: The `status` was set to be `ACTIVE,` and the status didn't update in the database.
 
+###### Test 2
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": "55",
+        "status": "INACTIVE",
+        "updatedAt": "2025-08-28T06:34:27.957Z"
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: The `updateTime` doesn't update in the database. But the frontend doesn't need this field at the current stage.
+
+
+
+#### Test Case 2: Successfully Update Status to ACTIVE (Without a Reason)
+
+##### Description
+
+This test case verifies another successful status update to `ACTIVE` and also checks if the `reason` field is optional. By sending a valid request without the `reason` field, this test ensures the API can handle a minimal valid payload. A successful update should result in a `200 OK` response.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database. The input admin ID is valid, and the admin's status is `INACTIVE`.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/{id}/status",
+    "pathParameters": {
+      	"id": "55"
+    },
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+      	"status": "ACTIVE"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": "55",
+        "status": "ACTIVE",
+        "updatedAt": "A recent ISO 8601 timestamp" 
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": "55",
+        "status": "ACTIVE",
+        "updatedAt": "2025-08-28T10:02:55.546Z"
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Attempt to Update a Non-Existent Admin
+
+##### Description
+
+This is a negative test case to check how the API handles requests for a resource that does not exist. It uses a syntactically valid `id` in the URL path that does not correspond to any administrator in the database. The expected behaviour is for the API to return a client error, such as `404 Not Found` or `400 Bad Request`, indicating the specified admin could not be found.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database. The input admin ID doesn't exist in the database.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/{id}/status",
+    "pathParameters": {
+      	"id": "999"
+    },
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+      	"status": "INACTIVE"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "404",
+    "data": "Admin not found"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "404",
+    "data": "Admin not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Attempt to Update with an Invalid Status Value
+
+##### Description
+
+This negative test case focuses on input validation for the `status` field. The API documentation specifies a set of allowed values (ACTIVE, INACTIVE, INVITED, EXPIRED). This test sends a request with a value that is not in this set (e.g., "PENDING"). The test verifies that the API rejects the invalid data and returns a `400 Bad Request` status.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/{id}/status",
+    "pathParameters": {
+      	"id": "55"
+    },
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "status": "NOSTATUS",
+        "reason": "This status is not allowed."
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "This status is not allowed."
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "This status is not allowed."
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 5: Attempt to Update with a Missing Status in Body
+
+##### Description
+
+This negative test case checks the API's requirement for the `status` field in the request body. It sends a request with an empty JSON object `{}` as the body. Since the `status` is a required piece of information for the update to proceed, the API should identify this as a malformed request and respond with a `400 Bad Request` error.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/{id}/status",
+    "pathParameters": {
+      	"id": "55"
+    },
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {}
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Any error message"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "This status is not allowed."
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
 
 
 ### 7. [POST] /api/superadmin/admins/revoke/{id}
@@ -3641,9 +4354,9 @@ User has logged in to the superadmin account. The backend works correctly and co
 }
 ```
 
-**Result**: Fail.
+**Result**: Pass.
 
-**Notes**: Now it always returns a `200 OK` response, which is also wrong.
+**Notes**: None.
 
 
 
@@ -3717,13 +4430,13 @@ This is the primary "happy path" test case. It verifies that a new administrator
 
 ##### Pre-conditions
 
-The email address `new.jane.smith@unimelb.edu.au` does not exist in the system in any capacity (active, inactive, or invited).
+The email address `new.jane.smith@student.unimelb.edu.au` does not exist in the system in any capacity (active, inactive, or invited).
 
 ##### Input
 
 ```json
 {
-    "email": "new.jane.smith@unimelb.edu.au",
+    "email": "new.jane.smith@student.unimelb.edu.au",
     "name": "Dr. Jane Smith",
     "department": "Computer Science",
     "message": "Welcome to OAS! You've been invited to manage oral assessments.",
@@ -3749,7 +4462,7 @@ The email address `new.jane.smith@unimelb.edu.au` does not exist in the system i
         "studentsManaged": 0,
         "assignmentsCreated": 0,
         "id": "jsmith",
-        "email": "string",
+        "email": "new.jane.smith@student.unimelb.edu.au",
         "name": "Dr. Jane Smith",
         "status": "ACTIVE",
         "registrationStatus": "string",
@@ -3783,4 +4496,323 @@ The email address `new.jane.smith@unimelb.edu.au` does not exist in the system i
 **Result**: Fail.
 
 **Notes**: Should be a `200 OK` response since the email didn't exist in the database.
+
+###### Test 2
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "userId": 76,
+        "department": "Computer Science",
+        "invitedAt": null,
+        "registeredAt": null,
+        "lastLoginAt": null,
+        "coursesManaged": null,
+        "studentsManaged": null,
+        "assignmentsCreated": null,
+        "id": "76",
+        "email": "new.jane.smith@student.unimelb.edu.au",
+        "name": "Dr. Jane Smith",
+        "status": "INVITED",
+        "registrationStatus": null,
+        "sisLoginId": null,
+        "token": "UW_Idso6GrldaS6PKydtms8xhgTCwiHlAzXDe4v0PN8",
+        "invitationExpiresAt": "2025-09-04 20:42:14",
+        "courses": null,
+        "recentActivity": null
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Some timestamps are null. Seems like some fields in the database are redundant.
+
+
+
+#### Test Case 2: Invite an Administrator with Minimal Required Fields
+
+##### Description
+
+This test case determines the minimum required fields to successfully create an invitation. It assumes that `email` and `name` are the only mandatory fields. This test verifies that the API can gracefully handle a minimal but valid payload, populating any other fields with default values if necessary.
+
+##### Pre-conditions
+
+The email address `minimal.admin@unimelb.edu.au` does not exist in the system.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/invite",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "email": "minimal.admin@unimelb.edu.au",
+        "name": "Minimal Admin"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "userId": 77,
+        "department": null,
+        "invitedAt": null,
+        "registeredAt": null,
+        "lastLoginAt": null,
+        "coursesManaged": null,
+        "studentsManaged": null,
+        "assignmentsCreated": null,
+        "id": "77",
+        "email": "minimal.admin@unimelb.edu.au",
+        "name": "Minimal Admin",
+        "status": "INVITED",
+        "registrationStatus": null,
+        "sisLoginId": null,
+        "token": "VHd4Z-w1QbBZ2RCdTMRXcN39rgFj-Qq_oJcHYZWpqb8",
+        "invitationExpiresAt": "2025-09-04 20:50:52",
+        "courses": null,
+        "recentActivity": null
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "userId": 77,
+        "department": null,
+        "invitedAt": null,
+        "registeredAt": null,
+        "lastLoginAt": null,
+        "coursesManaged": null,
+        "studentsManaged": null,
+        "assignmentsCreated": null,
+        "id": "77",
+        "email": "minimal.admin@unimelb.edu.au",
+        "name": "Minimal Admin",
+        "status": "INVITED",
+        "registrationStatus": null,
+        "sisLoginId": null,
+        "token": "VHd4Z-w1QbBZ2RCdTMRXcN39rgFj-Qq_oJcHYZWpqb8",
+        "invitationExpiresAt": "2025-09-04 20:50:52",
+        "courses": null,
+        "recentActivity": null
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Attempt to Invite an Administrator with an Existing Email
+
+##### Description
+
+This is a critical negative test case for a business rule. It ensures that the system prevents the creation of duplicate invitations or accounts for the same email address. The API should identify that the email is already in use and reject the request with a client error, typically a `400 Bad Request` or `409 Conflict`.
+
+##### Pre-conditions
+
+An administrator with the email `new.jane.smith@student.unimelb.edu.au` already exists in the database. This user can be in any state (e.g., `ACTIVE`, `INVITED`, or `INACTIVE`).
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/invite",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "email": "new.jane.smith@student.unimelb.edu.au",
+        "name": "Duplicate Admin"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "409",
+    "data": "Email already exists"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "409",
+    "data": "Email already exists"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Attempt to Invite with a Missing Required Field (Email)
+
+##### Description
+
+This negative test case checks the API's validation for mandatory fields in the request body. It sends a request payload that is missing the `email` field, which is essential for creating and sending an invitation. The API must reject this incomplete request with a `400 Bad Request` error.
+
+##### Pre-conditions
+
+None.
+
+##### Input
+
+```json
+{
+    "name": "No Email Admin"
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Email and login id cannot be both null"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Email and login id cannot be both null"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 5: Attempt to Invite with an Invalid Email Format
+
+##### Description
+
+This negative test case verifies the format validation of the `email` field. It sends a request where the value for `email` is a string that does not conform to a valid email address structure. The API should detect the malformed data and respond with a `400 Bad Request` without attempting to process the invitation.
+
+##### Pre-conditions
+
+None.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/superadmin/admins/invite",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "email": "not-a-valid-email", // or "notvalid@email.com" (not an unimelb email)
+        "name": "Invalid Email Admin"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+
+
+
+
+
+
+
 

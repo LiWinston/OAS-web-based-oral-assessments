@@ -34,8 +34,8 @@ This document details the examiner self‑assignment flow for MVP, aligned with 
 - Submit: One bulk request with selected `slotIds`. Server validates auth → eligibility → optional deadline → overlap → max sessions → slot capacity. Success updates dashboard counts; failures list per‑slot reasons for quick retry.
 
 4.4 Manage schedule
-- View: “My Schedule” shows assigned slots by assignment/date, including staffing (current/required), bookings (`isBooked`, `bookingCount`), and withdrawal eligibility.
-- Withdraw (MVP): Allowed only when no students booked and before optional withdrawal deadline. Provide clear reason if blocked.
+- View: "My Schedule" shows assigned slots by assignment/date, including staffing (current/required), bookings (`isBooked`, `bookingCount`), and withdrawal eligibility.
+- Withdraw (MVP): Allowed only when no students have booked sessions in that timeslot. Blocked once students book or session has started. Provide clear reason if blocked.
 
 ### 5) System Rules (MVP)
 - Max sessions per assignment only (no minimum). Enforced server‑side; mirrored client‑side for feedback.
@@ -68,7 +68,7 @@ This document details the examiner self‑assignment flow for MVP, aligned with 
 ### 10) Decisions Summary (MVP)
 - Sorting/filters: date sort only (`date_asc|date_desc`). No urgency/status flags.
 - Overlap conflicts: MVP‑safe — UI blocks, server validates; future: buffers/cross‑assignment logic.
-- Deadlines: Optional. Default behavior allows withdraw only if no students are booked; signup deadline can be omitted in MVP.
+- Withdrawal constraints: Default behavior allows withdrawal only when no students have booked sessions in that timeslot. No time-based deadlines in MVP.
 - Schedule visibility: Show staffing status and booking counts on “My Schedule”.
 
 ### 11) Future Enhancements

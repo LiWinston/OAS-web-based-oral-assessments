@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
-import { useAuthStore } from "../../../../store/authStore";
+import { useExaminerAuth } from "../../../../hooks/useExaminerAuth";
+import { useTimeslotAssignment } from "../../../../hooks/useTimeslotAssignment";
 import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
 import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
 import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
@@ -21,43 +22,31 @@ import SelectionSummary from "../../../../components/examiner/schedule/Selection
 function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
+  const {
+    isSubmitting,
+    submitError,
+    submitResult,
+    hasConflict,
+    validateSelection,
+    assignToTimeslots,
+    clearErrors
+  } = useTimeslotAssignment();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [allocatedSlots, setAllocatedSlots] = useState([]);
   const [currentAllocation, setCurrentAllocation] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [submitError, setSubmitError] = useState(null);
-  const [submitResult, setSubmitResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState(null);
 
-  // Get examiner ID with dev fallback for deep-link and local testing
-  const devFallbackUser = {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  const effectiveUser = user || devFallbackUser;
-  const examinerId = effectiveUser?.id || effectiveUser?.userId;
-  
-  // Debug logging for development
+  // Clear errors when component mounts or step changes
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Debug - Auth Store Data:', {
-        user: user,
-        userId: user?.id,
-        userIdAlt: user?.userId,
-        examinerId: examinerId,
-        isAuthenticated: user ? 'Yes' : 'No'
-      });
-    }
-  }, [user, examinerId]);
+    clearErrors();
+  }, [currentStep, clearErrors]);
 
-  // Fetch available assignments with debugging
+  // Fetch available assignments
   const { 
     data: assignmentsData, 
     isLoading: isLoadingAssignments, 
@@ -65,40 +54,13 @@ function TimeslotSelectionContent() {
     refetch: refetchAssignments
   } = useQuery({
     queryKey: ['availableAssignments', examinerId],
-    queryFn: async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🌐 API Call - Getting available assignments for examiner:', examinerId);
-      }
-      try {
-        const result = await examinerTimeslotService.getAvailableAssignments(examinerId);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📦 API Response - Available assignments:', result);
-        }
-        return result;
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ API Error - Failed to fetch assignments:', error);
-        }
-        throw error;
-      }
-    },
-    enabled: !!examinerId && currentStep === 1,
+    queryFn: () => examinerTimeslotService.getAvailableAssignments(examinerId),
+    enabled: isValidExaminer && currentStep === 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
-  // Debug assignments data changes
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && assignmentsData) {
-      console.log('📊 Debug - Assignments data updated:', {
-        success: assignmentsData?.success,
-        dataLength: assignmentsData?.data?.data?.length || 0,
-        totalAssignments: assignmentsData?.data?.total || 0,
-        errorPresent: !!assignmentsError
-      });
-    }
-  }, [assignmentsData, assignmentsError]);
 
   // Fetch available timeslots when assignment is selected and on step 2
   const { 
@@ -108,34 +70,15 @@ function TimeslotSelectionContent() {
     refetch: refetchTimeslots
   } = useQuery({
     queryKey: ['availableTimeslots', selectedAssignment?.assignmentId, examinerId],
-    queryFn: async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🌐 API Call - Getting available timeslots:', {
-          assignmentId: selectedAssignment.assignmentId,
-          examinerId: examinerId
-        });
-      }
-      try {
-        const result = await examinerTimeslotService.getAvailableTimeslots(
-          selectedAssignment.assignmentId, 
-          { examinerId }
-        );
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📦 API Response - Available timeslots:', result);
-        }
-        return result;
-      } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ API Error - Failed to fetch timeslots:', error);
-        }
-        throw error;
-      }
-    },
-    enabled: !!selectedAssignment && !!examinerId && currentStep === 2,
-    refetchInterval: 30000, // 30 seconds
-    staleTime: 10000, // 10 seconds
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    queryFn: () => examinerTimeslotService.getAvailableTimeslots(
+      selectedAssignment.assignmentId, 
+      { examinerId }
+    ),
+    enabled: !!selectedAssignment && isValidExaminer && currentStep === 2,
+    refetchInterval: 60000, // 1 minute - reduced from 30s
+    staleTime: 30000, // 30 seconds - increased from 10s
+    retry: 2,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // Pre-fill if coming from assignment link
@@ -171,33 +114,27 @@ function TimeslotSelectionContent() {
     return getAvailableDates().includes(date);
   };
 
-  const hasConflict = (a, b) => {
-    const aStart = new Date(a.start).getTime();
-    const aEnd = new Date(a.end).getTime();
-    const bStart = new Date(b.start).getTime();
-    const bEnd = new Date(b.end).getTime();
-    return aStart < bEnd && bStart < aEnd;
-  };
 
   const selectSlot = (slot) => {
     setSelectionMessage(null);
     const slotIndex = allocatedSlots.findIndex((s) => s.slotId === slot.slotId);
+    
     if (slotIndex >= 0) {
+      // Remove slot
       const removedSessions = allocatedSlots[slotIndex].sessionCount;
       const newSlots = allocatedSlots.filter((s) => s.slotId !== slot.slotId);
       setAllocatedSlots(newSlots);
       setCurrentAllocation(currentAllocation - removedSessions);
     } else {
+      // Add slot with validation
       const maxSessions = selectedAssignment?.examinerInfo?.maxSessions || 12;
-      if (currentAllocation + slot.sessionCount > maxSessions) {
-        setSelectionMessage({ type: 'error', text: `You have reached your maximum allocation of ${maxSessions} sessions.` });
+      const validation = validateSelection(slot, allocatedSlots, maxSessions);
+      
+      if (!validation.valid) {
+        setSelectionMessage({ type: 'error', text: validation.reason });
         return;
       }
-      const conflict = allocatedSlots.find((s) => hasConflict(s, slot));
-      if (conflict) {
-        setSelectionMessage({ type: 'error', text: 'This time slot conflicts with another selected slot. Please choose a different time.' });
-        return;
-      }
+      
       setAllocatedSlots([...allocatedSlots, slot]);
       setCurrentAllocation(currentAllocation + slot.sessionCount);
     }
@@ -227,7 +164,7 @@ function TimeslotSelectionContent() {
       if (selectedAssignment) {
         setCurrentStep(2);
       } else {
-        alert("Please select an assessment.");
+        showNotification('warning', 'Please select an assessment to continue');
       }
     }
   };
@@ -246,46 +183,11 @@ function TimeslotSelectionContent() {
   const handleSubmit = async () => {
     if (!canSubmit() || !selectedAssignment) return;
 
-    setIsSubmitting(true);
-    setSubmitError(null);
-    setSubmitResult(null);
-    
     try {
-      const slotAssignments = allocatedSlots.map(slot => ({
-        slotId: slot.slotId
-      }));
-
-      const result = await examinerTimeslotService.assignExaminerToTimeslots(
-        selectedAssignment.assignmentId,
-        {
-          examinerId,
-          slotAssignments
-        }
-      );
-
-      setSubmitResult(result);
-
-      if (result.success) {
-        if (result.data.partial) {
-          // Partial success - show both assigned and failed slots
-          alert(`Partial success: ${result.data.assignedSlots.length} slots assigned, ${result.data.failedSlots.length} failed.`);
-        } else {
-          // Full success
-          alert(`Success: All ${result.data.assignedSlots.length} slots assigned successfully!`);
-        }
-        
-        // Wait a moment to show result, then redirect
-        setTimeout(() => {
-          router.push("/examiner/schedule");
-        }, 2000);
-      } else {
-        setSubmitError(result.message || 'Failed to submit selections');
-      }
+      await assignToTimeslots(selectedAssignment.assignmentId, allocatedSlots);
     } catch (error) {
+      // Error handling is managed by the hook
       console.error('Submit error:', error);
-      setSubmitError('Failed to submit selections. Please try again.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -425,8 +327,6 @@ function TimeslotSelectionContent() {
           onSelectAssignment={setSelectedAssignment}
           onRetry={() => refetchAssignments()}
           onNext={nextStep}
-          showDevInfo={process.env.NODE_ENV === 'development'}
-          queryEnabled={!!examinerId && currentStep === 1}
         />
       )}
 

@@ -11,6 +11,7 @@ import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.AssignmentService;
 
@@ -100,5 +101,28 @@ public class AssignmentController {
             @Parameter(description = "Assignment ID") @PathVariable Long id) {
         assignmentService.deleteAssignment(id);
         return ResponseEntity.ok(Result.success(null));
+    }
+
+    /**
+     * Get assignment status statistics
+     */
+    @Operation(summary = "Get assignment status statistics", description = "Retrieve statistics about assignment statuses across all subjects")
+    @GetMapping("/stats")
+    @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
+    public ResponseEntity<Result<AssignmentStatusStatsResponseDTO>> getAssignmentStatusStats() {
+        AssignmentStatusStatsResponseDTO stats = assignmentService.getAssignmentStatusStats();
+        return ResponseEntity.ok(Result.success(stats));
+    }
+
+    /**
+     * Get assignment status statistics by subject ID
+     */
+    @Operation(summary = "Get assignment status statistics by subject", description = "Retrieve statistics about assignment statuses for a specific subject")
+    @GetMapping("/subject/{subjectId}/stats")
+    @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
+    public ResponseEntity<Result<AssignmentStatusStatsResponseDTO>> getAssignmentStatusStatsBySubject(
+            @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
+        AssignmentStatusStatsResponseDTO stats = assignmentService.getAssignmentStatusStatsBySubject(subjectId);
+        return ResponseEntity.ok(Result.success(stats));
     }
 }
