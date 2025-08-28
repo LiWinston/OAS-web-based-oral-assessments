@@ -22,11 +22,13 @@ export default function SuperAdminDashboard() {
     totalAssignments: 0,
     systemHealth: "excellent",
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Fetch SuperAdmin statistics on component mount
+  // Ensure component is mounted (client-side) before fetching data
   useEffect(() => {
+    setIsMounted(true);
     fetchSuperAdminStats();
   }, []);
 
@@ -85,7 +87,7 @@ export default function SuperAdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loading && (
+        {isMounted && loading && (
           <>
             {Array.from({ length: 4 }, (_, i) => (
               <Card key={i} className="p-6 animate-pulse">
@@ -102,7 +104,7 @@ export default function SuperAdminDashboard() {
           </>
         )}
         
-        {!loading && (
+        {(!isMounted || !loading) && (
           <>
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
@@ -186,7 +188,7 @@ export default function SuperAdminDashboard() {
           </>
         )}
         
-        {error && !loading && (
+        {isMounted && error && !loading && (
           <div className="col-span-full text-center text-red-600 dark:text-red-400 p-4">
             <i className="fas fa-exclamation-triangle mr-2"></i>
             {error}
