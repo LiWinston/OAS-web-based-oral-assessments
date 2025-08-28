@@ -27,6 +27,7 @@ export default function CoursesPage() {
   const [totalCourses, setTotalCourses] = useState(0);
   const pageSize = 10;
   const courseListRef = useRef();
+  const statsRef = useRef();
 
   // Fetch courses based on view mode and filters
   const fetchCourses = useCallback(async (page = 1) => {
@@ -117,6 +118,11 @@ export default function CoursesPage() {
     setIsModalOpen(false);
     // 直接调用 fetchCourses 刷新数据
     await fetchCourses(1);
+    
+    // Refresh statistics to reflect the new course
+    if (statsRef.current) {
+      statsRef.current.refreshStats();
+    }
   };
 
   const handleEditCourse = (course) => {
@@ -138,6 +144,11 @@ export default function CoursesPage() {
     // Refresh course list to show updated data and update available years
     if (courseListRef.current) {
       courseListRef.current();
+    }
+    
+    // Refresh statistics to reflect changes (especially active course count)
+    if (statsRef.current) {
+      statsRef.current.refreshStats();
     }
   };
 
@@ -257,7 +268,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Course Overview Statistics */}
-      <CourseOverviewStats />
+      <CourseOverviewStats ref={statsRef} />
 
       {/* Enhanced Quick Tips Section */}
       <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { StatsCard, StatsCardSkeleton } from "../../ui/stats-card";
 import { courseService } from "../../../services/courseService";
 
-export function CourseOverviewStats() {
+export const CourseOverviewStats = forwardRef(function CourseOverviewStats(props, ref) {
   const [stats, setStats] = useState({
     activeCourses: 0,
     totalStudents: 0,
@@ -13,6 +13,11 @@ export function CourseOverviewStats() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Expose refresh function to parent component
+  useImperativeHandle(ref, () => ({
+    refreshStats: fetchCourseStats
+  }));
 
   // Fetch course statistics from API
   useEffect(() => {
@@ -149,4 +154,4 @@ export function CourseOverviewStats() {
       ))}
     </div>
   );
-}
+});
