@@ -1,12 +1,15 @@
+"use client";
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
 import { useAuthStore } from '@/store/authStore';
+import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
-const AssessmentsToAssign = ({ selectedCourse }) => {
+const AssessmentsToAssign = () => {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { selectedCourse } = useScheduleFilterStore();
   
   
   // Debug: Create a mock user if no user is logged in (for development testing)

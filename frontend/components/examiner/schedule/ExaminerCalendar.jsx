@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+"use client";
+import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
 import { useAuthStore } from '@/store/authStore';
+import { useNotification } from '@/hooks/useNotification';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const ExaminerCalendar = () => {
   const { user } = useAuthStore();
+  const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventModal, setShowEventModal] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const { showNotification } = useNotification();
   
   
   // Debug: Create a mock user if no user is logged in (for development testing)
@@ -19,7 +27,7 @@ const ExaminerCalendar = () => {
   };
   
 
-  const { data: scheduleData, isLoading, error } = useQuery({
+  const { data: scheduleData, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['examinerSchedule', debugUser?.id, currentMonth.getFullYear(), currentMonth.getMonth()],
     queryFn: () => {
       const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -33,14 +41,32 @@ const ExaminerCalendar = () => {
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
-  const scheduleSlots = scheduleData?.data?.assignments?.flatMap(assignment => 
+  const scheduleSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment =>
     assignment.slots.map(slot => ({
       ...slot,
+      assignmentId: assignment.assignmentId,
       assignmentName: assignment.assignmentName,
       courseCode: assignment.courseCode,
-      courseName: assignment.courseName
+      courseName: assignment.courseName,
+      assessmentType: (slot.requiredExaminers === 1) ? 'INDIVIDUAL' : 'GROUP'
     }))
-  ) || [];
+  ) || [], [scheduleData]);
+
+  const scheduleSlots = useMemo(() => {
+    let filtered = scheduleSlotsRaw;
+    if (selectedCourse) filtered = filtered.filter(s => s.courseCode === selectedCourse);
+    if (assessmentType && assessmentType !== 'ALL') filtered = filtered.filter(s => s.assessmentType === assessmentType);
+    if (searchText && searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      filtered = filtered.filter(s =>
+        s.assignmentName.toLowerCase().includes(q) ||
+        s.courseName.toLowerCase().includes(q) ||
+        s.courseCode.toLowerCase().includes(q) ||
+        (s.participants && s.participants.some(p => p.toLowerCase().includes(q)))
+      );
+    }
+    return filtered;
+  }, [scheduleSlotsRaw, selectedCourse, assessmentType, searchText]);
   
 
   const navigateMonth = (direction) => {
@@ -116,6 +142,32 @@ const ExaminerCalendar = () => {
     setShowEventModal(true);
   };
 
+  const confirmWithdraw = () => setConfirmOpen(true);
+
+  const handleWithdraw = async () => {
+    if (!selectedEvent) return;
+    setIsWithdrawing(true);
+    try {
+      const res = await examinerTimeslotService.unassignExaminerFromTimeslot(
+        selectedEvent.assignmentId,
+        selectedEvent.slotId,
+        debugUser.id
+      );
+      if (res.success) {
+        showNotification('success', 'You have withdrawn from this time slot');
+        setConfirmOpen(false);
+        setShowEventModal(false);
+        await refetch();
+      } else {
+        showNotification('error', res.message || 'Failed to withdraw');
+      }
+    } catch (e) {
+      showNotification('error', 'Failed to withdraw from time slot');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   const formatTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-AU', {
@@ -162,6 +214,14 @@ const ExaminerCalendar = () => {
   };
 
   const days = getDaysInMonth(currentMonth);
+  const lastUpdatedLabel = useMemo(() => {
+    if (!dataUpdatedAt) return '';
+    const diff = Math.floor((Date.now() - dataUpdatedAt) / 1000);
+    if (diff < 1) return 'just now';
+    if (diff < 60) return `${diff}s ago`;
+    const m = Math.floor(diff / 60), s = diff % 60;
+    return `${m}m ${s}s ago`;
+  }, [dataUpdatedAt]);
 
   if (isLoading) {
     return (
@@ -220,7 +280,8 @@ const ExaminerCalendar = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3 text-xs">
+            <div className="text-gray-500 dark:text-gray-400">Updated {lastUpdatedLabel}</div>
             <button
               onClick={() => navigateMonth(-1)}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -438,11 +499,13 @@ const ExaminerCalendar = () => {
                     )}
                   </div>
                   
-                  {selectedEvent.canWithdraw && (
-                    <button className="text-xs text-red-600 dark:text-red-400 hover:underline">
+                  {selectedEvent.canWithdraw ? (
+                    <button onClick={confirmWithdraw} className="text-xs text-red-600 dark:text-red-400 hover:underline">
                       <i className="fas fa-times-circle mr-1"></i>
                       Withdraw
                     </button>
+                  ) : (
+                    <span className="text-xs text-gray-400">Withdrawal not allowed</span>
                   )}
                 </div>
               </div>
@@ -470,6 +533,23 @@ const ExaminerCalendar = () => {
           </div>
         </div>
       )}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Confirm Withdrawal</DialogTitle>
+            <DialogDescription>
+              You are about to withdraw from <strong>{selectedEvent?.assignmentName}</strong> ({selectedEvent?.courseCode}).
+              This may impact scheduling. Are you sure?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button className="px-3 py-2 border rounded-md text-sm" onClick={() => setConfirmOpen(false)} disabled={isWithdrawing}>Cancel</button>
+            <button className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md text-sm disabled:opacity-50" onClick={handleWithdraw} disabled={isWithdrawing}>
+              {isWithdrawing ? 'Withdrawing…' : 'Confirm Withdraw'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

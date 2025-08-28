@@ -9,6 +9,11 @@ import ExaminerCalendar from "../../../components/examiner/schedule/ExaminerCale
 import UpcomingAssessments from "../../../components/examiner/schedule/UpcomingAssessments";
 import { examinerTimeslotService } from "../../../services/examinerTimeslotService";
 import { useAuthStore } from "../../../store/authStore";
+import WeekSchedule from "../../../components/examiner/schedule/WeekSchedule";
+import DaySchedule from "../../../components/examiner/schedule/DaySchedule";
+import ScheduleFilters from "../../../components/examiner/schedule/ScheduleFilters";
+import useScheduleFilterStore from "../../../store/scheduleFilterStore";
+import { useNotification } from "../../../hooks/useNotification";
 
 /**
  * ExaminerSchedule Component
@@ -22,7 +27,7 @@ export default function ExaminerSchedule() {
   const router = useRouter();
   const { user } = useAuthStore();
   const [viewMode, setViewMode] = useState("month");
-  const [selectedCourse, setSelectedCourse] = useState("");
+  const { selectedCourse, searchText } = useScheduleFilterStore();
   const [dateRange, setDateRange] = useState(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -37,6 +42,7 @@ export default function ExaminerSchedule() {
     })}`;
   });
   const [availableCourses, setAvailableCourses] = useState([]);
+  const { showNotification } = useNotification();
 
 
   // Debug: Create a mock user if no user is logged in (for development testing)
@@ -80,18 +86,77 @@ export default function ExaminerSchedule() {
     }
   }, [assignmentsData]);
 
-  const handleExportSchedule = () => {
-    // Mock export functionality - will be implemented with real API
-    const exportData = {
-      format: "ical",
-      dateRange: dateRange,
-      course: selectedCourse || "all",
-    };
-
-    // For now, show success message
-    alert(
-      "Schedule export functionality will be implemented with backend integration"
-    );
+  const handleExportSchedule = async () => {
+    try {
+      // Export current month range
+      const now = new Date();
+      const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const res = await examinerTimeslotService.getExaminerSchedule(debugUser?.id, { dateFrom: from, dateTo: to });
+      const assignments = res?.data?.assignments || [];
+      const events = assignments.flatMap(a => a.slots.map(s => ({
+        assignmentId: a.assignmentId,
+        assignmentName: a.assignmentName,
+        courseCode: a.courseCode,
+        courseName: a.courseName,
+        start: s.start,
+        end: s.end,
+        venue: s.venue,
+        participants: s.participants || []
+      })));
+      // Apply filters
+      const filtered = events.filter(e => {
+        if (selectedCourse && e.courseCode !== selectedCourse) return false;
+        // assessmentType not available in export mock events, skip type filtering here
+        if (searchText && searchText.trim()) {
+          const q = searchText.trim().toLowerCase();
+          const hit = e.assignmentName.toLowerCase().includes(q) || e.courseName.toLowerCase().includes(q) || e.courseCode.toLowerCase().includes(q) || (e.participants && e.participants.some(p => p.toLowerCase().includes(q)));
+          if (!hit) return false;
+        }
+        return true;
+      });
+      const pad = (n) => String(n).padStart(2, '0');
+      const toICSDate = (d) => {
+        const dt = new Date(d);
+        return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth()+1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}Z`;
+      };
+      const escapeICS = (s) => (s || '').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+      const icsLines = [
+        'BEGIN:VCALENDAR',
+        'VERSION:2.0',
+        'PRODID:-//OAS//Examiner Schedule//EN'
+      ];
+      filtered.forEach(e => {
+        const uid = `${e.assignmentId}-${e.start}-${e.end}@oas`;
+        const dtStart = toICSDate(e.start);
+        const dtEnd = toICSDate(e.end);
+        const summary = `${e.courseCode} ${e.assignmentName}`;
+        const location = e.venue ? `${e.venue.name} ${e.venue.building} ${e.venue.room}` : '';
+        const desc = e.participants && e.participants.length ? `Participants: ${e.participants.join(', ')}` : '';
+        icsLines.push('BEGIN:VEVENT');
+        icsLines.push(`UID:${uid}`);
+        icsLines.push(`DTSTAMP:${toICSDate(new Date())}`);
+        icsLines.push(`DTSTART:${dtStart}`);
+        icsLines.push(`DTEND:${dtEnd}`);
+        icsLines.push(`SUMMARY:${escapeICS(summary)}`);
+        if (location) icsLines.push(`LOCATION:${escapeICS(location)}`);
+        if (desc) icsLines.push(`DESCRIPTION:${escapeICS(desc)}`);
+        icsLines.push('END:VEVENT');
+      });
+      icsLines.push('END:VCALENDAR');
+      const blob = new Blob([icsLines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'examiner-schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showNotification('success', 'Exported schedule as .ics file');
+    } catch (e) {
+      showNotification('error', 'Failed to export schedule');
+    }
   };
 
   const handlePrintSchedule = () => {
@@ -130,96 +195,36 @@ export default function ExaminerSchedule() {
       {/* Schedule Management Tools */}
       <div className="dashboard-card">
         <div className="p-4 flex flex-col lg:flex-row lg:items-center justify-between">
-          <div className="mb-4 lg:mb-0">
-            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-              Assessment Schedule
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Manage and view your upcoming assessment sessions
-            </p>
-          </div>
+        <div className="mb-4 lg:mb-0">
+          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+            Assessment Schedule
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Manage and view your upcoming assessment sessions
+          </p>
+        </div>
 
-          <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-3">
-            {/* Filter Dropdown */}
-            <div className="relative">
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                  <i className="fas fa-filter"></i>
-                </span>
-                <select
-                  className="form-control pl-10 pr-10 py-2 appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  value={selectedCourse}
-                  onChange={(e) => {
-                    setSelectedCourse(e.target.value);
-                    // Update date range display when filter changes
-                    if (e.target.value) {
-                      // You could implement course-specific date ranges here if needed
-                    }
-                  }}
-                >
-                  <option value="">All Courses</option>
-                  {availableCourses.map((course) => (
-                    <option key={course.code} value={course.code}>
-                      {course.code} -{" "}
-                      {course.name.length > 30
-                        ? course.name.substring(0, 30) + "..."
-                        : course.name}
-                    </option>
-                  ))}
-                </select>
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <i className="fas fa-chevron-down"></i>
-                </span>
-              </div>
-              {selectedCourse && (
-                <div className="absolute top-full left-0 mt-1 text-xs text-blue-600 dark:text-blue-400">
-                  Filtering by {selectedCourse}
-                  <button
-                    onClick={() => setSelectedCourse("")}
-                    className="ml-2 text-red-600 dark:text-red-400 hover:underline"
-                  >
-                    Clear
-                  </button>
-                </div>
-              )}
-            </div>
+          <ScheduleFilters courseOptions={availableCourses} />
 
-            {/* Date Range Picker */}
-            <div className="relative">
-              <div className="flex items-center">
-                <span className="absolute left-3 text-gray-400">
-                  <i className="fas fa-calendar-alt"></i>
-                </span>
-                <input
-                  type="text"
-                  className="form-control pl-10 py-2"
-                  placeholder="Date Range"
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                />
-              </div>
-            </div>
+          {/* Export Button */}
+          <Button
+            variant="outline"
+            onClick={handleExportSchedule}
+            className="flex items-center"
+          >
+            <i className="fas fa-download mr-1.5"></i>
+            Export
+          </Button>
 
-            {/* Export Button */}
-            <Button
-              variant="outline"
-              onClick={handleExportSchedule}
-              className="flex items-center"
-            >
-              <i className="fas fa-download mr-1.5"></i>
-              Export
-            </Button>
-
-            {/* Print Button */}
-            <Button
-              variant="outline"
-              onClick={handlePrintSchedule}
-              className="flex items-center"
-            >
-              <i className="fas fa-print mr-1.5"></i>
-              Print
-            </Button>
-          </div>
+          {/* Print Button */}
+          <Button
+            variant="outline"
+            onClick={handlePrintSchedule}
+            className="flex items-center"
+          >
+            <i className="fas fa-print mr-1.5"></i>
+            Print
+          </Button>
         </div>
 
         {/* Calendar Navigation and View Toggles */}
@@ -294,49 +299,29 @@ export default function ExaminerSchedule() {
             </button>
             <button
               className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                viewMode === "list"
+                viewMode === "day"
                   ? "bg-blue-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
-              onClick={() => setViewMode("list")}
+              onClick={() => setViewMode("day")}
             >
-              <i className="fas fa-list mr-1"></i>
-              List
+              <i className="fas fa-calendar-day mr-1"></i>
+              Day
             </button>
           </div>
         </div>
       </div>
 
-      {/* Assessments to Assign Time Slot - Key feature from prototype */}
-      <AssessmentsToAssign selectedCourse={selectedCourse} />
-
-      {/* Main Content Area */}
       {viewMode === "month" ? (
         <>
-          {/* Month View Calendar */}
+          <AssessmentsToAssign />
           <ExaminerCalendar />
-
-          {/* Upcoming Assessments List */}
           <UpcomingAssessments />
         </>
       ) : viewMode === "week" ? (
-        <div className="dashboard-card p-6 text-center">
-          <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mx-auto mb-4">
-            <i className="fas fa-calendar-week text-blue-600 dark:text-blue-400 text-2xl"></i>
-          </div>
-          <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Week View Coming Soon
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Week view will be available in the next update. Use Month view for
-            now.
-          </p>
-        </div>
+        <WeekSchedule />
       ) : (
-        <>
-          {/* List View - Show upcoming assessments only */}
-          <UpcomingAssessments />
-        </>
+        <DaySchedule />
       )}
 
       {/* Help Text */}

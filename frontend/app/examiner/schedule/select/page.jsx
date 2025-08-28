@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
 import { useAuthStore } from "../../../../store/authStore";
+import { useNotification } from "../../../../hooks/useNotification";
 import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
 import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
 import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
@@ -22,6 +23,7 @@ function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuthStore();
+  const { showNotification } = useNotification();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
@@ -227,7 +229,7 @@ function TimeslotSelectionContent() {
       if (selectedAssignment) {
         setCurrentStep(2);
       } else {
-        alert("Please select an assessment.");
+        showNotification('warning', 'Please select an assessment to continue');
       }
     }
   };
@@ -267,11 +269,9 @@ function TimeslotSelectionContent() {
 
       if (result.success) {
         if (result.data.partial) {
-          // Partial success - show both assigned and failed slots
-          alert(`Partial success: ${result.data.assignedSlots.length} slots assigned, ${result.data.failedSlots.length} failed.`);
+          showNotification('warning', `Partial success: ${result.data.assignedSlots.length} assigned, ${result.data.failedSlots.length} failed.`);
         } else {
-          // Full success
-          alert(`Success: All ${result.data.assignedSlots.length} slots assigned successfully!`);
+          showNotification('success', `Assigned ${result.data.assignedSlots.length} time slot(s) successfully`);
         }
         
         // Wait a moment to show result, then redirect
@@ -280,10 +280,12 @@ function TimeslotSelectionContent() {
         }, 2000);
       } else {
         setSubmitError(result.message || 'Failed to submit selections');
+        showNotification('error', result.message || 'Failed to submit selections');
       }
     } catch (error) {
       console.error('Submit error:', error);
       setSubmitError('Failed to submit selections. Please try again.');
+      showNotification('error', 'Failed to submit selections. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
