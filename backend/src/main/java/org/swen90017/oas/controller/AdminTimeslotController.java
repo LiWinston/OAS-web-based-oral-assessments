@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
@@ -21,7 +21,7 @@ import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
 import org.swen90017.oas.dto.response.SessionConfigResponseDTO;
 import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
-import org.swen90017.oas.entity.SysUser;
+
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.ScheduleService;
 import org.swen90017.oas.service.SessionConfigService;
@@ -63,10 +63,8 @@ public class AdminTimeslotController {
     @Log(module = "Session Configuration", businessType = BusinessType.UPDATE)
     public ResponseEntity<Result<SessionConfigResponseDTO>> updateSessionConfig(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @Valid @RequestBody SessionConfigRequestDTO request,
-            @AuthenticationPrincipal SysUser currentUser) {
-        SessionConfigResponseDTO config = sessionConfigService.upsertSessionConfig(
-                assignmentId, request, currentUser.getUserId());
+            @Valid @RequestBody SessionConfigRequestDTO request) {
+        SessionConfigResponseDTO config = sessionConfigService.upsertSessionConfig(assignmentId, request);
         return ResponseEntity.ok(Result.success(config));
     }
 

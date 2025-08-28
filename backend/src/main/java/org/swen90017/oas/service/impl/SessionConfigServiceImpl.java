@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.SessionConfigRequestDTO;
 import org.swen90017.oas.dto.response.SessionConfigResponseDTO;
@@ -33,14 +34,13 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
 
     @Override
     @Transactional
-    public SessionConfigResponseDTO upsertSessionConfig(Long assignmentId, SessionConfigRequestDTO request, Long updatedBy) {
+    public SessionConfigResponseDTO upsertSessionConfig(Long assignmentId, SessionConfigRequestDTO request) {
         AssignmentSessionConfig config = new AssignmentSessionConfig();
         config.setAssignmentId(assignmentId);
         config.setSessionLengthMin(request.getSessionLength());
         config.setGapTimeMin(request.getGapTime());
         config.setExaminersPerSession(request.getExaminersPerSession());
         config.setDefaultMaxSessionsPerExaminer(request.getDefaultMaxSessionsPerExaminer());
-        config.setUpdatedBy(updatedBy);
 
         // Use the upsert method from mapper
         sessionConfigMapper.upsert(config);

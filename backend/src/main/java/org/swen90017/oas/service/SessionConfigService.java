@@ -24,10 +24,9 @@ public interface SessionConfigService extends IService<AssignmentSessionConfig> 
      *
      * @param assignmentId Assignment ID
      * @param request Session configuration request DTO
-     * @param updatedBy User ID who performs the update
      * @return Session configuration response DTO
      */
-    SessionConfigResponseDTO upsertSessionConfig(Long assignmentId, SessionConfigRequestDTO request, Long updatedBy);
+    SessionConfigResponseDTO upsertSessionConfig(Long assignmentId, SessionConfigRequestDTO request);
 
     /**
      * Delete session configuration by assignment ID
