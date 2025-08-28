@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 
 import { courseService } from '../../../services/courseService';
 import { useNotification } from '../../../hooks/useNotification';
+import { useAuthStore } from '../../../store/authStore';
 
 export function EditCourseModal({ isOpen, onClose, onCourseUpdated, course }) {
   const { showNotification } = useNotification();
+  const { user } = useAuthStore();
   const [formData, setFormData] = useState({
     courseName: '',
     courseCode: '',
@@ -171,7 +173,7 @@ export function EditCourseModal({ isOpen, onClose, onCourseUpdated, course }) {
         description: formData.description,
         academicYear: parseInt(formData.academicYear),
         semester: semesterValue,
-        adminUserId: course.adminUserId || 1, // Use existing adminUserId or default
+        adminUserId: user?.id || course.adminUserId || 1, // Use current user's ID
         status: formData.isActive ? 'active' : 'archived',
         isActive: formData.isActive
       };

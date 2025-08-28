@@ -126,7 +126,7 @@ export function CourseCreationModal({ isOpen, onClose, onCourseCreated }) {
         description: formData.description || '',
         academicYear: parseInt(formData.academicYear),
         semester: formData.semester,
-        adminUserId: user?.userId || 1, // Get from user context
+        adminUserId: user?.id || 1, // Get from user context
         status: formData.isActive ? 'active' : 'archived'
       });
       

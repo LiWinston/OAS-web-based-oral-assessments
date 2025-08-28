@@ -38,7 +38,7 @@ export default function CoursesPage() {
         semester: undefined,
         status: statusFilter || undefined,
         courseCode: searchTerm || undefined,
-        adminUserId: user?.userId
+        adminUserId: user?.id
       };
 
       let result;
@@ -76,7 +76,7 @@ export default function CoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [viewMode, yearFilter, statusFilter, searchTerm, user?.userId]);
+  }, [viewMode, yearFilter, statusFilter, searchTerm, user?.id]);
 
   // 初始化和筛选条件变化时获取数据
   useEffect(() => {
