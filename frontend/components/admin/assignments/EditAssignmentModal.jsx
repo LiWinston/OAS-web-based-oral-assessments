@@ -357,11 +357,11 @@ export function EditAssignmentModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date <span className="text-red-500">*</span>
+                    Start Date & Time <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={formData.startDate}
                       onChange={(e) => handleInputChange('startDate', e.target.value)}
                       className={`
@@ -372,7 +372,7 @@ export function EditAssignmentModal({
                         transition-all duration-200
                       `}
                     />
-                    <i className="fas fa-calendar-day absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                   </div>
                   {validationErrors.startDate && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -383,11 +383,11 @@ export function EditAssignmentModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date <span className="text-red-500">*</span>
+                    End Date & Time <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={formData.endDate}
                       onChange={(e) => handleInputChange('endDate', e.target.value)}
                       className={`
@@ -398,7 +398,7 @@ export function EditAssignmentModal({
                         transition-all duration-200
                       `}
                     />
-                    <i className="fas fa-calendar-check absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                   </div>
                   {validationErrors.endDate && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
