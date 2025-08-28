@@ -260,6 +260,14 @@ public class ServletUtils
      * @return Request body content
      */
     public static String getBodyString(HttpServletRequest request) {
+        // Check if the request is wrapped with CachingRequestWrapper
+        if (request instanceof org.swen90017.oas.security.CachingRequestWrapper) {
+            org.swen90017.oas.security.CachingRequestWrapper cachingWrapper = 
+                (org.swen90017.oas.security.CachingRequestWrapper) request;
+            return cachingWrapper.getCachedBody();
+        }
+        
+        // Fallback to original implementation for non-cached requests
         StringBuilder sb = new StringBuilder();
         BufferedReader reader = null;
         try {
@@ -268,6 +276,10 @@ public class ServletUtils
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
             }
+        } catch (IllegalStateException e) {
+            // Handle case where getInputStream() was already called
+            // This should not happen with CachingRequestWrapper but kept for safety
+            return "";
         } catch (IOException e) {
             e.printStackTrace();
         } finally {

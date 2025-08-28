@@ -2,20 +2,17 @@ package org.swen90017.oas.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 import org.apache.commons.text.StringEscapeUtils;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
 
 // This request wrapper sanitizes the request parameters and JSON payloads to prevent XSS attacks
 // while allowing certain HTTP methods and URLs to be skipped.
-public class XSSRequestWrapper extends HttpServletRequestWrapper {
+public class XSSRequestWrapper extends CachingRequestWrapper {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -66,17 +63,22 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
     }
 
     @Override
-    public javax.servlet.ServletInputStream getInputStream() throws IOException {
-        // If the request does not require filtering or the Content-Type is not JSON, the original input stream is returned directly.
+    public ServletInputStream getInputStream() throws IOException {
+        // If the request does not require filtering or the Content-Type is not JSON, use parent implementation
         String contentType = getContentType();
         if (shouldSkipFiltering() || contentType == null || !contentType.toLowerCase().contains("application/json")) {
             return super.getInputStream();
         }
 
-        // Continue with XSS filtering for JSON payloads
-        String originalBody = readRequestBody(super.getInputStream());
+        // Get cached body and apply XSS filtering for JSON payloads
+        String originalBody = getCachedBody();
         String sanitizedBody = sanitizeJson(originalBody);
-        return new DelegatingServletInputStream(sanitizedBody.getBytes(StandardCharsets.UTF_8));
+        
+        // Update cached body with sanitized content
+        setCachedBody(sanitizedBody);
+        
+        // Return input stream with sanitized content
+        return super.getInputStream();
     }
 
 
@@ -129,47 +131,4 @@ public class XSSRequestWrapper extends HttpServletRequestWrapper {
         }
     }
 
-    private String readRequestBody(javax.servlet.ServletInputStream inputStream) throws IOException {
-        StringBuilder body = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                body.append(line);
-            }
-        }
-        return body.toString();
-    }
-
-    private static class DelegatingServletInputStream extends javax.servlet.ServletInputStream {
-
-        private final java.io.InputStream sourceStream;
-
-        public DelegatingServletInputStream(byte[] sanitizedContent) {
-            this.sourceStream = new java.io.ByteArrayInputStream(sanitizedContent);
-        }
-
-        @Override
-        public int read() throws IOException {
-            return sourceStream.read();
-        }
-
-        @Override
-        public boolean isFinished() {
-            try {
-                return sourceStream.available() == 0;
-            } catch (IOException e) {
-                return true;
-            }
-        }
-
-        @Override
-        public boolean isReady() {
-            return true;
-        }
-
-        @Override
-        public void setReadListener(javax.servlet.ReadListener readListener) {
-            // Not supported
-        }
-    }
 }
