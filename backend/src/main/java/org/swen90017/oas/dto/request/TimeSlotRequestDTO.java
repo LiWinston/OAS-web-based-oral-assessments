@@ -32,5 +32,5 @@ public class TimeSlotRequestDTO {
 
     @Schema(description = "Venue description", example = "Engineering Building, Room 405")
     @NotBlank(message = "Venue cannot be blank")
-    private String venue;
+    private Long venueId;
 }

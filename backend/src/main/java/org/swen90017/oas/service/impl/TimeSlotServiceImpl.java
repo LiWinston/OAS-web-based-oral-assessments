@@ -81,7 +81,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 LocalDateTime endAt = timeSlotRequest.getDate().atTime(timeSlotRequest.getEndTime());
                 
                 int overlapCount = timeSlotMapper.countVenueOverlap(
-                    assignmentId, timeSlotRequest.getVenue(), startAt, endAt, null);
+                    assignmentId, timeSlotRequest.getVenueId(), startAt, endAt, null);
                 
                 if (overlapCount > 0) {
                     log.warn("Venue overlap detected for slot at {} {}-{}, skipping", 
@@ -131,7 +131,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         
         // Check venue overlap (excluding current slot)
         int overlapCount = timeSlotMapper.countVenueOverlap(
-            existingSlot.getAssignmentId(), request.getVenue(), startAt, endAt, timeSlotId);
+            existingSlot.getAssignmentId(), request.getVenueId(), startAt, endAt, timeSlotId);
         
         if (overlapCount > 0) {
             throw new BusinessException(BusinessError.VENUE_OVERLAP);
@@ -140,7 +140,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         existingSlot.setSlotDate(request.getDate());
         existingSlot.setStartAt(startAt);
         existingSlot.setEndAt(endAt);
-        existingSlot.setVenue(request.getVenue());
+        existingSlot.setVenueId(request.getVenueId());
         existingSlot.setSessionCount(request.getSessionCount());
         existingSlot.setUpdatedAt(LocalDateTime.now());
         
@@ -163,7 +163,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         newSlotRequest.setStartTime(request.getStartTime() != null ? request.getStartTime() : sourceSlot.getStartAt().toLocalTime());
         newSlotRequest.setEndTime(calculateEndTime(newSlotRequest.getStartTime(), sourceSlot.getStartAt(), sourceSlot.getEndAt()));
         newSlotRequest.setSessionCount(sourceSlot.getSessionCount());
-        newSlotRequest.setVenue(sourceSlot.getVenue());
+        newSlotRequest.setVenueId(sourceSlot.getVenueId());
 
         // Get configuration and create new slot
         AssignmentSessionConfig config = sessionConfigMapper.selectById(sourceSlot.getAssignmentId());
@@ -263,7 +263,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         timeSlot.setSlotDate(request.getDate());
         timeSlot.setStartAt(request.getDate().atTime(request.getStartTime()));
         timeSlot.setEndAt(request.getDate().atTime(request.getEndTime()));
-        timeSlot.setVenue(request.getVenue());
+        timeSlot.setVenueId(request.getVenueId());
         timeSlot.setSessionCount(request.getSessionCount());
         timeSlot.setRequiredExaminers(config.getExaminersPerSession());
         timeSlot.setStatus(SlotStatus.EMPTY);
@@ -287,7 +287,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         dto.setDate(timeSlot.getSlotDate());
         dto.setStartTime(timeSlot.getStartAt().toLocalTime());
         dto.setEndTime(timeSlot.getEndAt().toLocalTime());
-        dto.setVenue(timeSlot.getVenue());
+        dto.setVenueId(timeSlot.getVenueId());
         dto.setRequiredExaminers(timeSlot.getRequiredExaminers());
         dto.setSessionCount(timeSlot.getSessionCount());
         dto.setStatus(timeSlot.getStatus());

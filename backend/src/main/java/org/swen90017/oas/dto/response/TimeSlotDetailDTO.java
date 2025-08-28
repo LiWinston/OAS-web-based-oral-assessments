@@ -26,7 +26,7 @@ public class TimeSlotDetailDTO {
     private LocalTime endTime;
 
     @Schema(description = "Venue", example = "Engineering Building, Room 405")
-    private String venue;
+    private Long venueId;
 
     @Schema(description = "Required number of examiners", example = "2")
     private Integer requiredExaminers;

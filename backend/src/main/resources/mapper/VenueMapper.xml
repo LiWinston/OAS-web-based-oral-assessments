@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.VenueMapper">
+    <insert id="upsertBatch">
+        INSERT INTO venue (room_name, capacity, building, room_url)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.roomName}, #{item.capacity}, #{item.building}, #{item.roomUrl})
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        room_name = VALUES(room_name),
+        capacity  = VALUES(capacity),
+        building  = VALUES(building)
+    </insert>
+</mapper>

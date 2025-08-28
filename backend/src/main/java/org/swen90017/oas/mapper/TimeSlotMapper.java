@@ -13,7 +13,7 @@ import java.util.List;
 public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
 
     int countVenueOverlap(@Param("assignmentId") Long assignmentId,
-                          @Param("venue") String venue,
+                          @Param("venueId") Long venueId,
                           @Param("startAt") LocalDateTime startAt,
                           @Param("endAt") LocalDateTime endAt,
                           @Param("excludeSlotId") Long excludeSlotId);

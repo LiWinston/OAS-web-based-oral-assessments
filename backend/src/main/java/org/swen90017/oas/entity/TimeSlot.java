@@ -18,7 +18,7 @@ public class TimeSlot {
     private LocalDate slotDate;
     private LocalDateTime startAt;
     private LocalDateTime endAt;
-    private String venue;
+    private Long venueId;
     private Integer sessionCount;
     private Integer requiredExaminers;
     private SlotStatus status; // draft/empty/partial/full/closed
