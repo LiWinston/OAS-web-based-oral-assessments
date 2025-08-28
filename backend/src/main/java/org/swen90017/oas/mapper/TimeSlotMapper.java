@@ -27,4 +27,7 @@ public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
 
     int sumAssignedSessionsForExaminer(@Param("assignmentId") Long assignmentId,
                                        @Param("examinerId") Long examinerId);
+
+    @Select("SELECT * FROM time_slots WHERE assignment_id = #{assignmentId} ORDER BY start_at ASC")
+    List<TimeSlot> listByAssignment(@Param("assignmentId") Long assignmentId);
 }

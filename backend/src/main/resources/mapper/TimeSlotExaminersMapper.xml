@@ -23,5 +23,16 @@
           AND NOT (ts.end_at &lt;= #{startAt} OR ts.start_at &gt;= #{endAt})
     </select>
 
+    <select id="listSlotsByExaminer" resultType="org.swen90017.oas.entity.TimeSlot">
+        SELECT ts.*
+        FROM time_slot_examiners tse
+                 JOIN time_slots ts ON ts.slot_id = tse.slot_id
+        WHERE tse.examiner_id = #{examinerId}
+        <if test="assignmentId != null">
+            AND ts.assignment_id = #{assignmentId}
+        </if>
+        ORDER BY ts.start_at ASC
+    </select>
+
 
 </mapper>

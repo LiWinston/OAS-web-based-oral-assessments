@@ -7,10 +7,12 @@ import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.CSVImportDTO;
+import org.swen90017.oas.dto.request.ExaminerCSVRequestDTO;
 import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.dto.response.GroupPreviewCSVResponseDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
+import org.swen90017.oas.entity.SysExaminer;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.EmailService;
@@ -64,6 +66,8 @@ public class CsvController {
             return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else if ("group".equalsIgnoreCase(dto.getType())) {
             return importGroupCsv((List<GroupCSVRequestDTO>) csvData);
+        } else if ("examiner".equalsIgnoreCase(dto.getType())) {
+            return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData);
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
@@ -107,5 +111,10 @@ public class CsvController {
             return invited;
         });
         return Result.success(sysStudents);
+    }
+
+    private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData) {
+        // Placeholder for future examiner CSV import logic
+        return null;
     }
 }
