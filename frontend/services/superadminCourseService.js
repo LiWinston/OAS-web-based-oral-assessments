@@ -174,11 +174,29 @@ export const superadminCourseService = {
     }
   },
 
-  // Get course statistics for superadmin dashboard
+  // Get course statistics for superadmin dashboard (global stats)
   async getCourseStats() {
-    // This endpoint is not in the current Swagger API
-    // For now, return mock data or implement when backend adds it
-    console.warn("Course stats endpoint not available in current backend API");
-    return { success: true, data: { totalCourses: 0, activeCourses: 0 } };
+    try {
+      // SuperAdmin调用不带adminUserId参数的统计接口，获取全局数据
+      const response = await api.get('/api/courses/stats');
+      
+      // Handle nested data structure from API response
+      const result = response.data;
+      if (result.success && result.data?.data) {
+        // If the API returns nested data structure, flatten it to match expected format
+        return {
+          success: result.success,
+          data: result.data.data
+        };
+      }
+      return result;
+    } catch (error) {
+      console.error("Failed to fetch SuperAdmin course statistics:", error);
+      return { 
+        success: false, 
+        message: "Failed to load statistics",
+        data: { totalCourses: 0, activeCourses: 0, totalAssignments: 0 } 
+      };
+    }
   },
 };

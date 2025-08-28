@@ -1,24 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { AdminManagementHub } from "../../components/superadmin/dashboard/AdminManagementHub";
 import { CourseOverviewTable } from "../../components/superadmin/dashboard/CourseOverviewTable";
+import { superadminCourseService } from "../../services/superadminCourseService";
 
 export default function SuperAdminDashboard() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState("overview");
-
-  // Mock stats for dashboard cards
-  const stats = {
-    totalCourses: 28,
-    activeCourses: 23,
-    totalAdmins: 12,
-    pendingInvitations: 2,
-    totalStudents: 1847,
+  
+  // Dynamic stats from API
+  const [stats, setStats] = useState({
+    totalCourses: 0,
+    activeCourses: 0,
+    totalAdmins: 12, // 暂时保持硬编码，待后续API完善
+    pendingInvitations: 2, // 暂时保持硬编码，待后续API完善
+    totalStudents: 0,
+    totalAssignments: 0,
     systemHealth: "excellent",
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Fetch SuperAdmin statistics on component mount
+  useEffect(() => {
+    fetchSuperAdminStats();
+  }, []);
+
+  const fetchSuperAdminStats = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // SuperAdmin获取全局统计数据（不传adminUserId参数）
+      const result = await superadminCourseService.getCourseStats();
+      
+      if (result.success && result.data) {
+        setStats(prev => ({
+          ...prev,
+          totalCourses: result.data.totalCourses || 0,
+          activeCourses: result.data.activeCourses || 0,
+          totalStudents: result.data.totalStudents || 0,
+          totalAssignments: result.data.totalAssignments || 0,
+        }));
+      } else {
+        setError(result.message || 'Failed to fetch statistics');
+      }
+    } catch (error) {
+      console.error('Error fetching SuperAdmin stats:', error);
+      setError('Failed to load system statistics');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = [
@@ -49,6 +85,25 @@ export default function SuperAdminDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {loading && (
+          <>
+            {Array.from({ length: 4 }, (_, i) => (
+              <Card key={i} className="p-6 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-20 mb-2"></div>
+                    <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-16 mb-2"></div>
+                    <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-24"></div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+                </div>
+              </Card>
+            ))}
+          </>
+        )}
+        
+        {!loading && (
+          <>
         <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
           <div className="flex items-center justify-between">
             <div>
@@ -96,7 +151,7 @@ export default function SuperAdminDashboard() {
                 Total Students
               </p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.totalStudents.toLocaleString()}
+                {(stats.totalStudents || 0).toLocaleString()}
               </p>
               <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center mt-1">
                 <i className="fas fa-users mr-1"></i>
@@ -128,6 +183,15 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
         </Card>
+          </>
+        )}
+        
+        {error && !loading && (
+          <div className="col-span-full text-center text-red-600 dark:text-red-400 p-4">
+            <i className="fas fa-exclamation-triangle mr-2"></i>
+            {error}
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}
