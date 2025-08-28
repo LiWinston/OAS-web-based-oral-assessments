@@ -7,7 +7,21 @@ export const superadminCourseService = {
   // Get all courses (superadmin view)
   async getCourses(filters = {}) {
     try {
-      const response = await api.get("/api/courses", { params: filters });
+      // Build query parameters for SuperAdmin API
+      const queryParams = {
+        page: filters.page || 1,
+        limit: filters.limit || 100, // Large limit for SuperAdmin to see all courses
+        year: filters.year || null,
+        semester: filters.semester || null,
+        search: filters.search || null,
+        adminId: filters.adminId || null,
+        status: filters.status || null,
+        department: filters.department || null,
+        sortBy: filters.sortBy || "createdAt",
+        sortOrder: filters.sortOrder || "desc"
+      };
+      
+      const response = await api.post("/api/superadmin/courses", queryParams);
 
       // Debug: Log the raw response to see what backend returns
       console.log("=== COURSES API DEBUG ===");
@@ -90,7 +104,7 @@ export const superadminCourseService = {
 
       return { success: true, data: courses };
     } catch (error) {
-      console.error("Get courses API error:", error);
+      console.error("SuperAdmin courses API error:", error);
       return { success: false, data: [] };
     }
   },

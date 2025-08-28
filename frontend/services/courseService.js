@@ -148,7 +148,7 @@ export const courseService = {
     
     console.log('getAllCourses API params:', params);
     
-    const response = await api.get('/api/courses', { params });
+    const response = await api.post('/api/courses/list', params);
     return response.data;
   },
 
@@ -172,7 +172,7 @@ export const courseService = {
     
     console.log('getCoursesPaginated API params:', params);
     
-    const response = await api.get('/api/courses', { params });
+    const response = await api.post('/api/courses/list', params);
     return response.data;
   },
 

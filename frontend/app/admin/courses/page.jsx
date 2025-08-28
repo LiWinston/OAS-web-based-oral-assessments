@@ -18,7 +18,7 @@ export default function CoursesPage() {
   const [viewMode, setViewMode] = useState("card"); // 'table' or 'card'
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("active"); // 默认显示活跃课程
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
   const [availableYears, setAvailableYears] = useState([]);
   const [courses, setCourses] = useState([]);
