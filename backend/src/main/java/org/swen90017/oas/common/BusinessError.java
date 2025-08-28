@@ -35,7 +35,15 @@ public enum BusinessError implements Error {
     ASSIGNMENT_INVALID_PERFORMANCE_DESCRIPTION("4043", "Invalid performance description"),
     ASSIGNMENT_INVALID_PERFORMANCE_POINTS("4044", "Invalid performance points"),
     ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
-    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format");
+    ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format"),
+    
+    // Epic 5 Timeslot and Session Management errors
+    SESSION_CONFIG_NOT_FOUND("5001", "Session configuration not found or not configured"),
+    TIME_CONFLICT("5002", "Time conflict detected"),
+    VENUE_OVERLAP("5003", "Venue overlap detected"),
+    TIME_SLOT_NOT_FOUND("5004", "Time slot not found"),
+    SCHEDULE_NOT_READY("5005", "Schedule is not ready for release"),
+    SESSION_GENERATION_FAILED("5006", "Failed to generate sessions for time slot");
     
     private final String code;
     private final String message;
