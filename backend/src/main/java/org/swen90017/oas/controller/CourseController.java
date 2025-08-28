@@ -6,7 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
+
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
@@ -14,7 +14,7 @@ import org.swen90017.oas.dto.SubjectDto;
 import org.swen90017.oas.dto.request.CourseCreateRequestDTO;
 import org.swen90017.oas.dto.request.CourseQueryRequestDTO;
 import org.swen90017.oas.dto.request.CourseUpdateRequestDTO;
-import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+
 import org.swen90017.oas.dto.response.CourseListResponseDTO;
 import org.swen90017.oas.dto.response.CourseResponseDTO;
 import org.swen90017.oas.dto.response.CourseStatsResponseDTO;
@@ -45,13 +45,13 @@ public class CourseController {
     private final AssignmentService assignmentService;
 
     /**
-     * Get courses with pagination and filters
+     * List courses with pagination and filters (POST method for complex query)
      */
-    @Operation(summary = "Get courses", description = "Retrieve courses with pagination and optional filters")
-    @GetMapping
+    @Operation(summary = "List courses", description = "Retrieve courses with pagination and optional filters using POST")
+    @PostMapping("/list")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseListResponseDTO> getCourses(
-            @Parameter(description = "Query parameters for course search") CourseQueryRequestDTO queryDTO) {
+    public Result<CourseListResponseDTO> listCourses(
+            @Parameter(description = "Query parameters for course search") @RequestBody CourseQueryRequestDTO queryDTO) {
         
         IPage<Subject> result = subjectService.getCourses(
             queryDTO.getPageNum(), 
@@ -60,7 +60,8 @@ public class CourseController {
             queryDTO.getSemester(), 
             queryDTO.getCourseCode(), 
             queryDTO.getAdminUserId(), 
-            queryDTO.getStatus()
+            queryDTO.getStatus(),
+            queryDTO.getIsActive()
         );
         
         // Transform data to CourseResponseDTO with dual-path optimization

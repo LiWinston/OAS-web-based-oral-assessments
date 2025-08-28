@@ -35,7 +35,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
      * Get paginated courses/subjects (matches frontend API expectations)
      */
     public IPage<Subject> getCourses(int pageNum, int pageSize, Integer academicYear, String semester, 
-                                    String subjectCode, Long adminUserId, String status) {
+                                    String subjectCode, Long adminUserId, String status, Boolean isActive) {
         Page<Subject> page = new Page<>(pageNum, pageSize);
         
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
@@ -53,9 +53,12 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         }
         if (StringUtils.hasText(status)) {
             queryWrapper.eq(Subject::getStatus, status);
-        } else {
-            queryWrapper.eq(Subject::getIsActive, true);
         }
+        // isActive过滤逻辑：null=不过滤(查询所有), true=只查询活跃, false=只查询非活跃
+        if (isActive != null) {
+            queryWrapper.eq(Subject::getIsActive, isActive);
+        }
+        // 当isActive为null时，不添加过滤条件，SuperAdmin可以查看所有状态的课程
         queryWrapper.orderByDesc(Subject::getAcademicYear)
                    .orderByAsc(Subject::getSemester)
                    .orderByAsc(Subject::getSubjectCode);
