@@ -245,8 +245,10 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         String email = null;
         if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
             email = dto.getEmail();
-        } else {
+        } else if (dto.getSisUserId() != null && !dto.getSisUserId().isEmpty()) {
             email = dto.getSisLoginId() + "@unimelb.edu.au";
+        } else {
+            throw new BusinessException("Email and login id cannot be both null", CommonError.BAD_REQUEST.getCode());
         }
         // Validate email domain
         if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
@@ -358,6 +360,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
             user.setStatus(UserStatus.ACTIVE.code());
         }else if ("INACTIVE".equalsIgnoreCase(status)) {
             user.setStatus(UserStatus.INACTIVE.code());
+        } else {
+            throw new BusinessException("This status is not allowed.", CommonError.BAD_REQUEST.getCode());
         }
         sysUserMapper.updateById(user);
 
