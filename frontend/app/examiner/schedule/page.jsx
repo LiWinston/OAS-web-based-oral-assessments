@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "../../../components/ui/button";
 import AssessmentsToAssign from "../../../components/examiner/schedule/AssessmentsToAssign";
+import AssignedSlots from "../../../components/examiner/schedule/AssignedSlots";
 import ExaminerCalendar from "../../../components/examiner/schedule/ExaminerCalendar";
-import UpcomingAssessments from "../../../components/examiner/schedule/UpcomingAssessments";
 import { examinerTimeslotService } from "../../../services/examinerTimeslotService";
-import { useAuthStore } from "../../../store/authStore";
+import { useExaminerAuth } from "../../../hooks/useExaminerAuth";
 import WeekSchedule from "../../../components/examiner/schedule/WeekSchedule";
 import DaySchedule from "../../../components/examiner/schedule/DaySchedule";
 import ScheduleFilters from "../../../components/examiner/schedule/ScheduleFilters";
@@ -25,7 +25,7 @@ import { useNotification } from "../../../hooks/useNotification";
  */
 export default function ExaminerSchedule() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const [viewMode, setViewMode] = useState("month");
   const { selectedCourse, searchText } = useScheduleFilterStore();
   const [dateRange, setDateRange] = useState(() => {
@@ -45,23 +45,15 @@ export default function ExaminerSchedule() {
   const { showNotification } = useNotification();
 
 
-  // Debug: Create a mock user if no user is logged in (for development testing)
-  const debugUser = user || {
-    id: "debug-examiner-123",
-    role: "EXAMINER",
-    username: "debug_examiner",
-    email: "debug@examiner.test",
-  };
-
-
   // Fetch available assignments to extract course list
   const { data: assignmentsData } = useQuery({
-    queryKey: ["availableAssignments", debugUser?.id],
+    queryKey: ["availableAssignments", examinerId],
     queryFn: () =>
-      examinerTimeslotService.getAvailableAssignments(debugUser?.id, {
+      examinerTimeslotService.getAvailableAssignments(examinerId, {
         pageSize: 100,
       }),
-    enabled: !!debugUser?.id,
+    enabled: isValidExaminer,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Update available courses when assignments data changes
@@ -92,7 +84,12 @@ export default function ExaminerSchedule() {
       const now = new Date();
       const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
       const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
-      const res = await examinerTimeslotService.getExaminerSchedule(debugUser?.id, { dateFrom: from, dateTo: to });
+      if (!isValidExaminer) {
+        showNotification('error', 'Please log in to export schedule');
+        return;
+      }
+      
+      const res = await examinerTimeslotService.getExaminerSchedule(examinerId, { dateFrom: from, dateTo: to });
       const assignments = res?.data?.assignments || [];
       const events = assignments.flatMap(a => a.slots.map(s => ({
         assignmentId: a.assignmentId,
@@ -315,8 +312,8 @@ export default function ExaminerSchedule() {
       {viewMode === "month" ? (
         <>
           <AssessmentsToAssign />
+          <AssignedSlots showDebugSection={process.env.NODE_ENV === 'development'} />
           <ExaminerCalendar />
-          <UpcomingAssessments />
         </>
       ) : viewMode === "week" ? (
         <WeekSchedule />
@@ -334,6 +331,10 @@ export default function ExaminerSchedule() {
           <div className="flex items-center">
             <i className="fas fa-mouse-pointer mr-2"></i>
             Click on calendar events for details
+          </div>
+          <div className="flex items-center">
+            <i className="fas fa-times-circle mr-2"></i>
+            Use "My Assigned Slots" to withdraw from unbooked sessions
           </div>
           {selectedCourse && (
             <div className="flex items-center text-blue-600 dark:text-blue-400">

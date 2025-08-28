@@ -407,7 +407,11 @@ Base URL: `/admin/assignments/{assignmentId}`
 {
   "notifyStudents": true,
   "notifyExaminers": true,
-  "releaseMessage": "Assessment schedule is now available for booking."
+  "releaseMessage": "Assessment schedule is now available for booking.",
+  "reschedulingEnabled": true,
+  "bookingDeadline": "2025-04-12T17:00:00+10:00",
+  "lockoutEnabled": true,
+  "lockoutWindowHours": 24
 }
 ```
 - **Response** (success): `200 OK`
@@ -420,6 +424,12 @@ Base URL: `/admin/assignments/{assignmentId}`
     "notificationsSent": {
       "students": 45,
       "examiners": 6
+    },
+    "bookingPolicies": {
+      "reschedulingEnabled": true,
+      "bookingDeadline": "2025-04-12T17:00:00+10:00",
+      "lockoutEnabled": true,
+      "lockoutWindowHours": 24
     }
   }
 }

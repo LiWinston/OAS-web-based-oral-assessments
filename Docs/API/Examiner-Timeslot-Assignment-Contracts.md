@@ -193,7 +193,7 @@ Response
             "isBooked": true,
             "bookingCount": 2,
             "canWithdraw": false,
-            "withdrawalDeadline": "2025-04-12T17:00:00+10:00"
+            "cannotWithdrawReason": "STUDENT_BOOKED"
           }
         ]
       }
@@ -225,13 +225,13 @@ Errors
 - `403 FORBIDDEN` — not owner of slot or not assigned
 - `404 NOT_FOUND` — slot or assignment not found for this examiner
 - `409 STUDENT_BOOKED` — withdrawal blocked because students booked this slot
-- `410 DEADLINE_PASSED` — withdrawal deadline passed
+- `409 SESSION_STARTED` — withdrawal blocked because session has started or passed
 
 ### 8) Backend Notes
 - Concurrency & locking: Use DB constraints and row‑level locks to avoid race conditions on slot capacity and overlap.
 - Overlap check: Compare requested slot windows with examiner’s existing assigned slots (same day and time window intersection).
 - Membership: Examiner must be an assignment member to self‑assign.
-- Deadlines (optional): If configured, enforce signup and withdrawal deadlines; otherwise omit fields.
+- Withdrawal rules: Allow withdrawal only when no students have booked sessions in that timeslot. Optionally block withdrawal for sessions that have already started.
 
 ### 9) Performance & Freshness
 - Paginate long lists with `pageNum` and `pageSize`.

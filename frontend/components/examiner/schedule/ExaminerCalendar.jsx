@@ -2,13 +2,13 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import { useNotification } from '@/hooks/useNotification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const ExaminerCalendar = () => {
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -17,28 +17,19 @@ const ExaminerCalendar = () => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showNotification } = useNotification();
   
-  
-  // Debug: Create a mock user if no user is logged in (for development testing)
-  const debugUser = user || {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  
-
   const { data: scheduleData, isLoading, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['examinerSchedule', debugUser?.id, currentMonth.getFullYear(), currentMonth.getMonth()],
+    queryKey: ['examinerSchedule', examinerId, currentMonth.getFullYear(), currentMonth.getMonth()],
     queryFn: () => {
       const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-      return examinerTimeslotService.getExaminerSchedule(debugUser?.id, {
+      return examinerTimeslotService.getExaminerSchedule(examinerId, {
         dateFrom: monthStart.toISOString().split('T')[0],
         dateTo: monthEnd.toISOString().split('T')[0]
       });
     },
-    enabled: !!debugUser?.id,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    enabled: isValidExaminer,
+    refetchInterval: 2 * 60 * 1000, // Reduced to 2 minutes from 30 seconds
+    staleTime: 60 * 1000 // 1 minute stale time
   });
 
   const scheduleSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment =>

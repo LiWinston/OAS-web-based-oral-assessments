@@ -3,32 +3,23 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const AssessmentsToAssign = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse } = useScheduleFilterStore();
   
-  
-  // Debug: Create a mock user if no user is logged in (for development testing)
-  const debugUser = user || {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  
-  
   const { data: assignmentsData, isLoading, error } = useQuery({
-    queryKey: ['availableAssignments', debugUser?.id, selectedCourse],
-    queryFn: () => examinerTimeslotService.getAvailableAssignments(debugUser?.id, {
+    queryKey: ['availableAssignments', examinerId, selectedCourse],
+    queryFn: () => examinerTimeslotService.getAvailableAssignments(examinerId, {
       courseId: selectedCourse || undefined,
       pageSize: 50 // Get more assignments for better filtering
     }),
-    refetchInterval: 30000, // Refresh every 30 seconds
-    enabled: !!debugUser?.id
+    refetchInterval: 2 * 60 * 1000, // Reduced to 2 minutes from 30 seconds
+    staleTime: 60 * 1000, // 1 minute stale time
+    enabled: isValidExaminer
   });
 
   const assignments = assignmentsData?.data?.data || [];

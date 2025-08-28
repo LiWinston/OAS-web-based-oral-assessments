@@ -2,20 +2,23 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
+import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
+import { Button } from '@/components/ui/button';
 
 export default function DaySchedule() {
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
-  const debugUser = user || { id: 'debug-examiner-123', role: 'EXAMINER' };
+  const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const todayStr = new Date().toISOString().split('T')[0];
 
   const { data, isLoading, error, dataUpdatedAt, refetch } = useQuery({
-    queryKey: ['examinerDay', debugUser?.id, todayStr],
-    queryFn: () => examinerTimeslotService.getExaminerSchedule(debugUser?.id, { date: todayStr }),
-    enabled: !!debugUser?.id,
-    refetchInterval: 30000,
+    queryKey: ['examinerDay', examinerId, todayStr],
+    queryFn: () => examinerTimeslotService.getExaminerSchedule(examinerId, { date: todayStr }),
+    enabled: isValidExaminer,
+    refetchInterval: 90 * 1000, // Reduced to 90 seconds from 30 seconds - day view needs more frequent updates
+    staleTime: 30 * 1000, // 30 seconds stale time
   });
 
   const slotsRaw = useMemo(() => data?.data?.assignments?.flatMap(a => a.slots.map(s => ({
@@ -45,6 +48,17 @@ export default function DaySchedule() {
     if (diff < 60) return `${diff}s ago`;
     const m = Math.floor(diff/60), s = diff%60; return `${m}m ${s}s ago`;
   }, [dataUpdatedAt]);
+
+  const handleWithdraw = async (slot) => {
+    try {
+      await withdrawFromTimeslot(slot.slotId, () => {
+        refetch(); // Refresh the data after successful withdrawal
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('Withdrawal failed:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,18 +98,82 @@ export default function DaySchedule() {
           <div className="text-sm text-gray-600 dark:text-gray-400">No sessions scheduled for today</div>
         </div>
       ) : (
-        <div className="space-y-2">
-          {slots.map(slot => (
-            <div key={slot.slotId} className="p-3 border rounded-lg dark:border-gray-700 flex items-start justify-between">
-              <div>
-                <div className="font-medium text-gray-800 dark:text-gray-200">{slot.assignmentName}</div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">{slot.courseCode} • {slot.venue?.name} {slot.venue?.room}</div>
+        <div className="space-y-3">
+          {slots.map(slot => {
+            const isPast = new Date(slot.start) <= new Date();
+            const isUpcoming = new Date(slot.start) > new Date();
+            
+            return (
+              <div key={slot.slotId} className={`p-4 border rounded-lg dark:border-gray-700 ${isPast ? 'opacity-75 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="font-medium text-gray-800 dark:text-gray-200">{slot.assignmentName}</div>
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        isPast 
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' 
+                          : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
+                      }`}>
+                        <i className={`fas ${isPast ? 'fa-check-circle' : 'fa-check'} mr-1`}></i>
+                        {isPast ? 'Completed' : 'Assigned'}
+                      </span>
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                      <div className="flex items-center mb-1">
+                        <i className="fas fa-book mr-2"></i>
+                        <strong>{slot.courseCode}</strong> - {slot.courseName}
+                      </div>
+                      <div className="flex items-center mb-1">
+                        <i className="fas fa-map-marker-alt mr-2"></i>
+                        {slot.venue?.building} {slot.venue?.room} - {slot.venue?.name}
+                      </div>
+                      <div className="flex items-center">
+                        <i className="fas fa-clock mr-2"></i>
+                        {new Date(slot.start).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} – {new Date(slot.end).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}
+                      </div>
+                    </div>
+
+                    {typeof slot.bookingCount !== 'undefined' && (
+                      <div className={`text-xs ${slot.bookingCount > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                        <i className={`fas ${slot.bookingCount > 0 ? 'fa-users' : 'fa-user-slash'} mr-1`}></i>
+                        {slot.bookingCount} student{slot.bookingCount !== 1 ? 's' : ''} booked
+                      </div>
+                    )}
+
+                    {slot.participants && slot.participants.length > 0 && (
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        <i className="fas fa-users mr-1"></i>
+                        {slot.participants.join(', ')}
+                      </div>
+                    )}
+                  </div>
+
+                  {isUpcoming && (
+                    <Button
+                      size="sm"
+                      variant={canWithdraw(slot) ? "destructive" : "outline"}
+                      onClick={() => handleWithdraw(slot)}
+                      disabled={!canWithdraw(slot) || isSubmitting}
+                      className="ml-4"
+                      title={
+                        !canWithdraw(slot) 
+                          ? 'Cannot withdraw: Students are already booked'
+                          : 'Click to withdraw from this timeslot'
+                      }
+                    >
+                      {isSubmitting ? (
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                      ) : (
+                        <i className="fas fa-times mr-2"></i>
+                      )}
+                      Withdraw
+                    </Button>
+                  )}
+                </div>
               </div>
-              <div className="text-right text-sm text-gray-800 dark:text-gray-200">
-                {new Date(slot.start).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} – {new Date(slot.end).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -2,8 +2,10 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
+import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
+import { Button } from '@/components/ui/button';
 
 function startOfWeek(date) {
   const d = new Date(date);
@@ -14,22 +16,23 @@ function startOfWeek(date) {
 }
 
 export default function WeekSchedule() {
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
+  const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const [anchor, setAnchor] = useState(new Date());
 
-  const debugUser = user || { id: 'debug-examiner-123', role: 'EXAMINER' };
   const weekStart = startOfWeek(anchor);
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 6);
 
   const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['examinerWeek', debugUser?.id, weekStart.toDateString()],
-    queryFn: () => examinerTimeslotService.getExaminerSchedule(debugUser?.id, {
+    queryKey: ['examinerWeek', examinerId, weekStart.toDateString()],
+    queryFn: () => examinerTimeslotService.getExaminerSchedule(examinerId, {
       dateFrom: weekStart.toISOString().split('T')[0],
       dateTo: weekEnd.toISOString().split('T')[0]
     }),
-    enabled: !!debugUser?.id,
-    refetchInterval: 30000
+    enabled: isValidExaminer,
+    refetchInterval: 2 * 60 * 1000, // Reduced to 2 minutes from 30 seconds
+    staleTime: 60 * 1000 // 1 minute stale time
   });
 
   const slotsRaw = useMemo(() => data?.data?.assignments?.flatMap(a => a.slots.map(s => ({
@@ -69,6 +72,17 @@ export default function WeekSchedule() {
 
   const changeWeek = (delta) => {
     const d = new Date(anchor); d.setDate(d.getDate() + delta*7); setAnchor(d);
+  };
+
+  const handleWithdraw = async (slot) => {
+    try {
+      await withdrawFromTimeslot(slot.slotId, () => {
+        refetch(); // Refresh the data after successful withdrawal
+      });
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('Withdrawal failed:', error);
+    }
   };
 
   if (isLoading) {
@@ -122,11 +136,39 @@ export default function WeekSchedule() {
               <div className="space-y-2">
                 {list.map(slot => (
                   <div key={slot.slotId} className="p-2 rounded border dark:border-gray-700">
-                    <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{slot.courseCode} — {slot.assignmentName}</div>
+                    <div className="flex justify-between items-start mb-1">
+                      <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{slot.courseCode} — {slot.assignmentName}</div>
+                      {new Date(slot.start) > new Date() && (
+                        <Button
+                          size="sm"
+                          variant={canWithdraw(slot) ? "destructive" : "outline"}
+                          onClick={() => handleWithdraw(slot)}
+                          disabled={!canWithdraw(slot) || isSubmitting}
+                          className="ml-2 px-2 py-1 text-xs"
+                          title={
+                            !canWithdraw(slot) 
+                              ? 'Cannot withdraw: Students are already booked'
+                              : 'Click to withdraw from this timeslot'
+                          }
+                        >
+                          {isSubmitting ? (
+                            <i className="fas fa-spinner fa-spin"></i>
+                          ) : (
+                            <i className="fas fa-times"></i>
+                          )}
+                        </Button>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">
                       {new Date(slot.start).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} – {new Date(slot.end).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}
                       {' · '} {slot.venue?.name} {slot.venue?.room}
                     </div>
+                    {typeof slot.bookingCount !== 'undefined' && (
+                      <div className={`text-xs mt-1 ${slot.bookingCount > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>
+                        <i className={`fas ${slot.bookingCount > 0 ? 'fa-users' : 'fa-user-slash'} mr-1`}></i>
+                        {slot.bookingCount} student{slot.bookingCount !== 1 ? 's' : ''} booked
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

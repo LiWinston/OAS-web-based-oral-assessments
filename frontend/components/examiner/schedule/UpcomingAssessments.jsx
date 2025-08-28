@@ -3,38 +3,29 @@ import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const UpcomingAssessments = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   
-  
-  // Debug: Create a mock user if no user is logged in (for development testing)
-  const debugUser = user || {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  
-
   const { data: scheduleData, isLoading, error, dataUpdatedAt } = useQuery({
-    queryKey: ['examinerUpcoming', debugUser?.id],
+    queryKey: ['examinerUpcoming', examinerId],
     queryFn: () => {
       const today = new Date();
       const twoWeeksFromNow = new Date();
       twoWeeksFromNow.setDate(today.getDate() + 14);
       
-      return examinerTimeslotService.getExaminerSchedule(debugUser?.id, {
+      return examinerTimeslotService.getExaminerSchedule(examinerId, {
         dateFrom: today.toISOString().split('T')[0],
         dateTo: twoWeeksFromNow.toISOString().split('T')[0]
       });
     },
-    refetchInterval: 30000,
-    enabled: !!debugUser?.id
+    refetchInterval: 3 * 60 * 1000, // Reduced to 3 minutes from 30 seconds
+    staleTime: 90 * 1000, // 90 seconds stale time
+    enabled: isValidExaminer
   });
 
   const allSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment => 
