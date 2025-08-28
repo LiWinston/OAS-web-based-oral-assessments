@@ -14,10 +14,10 @@ import java.util.Map;
 public interface SubjectMapper extends BaseMapper<Subject> {
 
     /**
-     * Get course statistics efficiently using SQL aggregation
+     * Get course statistics efficiently using SQL aggregation for specific admin
      * Returns: totalCourses, activeCourses, totalAssignments
      */
-    Map<String, Object> getCourseStatistics();
+    Map<String, Object> getCourseStatistics(Long adminUserId);
 
     /**
      * Get the most recent academic year from active courses

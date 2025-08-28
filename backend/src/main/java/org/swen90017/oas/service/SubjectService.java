@@ -224,11 +224,11 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     }
 
     /**
-     * Get course statistics efficiently using SQL aggregation
+     * Get course statistics efficiently using SQL aggregation for specific admin
      * This method uses a single optimized query instead of N+1 queries
      */
-    public Map<String, Object> getCourseStatisticsOptimized() {
-        Map<String, Object> stats = subjectMapper.getCourseStatistics();
+    public Map<String, Object> getCourseStatisticsOptimized(Long adminUserId) {
+        Map<String, Object> stats = subjectMapper.getCourseStatistics(adminUserId);
         
         // Convert Long to Integer for consistency with frontend expectations
         if (stats.get("totalCourses") != null) {

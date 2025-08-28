@@ -134,14 +134,17 @@ public class CourseController {
     }
 
     /**
-     * Get course statistics for dashboard (Optimized with SQL aggregation)
+     * Get course statistics (Optimized with SQL aggregation)
+     * @param adminUserId Optional admin user ID. If provided, returns stats for specific admin; if null, returns global stats
      */
-    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses")
+    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses. Optional adminUserId parameter for specific admin stats")
     @GetMapping("/stats")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseStatsResponseDTO> getCourseStats() {
-        // Use optimized SQL aggregation query (single query instead of N+1)
-        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized();
+    public Result<CourseStatsResponseDTO> getCourseStats(
+            @Parameter(description = "Optional admin user ID for specific admin stats") 
+            @RequestParam(required = false) Long adminUserId) {
+        // Use optimized SQL aggregation query (global if adminUserId is null, specific admin if provided)
+        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized(adminUserId);
         
         // Add current semester information
         String currentSemester = getCurrentSemesterOptimized();
