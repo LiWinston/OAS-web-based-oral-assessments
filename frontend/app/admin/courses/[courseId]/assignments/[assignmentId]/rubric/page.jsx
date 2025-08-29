@@ -123,18 +123,17 @@ export default function RubricConfigurationPage() {
           totalPoints: rubricMetaInfo.totalPoints || 100,
           criteria: rubricInfoArray.map((criterion, index) => ({
             id: `criterion_${index}`,
-            title: criterion.description,
-            description: "",
+            title: `Criteria${index + 1}`,
+            description: criterion.description,
             weight: criterion.weight,
             markingScale: criterion.scaleType || "descriptive",
             levels: criterion.performanceLevel && Array.isArray(criterion.performanceLevel) 
               ? criterion.performanceLevel.map((level, levelIndex) => ({
                   id: `level_${levelIndex}`,
-                  name: level.description || `Level ${levelIndex + 1}`,
-                  description: level.description || "",
+                  description: level.description || `Level ${levelIndex + 1}`,
                   minPoints: level.startPoint,
                   maxPoints: level.endPoint,
-                  color: ["green", "blue", "yellow", "orange", "red"][levelIndex] || "gray"
+                  color: "blue"
                 }))
               : [], // Default empty levels if not provided
             comments: []
@@ -175,52 +174,58 @@ export default function RubricConfigurationPage() {
     return () => clearTimeout(welcomeTimer);
   }, [fetchData]);
 
-  const createDefaultCriterion = () => ({
+  // 生成criteria自动命名
+  const generateCriteriaTitle = (existingCriteria, isNew = true) => {
+    if (isNew) {
+      const nextNumber = existingCriteria.length + 1;
+      return `Criteria${nextNumber}`;
+    } else {
+      // For duplicates
+      return `Criteria${existingCriteria.length} (Copy)`;
+    }
+  };
+
+  const createDefaultCriterion = (isNew = true) => ({
     id: Date.now().toString(),
-    title: "New Criterion",
+    title: generateCriteriaTitle(rubric.criteria || [], isNew),
     description: "",
     weight: 100,
     markingScale: "descriptive",
     levels: [
       {
         id: "1",
-        name: "Outstanding",
-        description: "",
+        description: "Outstanding",
         minPoints: 90,
         maxPoints: 100,
-        color: "green",
+        color: "blue",
       },
       {
-        id: "2",
-        name: "Very Good",
-        description: "",
+        id: "2", 
+        description: "Very Good",
         minPoints: 80,
         maxPoints: 89,
         color: "blue",
       },
       {
         id: "3",
-        name: "Good",
-        description: "",
+        description: "Good",
         minPoints: 70,
         maxPoints: 79,
-        color: "yellow",
+        color: "blue",
       },
       {
         id: "4",
-        name: "Satisfactory",
-        description: "",
+        description: "Satisfactory",
         minPoints: 60,
         maxPoints: 69,
-        color: "orange",
+        color: "blue",
       },
       {
         id: "5",
-        name: "Needs Improvement",
-        description: "",
+        description: "Needs Improvement",
         minPoints: 0,
         maxPoints: 59,
-        color: "red",
+        color: "blue",
       },
     ],
     comments: [],
@@ -262,7 +267,11 @@ export default function RubricConfigurationPage() {
     const duplicatedCriterion = {
       ...criterionToDuplicate,
       id: Date.now().toString(),
-      title: `${criterionToDuplicate.title} (Copy)`,
+      title: generateCriteriaTitle(rubric.criteria, false),
+      levels: criterionToDuplicate.levels.map((level) => ({
+        ...level,
+        id: Date.now().toString() + Math.random(),
+      })),
       comments: criterionToDuplicate.comments.map((comment) => ({
         ...comment,
         id: Date.now().toString() + Math.random(),

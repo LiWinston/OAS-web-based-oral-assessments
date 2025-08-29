@@ -41,11 +41,11 @@ if (USE_MOCK_API) {
         weight: 30,
         markingScale: 'descriptive',
         levels: [
-          { id: '1', name: 'Outstanding', description: 'Demonstrates exceptional understanding', minPoints: 27, maxPoints: 30, color: 'green' },
-          { id: '2', name: 'Very Good', description: 'Shows strong understanding', minPoints: 24, maxPoints: 26, color: 'blue' },
-          { id: '3', name: 'Good', description: 'Shows adequate understanding', minPoints: 21, maxPoints: 23, color: 'yellow' },
-          { id: '4', name: 'Satisfactory', description: 'Shows basic understanding', minPoints: 18, maxPoints: 20, color: 'orange' },
-          { id: '5', name: 'Needs Improvement', description: 'Limited understanding', minPoints: 0, maxPoints: 17, color: 'red' }
+          { id: '1', description: 'Outstanding - Demonstrates exceptional understanding', minPoints: 27, maxPoints: 30, color: 'blue' },
+          { id: '2', description: 'Very Good - Shows strong understanding', minPoints: 24, maxPoints: 26, color: 'blue' },
+          { id: '3', description: 'Good - Shows adequate understanding', minPoints: 21, maxPoints: 23, color: 'blue' },
+          { id: '4', description: 'Satisfactory - Shows basic understanding', minPoints: 18, maxPoints: 20, color: 'blue' },
+          { id: '5', description: 'Needs Improvement - Limited understanding', minPoints: 0, maxPoints: 17, color: 'blue' }
         ],
         comments: [
           { id: '1', text: 'Excellent grasp of complex concepts', levelId: '1' },
@@ -60,11 +60,11 @@ if (USE_MOCK_API) {
         weight: 40,
         markingScale: 'descriptive',
         levels: [
-          { id: '1', name: 'Outstanding', description: 'Engaging and professional delivery', minPoints: 36, maxPoints: 40, color: 'green' },
-          { id: '2', name: 'Very Good', description: 'Clear and confident delivery', minPoints: 32, maxPoints: 35, color: 'blue' },
-          { id: '3', name: 'Good', description: 'Generally clear delivery', minPoints: 28, maxPoints: 31, color: 'yellow' },
-          { id: '4', name: 'Satisfactory', description: 'Adequate delivery with some issues', minPoints: 24, maxPoints: 27, color: 'orange' },
-          { id: '5', name: 'Needs Improvement', description: 'Unclear or disorganized delivery', minPoints: 0, maxPoints: 23, color: 'red' }
+          { id: '1', description: 'Outstanding - Engaging and professional delivery', minPoints: 36, maxPoints: 40, color: 'blue' },
+          { id: '2', description: 'Very Good - Clear and confident delivery', minPoints: 32, maxPoints: 35, color: 'blue' },
+          { id: '3', description: 'Good - Generally clear delivery', minPoints: 28, maxPoints: 31, color: 'blue' },
+          { id: '4', description: 'Satisfactory - Adequate delivery with some issues', minPoints: 24, maxPoints: 27, color: 'blue' },
+          { id: '5', description: 'Needs Improvement - Unclear or disorganized delivery', minPoints: 0, maxPoints: 23, color: 'blue' }
         ],
         comments: [
           { id: '1', text: 'Excellent eye contact and audience engagement', levelId: '1' },
@@ -79,11 +79,11 @@ if (USE_MOCK_API) {
         weight: 30,
         markingScale: 'descriptive',
         levels: [
-          { id: '1', name: 'Outstanding', description: 'Professional and enhances understanding', minPoints: 27, maxPoints: 30, color: 'green' },
-          { id: '2', name: 'Very Good', description: 'Clear and well-designed', minPoints: 24, maxPoints: 26, color: 'blue' },
-          { id: '3', name: 'Good', description: 'Adequate with minor issues', minPoints: 21, maxPoints: 23, color: 'yellow' },
-          { id: '4', name: 'Satisfactory', description: 'Basic but functional', minPoints: 18, maxPoints: 20, color: 'orange' },
-          { id: '5', name: 'Needs Improvement', description: 'Poor quality or distracting', minPoints: 0, maxPoints: 17, color: 'red' }
+          { id: '1', description: 'Outstanding - Professional and enhances understanding', minPoints: 27, maxPoints: 30, color: 'blue' },
+          { id: '2', description: 'Very Good - Clear and well-designed', minPoints: 24, maxPoints: 26, color: 'blue' },
+          { id: '3', description: 'Good - Adequate with minor issues', minPoints: 21, maxPoints: 23, color: 'blue' },
+          { id: '4', description: 'Satisfactory - Basic but functional', minPoints: 18, maxPoints: 20, color: 'blue' },
+          { id: '5', description: 'Needs Improvement - Poor quality or distracting', minPoints: 0, maxPoints: 17, color: 'blue' }
         ],
         comments: [
           { id: '1', text: 'Excellent use of visuals to support content', levelId: '1' },
@@ -289,15 +289,15 @@ const realRubricService = {
       },
       rubricsInfo: rubricData.criteria.map(criterion => {
         const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
-          description: level.description || level.name,
+          description: level.description,
           startPoint: level.minPoints,
           endPoint: level.maxPoints
         })) : [];
         
-        console.log("Mapping criterion:", criterion.title, "with levels:", performanceLevels);
+        console.log("Mapping criterion:", criterion.description || criterion.title, "with levels:", performanceLevels);
         
         return {
-          description: criterion.title,
+          description: criterion.description || criterion.title,
           weight: criterion.weight,
           scaleType: criterion.markingScale || "points",
           performanceLevel: performanceLevels
@@ -330,13 +330,13 @@ const realRubricService = {
       },
       rubricsInfo: updates.criteria.map(criterion => {
         const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
-          description: level.description || level.name,
+          description: level.description,
           startPoint: level.minPoints,
           endPoint: level.maxPoints
         })) : [];
         
         return {
-          description: criterion.title,
+          description: criterion.description || criterion.title,
           weight: criterion.weight,
           scaleType: criterion.markingScale || "points",
           performanceLevel: performanceLevels
