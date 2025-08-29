@@ -133,17 +133,22 @@ export const courseService = {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourses(filters);
     }
-    const response = await api.get('/api/courses', { 
-      params: {
-        pageSize: 60, // 卡片视图一页显示60个
-        pageNum: 1,
-        year: filters.year,
-        semester: filters.semester,
-        status: filters.status,
-        courseCode: filters.courseCode,
-        adminUserId: filters.adminUserId
-      }
-    });
+    
+    const params = {
+      pageSize: 60, // 卡片视图一页显示60个
+      pageNum: 1,
+    };
+    
+    // Only add non-undefined filter values
+    if (filters.year) params.year = filters.year;
+    if (filters.semester) params.semester = filters.semester;
+    if (filters.status) params.status = filters.status;
+    if (filters.courseCode) params.courseCode = filters.courseCode;
+    if (filters.adminUserId) params.adminUserId = filters.adminUserId;
+    
+    console.log('getAllCourses API params:', params);
+    
+    const response = await api.get('/api/courses', { params });
     return response.data;
   },
 
@@ -152,26 +157,35 @@ export const courseService = {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourses(filters);
     }
-    const response = await api.get('/api/courses', { 
-      params: {
-        pageNum,
-        pageSize,
-        year: filters.year,
-        semester: filters.semester,
-        status: filters.status,
-        courseCode: filters.courseCode,
-        adminUserId: filters.adminUserId
-      }
-    });
+    
+    const params = {
+      pageNum,
+      pageSize,
+    };
+    
+    // Only add non-undefined filter values
+    if (filters.year) params.year = filters.year;
+    if (filters.semester) params.semester = filters.semester;
+    if (filters.status) params.status = filters.status;
+    if (filters.courseCode) params.courseCode = filters.courseCode;
+    if (filters.adminUserId) params.adminUserId = filters.adminUserId;
+    
+    console.log('getCoursesPaginated API params:', params);
+    
+    const response = await api.get('/api/courses', { params });
     return response.data;
   },
 
   // Get course statistics for dashboard
-  async getCourseStats() {
+  async getCourseStats(adminUserId = null) {
     if (USE_MOCK_API) {
       return await mockCourseService.getCourseStats();
     }
-    const response = await api.get('/api/courses/stats');
+    const params = {};
+    if (adminUserId) {
+      params.adminUserId = adminUserId;
+    }
+    const response = await api.get('/api/courses/stats', { params });
     // Handle nested data structure from API response
     const result = response.data;
     if (result.success && result.data?.data) {

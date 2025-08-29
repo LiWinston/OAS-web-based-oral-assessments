@@ -3,8 +3,10 @@
 import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { StatsCard, StatsCardSkeleton } from "../../ui/stats-card";
 import { courseService } from "../../../services/courseService";
+import { useAuthStore } from "../../../store/authStore";
 
 export const CourseOverviewStats = forwardRef(function CourseOverviewStats(props, ref) {
+  const { user } = useAuthStore();
   const [stats, setStats] = useState({
     activeCourses: 0,
     totalStudents: 0,
@@ -29,7 +31,7 @@ export const CourseOverviewStats = forwardRef(function CourseOverviewStats(props
       setLoading(true);
       setError('');
       
-      const result = await courseService.getCourseStats();
+      const result = await courseService.getCourseStats(user?.id);
       
       if (result.success && result.data) {
         setStats({

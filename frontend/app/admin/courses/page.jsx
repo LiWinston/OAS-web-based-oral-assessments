@@ -40,6 +40,10 @@ export default function CoursesPage() {
         courseCode: searchTerm || undefined,
         adminUserId: user?.id
       };
+      
+      console.log('User data:', user);
+      console.log('User ID:', user?.id);
+      console.log('Filters being sent:', filters);
 
       let result;
       if (viewMode === 'table') {
@@ -80,8 +84,11 @@ export default function CoursesPage() {
 
   // 初始化和筛选条件变化时获取数据
   useEffect(() => {
-    fetchCourses(1);
-  }, [searchTerm, yearFilter, statusFilter, viewMode]);
+    // 只有当用户数据加载完成后才开始获取课程
+    if (user?.id) {
+      fetchCourses(1);
+    }
+  }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id]);
 
   // 初始化 courseListRef
   useEffect(() => {

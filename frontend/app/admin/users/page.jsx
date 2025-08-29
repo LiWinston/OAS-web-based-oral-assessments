@@ -14,12 +14,14 @@ import ConfirmDialog from "@/components/admin/users/ConfirmDialog";
 import { userService } from "@/services/userService";
 import { courseService } from "@/services/courseService";
 import { assignmentService } from "@/services/assignmentService";
+import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 
 const ROLES = ["STUDENT", "EXAMINER"];
 
 function AdminUsersContent() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
 
@@ -59,8 +61,9 @@ function AdminUsersContent() {
   };
 
   const { data: coursesRes } = useQuery({
-    queryKey: ["courses"],
-    queryFn: () => courseService.getCourses(),
+    queryKey: ["courses", user?.id],
+    queryFn: () => courseService.getAllCourses({ adminUserId: user?.id }),
+    enabled: !!user?.id,
   });
   const courses = coursesRes?.data?.data || coursesRes?.data || coursesRes?.courses;
 
