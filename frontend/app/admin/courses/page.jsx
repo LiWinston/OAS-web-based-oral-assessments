@@ -18,7 +18,7 @@ export default function CoursesPage() {
   const [viewMode, setViewMode] = useState("card"); // 'table' or 'card'
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("active"); // 默认显示活跃课程
+  const [statusFilter, setStatusFilter] = useState(""); // 默认显示所有课程
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
   const [availableYears, setAvailableYears] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -27,7 +27,16 @@ export default function CoursesPage() {
   const [totalCourses, setTotalCourses] = useState(0);
   const pageSize = 10;
   const courseListRef = useRef();
-  const statsRef = useRef();
+  
+  // Course stats state
+  const [courseStats, setCourseStats] = useState({
+    activeCourses: 0,
+    totalStudents: 0,
+    assignments: 0,
+    currentSemester: "",
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
 
   // Fetch courses based on view mode and filters
   const fetchCourses = useCallback(async (page = 1) => {
@@ -82,13 +91,67 @@ export default function CoursesPage() {
     }
   }, [viewMode, yearFilter, statusFilter, searchTerm, user?.id]);
 
-  // 初始化和筛选条件变化时获取数据
+  // Fetch course statistics
+  const fetchCourseStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      setStatsError('');
+      
+      // Ensure user data is available before making the request
+      if (!user?.id) {
+        console.warn('User ID not available for course stats request');
+        setStatsLoading(false);
+        return;
+      }
+      
+      const result = await courseService.getCourseStats(user.id);
+      
+      if (result.success && result.data) {
+        setCourseStats({
+          activeCourses: result.data.activeCourses || 0,
+          totalStudents: result.data.totalStudents || 0,
+          assignments: result.data.totalAssignments || 0,
+          currentSemester: result.data.currentSemester || "2025 S2",
+        });
+      } else {
+        setStatsError(result.message || 'Failed to fetch course statistics');
+        // Set default values
+        setCourseStats({
+          activeCourses: 0,
+          totalStudents: 0,
+          assignments: 0,
+          currentSemester: "2025 S2",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching course stats:', error);
+      setStatsError('Failed to load course statistics');
+      // Set default values
+      setCourseStats({
+        activeCourses: 0,
+        totalStudents: 0,
+        assignments: 0,
+        currentSemester: "2025 S2",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [user?.id]);
+
+  // 初始化统计数据 - 只依赖用户ID，不受筛选器影响
+  useEffect(() => {
+    if (user?.id) {
+      fetchCourseStats();
+    }
+  }, [user?.id, fetchCourseStats]);
+
+  // 初始化和筛选条件变化时获取课程数据 - 不包含统计数据
   useEffect(() => {
     // 只有当用户数据加载完成后才开始获取课程
     if (user?.id) {
       fetchCourses(1);
     }
-  }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id]);
+  }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id, fetchCourses]);
 
   // 初始化 courseListRef
   useEffect(() => {
@@ -127,9 +190,7 @@ export default function CoursesPage() {
     await fetchCourses(1);
     
     // Refresh statistics to reflect the new course
-    if (statsRef.current) {
-      statsRef.current.refreshStats();
-    }
+    await fetchCourseStats();
   };
 
   const handleEditCourse = (course) => {
@@ -148,15 +209,13 @@ export default function CoursesPage() {
     setEditModalOpen(false);
     setSelectedCourse(null);
     
-    // Refresh course list to show updated data and update available years
+    // Refresh course list to show updated data
     if (courseListRef.current) {
       courseListRef.current();
     }
     
     // Refresh statistics to reflect changes (especially active course count)
-    if (statsRef.current) {
-      statsRef.current.refreshStats();
-    }
+    fetchCourseStats();
   };
 
   // 生成固定范围的年份：当前年份+1年到7年前
@@ -275,7 +334,11 @@ export default function CoursesPage() {
       </div>
 
       {/* Course Overview Statistics */}
-      <CourseOverviewStats ref={statsRef} />
+      <CourseOverviewStats 
+        stats={courseStats}
+        loading={statsLoading}
+        error={statsError}
+      />
 
       {/* Enhanced Quick Tips Section */}
       <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">

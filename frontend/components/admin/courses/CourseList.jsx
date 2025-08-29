@@ -191,18 +191,32 @@ export function CourseList({
                           <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                         </div>
                       </button>
-                      <Link
-                        href={`/admin/courses/${course.id}/assignments`}
-                        className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative cursor-pointer"
-                        title="Manage Assignments"
-                      >
-                        <i className="fas fa-tasks text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
-                        {/* Enhanced tooltip */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                          Manage Assignments
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                      {course.status === 'archived' ? (
+                        <div
+                          className="p-1 rounded relative cursor-not-allowed group"
+                          title="Cannot manage assignments for archived courses"
+                        >
+                          <i className="fas fa-tasks text-gray-400 dark:text-gray-500"></i>
+                          {/* Enhanced tooltip for archived courses */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                            Course Is Archived
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                          </div>
                         </div>
-                      </Link>
+                      ) : (
+                        <Link
+                          href={`/admin/courses/${course.id}/assignments`}
+                          className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 relative cursor-pointer"
+                          title="Manage Assignments"
+                        >
+                          <i className="fas fa-tasks text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
+                          {/* Enhanced tooltip */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                            Manage Assignments
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -321,22 +335,40 @@ export function CourseList({
               </button>
 
               <div className="flex space-x-3">
-                <Link
-                  href={`/admin/courses/${course.id}/assignments`}
-                  className="inline-block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-110"
-                  onMouseEnter={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setTooltip({
-                      show: true,
-                      text: 'Manage Assignments',
-                      x: rect.left + rect.width / 2,
-                      y: rect.top
-                    });
-                  }}
-                  onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
-                >
-                  <i className="fas fa-tasks hover:animate-wiggle"></i>
-                </Link>
+                {course.status === 'archived' ? (
+                  <div
+                    className="inline-block text-gray-400 dark:text-gray-500 cursor-not-allowed"
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setTooltip({
+                        show: true,
+                        text: 'Course Is Archived',
+                        x: rect.left + rect.width / 2,
+                        y: rect.top
+                      });
+                    }}
+                    onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                  >
+                    <i className="fas fa-tasks"></i>
+                  </div>
+                ) : (
+                  <Link
+                    href={`/admin/courses/${course.id}/assignments`}
+                    className="inline-block text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-110"
+                    onMouseEnter={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setTooltip({
+                        show: true,
+                        text: 'Manage Assignments',
+                        x: rect.left + rect.width / 2,
+                        y: rect.top
+                      });
+                    }}
+                    onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                  >
+                    <i className="fas fa-tasks hover:animate-wiggle"></i>
+                  </Link>
+                )}
               </div>
             </div>
           </div>

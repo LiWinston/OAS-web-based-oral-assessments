@@ -1,69 +1,8 @@
 "use client";
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { StatsCard, StatsCardSkeleton } from "../../ui/stats-card";
-import { courseService } from "../../../services/courseService";
-import { useAuthStore } from "../../../store/authStore";
 
-export const CourseOverviewStats = forwardRef(function CourseOverviewStats(props, ref) {
-  const { user } = useAuthStore();
-  const [stats, setStats] = useState({
-    activeCourses: 0,
-    totalStudents: 0,
-    assignments: 0,
-    currentSemester: "",
-  });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  // Expose refresh function to parent component
-  useImperativeHandle(ref, () => ({
-    refreshStats: fetchCourseStats
-  }));
-
-  // Fetch course statistics from API
-  useEffect(() => {
-    fetchCourseStats();
-  }, []);
-
-  const fetchCourseStats = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      const result = await courseService.getCourseStats(user?.id);
-      
-      if (result.success && result.data) {
-        setStats({
-          activeCourses: result.data.activeCourses || 0,
-          totalStudents: result.data.totalStudents || 0,
-          assignments: result.data.totalAssignments || 0,
-          currentSemester: result.data.currentSemester || "2025 S2",
-        });
-      } else {
-        setError(result.message || 'Failed to fetch course statistics');
-        // Set default values
-        setStats({
-          activeCourses: 0,
-          totalStudents: 0,
-          assignments: 0,
-          currentSemester: "2025 S2",
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching course stats:', error);
-      setError('Failed to load course statistics');
-      // Set default values
-      setStats({
-        activeCourses: 0,
-        totalStudents: 0,
-        assignments: 0,
-        currentSemester: "2025 S2",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+export const CourseOverviewStats = ({ stats, loading, error }) => {
 
   if (loading) {
     return <StatsCardSkeleton count={4} />;
@@ -156,4 +95,4 @@ export const CourseOverviewStats = forwardRef(function CourseOverviewStats(props
       ))}
     </div>
   );
-});
+};
