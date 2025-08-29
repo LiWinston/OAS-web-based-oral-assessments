@@ -25,15 +25,32 @@ export function EditAssignmentModal({
   const [hasChanges, setHasChanges] = useState(false);
   const { showNotification } = useNotification();
 
-  // Helper function to convert datetime to date format for HTML date input
+  // Helper function to convert datetime to datetime-local format for HTML datetime-local input
   const formatDateForInput = (dateString) => {
     if (!dateString) return '';
-    // If datetime format (e.g., "2025-08-20T00:00:00"), extract date part
-    if (dateString.includes('T')) {
-      return dateString.split('T')[0];
+    
+    try {
+      // Create Date object from the input string
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return '';
+      }
+      
+      // Format to YYYY-MM-DDTHH:MM for datetime-local input
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return '';
     }
-    // If already in YYYY-MM-DD format, return as is
-    return dateString;
   };
 
   // Initialize form with assignment data
