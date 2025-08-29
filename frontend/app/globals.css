@@ -124,6 +124,103 @@
   }
 }
 
+/* Custom animations for dashboard components */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.5s ease-out forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.4s ease-out forwards;
+}
+
+.animate-pulse {
+  animation: pulse 2s infinite;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+/* Dashboard card hover effects */
+.dashboard-card {
+  transition: all 0.3s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+}
+
+.card-hover-shadow {
+  transition: box-shadow 0.3s ease;
+}
+
+.card-hover-shadow:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.dark .card-hover-shadow:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* Button hover effects */
+.btn-hover-scale {
+  transition: transform 0.2s ease;
+}
+
+.btn-hover-scale:hover {
+  transform: scale(1.02);
+}
+
 /* Custom interactive effects */
 @layer components {
   .btn-hover-scale {
@@ -765,25 +862,61 @@
   }
 
   /* Onboarding specific colors */
-  .bg-purple-100 { background-color: rgb(243 232 255); }
-  .dark .bg-purple-900\/30 { background-color: rgb(88 28 135 / 0.3); }
-  .text-purple-600 { color: rgb(147 51 234); }
-  .dark .text-purple-400 { color: rgb(196 181 253); }
-  .border-purple-200 { border-color: rgb(233 213 255); }
-  .dark .border-purple-800 { border-color: rgb(107 33 168); }
-  .bg-purple-600 { background-color: rgb(147 51 234); }
-  .hover\:bg-purple-700:hover { background-color: rgb(126 34 206); }
-  .focus\:ring-purple-300:focus { --tw-ring-color: rgb(196 181 253); }
+  .bg-purple-100 {
+    background-color: rgb(243 232 255);
+  }
+  .dark .bg-purple-900\/30 {
+    background-color: rgb(88 28 135 / 0.3);
+  }
+  .text-purple-600 {
+    color: rgb(147 51 234);
+  }
+  .dark .text-purple-400 {
+    color: rgb(196 181 253);
+  }
+  .border-purple-200 {
+    border-color: rgb(233 213 255);
+  }
+  .dark .border-purple-800 {
+    border-color: rgb(107 33 168);
+  }
+  .bg-purple-600 {
+    background-color: rgb(147 51 234);
+  }
+  .hover\:bg-purple-700:hover {
+    background-color: rgb(126 34 206);
+  }
+  .focus\:ring-purple-300:focus {
+    --tw-ring-color: rgb(196 181 253);
+  }
 
-  .bg-green-100 { background-color: rgb(220 252 231); }
-  .dark .bg-green-900\/30 { background-color: rgb(20 83 45 / 0.3); }
-  .text-green-600 { color: rgb(22 163 74); }
-  .dark .text-green-400 { color: rgb(134 239 172); }
-  .border-green-200 { border-color: rgb(187 247 208); }
-  .dark .border-green-800 { border-color: rgb(22 101 52); }
-  .bg-green-600 { background-color: rgb(22 163 74); }
-  .hover\:bg-green-700:hover { background-color: rgb(21 128 61); }
-  .focus\:ring-green-300:focus { --tw-ring-color: rgb(134 239 172); }
+  .bg-green-100 {
+    background-color: rgb(220 252 231);
+  }
+  .dark .bg-green-900\/30 {
+    background-color: rgb(20 83 45 / 0.3);
+  }
+  .text-green-600 {
+    color: rgb(22 163 74);
+  }
+  .dark .text-green-400 {
+    color: rgb(134 239 172);
+  }
+  .border-green-200 {
+    border-color: rgb(187 247 208);
+  }
+  .dark .border-green-800 {
+    border-color: rgb(22 101 52);
+  }
+  .bg-green-600 {
+    background-color: rgb(22 163 74);
+  }
+  .hover\:bg-green-700:hover {
+    background-color: rgb(21 128 61);
+  }
+  .focus\:ring-green-300:focus {
+    --tw-ring-color: rgb(134 239 172);
+  }
 
   /* Enhanced Calendar Event Styles */
   .event-active {
@@ -806,7 +939,8 @@
 
   /* Calendar Event Animations */
   @keyframes eventPulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }
@@ -817,7 +951,8 @@
   }
 
   @keyframes liveDot {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }
@@ -841,7 +976,8 @@
   }
 
   @keyframes urgentGlow {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
     }
     50% {
@@ -865,7 +1001,8 @@
   }
 
   @keyframes urgentPulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
     }
@@ -1775,25 +1912,61 @@
   }
 
   /* Onboarding specific colors */
-  .bg-purple-100 { background-color: rgb(243 232 255); }
-  .dark .bg-purple-900\/30 { background-color: rgb(88 28 135 / 0.3); }
-  .text-purple-600 { color: rgb(147 51 234); }
-  .dark .text-purple-400 { color: rgb(196 181 253); }
-  .border-purple-200 { border-color: rgb(233 213 255); }
-  .dark .border-purple-800 { border-color: rgb(107 33 168); }
-  .bg-purple-600 { background-color: rgb(147 51 234); }
-  .hover\:bg-purple-700:hover { background-color: rgb(126 34 206); }
-  .focus\:ring-purple-300:focus { --tw-ring-color: rgb(196 181 253); }
+  .bg-purple-100 {
+    background-color: rgb(243 232 255);
+  }
+  .dark .bg-purple-900\/30 {
+    background-color: rgb(88 28 135 / 0.3);
+  }
+  .text-purple-600 {
+    color: rgb(147 51 234);
+  }
+  .dark .text-purple-400 {
+    color: rgb(196 181 253);
+  }
+  .border-purple-200 {
+    border-color: rgb(233 213 255);
+  }
+  .dark .border-purple-800 {
+    border-color: rgb(107 33 168);
+  }
+  .bg-purple-600 {
+    background-color: rgb(147 51 234);
+  }
+  .hover\:bg-purple-700:hover {
+    background-color: rgb(126 34 206);
+  }
+  .focus\:ring-purple-300:focus {
+    --tw-ring-color: rgb(196 181 253);
+  }
 
-  .bg-green-100 { background-color: rgb(220 252 231); }
-  .dark .bg-green-900\/30 { background-color: rgb(20 83 45 / 0.3); }
-  .text-green-600 { color: rgb(22 163 74); }
-  .dark .text-green-400 { color: rgb(134 239 172); }
-  .border-green-200 { border-color: rgb(187 247 208); }
-  .dark .border-green-800 { border-color: rgb(22 101 52); }
-  .bg-green-600 { background-color: rgb(22 163 74); }
-  .hover\:bg-green-700:hover { background-color: rgb(21 128 61); }
-  .focus\:ring-green-300:focus { --tw-ring-color: rgb(134 239 172); }
+  .bg-green-100 {
+    background-color: rgb(220 252 231);
+  }
+  .dark .bg-green-900\/30 {
+    background-color: rgb(20 83 45 / 0.3);
+  }
+  .text-green-600 {
+    color: rgb(22 163 74);
+  }
+  .dark .text-green-400 {
+    color: rgb(134 239 172);
+  }
+  .border-green-200 {
+    border-color: rgb(187 247 208);
+  }
+  .dark .border-green-800 {
+    border-color: rgb(22 101 52);
+  }
+  .bg-green-600 {
+    background-color: rgb(22 163 74);
+  }
+  .hover\:bg-green-700:hover {
+    background-color: rgb(21 128 61);
+  }
+  .focus\:ring-green-300:focus {
+    --tw-ring-color: rgb(134 239 172);
+  }
 
   /* Enhanced Calendar Event Styles */
   .event-active {
@@ -1816,7 +1989,8 @@
 
   /* Calendar Event Animations */
   @keyframes eventPulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }
@@ -1827,7 +2001,8 @@
   }
 
   @keyframes liveDot {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
       transform: scale(1);
     }
@@ -1851,7 +2026,8 @@
   }
 
   @keyframes urgentGlow {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
     }
     50% {
@@ -1875,7 +2051,8 @@
   }
 
   @keyframes urgentPulse {
-    0%, 100% {
+    0%,
+    100% {
       transform: scale(1);
       box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
     }
