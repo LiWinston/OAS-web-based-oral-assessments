@@ -1,13 +1,13 @@
 'use client';
 
-import { to12Hour } from '../../../lib/utils/timeMath.js';
-import { confirm } from '../../../lib/utils/notifications.js';
+import { to12Hour } from '@/lib/timeMath.js';
+import { confirm } from '@/lib/notifications.js';
 
 /**
  * TimeSlotList - Display and manage list of time slots in the wizard
  * Accumulates draft slots locally, calls createTimeSlotsBatch() on "Done"
  * 
- * @typedef {import('../../../lib/types/timeslot.js').TimeSlot} TimeSlot
+ * @typedef {import('@/types/timeslot.js').TimeSlot} TimeSlot
  */
 
 export default function TimeSlotList({ 

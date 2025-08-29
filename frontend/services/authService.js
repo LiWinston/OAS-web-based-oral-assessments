@@ -1,4 +1,4 @@
-import { api } from './apiClient';
+import { apiClient } from '@/services/apiClient';
 
 /**
  * Authentication Service

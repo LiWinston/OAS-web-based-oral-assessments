@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useSessionConfig } from '../../../lib/hooks/useSessionConfig.js';
-import { calculateEndTimeWithConfig } from '../../../lib/utils/timeMath.js';
-import { showError } from '../../../lib/utils/notifications.js';
+import { useSessionConfig } from '@/hooks/useSessionConfig.js';
+import { calculateEndTimeWithConfig } from '@/lib/timeMath.js';
+import { showError } from '@/lib/notifications.js';
 
 /**
  * TimeSlotForm - Form for adding/editing time slots in the wizard
  * Uses session config for time calculations (no hard-coded values)
  * 
- * @typedef {import('../../../lib/types/timeslot.js').TimeSlot} TimeSlot
+ * @typedef {import('@/types/timeslot.js').TimeSlot} TimeSlot
  */
 
 export default function TimeSlotForm({ 

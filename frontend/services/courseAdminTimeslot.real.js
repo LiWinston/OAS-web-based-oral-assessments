@@ -1,4 +1,4 @@
-import apiClient from './apiClient.js';
+import apiClient from '@/services/apiClient.js';
 
 /**
  * Real service implementation for Course Admin Timeslot management

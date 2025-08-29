@@ -1,14 +1,14 @@
 'use client';
 
-import { useExaminerLimits, useCapacityValidation } from '../../../lib/hooks/useExaminerLimits.js';
-import { useSessionConfig } from '../../../lib/hooks/useSessionConfig.js';
-import { showError } from '../../../lib/utils/notifications.js';
+import { useExaminerLimits, useCapacityValidation } from '@/hooks/useExaminerLimits.js';
+import { useSessionConfig } from '@/hooks/useSessionConfig.js';
+import { showError } from '@/lib/notifications.js';
 
 /**
  * ExaminerLimitsStep - Step 3 of the schedule wizard
  * Loads examiners and mutates limits via hook; validates capacity in real-time
  * 
- * @typedef {import('../../../lib/types/timeslot.js').Examiner} Examiner
+ * @typedef {import('@/types/timeslot.js').Examiner} Examiner
  */
 
 export default function ExaminerLimitsStep({ 

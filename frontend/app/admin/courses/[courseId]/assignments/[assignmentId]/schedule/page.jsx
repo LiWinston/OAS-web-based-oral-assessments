@@ -2,13 +2,13 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import SessionConfigStep from '../../../../../../components/admin/schedule/SessionConfigStep.jsx';
-import TimeSlotForm from '../../../../../../components/admin/schedule/TimeSlotForm.jsx';
-import TimeSlotList from '../../../../../../components/admin/schedule/TimeSlotList.jsx';
-import ExaminerLimitsStep from '../../../../../../components/admin/schedule/ExaminerLimitsStep.jsx';
-import { useTimeSlots } from '../../../../../../lib/hooks/useTimeSlots.js';
-import { useExaminerLimits } from '../../../../../../lib/hooks/useExaminerLimits.js';
-import { showSuccess, showError } from '../../../../../../lib/utils/notifications.js';
+import SessionConfigStep from '@/components/admin/schedule/SessionConfigStep.jsx';
+import TimeSlotForm from '@/components/admin/schedule/TimeSlotForm.jsx';
+import TimeSlotList from '@/components/admin/schedule/TimeSlotList.jsx';
+import ExaminerLimitsStep from '@/components/admin/schedule/ExaminerLimitsStep.jsx';
+import { useTimeSlots } from '@/hooks/useTimeSlots.js';
+import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
+import { showSuccess, showError } from '@/lib/notifications.js';
 
 /**
  * AssignmentSchedulePage - Refactored 3-step wizard

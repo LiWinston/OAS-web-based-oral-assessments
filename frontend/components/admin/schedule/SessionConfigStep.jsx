@@ -1,13 +1,13 @@
 'use client';
 
-import { useSessionConfig } from '../../../lib/hooks/useSessionConfig.js';
-import { showError } from '../../../lib/utils/notifications.js';
+import { useSessionConfig } from '@/hooks/useSessionConfig.js';
+import { showError } from '@/lib/notifications.js';
 
 /**
  * SessionConfigStep - Step 1 of the schedule wizard
  * Reads/writes session configuration via useSessionConfig hook
  * 
- * @typedef {import('../../../lib/types/timeslot.js').SessionConfig} SessionConfig
+ * @typedef {import('@/types/timeslot.js').SessionConfig} SessionConfig
  */
 
 export default function SessionConfigStep({ assignmentId, onNext }) {

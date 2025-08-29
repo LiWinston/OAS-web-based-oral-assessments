@@ -4,10 +4,10 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '../services/courseAdminTimeslot.service.js';
-import { mapExaminersFromApi } from '../mappers/timeslotMappers.js';
-import { validateExaminerCapacity } from '../utils/validation.js';
-import { showSuccess, showError, showWarning } from '../utils/notifications.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { mapExaminersFromApi } from '@/lib/timeslotMappers.js';
+import { validateExaminerCapacity } from '@/lib/validation.js';
+import { showSuccess, showError, showWarning } from '@/lib/notifications.js';
 
 /**
  * Query key factory for examiners and limits

@@ -1,12 +1,12 @@
 'use client';
 
-import { createStatusPillData } from '../../../lib/mappers/timeslotMappers';
+import { createStatusPillData } from '@/lib/timeslotMappers.js';
 
 /**
  * StatusPill - Standardized status display component
  * Uses centralized status mapping from timeslotMappers
  * 
- * @typedef {import('../../../lib/types/timeslot.js').TimeSlot} TimeSlot
+ * @typedef {import('@/types/timeslot.js').TimeSlot} TimeSlot
  */
 
 export default function StatusPill({ status, assigned, required, timeSlot }) {

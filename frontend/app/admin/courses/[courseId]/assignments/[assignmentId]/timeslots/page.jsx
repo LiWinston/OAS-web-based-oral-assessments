@@ -2,14 +2,14 @@
 
 import { useState } from 'react';
 import { useParams } from 'next/navigation';
-import CalendarMonth from '../../../../../../components/admin/schedule/CalendarMonth.jsx';
-import TimeSlotCard from '../../../../../../components/admin/schedule/TimeSlotCard.jsx';
-import BulkActionsBar from '../../../../../../components/admin/schedule/BulkActionsBar.jsx';
-import AddTimeSlotModal from '../../../../../../components/admin/schedule/AddTimeSlotModal.jsx';
-import { useTimeSlots } from '../../../../../../lib/hooks/useTimeSlots.js';
-import { useSessionConfig } from '../../../../../../lib/hooks/useSessionConfig.js';
-import { useScheduleRelease } from '../../../../../../lib/hooks/useScheduleRelease.js';
-import { confirm, showSuccess, showError } from '../../../../../../lib/utils/notifications.js';
+import CalendarMonth from '@/components/admin/schedule/CalendarMonth.jsx';
+import TimeSlotCard from '@/components/admin/schedule/TimeSlotCard.jsx';
+import BulkActionsBar from '@/components/admin/schedule/BulkActionsBar.jsx';
+import AddTimeSlotModal from '@/components/admin/schedule/AddTimeSlotModal.jsx';
+import { useTimeSlots } from '@/hooks/useTimeSlots.js';
+import { useSessionConfig } from '@/hooks/useSessionConfig.js';
+import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
+import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 
 /**
  * AssignmentTimeSlotsPage - Refactored timeslot management

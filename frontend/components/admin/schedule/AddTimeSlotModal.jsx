@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { showError } from '../../../lib/utils/notifications.js';
+import { showError } from '@/lib/notifications.js';
 
 /**
  * AddTimeSlotModal
@@ -19,7 +19,7 @@ import { showError } from '../../../lib/utils/notifications.js';
  * - onCancel: () => void
  * - onSave: (timeSlotData) => void
  * 
- * @typedef {import('../../lib/types/timeslot.js').SessionConfig} SessionConfig
+ * @typedef {import('@/types/timeslot.js').SessionConfig} SessionConfig
  */
 export default function AddTimeSlotModal({
   isOpen,

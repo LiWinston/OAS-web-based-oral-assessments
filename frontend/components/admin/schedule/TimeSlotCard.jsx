@@ -1,12 +1,12 @@
 'use client';
 
-import { to12Hour } from '../../../lib/utils/timeMath.js';
-import StatusPill from './StatusPill.jsx';
+import { to12Hour } from '@/lib/timeMath.js';
+import StatusPill from '@/components/admin/schedule/StatusPill.jsx';
 
 /**
  * TimeSlotCard - Individual time slot display card for management page
  * 
- * @typedef {import('../../../lib/types/timeslot.js').TimeSlot} TimeSlot
+ * @typedef {import('@/types/timeslot.js').TimeSlot} TimeSlot
  */
 
 export default function TimeSlotCard({ 

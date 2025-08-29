@@ -4,8 +4,8 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '../services/courseAdminTimeslot.service.js';
-import { mapCalendarFromApi } from '../mappers/timeslotMappers.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { mapCalendarFromApi } from '@/lib/timeslotMappers.js';
 
 /**
  * Query key factory for calendar data

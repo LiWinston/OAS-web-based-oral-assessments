@@ -2,13 +2,13 @@
  * Data mappers for timeslot data transformation
  * Handles conversion between API formats and UI formats
  * 
- * @typedef {import('../types/timeslot.js').TimeSlot} TimeSlot
- * @typedef {import('../types/timeslot.js').SessionConfig} SessionConfig
- * @typedef {import('../types/timeslot.js').Examiner} Examiner
- * @typedef {import('../types/timeslot.js').CalendarData} CalendarData
+ * @typedef {import('@/types/timeslot.js').TimeSlot} TimeSlot
+ * @typedef {import('@/types/timeslot.js').SessionConfig} SessionConfig
+ * @typedef {import('@/types/timeslot.js').Examiner} Examiner
+ * @typedef {import('@/types/timeslot.js').CalendarData} CalendarData
  */
 
-import { to12Hour, to24Hour } from '../utils/timeMath.js';
+import { to12Hour, to24Hour } from '@/lib/timeMath.js';
 
 /**
  * Determine status based on assigned and required examiners

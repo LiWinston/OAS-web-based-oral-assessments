@@ -4,9 +4,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '../services/courseAdminTimeslot.service.js';
-import { mapTimeSlotsFromApi, mapTimeSlotsToApi, mapTimeSlotFromApi, mapTimeSlotToApi } from '../mappers/timeslotMappers.js';
-import { showSuccess, showError } from '../utils/notifications.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { mapTimeSlotsFromApi, mapTimeSlotsToApi, mapTimeSlotFromApi, mapTimeSlotToApi } from '@/lib/timeslotMappers.js';
+import { showSuccess, showError } from '@/lib/notifications.js';
 
 /**
  * Query key factory for time slots

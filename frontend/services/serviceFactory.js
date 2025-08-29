@@ -1,5 +1,5 @@
-import { courseAdminTimeslotServiceReal } from './courseAdminTimeslot.real.js';
-import { courseAdminTimeslotServiceMock } from './courseAdminTimeslot.mock.js';
+import { courseAdminTimeslotServiceReal } from '@/services/courseAdminTimeslot.real.js';
+import { courseAdminTimeslotServiceMock } from '@/services/courseAdminTimeslot.mock.js';
 
 /**
  * Service factory for switching between real and mock services

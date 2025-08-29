@@ -4,8 +4,8 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '../services/courseAdminTimeslot.service.js';
-import { showSuccess, showError, showWarning } from '../utils/notifications.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { showSuccess, showError, showWarning } from '@/lib/notifications.js';
 
 /**
  * Query key factory for schedule release

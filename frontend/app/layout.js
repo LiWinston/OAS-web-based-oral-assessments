@@ -1,5 +1,5 @@
 import "./globals.css";
-import { Providers } from "../lib/providers";
+import { Providers } from "@/lib/providers";
 
 // Application metadata for SEO and browser display
 export const metadata = {

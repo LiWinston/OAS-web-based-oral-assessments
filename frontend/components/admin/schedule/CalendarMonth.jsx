@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useCalendar } from '../../../lib/hooks/useCalendar.js';
+import { useCalendar } from '@/hooks/useCalendar.js';
 
 /**
  * CalendarMonth - Dynamic calendar component for timeslot management
