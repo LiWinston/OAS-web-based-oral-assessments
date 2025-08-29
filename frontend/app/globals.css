@@ -2122,4 +2122,57 @@
   .animate-skeleton {
     animation: skeleton 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
+
+  /* Notification System Styles */
+  .notification-toast {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  .notification-toast.notification-enter {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .notification-toast.notification-exit {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  .toast-close-btn {
+    transition: color 0.2s ease;
+  }
+
+  .toast-close-btn:hover {
+    color: currentColor;
+  }
+
+  /* Confirm Dialog Animations */
+  #confirm-dialog-container > div:first-child {
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  #confirm-dialog-container > div:last-child {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: scale(0.95) translateY(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
 }

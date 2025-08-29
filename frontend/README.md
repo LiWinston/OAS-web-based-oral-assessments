@@ -828,6 +828,46 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **Assessment Execution**: No examiner marking interface or draft saving
 - **Results System**: No mark aggregation, release control, or Canvas export
 
+## 📋 Changelog
+
+### ✅ **Latest Refactoring (2024-12-28)**
+
+**🎯 Course Admin Timeslot System Architectural Refactoring**
+
+- **Complete architectural overhaul** of the Course Admin timeslot management system following SOLID principles
+- **Replaced monolithic components** with modular, reusable components following the Single Responsibility Principle
+- **Implemented service layer pattern** with mock/real API switching via `NEXT_PUBLIC_USE_MOCKS` environment variable
+- **Migrated from local state to server state** using React Query hooks for all data operations
+- **Added comprehensive JSDoc typedefs** for all data models (TimeSlot, SessionConfig, Examiner, etc.)
+- **Fixed query key structures** to follow specification pattern: `['assignment', assignmentId, 'resource']`
+- **Integrated notification system** replacing all browser `alert()` calls with professional toast notifications
+- **Created modular component architecture**:
+  - `SessionConfigStep.jsx` - Step 1 of wizard using `useSessionConfig` hook
+  - `TimeSlotForm.jsx` - Form component with session config injection
+  - `TimeSlotList.jsx` - List component with batch operations
+  - `ExaminerLimitsStep.jsx` - Step 3 with capacity validation
+  - `CalendarMonth.jsx` - Calendar component using `useCalendar` hook
+  - `TimeSlotCard.jsx` - Individual timeslot display component
+  - `BulkActionsBar.jsx` - Bulk operations interface
+- **Implemented service factory pattern** (`lib/services/serviceFactory.js`) for seamless mock/real API switching
+- **Added utility modules**: `timeMath.js`, `validation.js`, `notifications.js`, `mappers.js`
+- **Created comprehensive React Query hooks**:
+  - `useSessionConfig.js` - Session configuration management
+  - `useTimeSlots.js` - Timeslot CRUD operations with batch processing
+  - `useExaminerLimits.js` - Examiner capacity management
+  - `useScheduleRelease.js` - Schedule release control
+  - `useCalendar.js` - Calendar state management
+- **Fixed session configuration injection** in `AddTimeSlotModal` to eliminate hard-coded values
+- **Maintained UI consistency** while completely overhauling underlying data architecture
+- **Added type safety** with comprehensive JSDoc documentation throughout
+- **Files refactored**: 
+  - `app/admin/courses/[courseId]/assignments/[assignmentId]/schedule/page.jsx` (750+ lines → modular composition)
+  - `app/admin/courses/[courseId]/assignments/[assignmentId]/timeslots/page.jsx` (complete server state migration)
+  - `components/admin/schedule/` (complete component decomposition)
+  - `lib/hooks/` (comprehensive hook library)
+  - `lib/services/` (service layer with factory pattern)
+  - `lib/types/timeslot.js` (JSDoc type definitions)
+
 **📋 Next Phase Priorities**
 
 1. **Comment Library**: Implement centralized comment management with search and analytics

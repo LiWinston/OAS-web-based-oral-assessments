@@ -3,7 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { initializeNotifications } from "./utils/notifications";
 
 /**
  * Providers Component
@@ -16,6 +17,11 @@ import { useState } from "react";
  * @param {React.ReactNode} props.children - Child components to wrap with providers
  */
 export function Providers({ children }) {
+  // Initialize notification system on mount
+  useEffect(() => {
+    initializeNotifications();
+  }, []);
+
   // Create a stable QueryClient instance
   const [queryClient] = useState(
     () =>

@@ -1,26 +1,32 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { showError } from '../../../lib/utils/notifications.js';
 
 /**
  * AddTimeSlotModal
  *
  * A reusable modal for creating or editing a time slot.
  * This component is also used by EditTimeSlotModal via props.
+ * NOW ACCEPTS INJECTED SESSION CONFIG (per Section 15)
  *
  * Props:
  * - isOpen: boolean - whether modal is visible
  * - mode: 'add' | 'edit'
  * - initialData: optional existing time slot data
  * - availableExaminers: array of { id, name, avatar?, assignments? }
+ * - sessionConfig: object with sessionLength and gapTime
  * - onCancel: () => void
  * - onSave: (timeSlotData) => void
+ * 
+ * @typedef {import('../../lib/types/timeslot.js').SessionConfig} SessionConfig
  */
 export default function AddTimeSlotModal({
   isOpen,
   mode = 'add',
   initialData,
   availableExaminers = [],
+  sessionConfig,
   onCancel,
   onSave,
 }) {
@@ -71,14 +77,15 @@ export default function AddTimeSlotModal({
   }, [isOpen, initialData, availableExaminers]);
 
   const endTime = useMemo(() => {
-    if (!startHour || !startMinute || !sessions) return 'N/A';
+    if (!startHour || !startMinute || !sessions || !sessionConfig) return 'N/A';
     let hour24 = parseInt(startHour, 10);
     const minute = parseInt(startMinute, 10);
     if (ampm === 'PM' && hour24 < 12) hour24 += 12;
     if (ampm === 'AM' && hour24 === 12) hour24 = 0;
 
-    const sessionLength = 30; // minutes
-    const gapTime = 5; // minutes
+    // Use injected session config instead of hard-coded values (per Section 15)
+    const sessionLength = sessionConfig.sessionLength || 30; // minutes
+    const gapTime = sessionConfig.gapTime || 5; // minutes
     const totalMinutes = sessions * sessionLength + (sessions - 1) * gapTime;
 
     let endHour = hour24 + Math.floor((minute + totalMinutes) / 60);
@@ -91,7 +98,7 @@ export default function AddTimeSlotModal({
     }
     if (endHour === 0) endHour = 12;
     return `${endHour}:${String(endMinute).padStart(2, '0')} ${endPeriod}`;
-  }, [startHour, startMinute, ampm, sessions]);
+  }, [startHour, startMinute, ampm, sessions, sessionConfig]);
 
   const assignedExaminers = useMemo(
     () => availableExaminers.filter((e) => assignedExaminerIds.includes(e.id)),
@@ -114,7 +121,7 @@ export default function AddTimeSlotModal({
 
   const handleSave = () => {
     if (!date || !venue) {
-      alert('Please fill in all required fields');
+      showError('Please fill in all required fields');
       return;
     }
     
@@ -271,7 +278,9 @@ export default function AddTimeSlotModal({
             <div className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600">
               {endTime}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Based on 30-minute sessions with 5-minute gaps</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Based on {sessionConfig?.sessionLength || 30}-minute sessions with {sessionConfig?.gapTime || 5}-minute gaps
+            </p>
           </div>
 
           {/* Venue */}
