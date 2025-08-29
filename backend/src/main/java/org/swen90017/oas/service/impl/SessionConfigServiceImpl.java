@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.SessionConfigRequestDTO;
+import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.dto.response.SessionConfigResponseDTO;
 import org.swen90017.oas.entity.AssignmentSessionConfig;
 import org.swen90017.oas.exception.BusinessException;
@@ -35,12 +36,33 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
     @Override
     @Transactional
     public SessionConfigResponseDTO upsertSessionConfig(Long assignmentId, SessionConfigRequestDTO request) {
+        // Try to get existing configuration
+        AssignmentSessionConfig existingConfig = sessionConfigMapper.selectById(assignmentId);
+        
         AssignmentSessionConfig config = new AssignmentSessionConfig();
         config.setAssignmentId(assignmentId);
-        config.setSessionLengthMin(request.getSessionLength());
-        config.setGapTimeMin(request.getGapTime());
-        config.setExaminersPerSession(request.getExaminersPerSession());
-        config.setDefaultMaxSessionsPerExaminer(request.getDefaultMaxSessionsPerExaminer());
+        
+        if (existingConfig != null) {
+            // Update existing config: only update fields that are provided (not null)
+            config.setSessionLengthMin(request.getSessionLength() != null ? 
+                request.getSessionLength() : existingConfig.getSessionLengthMin());
+            config.setGapTimeMin(request.getGapTime() != null ? 
+                request.getGapTime() : existingConfig.getGapTimeMin());
+            config.setExaminersPerSession(request.getExaminersPerSession() != null ? 
+                request.getExaminersPerSession() : existingConfig.getExaminersPerSession());
+            config.setDefaultMaxSessionsPerExaminer(request.getDefaultMaxSessionsPerExaminer() != null ? 
+                request.getDefaultMaxSessionsPerExaminer() : existingConfig.getDefaultMaxSessionsPerExaminer());
+        } else {
+            // Create new config: use provided values or sensible defaults
+            config.setSessionLengthMin(request.getSessionLength() != null ? request.getSessionLength() : 30);
+            config.setGapTimeMin(request.getGapTime() != null ? request.getGapTime() : 5);
+            config.setExaminersPerSession(request.getExaminersPerSession() != null ? request.getExaminersPerSession() : 2);
+            config.setDefaultMaxSessionsPerExaminer(request.getDefaultMaxSessionsPerExaminer() != null ? request.getDefaultMaxSessionsPerExaminer() : 0);
+        }
+
+        // Set updater information
+        LoginUser currentUser = SecurityUtils.getLoginUser();
+        config.setUpdatedBy(currentUser != null ? currentUser.getUserId() : null);
 
         // Use the upsert method from mapper
         sessionConfigMapper.upsert(config);
