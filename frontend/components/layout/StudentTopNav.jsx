@@ -26,15 +26,6 @@ export function StudentTopNav({ onSidebarToggle }) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState("all");
-
-  // Mock courses data - will be replaced with real data
-  const courses = [
-    { id: "all", name: "All Courses" },
-    { id: "comp90082", name: "COMP90082 - SPM" },
-    { id: "info30005", name: "INFO30005 - Web Info Tech" },
-    { id: "comp30022", name: "COMP30022 - IT Project" },
-  ];
 
   // Mock notifications data
   const notifications = [
@@ -80,22 +71,6 @@ export function StudentTopNav({ onSidebarToggle }) {
         >
           <i className="fas fa-bars"></i>
         </button>
-
-        {/* Course selector */}
-        <div className="ml-4 md:ml-0">
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-48 md:w-64">
-              <SelectValue placeholder="Select a course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((course) => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {/* Right side - Dark mode, notifications, user profile */}

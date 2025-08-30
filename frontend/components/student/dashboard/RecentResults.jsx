@@ -1,7 +1,11 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { studentResultsService } from "../../../services/studentResultsService";
+import { useAuthStore } from "../../../store/authStore";
+import { format } from 'date-fns';
 
 /**
  * RecentResults Component
@@ -10,48 +14,48 @@ import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
  * and links to detailed feedback.
  */
 export function RecentResults() {
-  // Mock data - will be replaced with real data from API
-  const results = [
-    {
-      id: 1,
-      title: "Network Security Project",
-      course: "COMP30023",
-      type: "Final Presentation",
-      date: "October 15, 2024",
-      score: 92,
-      maxScore: 100,
-      grade: "A",
-      feedback:
-        "Excellent presentation with clear technical explanations and good team coordination.",
-      examiner: "Dr. Sarah Johnson",
-    },
-    {
-      id: 2,
-      title: "Machine Learning Models",
-      course: "COMP30027",
-      type: "Final Exam",
-      date: "November 10, 2024",
-      score: 85,
-      maxScore: 100,
-      grade: "B+",
-      feedback:
-        "Good understanding of concepts with room for improvement in implementation details.",
-      examiner: "Prof. Michael Chen",
-    },
-    {
-      id: 3,
-      title: "Database Design Project",
-      course: "INFO20003",
-      type: "Group Presentation",
-      date: "September 28, 2024",
-      score: 88,
-      maxScore: 100,
-      grade: "B+",
-      feedback:
-        "Well-structured database design with comprehensive documentation.",
-      examiner: "Dr. Emily Davis",
-    },
-  ];
+  const { user } = useAuthStore();
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load recent results
+  useEffect(() => {
+    const loadResults = async () => {
+      try {
+        if (!user?.id) return;
+        
+        const response = await studentResultsService.getStudentResults(user.id, {
+          status: 'released',
+          pageSize: 3,
+          sort: 'date_desc'
+        });
+
+        if (response.success) {
+          // Transform data to match component format
+          const transformedResults = response.data.data.map(assignment => ({
+            id: assignment.assignmentId,
+            title: assignment.assignmentName,
+            course: assignment.courseCode,
+            type: assignment.assessmentType,
+            date: format(new Date(assignment.result.assessedOn), 'MMMM dd, yyyy'),
+            score: assignment.result.totalPoints,
+            maxScore: assignment.result.maxPoints,
+            grade: assignment.result.finalGrade,
+            feedback: `${assignment.result.examinerCount} examiner${assignment.result.examinerCount !== 1 ? 's' : ''} assessed • Results ${assignment.result.aggregationMethod}d`,
+            examiner: assignment.courseName
+          }));
+          setResults(transformedResults);
+        }
+      } catch (error) {
+        console.error('Error loading recent results:', error);
+        // Keep empty array on error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadResults();
+  }, [user?.id]);
 
   const getGradeColor = (grade) => {
     switch (grade) {
@@ -97,89 +101,108 @@ export function RecentResults() {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-          {results.map((result) => (
-            <li key={result.id} className="py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                    {result.title}
-                  </h4>
-                  <div className="mt-1 flex items-center flex-wrap gap-3">
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      <i className="fas fa-calendar-day mr-1"></i>
-                      {result.date}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      <i className="fas fa-book mr-1"></i>
-                      {result.course} - {result.type}
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      <i className="fas fa-user-tie mr-1"></i>
-                      {result.examiner}
-                    </span>
-                  </div>
+        {loading ? (
+          <div className="text-center py-8">
+            <i className="fas fa-spinner fa-spin text-2xl text-gray-400 mb-2"></i>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Loading recent results...</p>
+          </div>
+        ) : results.length === 0 ? (
+          <div className="text-center py-8">
+            <i className="fas fa-chart-bar text-4xl text-gray-400 mb-4"></i>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              No Results Yet
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              Your assessment results will appear here once they are released.
+            </p>
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              {results.map((result) => (
+                <li key={result.id} className="py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                        {result.title}
+                      </h4>
+                      <div className="mt-1 flex items-center flex-wrap gap-3">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <i className="fas fa-calendar-day mr-1"></i>
+                          {result.date}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <i className="fas fa-book mr-1"></i>
+                          {result.course} - {result.type}
+                        </span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                          <i className="fas fa-university mr-1"></i>
+                          {result.examiner}
+                        </span>
+                      </div>
 
-                  {/* Feedback preview */}
-                  {result.feedback && (
-                    <div className="mt-2">
-                      <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                        "{result.feedback}"
-                      </p>
+                      {/* Feedback preview */}
+                      {result.feedback && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-600 dark:text-gray-300">
+                            {result.feedback}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Score and grade */}
-                <div className="flex-shrink-0 flex items-center ml-4">
-                  <div className="text-right mr-3">
-                    <span
-                      className={`text-2xl font-bold ${getScoreColor(
-                        result.score,
-                        result.maxScore
-                      )}`}
-                    >
-                      {result.score}
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        /{result.maxScore}
+                    {/* Score and grade */}
+                    <div className="flex-shrink-0 flex items-center ml-4">
+                      <div className="text-right mr-3">
+                        <span
+                          className={`text-2xl font-bold ${getScoreColor(
+                            result.score,
+                            result.maxScore
+                          )}`}
+                        >
+                          {result.score}
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            /{result.maxScore}
+                          </span>
+                        </span>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {Math.round((result.score / result.maxScore) * 100)}%
+                        </div>
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
+                          result.grade
+                        )}`}
+                      >
+                        {result.grade}
                       </span>
-                    </span>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {Math.round((result.score / result.maxScore) * 100)}%
                     </div>
                   </div>
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGradeColor(
-                      result.grade
-                    )}`}
-                  >
-                    {result.grade}
-                  </span>
-                </div>
-              </div>
 
-              {/* Action link */}
-              <div className="mt-2">
-                <Link
-                  href={`/student/results/${result.id}`}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  View Detailed Feedback
-                </Link>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  {/* Action link */}
+                  <div className="mt-2">
+                    <Link
+                      href={`/student/results/${result.id}`}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View Detailed Feedback
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
 
-        {/* More button - matching examiner/admin pattern */}
-        <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
-          <Link
-            href="/student/results"
-            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-          >
-            View all {results.length} assessment results
-          </Link>
-        </div>
+            {/* More button */}
+            <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
+              <Link
+                href="/student/results"
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+              >
+                View all assessment results
+              </Link>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
