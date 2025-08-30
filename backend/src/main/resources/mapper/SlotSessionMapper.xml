@@ -48,4 +48,24 @@
           AND status = 'booked'
     </select>
 
+    <select id="findAvailableSessionsByAssignment" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'available'
+        ORDER BY ts.start_at ASC, ss.session_number ASC
+    </select>
+
+    <select id="findActiveBookingsByStudent" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND ss.booked_subject_type = 'student'
+          AND ss.booked_subject_id = #{studentId}
+        ORDER BY ts.start_at ASC, ss.session_number ASC
+    </select>
+
 </mapper>

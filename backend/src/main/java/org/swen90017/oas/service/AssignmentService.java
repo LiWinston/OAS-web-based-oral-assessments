@@ -2,8 +2,11 @@ package org.swen90017.oas.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
+import org.swen90017.oas.dto.request.StudentAssignmentQueryRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
+import org.swen90017.oas.dto.response.GroupContextResponseDTO;
+import org.swen90017.oas.dto.response.StudentAssignmentListResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 
 import java.util.List;
@@ -62,4 +65,16 @@ public interface AssignmentService extends IService<Assignment> {
      * Returns statistics about assignment statuses for a specific subject
      */
     AssignmentStatusStatsResponseDTO getAssignmentStatusStatsBySubject(Long subjectId);
+
+    /**
+     * Get group context for a student in an assignment
+     * Returns group information including members for group assignments
+     */
+    GroupContextResponseDTO getGroupContext(Long studentId, Long assignmentId);
+
+    /**
+     * Get student assignments with pagination and filters
+     * Returns paginated list of assignments for a specific student
+     */
+    StudentAssignmentListResponseDTO getStudentAssignments(Long studentId, StudentAssignmentQueryRequestDTO queryDTO);
 }

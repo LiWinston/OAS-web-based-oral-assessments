@@ -44,7 +44,15 @@ public enum BusinessError implements Error {
     VENUE_OVERLAP("5003", "Venue overlap detected"),
     TIME_SLOT_NOT_FOUND("5004", "Time slot not found"),
     SCHEDULE_NOT_READY("5005", "Schedule is not ready for release"),
-    SESSION_GENERATION_FAILED("5006", "Failed to generate sessions for time slot");
+    SESSION_GENERATION_FAILED("5006", "Failed to generate sessions for time slot"),
+    
+    // Epic 6 Student Booking errors
+    SESSION_TAKEN("6001", "Session already taken"),
+    ALREADY_BOOKED("6002", "Already has an active booking"),
+    SLOT_UNSTAFFED("6003", "Time slot is not fully staffed"),
+    DEADLINE_PASSED("6004", "Booking deadline has passed"),
+    LOCKOUT_WINDOW("6005", "Booking is in lockout window"),
+    FORBIDDEN("6006", "Operation not allowed");
     
   
     private final String code;

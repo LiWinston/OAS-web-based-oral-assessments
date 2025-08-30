@@ -17,4 +17,8 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     int unbook(@Param("sessionId") Long sessionId);
 
     int countBookedBySlot(@Param("slotId") Long slotId);
+    
+    List<SlotSession> findAvailableSessionsByAssignment(@Param("assignmentId") Long assignmentId);
+    
+    List<SlotSession> findActiveBookingsByStudent(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
 }

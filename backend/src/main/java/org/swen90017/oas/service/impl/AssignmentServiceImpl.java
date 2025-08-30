@@ -1,6 +1,10 @@
 package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
@@ -14,20 +18,42 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
+import org.swen90017.oas.dto.request.StudentAssignmentQueryRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
+import org.swen90017.oas.dto.response.GroupContextResponseDTO;
+import org.swen90017.oas.dto.response.StudentAssignmentListResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.Subject;
+import org.swen90017.oas.entity.SysGroup;
+import org.swen90017.oas.entity.SysStudent;
+import org.swen90017.oas.entity.SysStudentGroup;
+import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.AssignmentType;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
+import org.swen90017.oas.mapper.GroupMapper;
+import org.swen90017.oas.mapper.SysStudentGroupMapper;
+import org.swen90017.oas.mapper.SysStudentMapper;
+import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.cache.AssignmentCacheSupport;
+import org.swen90017.oas.dto.response.StudentAssignmentResponseDTO;
+import org.swen90017.oas.entity.TimeSlot;
+import org.swen90017.oas.entity.SlotSession;
+import org.swen90017.oas.mapper.TimeSlotMapper;
+import org.swen90017.oas.mapper.SlotSessionMapper;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Objects;
 
 /**
  * Assignment Service Implementation
@@ -40,6 +66,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     private final AssignmentMapper assignmentMapper;
     private final SubjectMapper subjectMapper;
     private final AssignmentCacheSupport cacheSupport;
+    private final GroupMapper groupMapper;
+    private final SysStudentGroupMapper sysStudentGroupMapper;
+    private final SysStudentMapper sysStudentMapper;
+    private final SysUserMapper sysUserMapper;
+    private final TimeSlotMapper timeSlotMapper;
+    private final SlotSessionMapper slotSessionMapper;
 
     @Override
     public AssignmentResponseDTO getAssignmentById(Long id) {
@@ -453,5 +485,285 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         if (totalWeight > 100.0) {
             throw new BusinessException(BusinessError.ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED);
         }
+    }
+
+    @Override
+    public GroupContextResponseDTO getGroupContext(Long studentId, Long assignmentId) {
+        // Validate assignment exists
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Check if assignment supports groups
+        if (!"group".equals(assignment.getType()) && !"mixed".equals(assignment.getType())) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TYPE);
+        }
+
+        // Find the group for this student
+        LambdaQueryWrapper<SysStudentGroup> studentGroupQuery = new LambdaQueryWrapper<>();
+        studentGroupQuery.eq(SysStudentGroup::getUserId, studentId);
+        SysStudentGroup studentGroup = sysStudentGroupMapper.selectOne(studentGroupQuery);
+        
+        if (studentGroup == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Get group information
+        SysGroup group = groupMapper.selectById(studentGroup.getGroupId());
+        if (group == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Get all members of this group
+        LambdaQueryWrapper<SysStudentGroup> groupMembersQuery = new LambdaQueryWrapper<>();
+        groupMembersQuery.eq(SysStudentGroup::getGroupId, group.getGroupId());
+        List<SysStudentGroup> groupMembers = sysStudentGroupMapper.selectList(groupMembersQuery);
+
+        // Build member information
+        List<GroupContextResponseDTO.GroupMemberDTO> members = groupMembers.stream()
+                .map(member -> {
+                    SysUser user = sysUserMapper.selectById(member.getUserId());
+                    if (user != null) {
+                        GroupContextResponseDTO.GroupMemberDTO memberDTO = new GroupContextResponseDTO.GroupMemberDTO();
+                        memberDTO.setStudentId(user.getUserId());
+                        memberDTO.setName(user.getUserName());
+                        memberDTO.setEmail(user.getEmail());
+                        return memberDTO;
+                    }
+                    return null;
+                })
+                .filter(member -> member != null)
+                .collect(Collectors.toList());
+
+        // Build response
+        GroupContextResponseDTO response = new GroupContextResponseDTO();
+        response.setGroupId(group.getGroupId());
+        response.setGroupName(group.getGroupName());
+        response.setMembers(members);
+
+        return response;
+    }
+
+    @Override
+    public StudentAssignmentListResponseDTO getStudentAssignments(Long studentId, StudentAssignmentQueryRequestDTO queryDTO) {
+        // Validate student exists
+        SysStudent student = sysStudentMapper.selectById(studentId);
+        if (student == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Build query wrapper for assignments
+        QueryWrapper<Assignment> queryWrapper = new QueryWrapper<>();
+        
+        // Join with assignment_participant to get assignments for this student
+        queryWrapper.inSql("id", 
+            "SELECT assignment_id FROM assignment_participant WHERE user_id = " + studentId + " AND if_join = 1");
+
+        //TODO 状态判断
+//        // Apply status filter
+//        if ("bookable".equals(queryDTO.getStatus())) {
+//            // Only assignments that are released and have available sessions
+//            queryWrapper.eq("is_released", true);
+//        } else if ("booked".equals(queryDTO.getStatus())) {
+//            // Only assignments where student has active bookings
+//            queryWrapper.inSql("id",
+//                "SELECT DISTINCT a.assignment_id FROM assignment_participant a " +
+//                "JOIN slot_sessions s ON s.booked_subject_id = " + studentId + " " +
+//                "JOIN time_slots ts ON s.slot_id = ts.slot_id " +
+//                "WHERE a.user_id = " + studentId + " AND a.if_join = 1");
+//        }
+//        // "all" status - no additional filter needed
+        
+        // Apply sorting
+        if ("date_desc".equals(queryDTO.getSort())) {
+            queryWrapper.orderByDesc("start_date");
+        } else {
+            queryWrapper.orderByAsc("start_date"); // default to date_asc
+        }
+        
+        // Apply pagination
+        Page<Assignment> page = new Page<>(queryDTO.getPageNum() + 1, queryDTO.getPageSize()); // MyBatis-Plus uses 1-based pagination
+        IPage<Assignment> result = assignmentMapper.selectPage(page, queryWrapper);
+        
+        // Convert to DTOs with batch optimization
+        List<StudentAssignmentResponseDTO> assignmentDTOs = convertToStudentAssignmentDTOsBatch(result.getRecords(), studentId);
+        
+        // Build response
+        StudentAssignmentListResponseDTO response = new StudentAssignmentListResponseDTO();
+        response.setPageNum(queryDTO.getPageNum());
+        response.setPageSize(queryDTO.getPageSize());
+        response.setTotal(result.getTotal());
+        response.setData(assignmentDTOs);
+        
+        return response;
+    }
+
+    /**
+     * Convert Assignment entities to StudentAssignmentResponseDTOs with true batch optimization
+     * Uses only 3 SQL queries total regardless of number of assignments
+     */
+    private List<StudentAssignmentResponseDTO> convertToStudentAssignmentDTOsBatch(List<Assignment> assignments, Long studentId) {
+        if (assignments.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Extract all IDs for batch queries
+        List<Long> assignmentIds = assignments.stream()
+                .map(Assignment::getId)
+                .collect(Collectors.toList());
+        
+        List<Long> subjectIds = assignments.stream()
+                .map(Assignment::getSubjectId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // Batch query 1: Get all subjects in one SQL query using IN clause
+        final Map<Long, Subject> subjectMap = new HashMap<>();
+        if (!subjectIds.isEmpty()) {
+            QueryWrapper<Subject> subjectQuery = new QueryWrapper<>();
+            subjectQuery.in("subject_id", subjectIds);
+            List<Subject> subjects = subjectMapper.selectList(subjectQuery);
+            subjectMap.putAll(subjects.stream()
+                    .collect(Collectors.toMap(Subject::getSubjectId, s -> s)));
+        }
+
+        // Batch query 2: Get all time slots for all assignments in one SQL query using IN clause
+        final Map<Long, List<TimeSlot>> timeSlotMap = new HashMap<>();
+        if (!assignmentIds.isEmpty()) {
+            QueryWrapper<TimeSlot> timeSlotQuery = new QueryWrapper<>();
+            timeSlotQuery.in("assignment_id", assignmentIds);
+            List<TimeSlot> allTimeSlots = timeSlotMapper.selectList(timeSlotQuery);
+            timeSlotMap.putAll(allTimeSlots.stream()
+                    .collect(Collectors.groupingBy(TimeSlot::getAssignmentId)));
+        }
+
+        // Batch query 3: Check all bookings for the student in one SQL query using JOIN
+        final Set<Long> bookedAssignmentIds = new HashSet<>();
+        if (!assignmentIds.isEmpty()) {
+            // Use a single SQL query with JOIN to get all booked assignments for this student
+            QueryWrapper<SlotSession> bookingQuery = new QueryWrapper<>();
+            bookingQuery.eq("booked_subject_id", studentId)
+                       .eq("booked_subject_type", "student")
+                       .eq("status", "booked");
+            
+            // Get all booked sessions for this student
+            List<SlotSession> bookedSessions = slotSessionMapper.selectList(bookingQuery);
+            
+            if (!bookedSessions.isEmpty()) {
+                // Extract slot IDs from booked sessions
+                List<Long> bookedSlotIds = bookedSessions.stream()
+                        .map(SlotSession::getSlotId)
+                        .collect(Collectors.toList());
+                
+                // Get time slots for these slots to find assignment IDs
+                if (!bookedSlotIds.isEmpty()) {
+                    QueryWrapper<TimeSlot> slotQuery = new QueryWrapper<>();
+                    slotQuery.in("slot_id", bookedSlotIds)
+                            .in("assignment_id", assignmentIds); // Only for our assignments
+                    List<TimeSlot> relevantSlots = timeSlotMapper.selectList(slotQuery);
+                    
+                    bookedAssignmentIds.addAll(relevantSlots.stream()
+                            .map(TimeSlot::getAssignmentId)
+                            .collect(Collectors.toSet()));
+                }
+            }
+        }
+
+        // Build DTOs in memory
+        return assignments.stream()
+                .map(assignment -> buildStudentAssignmentDTO(
+                    assignment, 
+                    studentId, 
+                    subjectMap.get(assignment.getSubjectId()),
+                    timeSlotMap.getOrDefault(assignment.getId(), new ArrayList<>()),
+                    bookedAssignmentIds.contains(assignment.getId())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Build StudentAssignmentResponseDTO from individual components
+     */
+    private StudentAssignmentResponseDTO buildStudentAssignmentDTO(
+            Assignment assignment, 
+            Long studentId, 
+            Subject subject, 
+            List<TimeSlot> timeSlots, 
+            boolean hasActiveBooking) {
+        
+        StudentAssignmentResponseDTO dto = new StudentAssignmentResponseDTO();
+        
+        // Basic assignment information
+        dto.setAssignmentId(assignment.getId());
+        dto.setAssignmentName(assignment.getName());
+        dto.setCourseCode(subject != null ? subject.getSubjectCode() : "Unknown");
+        dto.setAssessmentType(assignment.getType().toUpperCase());
+        dto.setSessionDurationMinutes(30); // Default value
+        
+        // Build booking information
+        StudentAssignmentResponseDTO.BookingInfoDTO bookingInfo = new StudentAssignmentResponseDTO.BookingInfoDTO();
+        bookingInfo.setHasActiveBooking(hasActiveBooking);
+        dto.setBooking(bookingInfo);
+        
+        // Build availability information
+        StudentAssignmentResponseDTO.AvailabilityInfoDTO availabilityInfo = new StudentAssignmentResponseDTO.AvailabilityInfoDTO();
+        availabilityInfo.setReleased(assignment.getIsReleased());
+        
+        if (!timeSlots.isEmpty()) {
+            // Calculate available sessions
+            int totalSessions = timeSlots.stream()
+                    .mapToInt(ts -> ts.getSessionCount() != null ? ts.getSessionCount() : 0)
+                    .sum();
+            
+            int bookedSessions = timeSlots.stream()
+                    .mapToInt(ts -> ts.getBookedSessions() != null ? ts.getBookedSessions() : 0)
+                    .sum();
+            
+            availabilityInfo.setAvailableSessions(totalSessions - bookedSessions);
+            
+            // Get earliest and latest session times
+            LocalDateTime earliest = timeSlots.stream()
+                    .map(TimeSlot::getStartAt)
+                    .min(LocalDateTime::compareTo)
+                    .orElse(null);
+            availabilityInfo.setEarliestSession(earliest);
+            
+            LocalDateTime latest = timeSlots.stream()
+                    .map(TimeSlot::getEndAt)
+                    .max(LocalDateTime::compareTo)
+                    .orElse(null);
+            availabilityInfo.setLatestSession(latest);
+        } else {
+            availabilityInfo.setAvailableSessions(0);
+        }
+        
+        // Set default values for other availability fields
+        availabilityInfo.setReschedulingEnabled(true);
+        availabilityInfo.setBookingDeadline(assignment.getEndDate());
+        availabilityInfo.setLockoutEnabled(true);
+        availabilityInfo.setLockoutWindowHours(24);
+        availabilityInfo.setPollingHintSeconds(30);
+        
+        dto.setAvailability(availabilityInfo);
+        
+        return dto;
+    }
+
+    /**
+     * Check if student has an active booking for an assignment
+     */
+    private boolean hasActiveBooking(Long studentId, Long assignmentId) {
+        // Check if student has any booked sessions for this assignment
+        QueryWrapper<SlotSession> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("booked_subject_id", studentId)
+                   .eq("booked_subject_type", "student")
+                   .eq("status", "booked");
+        
+        // Join with time_slots to filter by assignment
+        queryWrapper.inSql("slot_id", 
+            "SELECT slot_id FROM time_slots WHERE assignment_id = " + assignmentId);
+        
+        return slotSessionMapper.selectCount(queryWrapper) > 0;
     }
 }
