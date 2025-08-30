@@ -19,6 +19,22 @@
         ORDER BY session_number ASC
     </select>
 
+    <!-- 查询该 slot 下超出给定时间范围的 sessions -->
+    <select id="findOutOfRangeBySlot" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT *
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+          AND (start_at < #{startAt} OR end_at > #{endAt})
+        ORDER BY session_number ASC
+    </select>
+
+    <!-- 批量删除该 slot 下超出给定时间范围的 sessions -->
+    <delete id="deleteOutOfRangeBySlot">
+        DELETE FROM slot_sessions
+        WHERE slot_id = #{slotId}
+          AND (start_at < #{startAt} OR end_at > #{endAt})
+    </delete>
+
     <update id="book">
         UPDATE slot_sessions
         SET status = 'booked',

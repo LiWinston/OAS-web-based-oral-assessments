@@ -17,6 +17,7 @@ import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
 import org.swen90017.oas.dto.response.SessionConfigResponseDTO;
 import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
+import org.swen90017.oas.dto.response.UpdateTimeSlotResponseDTO;
 
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.ScheduleService;
@@ -130,12 +131,12 @@ public class AdminTimeslotController {
     @Operation(summary = "Update time slot", description = "Update an existing time slot")
     @PutMapping("/{assignmentId}/timeslots/{timeSlotId}")
     @Log(module = "Time Slot Management", businessType = BusinessType.UPDATE)
-    public ResponseEntity<Result<TimeSlotDetailDTO>> updateTimeSlot(
+    public ResponseEntity<Result<UpdateTimeSlotResponseDTO>> updateTimeSlot(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Parameter(description = "Time slot ID") @PathVariable Long timeSlotId,
             @Valid @RequestBody TimeSlotRequestDTO request) {
-        TimeSlotDetailDTO timeSlot = timeSlotService.updateTimeSlot(timeSlotId, request);
-        return ResponseEntity.ok(Result.success(timeSlot));
+        UpdateTimeSlotResponseDTO response = timeSlotService.updateTimeSlot(timeSlotId, request);
+        return ResponseEntity.ok(Result.success(response));
     }
 
     /**

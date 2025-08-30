@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.dto.request.SessionConfigRequestDTO;
 import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.dto.response.SessionConfigResponseDTO;
@@ -58,6 +59,11 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
             config.setGapTimeMin(request.getGapTime() != null ? request.getGapTime() : 5);
             config.setExaminersPerSession(request.getExaminersPerSession() != null ? request.getExaminersPerSession() : 2);
             config.setDefaultMaxSessionsPerExaminer(request.getDefaultMaxSessionsPerExaminer() != null ? request.getDefaultMaxSessionsPerExaminer() : 0);
+        }
+
+        // Guard: examiners per session must be >= 1
+        if (config.getExaminersPerSession() == null || config.getExaminersPerSession() < 1) {
+            throw new BusinessException(CommonError.INVALID_PARAMS);
         }
 
         // Set updater information

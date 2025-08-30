@@ -7,6 +7,7 @@ import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
 import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
 import org.swen90017.oas.dto.response.BatchCreateTimeSlotsResponseDTO;
 import org.swen90017.oas.dto.response.GetTimeSlotsResponseDTO;
+import org.swen90017.oas.dto.response.UpdateTimeSlotResponseDTO;
 import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
 import org.swen90017.oas.entity.TimeSlot;
 
@@ -47,7 +48,7 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * @param request Time slot update request
      * @return Updated time slot details
      */
-    TimeSlotDetailDTO updateTimeSlot(Long timeSlotId, TimeSlotRequestDTO request);
+    UpdateTimeSlotResponseDTO updateTimeSlot(Long timeSlotId, TimeSlotRequestDTO request);
 
     /**
      * Duplicate a time slot

@@ -170,7 +170,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
     @Override
     @Transactional
-    public TimeSlotDetailDTO updateTimeSlot(Long timeSlotId, TimeSlotRequestDTO request) {
+    public UpdateTimeSlotResponseDTO updateTimeSlot(Long timeSlotId, TimeSlotRequestDTO request) {
         TimeSlot existingSlot = timeSlotMapper.selectById(timeSlotId);
         if (existingSlot == null) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
@@ -196,8 +196,23 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         existingSlot.setUpdatedAt(LocalDateTime.now());
         
         timeSlotMapper.updateById(existingSlot);
-        
-        return convertToDetailDTO(existingSlot);
+
+        // 先查询超出新范围的 sessions 用于响应，然后一次性批量删除（利用范围条件）
+        List<SlotSession> outOfRange = slotSessionMapper.findOutOfRangeBySlot(
+                timeSlotId, existingSlot.getStartAt(), existingSlot.getEndAt());
+        List<SessionDetailDTO> deleted = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(outOfRange)) {
+            for (SlotSession s : outOfRange) {
+                deleted.add(convertSessionToDTO(s));
+            }
+            slotSessionMapper.deleteOutOfRangeBySlot(timeSlotId, existingSlot.getStartAt(), existingSlot.getEndAt());
+        }
+
+        UpdateTimeSlotResponseDTO response = new UpdateTimeSlotResponseDTO();
+        response.setTimeSlot(convertToDetailDTO(existingSlot));
+        response.setDeletedSessions(deleted);
+        response.setDeletedCount(deleted.size());
+        return response;
     }
 
     @Override

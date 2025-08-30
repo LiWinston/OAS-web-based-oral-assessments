@@ -10,6 +10,14 @@ import java.util.List;
 public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     int batchInsert(@Param("list") List<SlotSession> list);
     List<SlotSession> findBySlotId(@Param("slotId") Long slotId);
+    List<SlotSession> findOutOfRangeBySlot(
+            @Param("slotId") Long slotId,
+            @Param("startAt") java.time.LocalDateTime startAt,
+            @Param("endAt") java.time.LocalDateTime endAt);
+    int deleteOutOfRangeBySlot(
+            @Param("slotId") Long slotId,
+            @Param("startAt") java.time.LocalDateTime startAt,
+            @Param("endAt") java.time.LocalDateTime endAt);
     int book(@Param("sessionId") Long sessionId,
              @Param("bookedSubjectId") Long bookedSubjectId,
              @Param("bookedSubjectType") String bookedSubjectType);
