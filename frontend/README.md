@@ -197,6 +197,9 @@ frontend/
 │   │   ├── page.jsx             # Student dashboard
 │   │   ├── assignments/         # View assignments
 │   │   ├── booking/             # Time slot booking
+│   │   ├── groups/              # Group membership management
+│   │   │   ├── page.jsx         # Group overview with card/table views
+│   │   │   └── [groupId]/page.jsx # Detailed group member information
 │   │   └── results/             # Assessment results
 │   ├── superadmin/              # Super Admin interface
 │   │   ├── layout.jsx           # Super admin layout
@@ -289,13 +292,13 @@ frontend/
 │   │       ├── SelectionSummary.jsx         # Session allocation summary with validation
 │   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
 │   └── student/                 # Student components
-│       └── dashboard/           # Student dashboard components
-│           ├── MyGroups.jsx              # Group membership display with avatars
-│           ├── RecentResults.jsx         # Recent assessment results with grades
-│           ├── StudentCalendar.jsx       # Calendar with assessment dates
-│           ├── StudentQuickActions.jsx   # Quick action buttons grid
-│           ├── StudentStatsCards.jsx     # Statistics cards using shared UI
-│           └── UpcomingAssessments.jsx   # Upcoming assessments list
+│       ├── dashboard/           # Student dashboard components
+│       │   ├── MyGroups.jsx              # Group membership display with avatars
+│       │   ├── RecentResults.jsx         # Recent assessment results with grades
+│       │   ├── StudentCalendar.jsx       # Calendar with assessment dates
+│       │   ├── StudentQuickActions.jsx   # Quick action buttons grid
+│       │   ├── StudentStatsCards.jsx     # Statistics cards using shared UI
+│       │   └── UpcomingAssessments.jsx   # Upcoming assessments list
 │
 ├── services/                    # API integration layer
 │   ├── apiClient.js             # Axios configuration (baseURL points to Spring Boot)
@@ -305,6 +308,7 @@ frontend/
 │   ├── courseService.js         # Course management operations
 │   ├── assignmentService.js     # Assignment CRUD operations with mock data
 │   ├── userService.js           # User management (assignment-centric members API)
+│   ├── studentGroupsService.js  # Student groups and collaboration management
 │   ├── examinerTimeslotService.js # Examiner self-assignment and schedule management
 │   └── schedulingService.js     # Booking and scheduling
 │
@@ -577,6 +581,14 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Target: Connect rubric CRUD to Spring Boot.
 - User can: Configure rubrics in UI with mock persistence.
 
+### Student Groups System — ✅ Complete (with mock services)
+
+- Current: Complete student groups interface with group overview and detailed member information; comprehensive mock API layer with realistic test data.
+- Implementation: Assignment-level group membership display, group overview with card/table views, detailed member information with contact details, responsive design with mobile optimization, comprehensive error handling for access control.
+- User can: View all active group memberships with course/assignment context; switch between card and table view for group overview; access detailed group information including all member details with contact information; see group collaboration tips and guidelines; refresh group data manually.
+- Features: Professional gradient-themed interface matching student dashboard design; avatar generation for group members; search and filtering capabilities; responsive mobile-first design; error boundaries and loading states.
+- API Integration: Following Student-Groups-API-Contracts specification with GET `/api/students/{studentId}/groups` for overview and GET `/api/students/{studentId}/groups/{groupId}` for details; mock service with realistic delays and error scenarios; membership validation and access control simulation.
+
 ### Student/Group Data Import — 🚧 Frontend Ready (backend endpoints available)
 
 - Current: CSV upload UI integrated in assignment workflows; frontend ready to call backend.
@@ -787,6 +799,7 @@ The following reflects the current state of the frontend only. Backend capabilit
   - **courseService**: Course creation, editing, and management
   - **userService**: User management and role assignment
   - **assignmentService**: Assignment configuration and workflows
+  - **studentGroupsService**: Student groups and collaboration management
   - **examinerTimeslotService**: Examiner self-assignment and schedule management
     - **getAvailableAssignments**: Fetch assignments needing examiner allocation
     - **getExaminerSchedule**: Retrieve examiner's current schedule with filtering
@@ -813,6 +826,7 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **Course Admin Interface**: Complete dashboard, course management, assignment configuration, and rubric builder
 - **Super Admin Interface**: Full admin management system with invitation workflow and course oversight
 - **Student Dashboard Interface**: Complete dashboard with stats cards, upcoming assessments, recent results, group management, calendar, and quick actions using shared UI components
+- **Student Groups System**: Complete groups interface with overview and detailed member information, dual view modes, search functionality, and comprehensive mock API integration
 - **Examiner Interface**: Complete dashboard and timeslot self-assignment system with comprehensive scheduling management
 - **Component Architecture**: Atomic design with role-specific libraries, shared UI components, and Shadcn UI integration
 - **Service Layer**: Complete API integration with mock data and error handling

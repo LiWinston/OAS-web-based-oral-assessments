@@ -1,119 +1,45 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Spinner } from "../../ui/spinner";
+import { studentGroupsService } from "../../../services/studentGroupsService";
 
 /**
  * MyGroups Component
  *
  * Displays student's group memberships with member avatars
- * and group information.
+ * and group information. Integrated with studentGroupsService
+ * for real data fetching with mock API support.
  */
 export function MyGroups() {
-  // Mock data - will be replaced with real data from API
-  const groups = [
-    {
-      id: 1,
-      name: "SPM - Group 5",
-      course: "Software Project Management",
-      courseCode: "COMP90082",
-      members: [
-        {
-          id: 1,
-          name: "Alice Johnson",
-          avatar: "/api/placeholder/24/24",
-          role: "Leader",
-        },
-        {
-          id: 2,
-          name: "Bob Smith",
-          avatar: "/api/placeholder/24/24",
-          role: "Developer",
-        },
-        {
-          id: 3,
-          name: "Carol Davis",
-          avatar: "/api/placeholder/24/24",
-          role: "Designer",
-        },
-        {
-          id: 4,
-          name: "David Wilson",
-          avatar: "/api/placeholder/24/24",
-          role: "Tester",
-        },
-        {
-          id: 5,
-          name: "You",
-          avatar: "/api/placeholder/24/24",
-          role: "Developer",
-          isCurrentUser: true,
-        },
-      ],
-      upcomingAssessment: {
-        title: "Final Presentation",
-        date: "April 15, 2025",
-        status: "booked",
-      },
-    },
-    {
-      id: 2,
-      name: "IT Project - Group 7",
-      course: "IT Project",
-      courseCode: "COMP30022",
-      members: [
-        {
-          id: 1,
-          name: "Emma Brown",
-          avatar: "/api/placeholder/24/24",
-          role: "Leader",
-        },
-        {
-          id: 2,
-          name: "Frank Miller",
-          avatar: "/api/placeholder/24/24",
-          role: "Backend",
-        },
-        {
-          id: 3,
-          name: "Grace Lee",
-          avatar: "/api/placeholder/24/24",
-          role: "Frontend",
-        },
-        {
-          id: 4,
-          name: "You",
-          avatar: "/api/placeholder/24/24",
-          role: "Full Stack",
-          isCurrentUser: true,
-        },
-      ],
-      upcomingAssessment: {
-        title: "Project Defense",
-        date: "April 25, 2025",
-        status: "booking_required",
-      },
-    },
-  ];
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "booked":
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-            <i className="fas fa-check-circle mr-1"></i>
-            Booked
-          </span>
-        );
-      case "booking_required":
-        return (
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-            <i className="fas fa-clock mr-1"></i>
-            Needs Booking
-          </span>
-        );
-      default:
-        return null;
+  useEffect(() => {
+    loadGroups();
+  }, []);
+
+  const loadGroups = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const groupsData = await studentGroupsService.getCurrentUserGroups();
+      
+      // Format groups for UI display and limit to first 2 for dashboard
+      const formattedGroups = groupsData
+        .map(group => studentGroupsService.formatGroupForUI(group))
+        .slice(0, 2); // Show only first 2 groups on dashboard
+      
+      setGroups(formattedGroups);
+    } catch (err) {
+      console.error('Error loading groups for dashboard:', err);
+      setError(err.message || 'Failed to load groups');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -161,67 +87,99 @@ export function MyGroups() {
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <ul className="space-y-4">
-          {groups.map((group) => (
-            <li
-              key={group.id}
-              className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                    {group.name}
-                  </h4>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {group.course} ({group.courseCode})
-                  </p>
-
-                  {/* Member avatars */}
-                  <div className="mt-3 flex -space-x-1 overflow-hidden">
-                    {group.members.slice(0, 4).map((member) => (
-                      <div key={member.id} className="relative group">
-                        {generateAvatar(member.name)}
-                        {/* Tooltip */}
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                          {member.name} ({member.role})
-                        </div>
-                      </div>
-                    ))}
-                    {group.members.length > 4 && (
-                      <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                          +{group.members.length - 4}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Member count */}
-                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    {group.members.length} members
-                  </p>
-                </div>
-              </div>
-
-              {/* Upcoming assessment */}
-              {group.upcomingAssessment && (
-                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                        Next: {group.upcomingAssessment.title}
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Spinner className="w-5 h-5 mr-2" />
+            <span className="text-sm text-gray-600 dark:text-gray-400">
+              Loading groups...
+            </span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-6">
+            <i className="fas fa-exclamation-triangle text-2xl text-red-500 mb-2"></i>
+            <p className="text-sm text-red-600 dark:text-red-400">
+              Failed to load groups
+            </p>
+          </div>
+        ) : groups.length === 0 ? (
+          <div className="text-center py-6">
+            <i className="fas fa-users text-2xl text-gray-400 mb-2"></i>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              No active groups
+            </p>
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Groups will appear here when you're added to them
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-4">
+            {groups.map((group) => (
+              <li
+                key={group.groupId}
+                className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                      {group.name}
+                    </h4>
+                    <div className="mt-1 space-y-1">
+                      <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                        {group.courseCode}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {group.upcomingAssessment.date}
+                        {group.assignmentName} • {group.semester}
                       </p>
                     </div>
-                    {getStatusBadge(group.upcomingAssessment.status)}
+
+                    {/* Member avatars preview */}
+                    <div className="mt-3 flex -space-x-1 overflow-hidden">
+                      {Array.from({length: Math.min(group.memberCount, 4)}).map((_, index) => {
+                        const memberName = `Member ${index + 1}`;
+                        return (
+                          <div key={index} className="relative group">
+                            {generateAvatar(memberName)}
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                              Group member {index + 1}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {group.memberCount > 4 && (
+                        <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            +{group.memberCount - 4}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Member count */}
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                      {group.memberCount} member{group.memberCount !== 1 ? 's' : ''}
+                    </p>
                   </div>
+
+                  {/* Active status */}
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                    Active
+                  </span>
                 </div>
-              )}
-            </li>
-          ))}
-        </ul>
+
+                {/* View details link */}
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                  <Link 
+                    href={`/student/groups/${group.groupId}`}
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                  >
+                    View group details →
+                  </Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </CardContent>
     </Card>
   );
