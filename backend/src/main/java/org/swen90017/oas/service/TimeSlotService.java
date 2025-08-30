@@ -1,6 +1,7 @@
 package org.swen90017.oas.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import org.swen90017.oas.dto.response.CalendarResponseDTO;
 import org.swen90017.oas.dto.request.BatchCreateTimeSlotsRequestDTO;
 import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
 import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
@@ -10,7 +11,9 @@ import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
 import org.swen90017.oas.entity.TimeSlot;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Time Slot Service Interface
@@ -71,4 +74,13 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * @return Number of sessions actually generated
      */
     int generateSessions(TimeSlot timeSlot, Integer sessionCount);
+
+    /**
+     * Aggregate calendar data for a given month
+     *
+     * @param assignmentId Assignment ID
+     * @param month Target month (YearMonth)
+     * @return Map keyed by date string (YYYY-MM-DD) with values: timeSlots, status, sessions
+     */
+    Map<String, CalendarResponseDTO.DateInfoDTO> getCalendarData(Long assignmentId, YearMonth month);
 }

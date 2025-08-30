@@ -27,8 +27,11 @@ import org.swen90017.oas.service.TimeSlotService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -60,6 +63,54 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         response.setSummary(summary);
         
         return response;
+    }
+
+    @Override
+    public Map<String, CalendarResponseDTO.DateInfoDTO> getCalendarData(Long assignmentId, YearMonth month) {
+        LocalDate startDate = month.atDay(1);
+        LocalDate endDate = month.atEndOfMonth();
+
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByMonth(assignmentId, startDate, endDate);
+
+        Map<String, CalendarResponseDTO.DateInfoDTO> result = new LinkedHashMap<>();
+
+        // 初始化当月每一天（可选，当前仅填充存在 timeslot 的日期）
+        for (TimeSlot slot : timeSlots) {
+            String dateKey = slot.getSlotDate().toString();
+            CalendarResponseDTO.DateInfoDTO dateInfo = result.get(dateKey);
+            if (dateInfo == null) {
+                dateInfo = new CalendarResponseDTO.DateInfoDTO();
+                dateInfo.setTimeSlots(0);
+                dateInfo.setSessions(0);
+                dateInfo.setStatus("empty");
+                result.put(dateKey, dateInfo);
+            }
+
+            // 累加当天 slots 与 sessions
+            dateInfo.setTimeSlots(dateInfo.getTimeSlots() + 1);
+            dateInfo.setSessions(dateInfo.getSessions() + (slot.getSessionCount() == null ? 0 : slot.getSessionCount()));
+
+            // 统计聚合状态：若存在 FULL 标记为 full；否则存在 PARTIAL 标记为 partial；否则 empty
+            String currentStatus = dateInfo.getStatus();
+            switch (slot.getStatus()) {
+                case FULL:
+                    dateInfo.setStatus("full");
+                    break;
+                case PARTIAL:
+                    if (!"full".equals(currentStatus)) {
+                        dateInfo.setStatus("partial");
+                    }
+                    break;
+                case EMPTY:
+                case DRAFT:
+                case CLOSED:
+                default:
+                    // 保持现状（除非之前是 empty）
+                    break;
+            }
+        }
+
+        return result;
     }
 
     @Override

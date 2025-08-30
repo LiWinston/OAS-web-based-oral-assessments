@@ -6,13 +6,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.common.CommonError;
+import org.swen90017.oas.dto.request.ExaminerSessionLimitDTO;
 import org.swen90017.oas.dto.request.ReleaseScheduleRequestDTO;
+import org.swen90017.oas.dto.request.UpdateExaminerSessionLimitsRequestDTO;
 import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
 import org.swen90017.oas.entity.TimeSlot;
 import org.swen90017.oas.enums.SlotStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
+import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.ScheduleService;
@@ -32,6 +36,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     private final AssignmentMapper assignmentMapper;
     private final TimeSlotMapper timeSlotMapper;
+    private final AssignmentSessionConfigMapper assignmentSessionConfigMapper;
     private final EmailService emailService;
 
     @Override
@@ -114,6 +119,23 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
 
         return true; // All checks passed
+    }
+
+    @Override
+    @Transactional
+    public void updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request) {
+        // TODO: Persist per-examiner limits when the storage schema is available.
+        // For now, this is a no-op placeholder to keep compilation and endpoint behavior consistent.
+        if (request == null || CollectionUtils.isEmpty(request.getExaminerLimits())) {
+            throw new BusinessException(CommonError.INVALID_PARAMS);
+        }
+        for (ExaminerSessionLimitDTO limit : request.getExaminerLimits()) {
+            if (limit.getExaminerId() == null || limit.getMaxSessions() == null) {
+                throw new BusinessException(CommonError.INVALID_PARAMS);
+            }
+
+
+        }
     }
 
     /**

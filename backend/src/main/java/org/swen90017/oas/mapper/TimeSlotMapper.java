@@ -30,4 +30,8 @@ public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
 
     @Select("SELECT * FROM time_slots WHERE assignment_id = #{assignmentId} ORDER BY start_at ASC")
     List<TimeSlot> listByAssignment(@Param("assignmentId") Long assignmentId);
+
+    List<TimeSlot> selectByMonth(@Param("assignmentId") Long assignmentId,
+                                 @Param("startDate") LocalDate startDate,
+                                 @Param("endDate") LocalDate endDate);
 }

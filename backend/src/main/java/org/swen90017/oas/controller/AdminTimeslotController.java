@@ -9,13 +9,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
-import org.swen90017.oas.dto.request.BatchCreateTimeSlotsRequestDTO;
-import org.swen90017.oas.dto.request.DeleteTimeSlotsRequestDTO;
-import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
-import org.swen90017.oas.dto.request.ReleaseScheduleRequestDTO;
-import org.swen90017.oas.dto.request.SessionConfigRequestDTO;
-import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
+import org.swen90017.oas.dto.request.*;
 import org.swen90017.oas.dto.response.BatchCreateTimeSlotsResponseDTO;
+import org.swen90017.oas.dto.response.CalendarResponseDTO;
 import org.swen90017.oas.dto.response.GetTimeSlotsResponseDTO;
 import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
@@ -28,6 +24,8 @@ import org.swen90017.oas.service.SessionConfigService;
 import org.swen90017.oas.service.TimeSlotService;
 
 import javax.validation.Valid;
+import java.time.YearMonth;
+import java.util.Map;
 
 /**
  * Admin Timeslot Controller
@@ -93,6 +91,24 @@ public class AdminTimeslotController {
         java.time.LocalDate dateFilter = date != null ? java.time.LocalDate.parse(date) : null;
         GetTimeSlotsResponseDTO response = timeSlotService.getTimeSlots(assignmentId, dateFilter, status);
         return ResponseEntity.ok(Result.success(response));
+    }
+
+    /**
+     * Get calendar aggregated data for a given month
+     */
+    @Operation(summary = "Get Calendar Data", description = "Return per-date aggregation of time slots and sessions for a given month")
+    @GetMapping("/{assignmentId}/calendar")
+    @Log(module = "Calendar", businessType = BusinessType.QUERY)
+    public Result<CalendarResponseDTO> getCalendar(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Target month in YYYY-MM format") @RequestParam String month) {
+        YearMonth ym = YearMonth.parse(month);
+        Map<String, CalendarResponseDTO.DateInfoDTO> dates = timeSlotService.getCalendarData(assignmentId, ym);
+
+        CalendarResponseDTO dto = new CalendarResponseDTO();
+        dto.setMonth(month);
+        dto.setDates(dates);
+        return Result.success(dto);
     }
 
     /**
@@ -176,5 +192,15 @@ public class AdminTimeslotController {
             @Valid @RequestBody ReleaseScheduleRequestDTO request) {
         ReleaseScheduleResponseDTO response = scheduleService.releaseSchedule(assignmentId, request);
         return ResponseEntity.ok(Result.success(response));
+    }
+
+    @PutMapping("/{assignmentId}/examiners/session-limits")
+    @Operation(summary = "Set examiner session limits", description = "Set the maximum number of sessions an examiner can handle per day and per assignment")
+    @Log(module = "Examiner Management", businessType = BusinessType.UPDATE)
+    public Result<String> setExaminerSessionLimits(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody UpdateExaminerSessionLimitsRequestDTO request) {
+        scheduleService.updateExaminerSessionLimits(assignmentId, request);
+        return Result.success();
     }
 }

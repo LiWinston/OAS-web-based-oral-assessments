@@ -1,6 +1,7 @@
 package org.swen90017.oas.service;
 
 import org.swen90017.oas.dto.request.ReleaseScheduleRequestDTO;
+import org.swen90017.oas.dto.request.UpdateExaminerSessionLimitsRequestDTO;
 import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
 
@@ -34,4 +35,12 @@ public interface ScheduleService {
      * @return True if ready for release
      */
     Boolean isReadyForRelease(Long assignmentId);
+
+    /**
+     * Update per-examiner session limits for an assignment
+     *
+     * @param assignmentId Assignment ID
+     * @param request Request including a list of examiner limits
+     */
+    void updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request);
 }

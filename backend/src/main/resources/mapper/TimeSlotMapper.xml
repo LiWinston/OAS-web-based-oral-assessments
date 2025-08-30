@@ -54,5 +54,15 @@
           AND tse.examiner_id = #{examinerId}
     </select>
 
+    <!-- 按月份范围查询某作业下的 time_slots，用于日历聚合 -->
+    <select id="selectByMonth" resultType="org.swen90017.oas.entity.TimeSlot">
+        SELECT *
+        FROM time_slots
+        WHERE assignment_id = #{assignmentId}
+          AND slot_date &gt;= #{startDate}
+          AND slot_date &lt;= #{endDate}
+        ORDER BY slot_date ASC, start_at ASC
+    </select>
+
 
 </mapper>
