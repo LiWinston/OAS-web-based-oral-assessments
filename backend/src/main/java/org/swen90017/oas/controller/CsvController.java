@@ -17,6 +17,7 @@ import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.GroupService;
+import org.swen90017.oas.service.ExaminerService;
 import org.swen90017.oas.service.StudentService;
 import org.swen90017.oas.utils.TransactionUtil;
 
@@ -34,6 +35,8 @@ public class CsvController {
     private EmailService emailService;
     @Autowired
     private GroupService groupService;
+    @Autowired
+    private ExaminerService examinerService;
 
     @Operation(summary = "Preview CSV", description = "Preview CSV content for student/group before importing")
     @PostMapping("/preview")
@@ -48,6 +51,8 @@ public class CsvController {
             return previewStudentCsv((List<StudentCSVRequestDTO>) csvData);
         } else if ("group".equalsIgnoreCase(type)) {
             return previewGroupCsv((List<GroupCSVRequestDTO>) csvData);
+        } else if ("examiner".equalsIgnoreCase(type)) {
+            return previewExaminerCsv((List<ExaminerCSVRequestDTO>) csvData);
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
@@ -90,6 +95,14 @@ public class CsvController {
     }
 
     /**
+     * Preview examiner CSV import
+     */
+    private Result<PreviewCSVResponseDTO> previewExaminerCsv(List<ExaminerCSVRequestDTO> examinerDTOs) {
+        PreviewCSVResponseDTO previewResponse = examinerService.previewExaminerImport(examinerDTOs);
+        return Result.success(previewResponse);
+    }
+
+    /**
      * Import student CSV
      */
     private Result<List<SysStudent>> importStudentCsv(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId) {
@@ -114,7 +127,8 @@ public class CsvController {
     }
 
     private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData) {
-        // Placeholder for future examiner CSV import logic
-        return null;
+        List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, null));
+        emailService.sendExaminerActivationEmail(examiners);
+        return Result.success(examiners);
     }
 }

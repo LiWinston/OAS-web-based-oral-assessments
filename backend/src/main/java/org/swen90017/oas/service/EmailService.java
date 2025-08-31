@@ -3,11 +3,14 @@ package org.swen90017.oas.service;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.entity.SysUser;
+import org.swen90017.oas.entity.SysExaminer;
 
 import java.util.List;
 
 public interface EmailService {
     void sendActivationEmail(List<SysStudent> sysStudent);
+
+    void sendExaminerActivationEmail(List<SysExaminer> examiners);
 
     /**
      * Send activation emails to course administrators.
