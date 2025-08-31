@@ -5,23 +5,18 @@ import { api } from "./apiClient";
 
 export const superadminCourseService = {
   // Get all courses (superadmin view)
-  async getCourses(filters = {}) {
+  async getCourses(filters = {}, page = 1, pageSize = 20) {
     try {
-      // Build query parameters for SuperAdmin API
-      const queryParams = {
-        page: filters.page || 1,
-        limit: filters.limit || 100, // Large limit for SuperAdmin to see all courses
-        year: filters.year || null,
-        semester: filters.semester || null,
-        search: filters.search || null,
-        adminId: filters.adminId || null,
-        status: filters.status || null,
-        department: filters.department || null,
-        sortBy: filters.sortBy || "createdAt",
-        sortOrder: filters.sortOrder || "desc"
+
+      // Add pagination parameters to the request
+      const requestParams = {
+        ...filters,
+        page: page,
+        limit: pageSize
       };
-      
-      const response = await api.post("/api/superadmin/courses", queryParams);
+
+      const response = await api.post("/api/superadmin/courses", requestParams);
+
 
       // Debug: Log the raw response to see what backend returns
       console.log("=== COURSES API DEBUG ===");
@@ -38,17 +33,26 @@ export const superadminCourseService = {
       }
       console.log("=== END COURSES DEBUG ===");
 
-      // Normalize various backend shapes into the UI-required schema
+      // Extract data from backend response
+      // Based on the backend response structure: response.data.data.courses and response.data.data.pagination
       const raw = response?.data;
       const payload = (raw && (raw.data ?? raw.result ?? raw.payload)) ?? raw;
 
       let courses = [];
+      let pagination = {
+        currentPage: page,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: pageSize,
+        hasNext: false,
+        hasPrev: false
+      };
 
       if (Array.isArray(payload)) {
         // Backend returned a flat array of courses
         courses = payload;
       } else if (payload && typeof payload === "object") {
-        // Common aliases from different backends
+        // Extract courses array
         if (Array.isArray(payload.courses)) {
           courses = payload.courses;
         } else if (
@@ -70,42 +74,83 @@ export const superadminCourseService = {
             courses = arrays[0] || [];
           }
         }
+
+        // Extract pagination info
+        if (payload.pagination) {
+          pagination = {
+            currentPage: payload.pagination.currentPage || page,
+            totalPages: payload.pagination.totalPages || 1,
+            totalItems: payload.pagination.totalItems || courses.length,
+            itemsPerPage: payload.pagination.itemsPerPage || pageSize,
+            hasNext: payload.pagination.hasNext || false,
+            hasPrev: payload.pagination.hasPrev || false
+          };
+        }
       }
 
       // Normalize field names to match frontend expectations
-      courses = courses.map((course) => ({
-        id: course.id,
-        name: course.courseName || course.name || "Unknown Course",
-        code: course.courseCode || course.code || "N/A",
-        department: course.department || "Unknown Department",
-        admin: course.admin || course.adminName || "Unassigned",
-        adminEmail:
-          course.adminEmail || course.adminEmailAddress || "No email available",
-        students: course.students || course.studentCount || 0,
-        assignments: course.assignments || course.assignmentCount || 0,
-        activeAssignments:
-          course.activeAssignments || course.activeAssignmentCount || 0,
-        status: course.status || course.courseStatus || "inactive",
-        semester: course.semester || "N/A",
-        venue: course.venue || "TBD",
-        lastActivity:
-          course.lastActivity || course.lastActive || "No activity recorded",
-        completionRate: course.completionRate || course.completion || 0,
-        description:
-          course.description ||
-          course.courseDescription ||
-          "No description available",
-      }));
+      courses = courses.map((course) => {
+        // Debug: Log the raw course status data
+        console.log("=== COURSE STATUS DEBUG ===");
+        console.log("Course ID:", course.id);
+        console.log("Raw course.status:", course.status);
+        console.log("Raw course.courseStatus:", course.courseStatus);
+        console.log("Raw course.status type:", typeof course.status);
+        console.log("Raw course.courseStatus type:", typeof course.courseStatus);
+        console.log("=== END COURSE STATUS DEBUG ===");
+
+        return {
+          id: course.id,
+          name: course.courseName || course.name || "Unknown Course",
+          code: course.courseCode || course.code || "N/A",
+          department: course.department || "Unknown Department",
+          admin: course.admin || course.adminName || "Unassigned",
+          adminEmail:
+            course.adminEmail || course.adminEmailAddress || "No email available",
+          students: course.students || course.studentCount || 0,
+          assignments: course.assignments || course.assignmentCount || 0,
+          activeAssignments:
+            course.activeAssignments || course.activeAssignmentCount || 0,
+          status: course.status || course.courseStatus || "inactive",
+          semester: course.semester || "N/A",
+          venue: course.venue || "TBD",
+          lastActivity:
+            course.lastActivity || course.lastActive || "No activity recorded",
+          completionRate: course.completionRate || course.completion || 0,
+          description:
+            course.description ||
+            course.courseDescription ||
+            "No description available",
+        };
+      });
 
       // Debug: Log the normalized data
       console.log("=== NORMALIZED COURSES DEBUG ===");
       console.log("Normalized courses:", courses);
+      console.log("Pagination info:", pagination);
       console.log("=== END NORMALIZED COURSES DEBUG ===");
 
-      return { success: true, data: courses };
+      return { 
+        success: true, 
+        data: courses,
+        pagination: pagination
+      };
     } catch (error) {
-      console.error("SuperAdmin courses API error:", error);
-      return { success: false, data: [] };
+
+      console.error("Get courses API error:", error);
+      return { 
+        success: false, 
+        data: [],
+        pagination: {
+          currentPage: page,
+          totalPages: 1,
+          totalItems: 0,
+          itemsPerPage: pageSize,
+          hasNext: false,
+          hasPrev: false
+        }
+      };
+
     }
   },
 
@@ -177,25 +222,53 @@ export const superadminCourseService = {
   // Get course statistics for superadmin dashboard (global stats)
   async getCourseStats() {
     try {
-      // SuperAdmin调用不带adminUserId参数的统计接口，获取全局数据
-      const response = await api.get('/api/courses/stats');
+      const response = await api.get("/api/courses/stats");
       
-      // Handle nested data structure from API response
-      const result = response.data;
-      if (result.success && result.data?.data) {
-        // If the API returns nested data structure, flatten it to match expected format
-        return {
-          success: result.success,
-          data: result.data.data
-        };
-      }
-      return result;
+      // Debug: Log the raw response to see what backend returns
+      console.log("=== COURSE STATS API DEBUG ===");
+      console.log("Full response:", response);
+      console.log("Response.data:", response?.data);
+      console.log("=== END COURSE STATS DEBUG ===");
+
+      // Extract data from backend response
+      const raw = response?.data;
+      
+      // Debug: Log the raw data structure
+      console.log("Raw response.data:", raw);
+      console.log("Raw response.data type:", typeof raw);
+      console.log("Raw response.data keys:", raw ? Object.keys(raw) : "N/A");
+      
+      // The API response structure is: { code, success, data: { totalCourses, activeCourses, ... } }
+      // So we need to access raw.data.data to get the actual stats
+      const payload = raw?.data?.data || raw?.data || raw;
+
+      // Normalize the stats data
+      const stats = {
+        totalCourses: payload?.totalCourses || payload?.total || 0,
+        activeCourses: payload?.activeCourses || payload?.active || 0,
+        totalStudents: payload?.totalStudents || payload?.students || 0,
+        totalDepartments: payload?.totalDepartments || payload?.departments || 0,
+        totalAssignments: payload?.totalAssignments || 0
+      };
+
+      console.log("=== NORMALIZED STATS DEBUG ===");
+      console.log("Normalized stats:", stats);
+      console.log("=== END NORMALIZED STATS DEBUG ===");
+
+      return { success: true, data: stats };
     } catch (error) {
-      console.error("Failed to fetch SuperAdmin course statistics:", error);
+      console.error("Get course stats API error:", error);
+      // Return fallback data if API fails
       return { 
         success: false, 
-        message: "Failed to load statistics",
-        data: { totalCourses: 0, activeCourses: 0, totalAssignments: 0 } 
+        data: { 
+          totalCourses: 0, 
+          activeCourses: 0, 
+          totalStudents: 0, 
+          totalDepartments: 0,
+          totalAssignments: 0
+        } 
+
       };
     }
   },

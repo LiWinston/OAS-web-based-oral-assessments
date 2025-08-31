@@ -7,6 +7,22 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
   if (!isOpen || !course) return null;
 
   const getStatusBadge = (status) => {
+    // Debug: Log the status value being processed
+    console.log("=== COURSE DETAIL MODAL STATUS DEBUG ===");
+    console.log("Status value:", status);
+    console.log("Status type:", typeof status);
+    console.log("=== END COURSE DETAIL MODAL STATUS DEBUG ===");
+
+    // Handle null, undefined, or empty string
+    if (!status || typeof status !== "string" || status.trim() === "") {
+      console.log("Status is falsy, defaulting to inactive");
+      status = "inactive";
+    }
+
+    // Convert to lowercase for case-insensitive comparison
+    const normalizedStatus = status.toLowerCase().trim();
+    console.log("Normalized status:", normalizedStatus);
+
     const statusConfig = {
       active: {
         color:
@@ -16,7 +32,7 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
       },
       setup: {
         color:
-          "bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700",
+          "bg-gradient-to-br from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700",
         icon: "fas fa-cog",
         text: "Setup",
       },
@@ -26,9 +42,22 @@ export function CourseDetailModal({ course, isOpen, onClose }) {
         icon: "fas fa-pause-circle",
         text: "Inactive",
       },
+      archived: {
+        color:
+          "bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200 dark:from-red-900/30 dark:to-pink-900/30 dark:text-red-300 dark:border-red-700",
+        icon: "fas fa-archive",
+        text: "Archived",
+      },
     };
 
-    const config = statusConfig[status] || statusConfig.inactive;
+    // Find the matching status config
+    let config = statusConfig[normalizedStatus];
+    if (!config) {
+      console.log(`No config found for status: "${normalizedStatus}", defaulting to inactive`);
+      config = statusConfig.inactive;
+    }
+
+    console.log("Selected config:", config);
 
     return (
       <span
