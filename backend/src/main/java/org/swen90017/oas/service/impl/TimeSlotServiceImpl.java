@@ -295,6 +295,10 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         // Use the smaller of requested count and maximum possible
         int actualSessionCount = (int) Math.min(sessionCount, maxPossibleSessions);
         
+        // 将实际生成的场次数写回 slot 并持久化，保证数据库中为 min(请求值, 可容纳最大值)
+        timeSlot.setSessionCount(actualSessionCount);
+        timeSlotMapper.updateById(timeSlot);
+
         if (actualSessionCount <= 0) {
             return 0;
         }
