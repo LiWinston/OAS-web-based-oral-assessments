@@ -501,38 +501,31 @@ HTTP status code: `200 OK`
 
 ## Epic 4. System Setup & Configuration (Course Management)
 
-### 1. [GET] /api/courses
+### 1. [POST] /api/courses/list
 
-#### Test Case 1: 
+#### Test Case 1: Basic Retrieval of Courses
 
 ##### Description
 
-Verify that the system successfully retrieves a paginated list of courses when valid query parameters are provided.
+This is the fundamental "happy path" test case. Its purpose is to verify that the API can successfully retrieve a paginated list of courses using only the essential `pageNum` and `pageSize` parameters. This test confirms the endpoint's basic functionality and ensures the response structure, including the `data` array and root-level pagination fields (`total`, `current`), is correct.
 
 ##### Pre-conditions
 
-The backend server is running and accessible.
- At least one course matching the query parameters exists in the system.
+The database contains at least 25 courses, allowing for multiple pages of results.
 
 ##### Input
 
-**Request URL**:
-
-```
-GET /api/courses
-```
-
-**Query Parameters**:
-
-```
+```json
 {
-  "pageNum": 1,
-  "pageSize": 10,
-  "year": 2024,
-  "semester": "1",
-  "status": "active",
-  "courseCode": "SWEN90017",
-  "adminUserId": 1
+    "method": "POST",
+    "path": "/api/courses/list",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "pageNum": 1,
+        "pageSize": 10
+    }
 }
 ```
 
@@ -540,7 +533,7 @@ GET /api/courses
 
 HTTP status code: `200 OK`
 
-```
+```json
 {
   "success": true,
   "code": "200",
@@ -563,7 +556,7 @@ HTTP status code: `200 OK`
         "updateTime": "2025-08-24T07:05:01.515Z",
         "updater": 1
       }
-    ],
+    ], // 10 course details
     "success": true,
     "total": 25,
     "current": 1,
@@ -576,9 +569,9 @@ HTTP status code: `200 OK`
 
 ###### Test 1
 
-**Execution Date**: 24/8/2025
+**Execution Date**: 28/8/2025
 
-**Tester**: Benyuan
+**Tester**: Weiran
 
 **Actual Output**:
 
@@ -589,37 +582,105 @@ HTTP status code: `200 OK`
     "data": {
         "data": [
             {
-                "id": 5,
-                "courseCode": "COMP90038",
-                "courseName": "Algorithms and Complexity",
-                "description": "Analysis and design of algorithms, computational complexity theory",
-                "academicYear": 2025,
+                "id": 13,
+                "courseCode": "COMP11451",
+                "courseName": "mmmmmm",
+                "description": "",
+                "academicYear": 2026,
                 "semester": "1",
-                "adminUserId": 49,
-                "isActive": true,
-                "status": "active",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
                 "students": 0,
-                "assignments": 1,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 21,
+                "courseCode": "TEST54321",
+                "courseName": "Test Creator",
+                "description": "creator",
+                "academicYear": 2026,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 5,
+                "courseCode": "COMP90000",
+                "courseName": "Algorithms and Complex1",
+                "description": "asdnadoabdobdoqbdoqwbodqhio pdqjwoidjqiowdjioqwdjoqq dhqowdhoqdhoqwhdoqwhdoqiw hdoiqhdioqhdoiqhdoqwhdoqwhdioqwiii\niisacnnowqhdoqhdoqhdoqhdqwiodhqwiod hoqwdhoqwdhoqwhdoiqhdoqidhqdqdqwdqdqw",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 4,
                 "createTime": "2025-08-23T11:50:17",
                 "creator": 49,
                 "updateTime": "2025-08-23T14:20:05",
                 "updater": null
             },
             {
-                "id": 10,
-                "courseCode": "SWEN90004",
-                "courseName": "Modelling Complex Software Systems",
-                "description": "Formal methods and mathematical modeling for complex software systems",
+                "id": 22,
+                "courseCode": "TEST11111",
+                "courseName": "123",
+                "description": "123",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 9,
+                "courseCode": "COMP90024",
+                "courseName": "Cluster and Cloud Computing1",
+                "description": "",
                 "academicYear": 2025,
                 "semester": "1",
-                "adminUserId": 62,
+                "adminUserId": 1,
                 "isActive": true,
                 "status": "active",
                 "students": 0,
-                "assignments": 0,
+                "assignments": 1,
                 "createTime": "2025-08-23T11:50:17",
-                "creator": 62,
+                "creator": 61,
                 "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            },
+            {
+                "id": 7,
+                "courseCode": "COMP90050",
+                "courseName": "Advanced Database Systems",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": true,
+                "status": "active",
+                "students": 0,
+                "assignments": 1,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 55,
+                "updateTime": "2025-08-25T05:27:45",
                 "updater": null
             },
             {
@@ -640,44 +701,44 @@ HTTP status code: `200 OK`
                 "updater": null
             },
             {
-                "id": 9,
-                "courseCode": "COMP90024",
-                "courseName": "Cluster and Cloud Computing",
-                "description": "Distributed computing, cloud platforms, and scalable system design",
+                "id": 16,
+                "courseCode": "AAAA12345",
+                "courseName": "aa",
+                "description": "",
                 "academicYear": 2025,
                 "semester": "2",
-                "adminUserId": 61,
-                "isActive": true,
-                "status": "active",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
                 "students": 0,
-                "assignments": 1,
-                "createTime": "2025-08-23T11:50:17",
-                "creator": 61,
-                "updateTime": "2025-08-23T14:20:05",
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
                 "updater": null
             },
             {
-                "id": 7,
-                "courseCode": "COMP90050",
-                "courseName": "Advanced Database Systems",
-                "description": "Advanced topics in database design, optimization, and distributed systems",
+                "id": 15,
+                "courseCode": "AIAN12345",
+                "courseName": "IAN PAPA ",
+                "description": "ASDF",
                 "academicYear": 2025,
                 "semester": "2",
-                "adminUserId": 55,
-                "isActive": true,
-                "status": "active",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
                 "students": 0,
-                "assignments": 1,
-                "createTime": "2025-08-23T11:50:17",
-                "creator": 55,
-                "updateTime": "2025-08-23T14:20:05",
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
                 "updater": null
             },
             {
-                "id": 11,
-                "courseCode": "SWEN90016",
-                "courseName": "SPM",
-                "description": "SWEN90016",
+                "id": 12,
+                "courseCode": "COMP90082",
+                "courseName": "Software Project Managment",
+                "description": "",
                 "academicYear": 2025,
                 "semester": "2",
                 "adminUserId": 1,
@@ -685,62 +746,64 @@ HTTP status code: `200 OK`
                 "status": "active",
                 "students": 0,
                 "assignments": 0,
-                "createTime": "2025-08-23T00:19:35",
-                "creator": 1,
-                "updateTime": "2025-08-23T00:19:35",
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
                 "updater": null
-            },
-            {
-                "id": 3,
-                "courseCode": "COMP90049",
-                "courseName": "Knowledge Technologies",
-                "description": "Introduction to artificial intelligence and machine learning concepts",
-                "academicYear": 2024,
-                "semester": "1",
-                "adminUserId": 49,
-                "isActive": true,
-                "status": "active",
-                "students": 0,
-                "assignments": 1,
-                "createTime": "2025-08-23T11:50:17",
-                "creator": 47,
-                "updateTime": "2025-08-23T14:53:24",
-                "updater": null
-            },
-            {
-                "id": 1,
-                "courseCode": "SWEN90017",
-                "courseName": "Software Engineering Project Management",
-                "description": "Master-level software engineering project management course",
-                "academicYear": 2024,
-                "semester": "1",
-                "adminUserId": 1,
-                "isActive": true,
-                "status": "active",
-                "students": 0,
-                "assignments": 4,
-                "createTime": "2025-08-23T11:50:17",
-                "creator": 1,
-                "updateTime": "2025-08-23T14:20:05",
-                "updater": null
-            },
-            {
-                "id": 2,
-                "courseCode": "COMP90082",
-                "courseName": "Software Project",
-                "description": "Industry-based software development project with real clients",
-                "academicYear": 2024,
-                "semester": "2",
-                "adminUserId": 49,
-                "isActive": true,
-                "status": "active",
-                "students": 0,
-                "assignments": 1,
-                "createTime": "2025-08-23T11:50:17",
-                "creator": 47,
-                "updateTime": "2025-08-23T14:53:24",
-                "updater": null
-            },
+            }
+        ],
+        "success": true,
+        "total": 25,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 2: Comprehensive Filtering by Multiple Criteria
+
+##### Description
+
+This test case validates the API's filtering logic by combining multiple criteria in a single request. It ensures the backend correctly applies `AND` logic to all conditions, returning a precise subset of courses that satisfy every filter. This is key to testing the robustness of the search functionality.
+
+##### Pre-conditions
+
+The database contains a variety of courses, including at least one that specifically matches all of the following criteria: `year: 2024`, `semester: "2"`, `status: "active"`, and is assigned to `adminUserId: 49`.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/courses/list",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "pageNum": 1,
+        "pageSize": 10,
+        "year": 2024,
+        "semester": "2",
+        "status": "active",
+        "adminUserId": 49
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
             {
                 "id": 4,
                 "courseCode": "SWEN90016",
@@ -757,15 +820,568 @@ HTTP status code: `200 OK`
                 "creator": 49,
                 "updateTime": "2025-08-23T14:20:05",
                 "updater": null
+            }
+        ],
+        "success": true,
+        "total": 1,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
+            {
+                "id": 4,
+                "courseCode": "SWEN90016",
+                "courseName": "Software Processes and Management",
+                "description": "Software development lifecycle, project management, and quality assurance",
+                "academicYear": 2024,
+                "semester": "2",
+                "adminUserId": 49,
+                "isActive": true,
+                "status": "active",
+                "students": 0,
+                "assignments": 1,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 49,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            }
+        ],
+        "success": true,
+        "total": 1,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Filtering by a Unique Identifier (courseCode)
+
+##### Description
+
+This test checks the precision of the filtering mechanism when using a unique identifier. By providing a specific `courseCode`, the API should return a result set containing exactly one course. This verifies that exact-match searches are functioning correctly.
+
+##### Pre-conditions
+
+A single, specific course with `courseCode: "COMP90000"` exists in the database.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/courses/list",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "pageNum": 1,
+        "pageSize": 10,
+        "courseCode": "COMP90000"
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
+            {
+                "id": 5,
+                "courseCode": "COMP90000",
+                "courseName": "Algorithms and Complex1",
+                "description": "asdnadoabdobdoqbdoqwbodqhio pdqjwoidjqiowdjioqwdjoqq dhqowdhoqdhoqwhdoqwhdoqiw hdoiqhdioqhdoiqhdoqwhdoqwhdioqwiii\niisacnnowqhdoqhdoqhdoqhdqwiodhqwiod hoqwdhoqwdhoqwhdoiqhdoqidhqdqdqwdqdqw",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 4,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 49,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            }
+        ],
+        "success": true,
+        "total": 1,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 28/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
+            {
+                "id": 5,
+                "courseCode": "COMP90000",
+                "courseName": "Algorithms and Complex1",
+                "description": "asdnadoabdobdoqbdoqwbodqhio pdqjwoidjqiowdjioqwdjoqq dhqowdhoqdhoqwhdoqwhdoqiw hdoiqhdioqhdoiqhdoqwhdoqwhdioqwiii\niisacnnowqhdoqhdoqhdoqhdqwiodhqwiod hoqwdhoqwdhoqwhdoiqhdoqidhqdqdqwdqdqw",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 4,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 49,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            }
+        ],
+        "success": true,
+        "total": 1,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Filtering by Boolean Flag (isActive)
+
+##### Description
+
+This test case validates the functionality of boolean filters. By requesting only courses where `isActive: false`, the test confirms that the API can correctly filter based on boolean conditions and that the `total` count in the response accurately reflects the number of matching records.
+
+##### Pre-conditions
+
+The database contains a mix of active and inactive courses. Specifically, there are exactly 14 courses where the `isActive` flag is set to `false`.
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/courses/list",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "pageNum": 1,
+        "pageSize": 10,
+        "isActive": false
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "data": {
+    "data": [
+      {
+        "id": 1,
+        "courseCode": "SWEN90017",
+        "courseName": "Software Engineering Project Management",
+        "description": "Master-level software engineering project management course",
+        "academicYear": 2024,
+        "semester": "1",
+        "adminUserId": 1,
+        "isActive": true,
+        "status": "active",
+        "students": 25,
+        "assignments": 3,
+        "createTime": "2025-08-24T07:05:01.515Z",
+        "creator": 1,
+        "updateTime": "2025-08-24T07:05:01.515Z",
+        "updater": 1
+      }
+    ], // 10 course details
+    "success": true,
+    "total": 14,
+    "current": 1,
+    "size": 10
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
+            {
+                "id": 13,
+                "courseCode": "COMP11451",
+                "courseName": "mmmmmm",
+                "description": "",
+                "academicYear": 2026,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
             },
             {
-                "id": 8,
-                "courseCode": "SWEN90006",
-                "courseName": "Software Modelling and Design",
-                "description": "Object-oriented analysis, design patterns, and software architecture",
-                "academicYear": 2024,
-                "semester": "summer",
-                "adminUserId": 61,
+                "id": 21,
+                "courseCode": "TEST54321",
+                "courseName": "Test Creator",
+                "description": "creator",
+                "academicYear": 2026,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 5,
+                "courseCode": "COMP90000",
+                "courseName": "Algorithms and Complex1",
+                "description": "asdnadoabdobdoqbdoqwbodqhio pdqjwoidjqiowdjioqwdjoqq dhqowdhoqdhoqwhdoqwhdoqiw hdoiqhdioqhdoiqhdoqwhdoqwhdioqwiii\niisacnnowqhdoqhdoqhdoqhdqwiodhqwiod hoqwdhoqwdhoqwhdoiqhdoqidhqdqdqwdqdqw",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 4,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 49,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            },
+            {
+                "id": 22,
+                "courseCode": "TEST11111",
+                "courseName": "123",
+                "description": "123",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 16,
+                "courseCode": "AAAA12345",
+                "courseName": "aa",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 15,
+                "courseCode": "AIAN12345",
+                "courseName": "IAN PAPA ",
+                "description": "ASDF",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 24,
+                "courseCode": "SANJ99999",
+                "courseName": "LINLANG",
+                "description": "DAWAWAWDADAWDAWDWADAWDWADADAWDA",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 11,
+                "courseCode": "SWEN90016",
+                "courseName": "SPM",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": "2025-08-23T00:19:35",
+                "creator": 1,
+                "updateTime": "2025-08-23T00:19:35",
+                "updater": null
+            },
+            {
+                "id": 20,
+                "courseCode": "TEST12345",
+                "courseName": "Test123",
+                "description": "2",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 23,
+                "courseCode": "TEST22222",
+                "courseName": "Test2222222",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            }
+        ],
+        "success": true,
+        "total": 14,
+        "current": 1,
+        "size": 10
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 5: Pagination for an Out-of-Bounds Page
+
+##### Description
+
+This is an edge case test for pagination. It checks how the API responds when a page number is requested that is far beyond the total number of available pages (e.g., `pageNum: 99`). A robust API should handle this gracefully by returning a `200 OK` status with an empty `data` array, rather than an error. The pagination metadata should still be accurate.
+
+##### Pre-conditions
+
+The total number of courses in the database is a known quantity (e.g., 25).
+
+##### Input
+
+```json
+{
+    "method": "POST",
+    "path": "/api/courses/list",
+    "headers": {
+      	"Content-Type": "application/json"
+    },
+    "body": {
+        "pageNum": 99,
+        "pageSize": 10
+    }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "statusCode": 200,
+    "responseBody": {
+        "success": true,
+        "code": "string",
+        "data": [],
+        "total": 50,
+        "current": 99
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "data": [
+            {
+                "id": 13,
+                "courseCode": "COMP11451",
+                "courseName": "mmmmmm",
+                "description": "",
+                "academicYear": 2026,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 21,
+                "courseCode": "TEST54321",
+                "courseName": "Test Creator",
+                "description": "creator",
+                "academicYear": 2026,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 5,
+                "courseCode": "COMP90000",
+                "courseName": "Algorithms and Complex1",
+                "description": "asdnadoabdobdoqbdoqwbodqhio pdqjwoidjqiowdjioqwdjoqq dhqowdhoqdhoqwhdoqwhdoqiw hdoiqhdioqhdoiqhdoqwhdoqwhdioqwiii\niisacnnowqhdoqhdoqhdoqhdqwiodhqwiod hoqwdhoqwdhoqwhdoiqhdoqidhqdqdqwdqdqw",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 4,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 49,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            },
+            {
+                "id": 22,
+                "courseCode": "TEST11111",
+                "courseName": "123",
+                "description": "123",
+                "academicYear": 2026,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 9,
+                "courseCode": "COMP90024",
+                "courseName": "Cluster and Cloud Computing1",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "1",
+                "adminUserId": 1,
                 "isActive": true,
                 "status": "active",
                 "students": 0,
@@ -774,20 +1390,106 @@ HTTP status code: `200 OK`
                 "creator": 61,
                 "updateTime": "2025-08-23T14:20:05",
                 "updater": null
+            },
+            {
+                "id": 7,
+                "courseCode": "COMP90050",
+                "courseName": "Advanced Database Systems",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "1",
+                "adminUserId": 1,
+                "isActive": true,
+                "status": "active",
+                "students": 0,
+                "assignments": 1,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 55,
+                "updateTime": "2025-08-25T05:27:45",
+                "updater": null
+            },
+            {
+                "id": 6,
+                "courseCode": "SWEN90010",
+                "courseName": "High Integrity Systems Engineering",
+                "description": "Safety-critical and high-reliability software systems development",
+                "academicYear": 2025,
+                "semester": "1",
+                "adminUserId": 55,
+                "isActive": true,
+                "status": "active",
+                "students": 0,
+                "assignments": 1,
+                "createTime": "2025-08-23T11:50:17",
+                "creator": 55,
+                "updateTime": "2025-08-23T14:20:05",
+                "updater": null
+            },
+            {
+                "id": 16,
+                "courseCode": "AAAA12345",
+                "courseName": "aa",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 15,
+                "courseCode": "AIAN12345",
+                "courseName": "IAN PAPA ",
+                "description": "ASDF",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": false,
+                "status": "archived",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
+            },
+            {
+                "id": 12,
+                "courseCode": "COMP90082",
+                "courseName": "Software Project Managment",
+                "description": "",
+                "academicYear": 2025,
+                "semester": "2",
+                "adminUserId": 1,
+                "isActive": true,
+                "status": "active",
+                "students": 0,
+                "assignments": 0,
+                "createTime": null,
+                "creator": null,
+                "updateTime": null,
+                "updater": null
             }
         ],
         "success": true,
-        "total": 0,
+        "total": 25,
         "current": 1,
         "size": 10
     }
 }
 ```
 
-**Result**:
-The system returned the expected response. The retrieved course list, pagination details, and status code matched the expected output.
+**Result**: Pass.
 
-**Notes**: None
+**Notes**: It returns the first page rather than a null page, which is pretty elegant.
+
+
 
 
 
@@ -1181,9 +1883,9 @@ The database is populated with a known set of data. For this test, assume the fo
 }
 ```
 
-**Result**: Pass
+**Result**: Pass.
 
-**Notes**: None
+**Notes**: None.
 
 
 
@@ -1229,6 +1931,2667 @@ This is the primary "happy path" test case. It verifies that a new academic cour
 **Result**:
 
 **Notes**:
+
+
+
+## Epic 5. Assessment Scheduling and Booking System
+
+### 1. [GET] /api/admin/assignments/{assignmentId}/session-config
+
+#### Test Case 1: Retrieve Configuration for a Fully Configured Assignment
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that the API can successfully retrieve the complete and accurate session configuration for a given assignment that has been fully set up. The test asserts that the API returns a `200 OK` status and that all the values in the response `data` object match the known, pre-conditioned configuration.
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 1` exists in the database.
+- This assignment's session has been fully configured with specific values (e.g., `sessionLength` is 30 minutes). The `isConfigured` flag is `true`.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 1
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 1,
+        "sessionLength": 30,
+        "gapTime": 5,
+        "examinersPerSession": 2,
+        "defaultMaxSessionsPerExaminer": 40,
+        "isConfigured": true,
+        "lastModified": "2025-08-28T09:46:56",
+        "updatedBy": null // not developed yet
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 29/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 1,
+        "sessionLength": 30,
+        "gapTime": 5,
+        "examinersPerSession": 2,
+        "defaultMaxSessionsPerExaminer": 40,
+        "isConfigured": true,
+        "lastModified": "2025-08-28T09:46:56",
+        "updatedBy": null
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 2: Attempt to Retrieve Configuration for a Non-Existent Assignment
+
+##### Description
+
+This is a negative test case to ensure the API handles requests for non-existent resources correctly. When an `assignmentId` is provided that does not correspond to any record in the database, the API should return a clear client-side error, not a success response or a business (50xx) error.
+
+##### Pre-conditions
+
+No assignment with the ID `999999` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 999999
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "5001",
+    "data": "Session configuration not found or not configured"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 29/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "5001",
+    "data": "Session configuration not found or not configured"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3:  Attempt to Retrieve Configuration with an Invalid ID Format
+
+##### Description
+
+This negative test case focuses on input validation at the URL parameter level. It verifies that the API rejects requests where the `assignmentId` is not in the expected integer format (e.g., a string of text like "abc"). This ensures that malformed requests are caught early, before any application logic is executed.
+
+##### Pre-conditions
+
+None.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": "abc-not-an-id"
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": false,
+    "code": "ERROR_VALIDATION_INVALID_ID_FORMAT",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 29/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "5001",
+    "data": "Session configuration not found or not configured"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Not a decent error code but still okay for the integration.
+
+
+
+### 2. [PUT] /api/admin/assignments/{assignmentId}/session-config
+
+#### Test Case 1: Create a New Session Configuration
+
+##### Description
+
+This is the "create" aspect of the "create or update" functionality described for this `PUT` endpoint. This test verifies that a new session configuration can be successfully created for an existing assignment that currently lacks one. The API should save the new settings and return a `200 OK` response with the complete, newly created configuration.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 2` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "PUT",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "sessionLength": 30,
+    "gapTime": 5,
+    "examinersPerSession": 2,
+    "defaultMaxSessionsPerExaminer": 40
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 2,
+        "sessionLength": 30,
+        "gapTime": 5,
+        "examinersPerSession": 2,
+        "defaultMaxSessionsPerExaminer": 40,
+        "isConfigured": true,
+        "lastModified": "2025-08-29T13:34:03",
+        "updatedBy": null
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 29/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 2,
+        "sessionLength": 30,
+        "gapTime": 5,
+        "examinersPerSession": 2,
+        "defaultMaxSessionsPerExaminer": 40,
+        "isConfigured": true,
+        "lastModified": "2025-08-29T13:34:03",
+        "updatedBy": null
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Data was recorded in the database correctly.
+
+
+
+#### Test Case 2: Update an Existing Session Configuration
+
+##### Description
+
+This is the "update" aspect of the endpoint's functionality. It verifies that an existing session configuration can be successfully modified. This test sends a request with new values for the configuration parameters. The API should overwrite the previous settings with the new ones and return a `200 OK` response reflecting the changes.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 1` exists and already has a session configuration (e.g., `sessionLength` is 30, `gapTime` is 5).
+
+##### Input
+
+```json
+{
+  "method": "PUT",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 1
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "sessionLength": 45,
+    "gapTime": 10,
+    "examinersPerSession": 3,
+    "defaultMaxSessionsPerExaminer": 25
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 1,
+        "sessionLength": 45,
+        "gapTime": 10,
+        "examinersPerSession": 3,
+        "defaultMaxSessionsPerExaminer": 25,
+        "isConfigured": true,
+        "lastModified": "string",  //executed time
+        "updatedBy": null
+    }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 29/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 1,
+        "sessionLength": 45,
+        "gapTime": 10,
+        "examinersPerSession": 3,
+        "defaultMaxSessionsPerExaminer": 25,
+        "isConfigured": true,
+        "lastModified": "2025-08-29T13:37:01",
+        "updatedBy": null
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Attempt to Update with Invalid Data Types
+
+##### Description
+
+This negative test case checks the API's input validation for correct data types. It sends a request where a numerical field, such as `sessionLength`, is assigned a string value. The API must reject this malformed request with a `400 Bad Request` and should not modify the existing configuration.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 2` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "PUT",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "sessionLength": "thirty-minutes",
+    "gapTime": 5,
+    "examinersPerSession": 3,
+    "defaultMaxSessionsPerExaminer": 25
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Any error message"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Invalid request format"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Attempt to Update with Out-of-Range Values
+
+##### Description
+
+This test case checks for deeper business logic validation beyond simple data types. It sends a request with values that are syntactically correct but logically invalid (e.g., a negative `sessionLength` or zero `examinersPerSession`). The API's validation rules should catch these illogical values and reject the request with a `400 Bad Request`.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 2` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "PUT",
+  "path": "/api/admin/assignments/{assignmentId}/session-config",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "sessionLength": -10,
+    "gapTime": 5,
+    "examinersPerSession": 0,
+    "defaultMaxSessionsPerExaminer": 40
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": false,
+    "code": "ERROR_VALIDATION_VALUE_OUT_OF_RANGE",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 2,
+        "sessionLength": -10,
+        "gapTime": 5,
+        "examinersPerSession": 0,
+        "defaultMaxSessionsPerExaminer": 40,
+        "isConfigured": true,
+        "lastModified": "2025-08-29T13:44:10",
+        "updatedBy": null
+    }
+}
+```
+
+**Result**: Fail.
+
+**Notes**: The unlogical data was updated in the database. Additionally, I observed that all four input fields are required, resulting in a 500 internal error (caused by the database, as the four fields are all set to not null).
+
+
+
+### 3. [GET] /api/admin/assignments/{assignmentId}/timeslots
+
+#### Test Case 1: Retrieve All Timeslots for an Assignment
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that the API can successfully retrieve a complete list of all associated timeslots for a given `assignmentId` when no optional filters are applied. The test ensures the fundamental data retrieval for the endpoint is working correctly.
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 1` exists in the database.
+- This assignment has multiple timeslots associated with it, scheduled on various dates and having different statuses.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "queryParameters": {},
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "success": true,
+  "code" : 200,
+  "data": {
+    "timeSlots": [
+      {
+        "id": 1,
+        "date": "2025-04-15",
+        "startTime": "09:00",
+        "endTime": "11:00",
+        "venueId": 10,
+        "requiredExaminers": 2,
+        "sessionCount": 4,
+        "status": "empty",
+        "assignedExaminers": [],
+        "sessions": [ // all the valid sessions in the database
+          {
+            "id": 101,
+            "startTime": "09:00",
+            "endTime": "09:30",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 1
+          },
+          {
+            "id": 102,
+            "startTime": "09:35",
+            "endTime": "10:05",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 2
+          },
+          {
+            "id": 103,
+            "startTime": "10:10",
+            "endTime": "10:40",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 3
+          }
+        ],
+        "bookedSessions": 0,
+        "createdAt": "2025-08-26T09:00:00Z",
+        "lastModified": "2025-08-26T10:30:00Z"
+      }
+    ],
+    "summary": {
+      "totalTimeSlots": 2,
+      "totalSessions": 8,
+      "fullyStaffed": 0,
+      "partiallyStaffed": 0,
+      "unstaffed": 2
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlots": [
+            {
+                "id": 1,
+                "date": "2025-10-20",
+                "startTime": "09:00:00",
+                "endTime": "11:00:00",
+                "venueId": 10,
+                "requiredExaminers": 2,
+                "sessionCount": 4,
+                "status": "empty",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 1,
+                        "startTime": "09:00:00",
+                        "endTime": "09:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 2,
+                        "startTime": "09:30:00",
+                        "endTime": "09:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 3,
+                        "startTime": "10:00:00",
+                        "endTime": "10:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    },
+                    {
+                        "id": 4,
+                        "startTime": "10:30:00",
+                        "endTime": "10:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 4
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:38:56",
+                "lastModified": "2025-08-30T22:38:56"
+            },
+            {
+                "id": 2,
+                "date": "2025-10-21",
+                "startTime": "13:00:00",
+                "endTime": "15:00:00",
+                "venueId": 10,
+                "requiredExaminers": 2,
+                "sessionCount": 4,
+                "status": "empty",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 5,
+                        "startTime": "13:00:00",
+                        "endTime": "13:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 6,
+                        "startTime": "13:30:00",
+                        "endTime": "13:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 7,
+                        "startTime": "14:00:00",
+                        "endTime": "14:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    },
+                    {
+                        "id": 8,
+                        "startTime": "14:30:00",
+                        "endTime": "14:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 4
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:38:56",
+                "lastModified": "2025-08-30T22:38:56"
+            }
+        ],
+        "summary": {
+            "totalTimeSlots": 2,
+            "totalSessions": 8,
+            "fullyStaffed": 0,
+            "partiallyStaffed": 0,
+            "unstaffed": 2
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 2:  Filter Timeslots by a Specific Date
+
+##### Description
+
+This test case validates the optional `date` filter. By providing a specific date in the `YYYY-MM-DD` format as a query parameter, the API should return only the timeslots that are scheduled for that particular day, ignoring all others.
+
+##### Pre-conditions
+
+- The assignment with `assignmentId: 2` has at least three timeslots scheduled on the date `2025-10-20`.
+- The same assignment also has timeslots scheduled on other dates (in this case: `2025-10-21`).
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "queryParameters": {
+    "date": "2025-10-20"
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "The 'timeSlots' array should only contain objects where the 'date' field is '2025-10-20'.",
+  "responseBodySchema": {
+    "properties": {
+      "success": { "const": true }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlots": [
+            {
+                "id": 1,
+                "date": "2025-10-20",
+                "startTime": "09:00:00",
+                "endTime": "11:00:00",
+                "venueId": 10,
+                "requiredExaminers": 2,
+                "sessionCount": 4,
+                "status": "empty",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 1,
+                        "startTime": "09:00:00",
+                        "endTime": "09:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 2,
+                        "startTime": "09:30:00",
+                        "endTime": "09:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 3,
+                        "startTime": "10:00:00",
+                        "endTime": "10:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    },
+                    {
+                        "id": 4,
+                        "startTime": "10:30:00",
+                        "endTime": "10:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 4
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:38:56",
+                "lastModified": "2025-08-30T22:38:56"
+            }
+        ],
+        "summary": {
+            "totalTimeSlots": 1,
+            "totalSessions": 4,
+            "fullyStaffed": 0,
+            "partiallyStaffed": 0,
+            "unstaffed": 1
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Filter Timeslots by Status
+
+##### Description
+
+This test case validates the optional `status` filter. By providing a status string (e.g., "confirmed") as a query parameter, the API should return only the timeslots that currently have that exact status.
+
+##### Pre-conditions
+
+**Pre-condition**
+
+- The assignment with `assignmentId: 2` has timeslots with various statuses.
+- Specifically, there are at least five timeslots with the status "partial".
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "queryParameters": {
+    "status": "partial"
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "Every object in the 'timeSlots' array must have its 'status' field set to 'partial'.",
+  "responseBodySchema": {
+    "properties": {
+      "success": { "const": true }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlots": [
+            {
+                "id": 1,
+                "date": "2025-10-20",
+                "startTime": "09:00:00",
+                "endTime": "11:00:00",
+                "venueId": 10,
+                "requiredExaminers": 2,
+                "sessionCount": 4,
+                "status": "partial",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 1,
+                        "startTime": "09:00:00",
+                        "endTime": "09:25:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 2,
+                        "startTime": "09:30:00",
+                        "endTime": "09:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 3,
+                        "startTime": "10:00:00",
+                        "endTime": "10:25:00",
+                        "status": "booked",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    },
+                    {
+                        "id": 4,
+                        "startTime": "10:30:00",
+                        "endTime": "10:55:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 4
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:38:56",
+                "lastModified": "2025-08-31T05:27:08"
+            }
+        ],
+        "summary": {
+            "totalTimeSlots": 1,
+            "totalSessions": 4,
+            "fullyStaffed": 0,
+            "partiallyStaffed": 0,
+            "unstaffed": 1
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: True.
+
+
+
+#### Test Case 4: Retrieve Timeslots for an Assignment with No Timeslots
+
+##### Description
+
+This edge case test verifies that the API handles requests for assignments that exist but have no associated timeslot data. The API should return a `200 OK` success response with an empty `timeSlots` array, rather than an error.
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 7` exists in the database.
+- This assignment has **zero** timeslots created for it.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots",
+  "pathParameters": {
+    "assignmentId": 7
+  },
+  "queryParameters": {},
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "responseBody": {
+    "success": true,
+    "code": "string",
+    "data": {
+      "timeSlots": []
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlots": [],
+        "summary": {
+            "totalTimeSlots": 0,
+            "totalSessions": 0,
+            "fullyStaffed": 0,
+            "partiallyStaffed": 0,
+            "unstaffed": 0
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 5: Attempt to Retrieve Timeslots for a Non-Existent Assignment
+
+##### Description
+
+This is a negative test case to ensure the API handles requests for non-existent parent resources correctly. When an `assignmentId` is provided that does not correspond to any record in the database, the API should return a clear client-side error.
+
+##### Pre-conditions
+
+No assignment with the ID `999999` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots",
+  "pathParameters": {
+    "assignmentId": 999999
+  },
+  "queryParameters": {},
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 404,
+  "comment": "A 404 Not Found is the most semantically correct response for a missing resource. Some APIs might return a 400 Bad Request instead.",
+  "responseBody": {
+    "success": false,
+    "code": "ERROR_ASSIGNMENT_NOT_FOUND",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlots": [],
+        "summary": {
+            "totalTimeSlots": 0,
+            "totalSessions": 0,
+            "fullyStaffed": 0,
+            "partiallyStaffed": 0,
+            "unstaffed": 0
+        }
+    }
+}
+```
+
+**Result**: Fail.
+
+**Notes**: It should return a not found error, but still robust enough to return an empty time slot array.
+
+###### Test 2
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "4031",
+    "data": "Assignment not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+### 4. [POST] /api/admin/assignments/{assignmentId}/timeslots/batch 
+
+#### Test Case 1: Successfully Create Multiple Timeslots in a Batch
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that multiple, distinct timeslots can be created for an assignment in a single API call. This test ensures the batch processing logic is working correctly, that sessions are generated based on the assignment's configuration, and that the API returns a `200 OK` response with an accurate summary of created items (`timeSlotsCreated`, `sessionsGenerated`) and a list of the newly created timeslot objects.
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 1` exists in the database.
+- The assignment's session configuration (e.g., `sessionLength`, `gapTime`) has been set, allowing for automatic session generation.
+- A venue with `venueId: 10` exists.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots/batch",
+  "pathParameters": {
+    "assignmentId": 1
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "timeSlots": [
+      {
+        "date": "2025-10-20",
+        "startTime": "09:00",
+        "endTime": "11:00",
+        "sessionCount": 3,
+        "venueId": 10
+      },
+      {
+        "date": "2025-10-21",
+        "startTime": "13:00",
+        "endTime": "15:00",
+        "sessionCount": 3,
+        "venueId": 10
+      }
+    ]
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "2 time slots created with 6 sessions generated",
+  "data": {
+    "timeSlotsCreated": 2,
+    "sessionsGenerated": 6,
+    "timeSlots": [
+      {
+        "id": 5, // whatever generated id
+        "date": "2025-10-20",
+        "startTime": "09:00:00",
+        "endTime": "11:00:00",
+        "venueId": 10,
+        "requiredExaminers": 3,
+        "sessionCount": 3,
+        "status": "empty",
+        "assignedExaminers": [],
+        "sessions": [
+          {
+            "id": 501,
+            "startTime": "09:00",
+            "endTime": "09:30",
+            "status": "available",
+            "sessionNumber": 1
+          },
+          {
+            "id": 502,
+            "startTime": "09:40",
+            "endTime": "10:10",
+            "status": "available",
+            "sessionNumber": 2
+          },
+          {
+            "id": 503,
+            "startTime": "10:20",
+            "endTime": "10:50",
+            "status": "available",
+            "sessionNumber": 3
+          }
+        ],
+        "createdAt": "2025-08-26T10:45:00Z"
+      }
+      {
+        "id": 4,
+        "date": "2025-10-21",
+        "startTime": "13:00:00",
+        "endTime": "15:00:00",
+        "venueId": 10,
+        "requiredExaminers": 3,
+        "sessionCount": 3,
+        "status": "empty",
+        "assignedExaminers": [],
+        "sessions": [
+          {
+            "id": 12,
+            "startTime": "13:00:00",
+            "endTime": "13:30:00",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 1
+          },
+          {
+            "id": 13,
+            "startTime": "13:40:00",
+            "endTime": "14:10:00",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 2
+          },
+          {
+            "id": 14,
+            "startTime": "14:20:00",
+            "endTime": "14:50:00",
+            "status": "available",
+            "bookedBy": null,
+            "sessionNumber": 3
+          }
+        }
+      ]
+    }
+  }
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlotsCreated": 2,
+        "sessionsGenerated": 6,
+        "timeSlots": [
+            {
+                "id": 3,
+                "date": "2025-10-20",
+                "startTime": "09:00:00",
+                "endTime": "11:00:00",
+                "venueId": 10,
+                "requiredExaminers": 3,
+                "sessionCount": 3,
+                "status": "empty",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 9,
+                        "startTime": "09:00:00",
+                        "endTime": "09:30:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 10,
+                        "startTime": "09:40:00",
+                        "endTime": "10:10:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 11,
+                        "startTime": "10:20:00",
+                        "endTime": "10:50:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:44:23.564317",
+                "lastModified": "2025-08-30T22:44:23.564347"
+            },
+            {
+                "id": 4,
+                "date": "2025-10-21",
+                "startTime": "13:00:00",
+                "endTime": "15:00:00",
+                "venueId": 10,
+                "requiredExaminers": 3,
+                "sessionCount": 3,
+                "status": "empty",
+                "assignedExaminers": [],
+                "sessions": [
+                    {
+                        "id": 12,
+                        "startTime": "13:00:00",
+                        "endTime": "13:30:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 1
+                    },
+                    {
+                        "id": 13,
+                        "startTime": "13:40:00",
+                        "endTime": "14:10:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 2
+                    },
+                    {
+                        "id": 14,
+                        "startTime": "14:20:00",
+                        "endTime": "14:50:00",
+                        "status": "available",
+                        "bookedBy": null,
+                        "sessionNumber": 3
+                    }
+                ],
+                "bookedSessions": 0,
+                "createdAt": "2025-08-30T22:44:23.654455",
+                "lastModified": "2025-08-30T22:44:23.654484"
+            }
+        ],
+        "message": "2 time slots created with 6 sessions generated"
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 2: Attempt to Create Timeslots for a Non-Existent Assignment
+
+##### Description
+
+This negative test case verifies that the API validates the existence of the parent resource (`assignmentId`) before proceeding with the batch creation. The request should be rejected with a clear client-side error if the specified assignment cannot be found.
+
+##### Pre-conditions
+
+No assignment with the ID `999999` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots/batch",
+  "pathParameters": {
+    "assignmentId": 999999
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "timeSlots": [
+      {
+        "date": "2025-10-20",
+        "startTime": "09:00",
+        "endTime": "11:00",
+        "sessionCount": 4,
+        "venueId": 10
+      }
+    ]
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "ERROR_ASSIGNMENT_NOT_FOUND",
+    "data": {}  // error info
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "5001",
+    "data": "Session configuration not found or not configured"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: The error message is clear (not found).
+
+
+
+#### Test Case 3: Attempt to Create a Batch with Partially Invalid Data
+
+##### Description
+
+This negative test case checks the transactional nature of the batch operation. The request payload contains a mix of valid and invalid timeslot data (e.g., one item has a malformed `date`). A robust transactional API should reject the entire batch if any single item fails validation, ensuring that no partial data is created.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 3` exists.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots/batch",
+  "pathParameters": {
+    "assignmentId": 3
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "timeSlots": [
+      {
+        "date": "2025-11-06",
+        "startTime": "14:00",
+        "endTime": "15:00",
+        "sessionCount": 2,
+        "venueId": 12
+      },
+      {
+        "date": "INVALID-DATE-FORMAT",
+        "startTime": "16:00",
+        "endTime": "17:00",
+        "sessionCount": 2,
+        "venueId": 12
+      }
+    ]
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": {} //bad request error info
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Invalid request format"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Attempt to Create Timeslots with an Empty Array
+
+##### Description
+
+This edge case test checks how the API handles a request to create a batch of zero items. While some APIs might return a `200 OK` indicating zero items were created, a more common and robust approach is to treat an empty array as a bad request, as the intent of the call is to create items.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 1` exists.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots/batch",
+  "pathParameters": {
+    "assignmentId": 1
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "timeSlots": []
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": true,
+    "code": "ERROR_VALIDATION_TIMESLOTS_CANNOT_BE_EMPTY",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "timeSlotsCreated": 0,
+        "sessionsGenerated": 0,
+        "timeSlots": [],
+        "message": "0 time slots created with 0 sessions generated"
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Not the best way to handle an empty request, but it still works.
+
+
+
+### 5. [PUT] /api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}
+
+#### Test Case 1: Successfully Update an Existing Timeslot
+
+##### Description
+
+This is the primary "happy path" test case. It verifies that the details of an existing timeslot can be successfully updated. This test sends a request with a new `date` and `startTime`. The API should replace the old data with the new data for the specified timeslot and return a `200 OK` response containing the fully updated timeslot object.
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 2` exists in the database.
+- A timeslot with `timeSlotId: 1` exists and is associated with assignment `2`. Its current date is `2025-10-20`.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/admin/assignments/{assignmentId}/timeslots/batch",
+  "pathParameters": {
+    "assignmentId": 2
+  },
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "timeSlots": [
+      {
+        "date": "2025-10-20",
+        "startTime": "09:00",
+        "endTime": "11:00",
+        "sessionCount": 4,
+        "venueId": 10
+      },
+      {
+        "date": "2025-10-21",
+        "startTime": "13:00",
+        "endTime": "15:00",
+        "sessionCount": 4,
+        "venueId": 10
+      }
+    ]
+  }
+}
+```
+
+##### Expected Output
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
+
+
+
+### 6. [POST]  /api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/duplicate
+
+#### Test Case 1: Duplicate a Timeslot with a New Date and Time
+
+##### Description
+
+
+
+##### Pre-conditions
+
+- An assignment with `assignmentId: 789` exists in the database.
+- A source timeslot with `timeSlotId: 101` exists for this assignment, scheduled for `2025-10-20`. This source timeslot has examiners assigned to it.
+
+##### Input
+
+```json
+
+```
+
+##### Expected Output
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
+
+
+
+#### Test Case 2: 
+
+##### Description
+
+
+
+##### Pre-conditions
+
+
+
+##### Input
+
+```json
+
+```
+
+##### Expected Output
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
+
+
+
+### 7. [DELETE] /api/admin/assignments/{{assignmentId}}/timeslots (not done yet)
+
+#### Test Case 1: 
+
+##### Description
+
+
+
+##### Pre-conditions
+
+
+
+##### Input
+
+```json
+
+```
+
+##### Expected Output
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**:
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
+
+
+
+### 8.  [GET] /api/admin/assignments/{{assignmentId}}/examiners
+
+#### Test Case 1: 
+
+##### Description
+
+Verify that the system successfully returns the list of examiners for a given assignment when a valid Course Admin and assignmentId are provided.
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin** .
+
+The `assignmentId` exists in the system.
+
+At least one examiner has been added to the assignment.
+
+##### Input
+
+ `GET {{baseUrl}}/admin/assignments/{{assignmentId}}/examiners`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "examiners": [
+      {
+        "id": 1,
+        "name": "Dr. Emma Thompson",
+        "email": "emma.thompson@university.edu",
+        "maxSessions": 40,
+        "currentAssignments": 6,
+        "availability": "available"
+      },
+      {
+        "id": 2,
+        "name": "Dr. Michael Chen",
+        "email": "michael.chen@university.edu",
+        "maxSessions": 35,
+        "currentAssignments": 4,
+        "availability": "available"
+      }
+    ]
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+
+
+**Notes**: 
+
+- 
+
+#### Test Case 2: 
+
+##### Description
+
+Verify that the system returns a `404 Not Found` error when the provided `assignmentId` does not exist in the system.
+
+##### Pre-conditions
+
+The request is made with a valid Course Admin.
+
+The `assignmentId` used in the request is invalid or does not exist in the database.
+
+##### Input
+
+**Request**:
+ `GET {{baseUrl}}/admin/assignments/{{invalidAssignmentId}}/examiners`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `404 Not Found`
+
+```json
+{
+    "success": false,
+    "code": "4031",
+    "data": "Assignment not found"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+HTTP status code: `200 OK`
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": null
+}
+```
+
+**Result**: 
+
+Fail.
+
+**Notes**:
+
+- The system returned HTTP `200 OK` with `data: null`. Expected was `404 Not Found` with an appropriate error code/message (`NOT_FOUND`). The status code and error handling are incorrect, though the response indicates absence of data.
+
+#### Test Case 3: 
+
+##### Description
+
+Verify that the system successfully handles the case when the assignment exists but no examiners have been assigned yet.
+
+##### Pre-conditions
+
+The request is made with a valid Course Admin.
+
+The `assignmentId` exists in the system.
+
+No examiners are currently assigned to this assignment.
+
+##### Input
+
+**Request**:
+ `GET {{baseUrl}}/admin/assignments/{{invalidAssignmentId}}/examiners`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `404 Not Found`
+
+```json
+{
+  "success": true,
+   "code": "200",
+  "data": {
+    "examiners": []
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+HTTP status code: `200 OK`
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": null
+}
+```
+
+**Result**: 
+
+Fail.
+
+**Notes**:
+
+- The system returned HTTP `200 OK` with `data: null`. Expected was HTTP `200 OK` with an empty `examiners` array (`"examiners": []`). The status code is correct, but the payload format is inconsistent with the API contract.
+
+### 9. [PUT] /api/admin/assignments/{assignmentId}/examiners/session-limits
+
+#### Test Case 1: 
+
+##### Description
+
+
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin** .
+
+
+
+##### Input
+
+ `GET /admin/assignments/{assignmentId}/examiners/session-limits`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+
+
+**Notes**: 
+
+- 
+
+
+
+### 10. [PUT] /api/admin/assignments/{assignmentId}/timeslots/{{timeSlotId}}/examiners
+
+#### Test Case 1: 
+
+##### Description
+
+
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin** .
+
+
+
+##### Input
+
+ `GET /admin/assignments/{assignmentId}/timeslots/{{timeSlotId}}/examiners`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+
+
+**Notes**: 
+
+- 
+
+
+
+### 11. [GET] /api/admin/assignments/{assignmentId}/schedule/status
+
+#### Test Case 1: 
+
+##### Description
+
+Verify that the system successfully returns the schedule status of an assignment when a valid course administrator and assignmentId are provided.
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin** .
+
+The target `assignmentId` exists in the system.
+
+The schedule for the assignment has been created and is accessible.
+
+##### Input
+
+ `GET /admin/assignments/{assignmentId}/schedule/status`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "assignmentId": "assignment-123",
+    "scheduleStatus": "draft",
+    "isReleased": false,
+    "releasedAt": null,
+    "totalTimeSlots": 4,
+    "readyForRelease": true,
+    "issues": [],
+    "summary": {
+      "totalSessions": 12,
+      "fullyStaffedSlots": 2,
+      "unstaffedSlots": 0,
+      "totalExaminers": 6
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 1,
+        "scheduleStatus": "draft",
+        "isReleased": false,
+        "releasedAt": null,
+        "totalTimeSlots": 0,
+        "readyForRelease": false,
+        "issues": [
+            "No time slots defined"
+        ],
+        "summary": {
+            "totalSessions": 0,
+            "fullyStaffedSlots": 0,
+            "unstaffedSlots": 0,
+            "totalExaminers": 0
+        }
+    }
+}
+```
+
+**Result**:
+
+Pass.
+
+**Notes**: 
+
+The system successfully returned the schedule status with `200 OK`.
+
+- `scheduleStatus` is `"draft"` and `isReleased` is `false`, indicating the schedule has not yet been released.
+- `readyForRelease` is `false` and `issues` contains `"No time slots defined"`, which matches the expected state when no time slots have been configured.
+
+#### Test Case 2: 
+
+##### Description
+
+Verify that the system returns a `404 Not Found` error when the provided `assignmentId` does not exist in the system.
+
+##### Pre-conditions
+
+The request is made with a valid Course Admin.
+
+The `assignmentId` used in the request is invalid or does not exist in the database.
+
+##### Input
+
+**Request**:
+ `GET /admin/assignments/{invalidAssignmentId}/schedule/status`
+
+**Body**:
+
+```json
+
+```
+
+##### Expected Output
+
+HTTP status code: `404 Not Found`
+
+```json
+{
+  "success": false,
+  "code": "string",
+  "data": {}
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+HTTP status code: `200 OK`
+
+```json
+{
+    "success": false,
+    "code": "4031",
+    "data": "Assignment not found"
+}
+```
+
+**Result**: 
+
+Fail.
+
+**Notes**:
+
+- The response body correctly indicated `"Assignment not found"`, but the HTTP status code was `200 OK` instead of the expected `404 Not Found`.
+
+### 12. [POST] /api/admin/assignments/{assignmentId}/schedule/release
+
+#### Test Case 1: 
+
+##### Description
+
+Verify that the system successfully releases the schedule when a valid Course Admin and correct request body are provided. The schedule status should change to `released` and notifications should be sent to students and examiners.
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin**.
+
+The `assignmentId` exists in the system.
+
+The schedule has been fully configured (time slots exist, all slots staffed, no blocking issues).
+
+The schedule has not been released before.
+
+##### Input
+
+ `POST /admin/assignments/{assignmentId}/schedule/release`
+
+**Body**:
+
+```json
+{
+  "notifyStudents": true,
+  "notifyExaminers": true,
+  "releaseMessage": "Assessment schedule is now available for booking.",
+  "reschedulingEnabled": true,
+  "bookingDeadline": "2025-09-12T17:00:00+10:00",
+  "lockoutEnabled": true,
+  "lockoutWindowHours": 24
+}
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Schedule released successfully",
+  "data": {
+    "releasedAt": "2025-08-26T11:00:00Z",
+    "notificationsSent": {
+      "students": 45,
+      "examiners": 6
+    },
+    "bookingPolicies": {
+      "reschedulingEnabled": true,
+      "bookingDeadline": "2025-04-12T17:00:00+10:00",
+      "lockoutEnabled": true,
+      "lockoutWindowHours": 24
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "releasedAt": "2025-08-31T00:07:32.033756",
+        "notificationsSent": {
+            "students": 45,
+            "examiners": 6
+        },
+        "message": "Schedule released successfully"
+    }
+}
+```
+
+**Result**:
+
+Pass
+
+**Notes**: 
+
+- 
+
+#### Test Case 2: 
+
+##### Description
+
+Verify that the system prevents releasing the schedule if the schedule is incomplete (e.g., time slots exist but some are not fully staffed).
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin**.
+
+The `assignmentId` exists in the system.
+
+The schedule has been created but **issues remain** (e.g., unstaffed slots, missing time slots).
+
+The schedule has not been released before.
+
+##### Input
+
+**Request**:
+ `POST /admin/assignments/{assignmentId}/schedule/release`
+
+**Body**:
+
+```json
+{
+  "notifyStudents": true,
+  "notifyExaminers": true,
+  "releaseMessage": "Assessment schedule is now available for booking.",
+  "reschedulingEnabled": true,
+  "bookingDeadline": "2025-08-12T17:00:00+10:00",
+  "lockoutEnabled": true,
+  "lockoutWindowHours": 24
+}
+```
+
+##### Expected Output
+
+HTTP status code: `409 Conflict`
+
+```json
+{
+  "success": false,
+  "code": "5005",
+  "data": "Schedule is not ready for release"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+HTTP status code: `200 OK`
+
+```json
+{
+    "success": false,
+    "code": "5005",
+    "data": "Schedule is not ready for release"
+}
+```
+
+**Result**: 
+
+Failed.
+
+**Notes**:
+
+- The response body correctly indicated `"Schedule is not ready for release"` with business error code `"5005"`. However, the HTTP status code was returned as `200 OK` instead of the expected `409 Conflict`.
+
+### 13. [GET] /api/admin/assignments/{assignmentId}/calendar?month=2025-08
+
+#### Test Case 1: 
+
+##### Description
+
+Verify that the system successfully releases the schedule when a valid Course Admin and correct request body are provided. The schedule status should change to `released` and notifications should be sent to students and examiners.
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin**.
+
+The `assignmentId` exists in the system.
+
+The schedule has been fully configured (time slots exist, all slots staffed, no blocking issues).
+
+The schedule has not been released before.
+
+##### Input
+
+ `POST /admin/assignments/{assignmentId}/schedule/release`
+
+**Body**:
+
+```json
+{
+  "notifyStudents": true,
+  "notifyExaminers": true,
+  "releaseMessage": "Assessment schedule is now available for booking.",
+  "reschedulingEnabled": true,
+  "bookingDeadline": "2025-09-12T17:00:00+10:00",
+  "lockoutEnabled": true,
+  "lockoutWindowHours": 24
+}
+```
+
+##### Expected Output
+
+HTTP status code: `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Schedule released successfully",
+  "data": {
+    "releasedAt": "2025-08-26T11:00:00Z",
+    "notificationsSent": {
+      "students": 45,
+      "examiners": 6
+    },
+    "bookingPolicies": {
+      "reschedulingEnabled": true,
+      "bookingDeadline": "2025-04-12T17:00:00+10:00",
+      "lockoutEnabled": true,
+      "lockoutWindowHours": 24
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "releasedAt": "2025-08-31T00:07:32.033756",
+        "notificationsSent": {
+            "students": 45,
+            "examiners": 6
+        },
+        "message": "Schedule released successfully"
+    }
+}
+```
+
+**Result**:
+
+Pass
+
+**Notes**: 
+
+- 
+
+#### Test Case 2: 
+
+##### Description
+
+Verify that the system prevents releasing the schedule if the schedule is incomplete (e.g., time slots exist but some are not fully staffed).
+
+##### Pre-conditions
+
+The user is authenticated as a valid **Course Admin**.
+
+The `assignmentId` exists in the system.
+
+The schedule has been created but **issues remain** (e.g., unstaffed slots, missing time slots).
+
+The schedule has not been released before.
+
+##### Input
+
+**Request**:
+ `POST /admin/assignments/{assignmentId}/schedule/release`
+
+**Body**:
+
+```json
+{
+  "notifyStudents": true,
+  "notifyExaminers": true,
+  "releaseMessage": "Assessment schedule is now available for booking.",
+  "reschedulingEnabled": true,
+  "bookingDeadline": "2025-08-12T17:00:00+10:00",
+  "lockoutEnabled": true,
+  "lockoutWindowHours": 24
+}
+```
+
+##### Expected Output
+
+HTTP status code: `409 Conflict`
+
+```json
+{
+  "success": false,
+  "code": "5005",
+  "data": "Schedule is not ready for release"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 30/8/2025
+
+**Tester**: Benyuan
+
+**Actual Output**:
+
+HTTP status code: `200 OK`
+
+```json
+{
+    "success": false,
+    "code": "5005",
+    "data": "Schedule is not ready for release"
+}
+```
+
+**Result**: 
+
+Failed.
+
+**Notes**:
+
+- The response body correctly indicated `"Schedule is not ready for release"` with business error code `"5005"`. However, the HTTP status code was returned as `200 OK` instead of the expected `409 Conflict`.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2485,6 +5848,812 @@ User has logged in to the superadmin account. The backend works correctly and co
 
 **Notes**: The API only returns active courses.
 
+###### Test 3
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "courses": [
+            {
+                "id": 28,
+                "code": "AAAA11111",
+                "name": "aaaaaaaaaaa",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 29,
+                "code": "BBBB22222",
+                "name": "bbbbbbbbbbb",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 30,
+                "code": "CCCC33333",
+                "name": "ccccccccccccccc",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 13,
+                "code": "COMP11451",
+                "name": "mmmmmm",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 31,
+                "code": "DDDD44444",
+                "name": "dddddddd",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 32,
+                "code": "EEEE55555",
+                "name": "eeeeeeee",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 33,
+                "code": "FFFF66666",
+                "name": "fffffffffffff",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 26,
+                "code": "TEST12390",
+                "name": "TestTest",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 21,
+                "code": "TEST54321",
+                "name": "Test Creator",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 5,
+                "code": "COMP90000",
+                "name": "Algorithms and Complex1",
+                "semester": "Semester 2",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 4,
+            "totalItems": 35,
+            "itemsPerPage": 10,
+            "hasNext": true,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Some fields are not developed.
+
+
+
+#### Test Case 2: Comprehensive Filtering and Searching
+
+##### Description
+
+This test case is designed to verify the API's powerful filtering capabilities by combining multiple criteria at once. It uses specific values for `department`, `semester`, `year`, `status`, and `adminId`, in addition to a `search` keyword. This ensures the API correctly applies `AND` logic to all conditions, returning only the courses that precisely match every single filter.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/superadmin/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 1,
+    "limit": 20,
+    "status": "active",
+    "semester": "Semester 2",
+    "year": 2025,
+    "search": "Introduction",
+    "adminId": 49
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "Every course in the 'courses' array must match ALL the specified filters: status='active', semester='Semester 2', year=2025, adminId=49, and its name/description should contain 'Introduction'.",
+  "responseBodySchema": {
+    "properties": {
+      "success": { "const": true }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "courses": [
+            {
+                "id": 19,
+                "code": "SWEN90018",
+                "name": "Introduction nihao",
+                "semester": "Semester 2",
+                "year": 2025,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 49,
+                "adminName": "1",
+                "adminEmail": "yanqings1@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": "2025-08-31T10:54:17"
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 1,
+            "totalItems": 1,
+            "itemsPerPage": 20,
+            "hasNext": false,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Advanced Sorting Logic
+
+##### Description
+
+This test case specifically validates the sorting mechanism. It requests the list of courses to be sorted by their `name` in ascending (`asc`) order. This is different from a default sort (e.g., by creation date) and verifies that the `sortBy` and `sortOrder` parameters are correctly interpreted and applied by the API backend.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/superadmin/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 1,
+    "limit": 7,
+    "sortBy": "name",
+    "sortOrder": "asc"
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "The 'courses' array in the response must be sorted alphabetically from A-Z based on the 'name' field.",
+  "responseBodySchema": {
+    "properties": {
+      "success": { "const": true }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "courses": [
+            {
+                "id": 28,
+                "code": "AAAA11111",
+                "name": "aaaaaaaaaaa",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 29,
+                "code": "BBBB22222",
+                "name": "bbbbbbbbbbb",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 30,
+                "code": "CCCC33333",
+                "name": "ccccccccccccccc",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 13,
+                "code": "COMP11451",
+                "name": "mmmmmm",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 49,
+                "adminName": "1",
+                "adminEmail": "yanqings1@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": "2025-08-31T10:53:14"
+            },
+            {
+                "id": 31,
+                "code": "DDDD44444",
+                "name": "dddddddd",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 32,
+                "code": "EEEE55555",
+                "name": "eeeeeeee",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 33,
+                "code": "FFFF66666",
+                "name": "fffffffffffff",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 5,
+            "totalItems": 35,
+            "itemsPerPage": 7,
+            "hasNext": true,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Fail.
+
+**Notes**: The backend doesn't use the filter parameters at all.
+
+
+
+#### Test Case 4: Pagination for an Out-of-Bounds Page
+
+##### Description
+
+This is an edge case test for pagination. It checks the API's behavior when a page number is requested that is far beyond the total number of records available (e.g., page 999). A robust API should handle this gracefully by returning a `200 OK` status with an empty `courses` array, rather than throwing an error. The `pagination` object should still accurately reflect the requested page and total records.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/superadmin/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 999,
+    "limit": 10
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "responseBody": {
+    "success": true,
+    "code": "string",
+    "data": {
+      "courses": [],
+      "pagination": {
+        "currentPage": 999
+      }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "courses": [
+            {
+                "id": 28,
+                "code": "AAAA11111",
+                "name": "aaaaaaaaaaa",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 29,
+                "code": "BBBB22222",
+                "name": "bbbbbbbbbbb",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 30,
+                "code": "CCCC33333",
+                "name": "ccccccccccccccc",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 13,
+                "code": "COMP11451",
+                "name": "mmmmmm",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 49,
+                "adminName": "1",
+                "adminEmail": "yanqings1@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": "2025-08-31T10:53:14"
+            },
+            {
+                "id": 31,
+                "code": "DDDD44444",
+                "name": "dddddddd",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 32,
+                "code": "EEEE55555",
+                "name": "eeeeeeee",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 33,
+                "code": "FFFF66666",
+                "name": "fffffffffffff",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ACTIVE",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 26,
+                "code": "TEST12390",
+                "name": "TestTest",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 2,
+                "adminName": "alice",
+                "adminEmail": "alice@student.unimelb.edu.au",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 21,
+                "code": "TEST54321",
+                "name": "Test Creator",
+                "semester": "Semester 1",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": null,
+                "updatedAt": null
+            },
+            {
+                "id": 5,
+                "code": "COMP90000",
+                "name": "Algorithms and Complex1",
+                "semester": "Semester 2",
+                "year": 2026,
+                "department": null,
+                "venue": null,
+                "status": "ARCHIVED",
+                "adminId": 1,
+                "adminName": "test",
+                "adminEmail": "p@x.com",
+                "studentsCount": null,
+                "assignmentsCount": null,
+                "createdAt": "2025-08-23T11:50:17",
+                "updatedAt": "2025-08-23T14:20:05"
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 4,
+            "totalItems": 35,
+            "itemsPerPage": 10,
+            "hasNext": true,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: It's an elegant way to handle the out-of-bounds parameters.
+
+
+
+#### Test Case 5: Invalid Enumerated Value in Request
+
+##### Description
+
+This negative test case checks input validation for fields that expect a specific set of allowed values. It sends a request with an invalid `page` value ("sideways"), which is not a number. This verifies that the API's validation layer rejects unsupported or nonsensical values with a `400 Bad Request` error.
+
+##### Pre-conditions
+
+User has logged in to the superadmin account. The backend works correctly and connects to the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/superadmin/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 1,
+    "limit": abc
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": false,
+    "code": "400",
+    "data": {} // any error message
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Invalid request format"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
 
 
 ### 5. [POST] /api/superadmin/admins
@@ -3721,6 +7890,435 @@ User has logged in to the superadmin account. The backend works correctly and co
 **Result**:  Fail.
 
 **Notes**: The `pagination` is incorrect as shown above. The `admins` return more than the page limitation of 10.
+
+###### Test 2
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "admins": [
+            {
+                "userId": 48,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": "2025-08-30 05:18:41",
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "48",
+                "email": "superadmin@example.com",
+                "name": "testsuper",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 35,
+                "department": "test",
+                "invitedAt": "2025-08-17 00:05:04",
+                "registeredAt": "2025-08-18 00:05:08",
+                "lastLoginAt": "2025-08-20 00:05:32",
+                "coursesManaged": 2,
+                "studentsManaged": 50,
+                "assignmentsCreated": 2,
+                "id": "35",
+                "email": "test@unimelb.edu.au",
+                "name": "testadmin1",
+                "status": "INACTIVE",
+                "registrationStatus": "EXPIRED",
+                "sisLoginId": null,
+                "token": "1",
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 17,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "17",
+                "email": "alice4@student.unimelb.edu.au",
+                "name": "alice4",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 19,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "19",
+                "email": "carol4@student.unimelb.edu.au",
+                "name": "carol4",
+                "status": "INACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 20,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "20",
+                "email": "dave4@student.unimelb.edu.au",
+                "name": "dave4",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 18,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "18",
+                "email": "bob4@student.unimelb.edu.au",
+                "name": "bob4",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 21,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "21",
+                "email": "eve4@student.unimelb.edu.au",
+                "name": "eve4",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 12,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "12",
+                "email": "alice3@student.unimelb.edu.au",
+                "name": "alice3",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 13,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "13",
+                "email": "bob3@student.unimelb.edu.au",
+                "name": "bob3",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 14,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "14",
+                "email": "carol3@student.unimelb.edu.au",
+                "name": "carol3",
+                "status": "INACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 15,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "15",
+                "email": "dave3@student.unimelb.edu.au",
+                "name": "dave3",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 16,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "16",
+                "email": "eve3@student.unimelb.edu.au",
+                "name": "eve3",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 7,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "7",
+                "email": "alice1@student.unimelb.edu.au",
+                "name": "alice1",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 10,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "10",
+                "email": "dave2@student.unimelb.edu.au",
+                "name": "dave2",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            },
+            {
+                "userId": 11,
+                "department": null,
+                "invitedAt": null,
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": null,
+                "studentsManaged": null,
+                "assignmentsCreated": null,
+                "id": "11",
+                "email": "eve2@student.unimelb.edu.au",
+                "name": "eve2",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": null,
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 4,
+            "totalItems": 46,
+            "itemsPerPage": 15,
+            "hasNext": true,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 2: Comprehensive Filtering by Multiple Criteria
+
+##### Description
+
+This test case validates the API's filtering capabilities by combining several criteria simultaneously. It sends a request to find admins from a specific `department`, with a certain `status`, and whose `name` contains a partial string. This test ensures the backend correctly applies `AND` logic to all filters, returning a precise subset of administrators that match every condition.
+
+##### Pre-conditions
+
+
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/superadmin/admins",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 1,
+    "limit": 20,
+    "status": "active",
+    "department": "Faculty of Engineering",
+    "name": "Jane"
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "Every admin in the 'admins' array must have status='active', belong to 'Faculty of Engineering', and have a name containing 'Jane'.",
+  "responseBodySchema": {
+    "properties": {
+      "success": { "const": true }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 31/8/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "admins": [
+            {
+                "userId": 76,
+                "department": "Computer Science",
+                "invitedAt": "2025-08-28 20:42:15",
+                "registeredAt": null,
+                "lastLoginAt": null,
+                "coursesManaged": 0,
+                "studentsManaged": 0,
+                "assignmentsCreated": 0,
+                "id": "76",
+                "email": "new.jane.smith@student.unimelb.edu.au",
+                "name": "Dr. Jane Smith",
+                "status": "ACTIVE",
+                "registrationStatus": "PENDING",
+                "sisLoginId": null,
+                "token": "UW_Idso6GrldaS6PKydtms8xhgTCwiHlAzXDe4v0PN8",
+                "invitationExpiresAt": null,
+                "courses": null,
+                "recentActivity": null
+            }
+        ],
+        "pagination": {
+            "currentPage": 1,
+            "totalPages": 1,
+            "totalItems": 1,
+            "itemsPerPage": 20,
+            "hasNext": false,
+            "hasPrev": false
+        }
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: The department field in the filter wasn't used.
 
 
 
