@@ -11,17 +11,11 @@ import org.swen90017.oas.dto.request.BatchCreateTimeSlotsRequestDTO;
 import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
 import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
 import org.swen90017.oas.dto.response.*;
-import org.swen90017.oas.entity.AssignmentSessionConfig;
-import org.swen90017.oas.entity.SlotSession;
-import org.swen90017.oas.entity.TimeSlot;
-import org.swen90017.oas.entity.TimeSlotExaminer;
+import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.enums.SlotStatus;
 import org.swen90017.oas.exception.BusinessException;
-import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
-import org.swen90017.oas.mapper.SlotSessionMapper;
-import org.swen90017.oas.mapper.TimeSlotExaminersMapper;
-import org.swen90017.oas.mapper.TimeSlotMapper;
+import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.TimeSlotService;
 
 import java.time.LocalDate;
@@ -47,9 +41,15 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private final SlotSessionMapper slotSessionMapper;
     private final AssignmentSessionConfigMapper sessionConfigMapper;
     private final TimeSlotExaminersMapper timeSlotExaminersMapper;
+    private final AssignmentMapper assignmentMapper;
 
     @Override
     public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, LocalDate date, String status) {
+        // Get the assignment
+        Assignment assign = assignmentMapper.selectById(assignmentId);
+        if (assign == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
         List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, date, status);
         List<TimeSlotDetailDTO> timeSlotDTOs = timeSlots.stream()
                 .map(this::convertToDetailDTO)
