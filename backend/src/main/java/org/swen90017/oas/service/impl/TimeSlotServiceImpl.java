@@ -43,6 +43,8 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private final AssignmentSessionConfigMapper sessionConfigMapper;
     private final TimeSlotExaminersMapper timeSlotExaminersMapper;
     private final AssignmentMapper assignmentMapper;
+    private final SysUserMapper sysUserMapper;
+    private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
 
     @Override
     public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, LocalDate date, String status) {
@@ -246,6 +248,8 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         
         // Copy examiners if not clearing
         if (request.getClearExaminers() == null || !request.getClearExaminers()) {
+            // Check examiner session limits before copying
+            validateExaminerSessionLimits(timeSlotId, sourceSlot.getAssignmentId(), sourceSlot.getSessionCount());
             copyExaminers(timeSlotId, newSlot.getSlotId());
         }
         
@@ -376,8 +380,20 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         List<SlotSession> sessions = slotSessionMapper.findBySlotId(timeSlot.getSlotId());
         dto.setSessions(sessions.stream().map(this::convertSessionToDTO).collect(Collectors.toList()));
         
-        // Load assigned examiners (placeholder - would need examiner service)
-        dto.setAssignedExaminers(new ArrayList<>());
+        // Load assigned examiners with user info
+        List<Long> examinerIds = timeSlotExaminersMapper.listExaminerIdsBySlot(timeSlot.getSlotId());
+        List<ExaminerDetailDTO> assignedExaminers = new ArrayList<>();
+        if (examinerIds != null && !examinerIds.isEmpty()) {
+            List<SysUser> users = sysUserMapper.selectBatchIds(examinerIds);
+            for (SysUser user : users) {
+                ExaminerDetailDTO examinerDTO = new ExaminerDetailDTO();
+                examinerDTO.setId(user.getUserId());
+                examinerDTO.setName(user.getUserName());
+                examinerDTO.setEmail(user.getEmail());
+                assignedExaminers.add(examinerDTO);
+            }
+        }
+        dto.setAssignedExaminers(assignedExaminers);
         
         return dto;
     }
@@ -418,9 +434,46 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
      * Copy examiners from source slot to new slot
      */
     private void copyExaminers(Long sourceSlotId, Long newSlotId) {
+        // Get all examiner IDs assigned to the source slot
         List<Long> examinerIds = timeSlotExaminersMapper.listExaminerIdsBySlot(sourceSlotId);
-        // Implementation would copy examiner assignments
-        // This is a placeholder - actual implementation would use examiner service
+        
+        if (examinerIds == null || examinerIds.isEmpty()) {
+            log.debug("No examiners to copy from slot {}", sourceSlotId);
+            return;
+        }
+        
+        // Create examiner assignments(分配) for the new slot
+        List<TimeSlotExaminer> newAssignments = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        // TODO: Get current operator ID from security context
+        Long operatorId = null; 
+        
+        for (Long examinerId : examinerIds) {
+            TimeSlotExaminer assignment = new TimeSlotExaminer();
+            assignment.setSlotId(newSlotId);
+            assignment.setExaminerId(examinerId);
+            assignment.setAssignedAt(now);
+            assignment.setAssignedBy(operatorId);
+            newAssignments.add(assignment);
+        }
+        
+        // Batch insert the new examiner assignments
+        if (!newAssignments.isEmpty()) {
+            timeSlotExaminersMapper.batchInsert(newAssignments);
+            log.info("Copied {} examiner assignments from slot {} to slot {}", 
+                newAssignments.size(), sourceSlotId, newSlotId);
+        }
+        
+        // Update the new slot's examiner count and status
+        TimeSlot newSlot = timeSlotMapper.selectById(newSlotId);
+        if (newSlot != null) {
+            int currentExaminers = examinerIds.size();
+            int bookedSessions = newSlot.getBookedSessions() == null ? 0 : newSlot.getBookedSessions();
+            timeSlotMapper.updateCountersAndStatus(newSlotId, currentExaminers, bookedSessions);
+            
+            log.debug("Updated slot {} counters: {} examiners, {} booked sessions", 
+                newSlotId, currentExaminers, bookedSessions);
+        }
     }
 
     /**
@@ -462,5 +515,54 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         summary.setUnstaffed(unstaffed);
 
         return summary;
+    }
+
+    /**
+     * Validate examiner session limits before copying examiners to a new time slot
+     */
+    private void validateExaminerSessionLimits(Long sourceSlotId, Long assignmentId, Integer sessionCount) {
+        // Get all examiner IDs assigned to the source slot
+        List<Long> examinerIds = timeSlotExaminersMapper.listExaminerIdsBySlot(sourceSlotId);
+        
+        if (examinerIds == null || examinerIds.isEmpty()) {
+            return; // No examiners to validate
+        }
+
+        // Get assignment session config for default limits
+        AssignmentSessionConfig config = sessionConfigMapper.selectById(assignmentId);
+        int defaultMaxSessions = (config == null || config.getDefaultMaxSessionsPerExaminer() == null) 
+            ? 0 : config.getDefaultMaxSessionsPerExaminer();
+
+        // Check each examiner's session limits
+        for (Long examinerId : examinerIds) {
+            // Get examiner's max sessions limit (personalized or default)
+            ExaminerAssignmentLimit personalLimit = examinerAssignmentLimitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
+            int maxSessions = (personalLimit != null && personalLimit.getMaxSessions() != null) 
+                ? personalLimit.getMaxSessions() : defaultMaxSessions;
+
+            // Skip validation if unlimited (maxSessions = 0)
+            if (maxSessions <= 0) {
+                continue;
+            }
+
+            // Get examiner's current assigned sessions in this assignment
+            int currentSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+            
+            // Check if copying this time slot would exceed the limit
+            int newTotalSessions = currentSessions + (sessionCount == null ? 0 : sessionCount);
+            if (newTotalSessions > maxSessions) {
+                // Get examiner name for better error message
+                SysUser examiner = sysUserMapper.selectById(examinerId);
+                String examinerName = (examiner != null) ? examiner.getUserName() : "ID:" + examinerId;
+                
+                throw new BusinessException(
+                    String.format("Cannot duplicate time slot: Examiner %s would exceed session limit. Current: %d, After duplication: %d, Max allowed: %d", 
+                        examinerName, currentSessions, newTotalSessions, maxSessions),
+                    CommonError.BAD_REQUEST.getCode()
+                );
+            }
+        }
+        
+        log.debug("All examiners passed session limit validation for time slot duplication");
     }
 }
