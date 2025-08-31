@@ -224,11 +224,17 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
     @Override
     @Transactional
-    public TimeSlotDetailDTO duplicateTimeSlot(Long timeSlotId, DuplicateTimeSlotRequestDTO request) {
+    public TimeSlotDetailDTO duplicateTimeSlot(Long assignmentId, Long timeSlotId, DuplicateTimeSlotRequestDTO request) {
         TimeSlot sourceSlot = timeSlotMapper.selectById(timeSlotId);
         if (sourceSlot == null) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
+        
+        // Validate that the time slot belongs to the specified assignment
+        if (!sourceSlot.getAssignmentId().equals(assignmentId)) {
+            throw new BusinessException("Time slot does not belong to the specified assignment", CommonError.BAD_REQUEST.getCode());
+        }
+        
         ensureAssignmentNotReleased(sourceSlot.getAssignmentId());
 
         // Create new time slot based on source

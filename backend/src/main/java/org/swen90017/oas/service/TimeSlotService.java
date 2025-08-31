@@ -53,11 +53,12 @@ public interface TimeSlotService extends IService<TimeSlot> {
     /**
      * Duplicate a time slot
      *
+     * @param assignmentId Assignment ID that the time slot should belong to
      * @param timeSlotId Source time slot ID
      * @param request Duplicate request with modifications
      * @return Duplicated time slot details
      */
-    TimeSlotDetailDTO duplicateTimeSlot(Long timeSlotId, DuplicateTimeSlotRequestDTO request);
+    TimeSlotDetailDTO duplicateTimeSlot(Long assignmentId, Long timeSlotId, DuplicateTimeSlotRequestDTO request);
 
     /**
      * Delete multiple time slots

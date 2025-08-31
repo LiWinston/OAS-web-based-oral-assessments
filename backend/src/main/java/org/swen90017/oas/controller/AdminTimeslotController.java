@@ -152,7 +152,7 @@ public class AdminTimeslotController {
         if (request == null) {
             request = new DuplicateTimeSlotRequestDTO();
         }
-        TimeSlotDetailDTO duplicatedSlot = timeSlotService.duplicateTimeSlot(timeSlotId, request);
+        TimeSlotDetailDTO duplicatedSlot = timeSlotService.duplicateTimeSlot(assignmentId, timeSlotId, request);
         return ResponseEntity.status(201).body(Result.success(duplicatedSlot));
     }
 
