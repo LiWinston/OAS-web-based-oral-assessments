@@ -48,87 +48,7 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Courses
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.totalCourses}
-              </p>
-              <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1">
-                <i className="fas fa-arrow-up mr-1"></i>
-                {stats.activeCourses} active
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-university text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Course Admins
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.totalAdmins}
-              </p>
-              <p className="text-xs text-orange-600 dark:text-orange-400 flex items-center mt-1">
-                <i className="fas fa-envelope mr-1"></i>
-                {stats.pendingInvitations} invitations sent
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-user-shield text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Students
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.totalStudents.toLocaleString()}
-              </p>
-              <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center mt-1">
-                <i className="fas fa-users mr-1"></i>
-                Across all courses
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-user-graduate text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6 hover:shadow-lg transition-shadow cursor-pointer">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                System Health
-              </p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                Excellent
-              </p>
-              <p className="text-xs text-green-600 dark:text-green-400 flex items-center mt-1">
-                <i className="fas fa-check-circle mr-1"></i>
-                All systems operational
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-heartbeat text-white"></i>
-            </div>
-          </div>
-        </Card>
-      </div>
+      
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
@@ -159,7 +79,7 @@ export default function SuperAdminDashboard() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                 Quick Actions
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Button
                   onClick={() => setActiveTab("admins")}
                   className="h-16 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white"
@@ -181,15 +101,7 @@ export default function SuperAdminDashboard() {
                   </div>
                 </Button>
 
-                <Button
-                  variant="outline"
-                  className="h-16 border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900"
-                >
-                  <div className="text-center">
-                    <i className="fas fa-chart-line text-xl mb-1 block text-green-500"></i>
-                    <span className="text-sm">System Reports</span>
-                  </div>
-                </Button>
+                
               </div>
             </Card>
 
@@ -206,46 +118,14 @@ export default function SuperAdminDashboard() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Course Admin registered: Dr. Sarah Chen
+                        No recent activity
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        2 hours ago
-                      </p>
+                      
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <i className="fas fa-plus text-white text-sm"></i>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        New course created: Advanced Machine Learning
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        1 day ago
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-                      <i className="fas fa-envelope text-white text-sm"></i>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Invitation sent: Prof. James Wilson
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
-                        2 days ago
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                
               </div>
             </Card>
           </div>

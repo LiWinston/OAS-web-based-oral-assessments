@@ -26,13 +26,7 @@ export function SuperAdminSidebar({ isOpen, onToggle }) {
       href: '/superadmin/courses',
       icon: 'fas fa-university',
       current: pathname?.startsWith('/superadmin/courses')
-    },
-    {
-      name: 'System Settings',
-      href: '/superadmin/settings',
-      icon: 'fas fa-cogs',
-      current: pathname?.startsWith('/superadmin/settings')
-    }
+    }//delteed settings
   ];
 
   return (
