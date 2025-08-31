@@ -201,7 +201,7 @@ public class AdminTimeslotController {
     public Result<String> setExaminerSessionLimits(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody UpdateExaminerSessionLimitsRequestDTO request) {
-        scheduleService.updateExaminerSessionLimits(assignmentId, request);
-        return Result.success();
+        int affected = scheduleService.updateExaminerSessionLimits(assignmentId, request);
+        return Result.success(null, String.format("Session limits updated for %d examiners", request.getExaminerLimits().size()));
     }
 }

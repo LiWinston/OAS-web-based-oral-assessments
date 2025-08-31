@@ -17,6 +17,7 @@ import org.swen90017.oas.enums.SlotStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
+import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.ScheduleService;
@@ -37,6 +38,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final AssignmentMapper assignmentMapper;
     private final TimeSlotMapper timeSlotMapper;
     private final AssignmentSessionConfigMapper assignmentSessionConfigMapper;
+    private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
     private final EmailService emailService;
 
     @Override
@@ -123,19 +125,28 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     @Transactional
-    public void updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request) {
-        // TODO: Persist per-examiner limits when the storage schema is available.
-        // For now, this is a no-op placeholder to keep compilation and endpoint behavior consistent.
+    public int updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request) {
         if (request == null || CollectionUtils.isEmpty(request.getExaminerLimits())) {
             throw new BusinessException(CommonError.INVALID_PARAMS);
         }
+        int updated = 0;
         for (ExaminerSessionLimitDTO limit : request.getExaminerLimits()) {
-            if (limit.getExaminerId() == null || limit.getMaxSessions() == null) {
+            if (limit.getExaminerId() == null || limit.getMaxSessions() == null || limit.getMaxSessions() < 0) {
                 throw new BusinessException(CommonError.INVALID_PARAMS);
             }
-
-
+            // 先尝试更新；若更新行数为 0，则插入
+            int rows = examinerAssignmentLimitMapper.updateMaxSessionsByPair(limit.getExaminerId(), assignmentId, limit.getMaxSessions());
+            if (rows == 0) {
+                org.swen90017.oas.entity.ExaminerAssignmentLimit record = new org.swen90017.oas.entity.ExaminerAssignmentLimit();
+                record.setExaminerId(limit.getExaminerId());
+                record.setAssignmentId(assignmentId);
+                record.setMaxSessions(limit.getMaxSessions());
+                examinerAssignmentLimitMapper.insert(record);
+                rows = 1;
+            }
+            updated += rows;
         }
+        return updated;
     }
 
     /**

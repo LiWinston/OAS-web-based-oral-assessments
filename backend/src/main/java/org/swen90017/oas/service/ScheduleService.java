@@ -42,5 +42,5 @@ public interface ScheduleService {
      * @param assignmentId Assignment ID
      * @param request Request including a list of examiner limits
      */
-    void updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request);
+    int updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request);
 }

@@ -15,4 +15,13 @@ public class ExaminerDetailDTO {
 
     @Schema(description = "Examiner email", example = "emma.thompson@university.edu")
     private String email;
+
+    @Schema(description = "Max sessions allowed for this examiner (0 means unlimited)", example = "40")
+    private Integer maxSessions;
+
+    @Schema(description = "Current total assigned sessions within this assignment", example = "6")
+    private Integer currentAssignments;
+
+    @Schema(description = "Availability status based on maxSessions and currentAssignments", example = "available")
+    private String availability;
 }

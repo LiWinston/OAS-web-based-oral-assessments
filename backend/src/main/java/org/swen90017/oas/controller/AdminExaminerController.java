@@ -25,8 +25,9 @@ public class AdminExaminerController {
     @GetMapping("/{assignmentId}/examiners")
     @Log(module = "Examiner Management", businessType = BusinessType.QUERY)
     public Result<GetAvailableExaminersResponseDTO> getAvailableExaminers(
-            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
-        GetAvailableExaminersResponseDTO resp = adminExaminerService.getAvailableExaminers(assignmentId);
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Optional Time Slot ID for conflict check") @RequestParam(required = false) Long timeSlotId) {
+        GetAvailableExaminersResponseDTO resp = adminExaminerService.getAvailableExaminers(assignmentId, timeSlotId);
         return Result.success(resp);
     }
 
