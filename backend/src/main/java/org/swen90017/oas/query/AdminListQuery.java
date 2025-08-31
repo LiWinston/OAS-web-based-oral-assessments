@@ -13,7 +13,9 @@ public class AdminListQuery {
     // Primary status mapped to DB values "0"/"1"
     @QueryField(column = "status", type = QueryType.EQUAL)
     private String status;
-
+    // Primary status mapped to DB values "0"/"1"
+    @QueryField(column = "registration_status", type = QueryType.EQUAL)
+    private String registrationStatus;
     // Name LIKE -> user_name
     @QueryField(column = "user_name", type = QueryType.LIKE)
     private String name;

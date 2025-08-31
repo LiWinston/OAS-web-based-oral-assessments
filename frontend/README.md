@@ -175,7 +175,10 @@ frontend/
 │   │   │   ├── page.jsx         # Course creation & management
 │   │   │   └── [courseId]/      # Dynamic course routes
 │   │   │       └── assignments/ # Course-specific assignments
-│   │   │           └── page.jsx # Assignment configuration
+│   │   │           ├── page.jsx # Assignment configuration
+│   │   │           └── [assignmentId]/ # Assignment-specific routes
+│   │   │               ├── schedule/page.jsx # Session configuration
+│   │   │               └── timeslots/page.jsx # Timeslot management
 │   │   ├── documentation/       # Documentation & FAQ
 │   │   │   └── page.jsx         # Comprehensive help system
 │   │   ├── users/               # User management
@@ -184,7 +187,9 @@ frontend/
 │   ├── examiner/                # Examiner interface
 │   │   ├── layout.jsx           # Examiner layout
 │   │   ├── page.jsx             # Examiner dashboard
-│   │   ├── schedule/            # Availability management
+│   │   ├── schedule/            # Self-assignment and availability management
+│   │   │   ├── page.jsx         # Schedule overview with multiple views
+│   │   │   └── select/page.jsx  # Two-step timeslot selection wizard
 │   │   ├── assessments/         # Assessment conduct
 │   │   └── comments/            # Comment templates
 │   ├── student/                 # Student interface
@@ -192,6 +197,9 @@ frontend/
 │   │   ├── page.jsx             # Student dashboard
 │   │   ├── assignments/         # View assignments
 │   │   ├── booking/             # Time slot booking
+│   │   ├── groups/              # Group membership management
+│   │   │   ├── page.jsx         # Group overview with card/table views
+│   │   │   └── [groupId]/page.jsx # Detailed group member information
 │   │   └── results/             # Assessment results
 │   ├── superadmin/              # Super Admin interface
 │   │   ├── layout.jsx           # Super admin layout
@@ -226,6 +234,10 @@ frontend/
 │   ├── layout/                  # Layout components
 │   │   ├── AdminSidebar.jsx     # Course Admin navigation sidebar
 │   │   ├── AdminTopNav.jsx      # Course Admin header navigation
+│   │   ├── ExaminerSidebar.jsx  # Examiner navigation sidebar
+│   │   ├── ExaminerTopNav.jsx   # Examiner header navigation
+│   │   ├── StudentSidebar.jsx   # Student navigation sidebar
+│   │   ├── StudentTopNav.jsx    # Student header navigation with profile dropdown
 │   │   ├── SuperAdminSidebar.jsx # Super Admin navigation sidebar
 │   │   └── SuperAdminTopNav.jsx # Super Admin header navigation
 │   ├── admin/                   # Course Admin specific components
@@ -253,6 +265,9 @@ frontend/
 │   │   │   ├── AddUserModal.jsx            # Add member (ROLE_STUDENT/ROLE_EXAMINER)
 │   │   │   ├── UsersEmptyState.jsx         # Empty state for tabs
 │   │   │   └── ConfirmDialog.jsx           # Polished delete confirmation
+│   │   ├── schedule/            # Course Admin timeslot management
+│   │   │   ├── AddTimeSlotModal.jsx        # Comprehensive timeslot creation/editing modal
+│   │   │   └── EditTimeSlotModal.jsx       # Wrapper for editing existing timeslots
 │   │   └── dashboard/           # Course Admin dashboard components
 │   │       ├── StatsCard.jsx    # Statistics cards
 │   │       ├── AssignmentStatusTable.jsx # Assignment progress table
@@ -263,12 +278,27 @@ frontend/
 │   │   └── dashboard/           # Super Admin dashboard components
 │   │       ├── AdminManagementHub.jsx # Course Admin management
 │   │       └── CourseOverviewTable.jsx # System-wide course view
-│   ├── examiner/                # Examiner components (planned)
-│   │   ├── TimeslotCalendar.jsx # Schedule management
-│   │   └── FeedbackForm.jsx     # Assessment marking
-│   └── student/                 # Student components (planned)
-│       ├── BookingCalendar.jsx  # Slot booking
-│       └── ResultCard.jsx       # Result display
+│   ├── examiner/                # Examiner specific components
+│   │   └── schedule/            # Examiner timeslot self-assignment system
+│   │       ├── AssessmentsToAssign.jsx      # Available assignments display with filtering
+│   │       ├── AssignedSlots.jsx            # Current assignments with withdrawal functionality
+│   │       ├── ExaminerCalendar.jsx         # Calendar view with booking status
+│   │       ├── TimeslotList.jsx             # Interactive timeslot selection with validation
+│   │       ├── WeekSchedule.jsx             # Week view with navigation and filtering
+│   │       ├── DaySchedule.jsx              # Detailed day view with booking management
+│   │       ├── ScheduleFilters.jsx          # Course, type, and search filtering system
+│   │       ├── AssessmentSelectionStep.jsx  # Two-step assignment selection wizard
+│   │       ├── TimeslotSelectionCalendar.jsx # Calendar interface for date browsing
+│   │       ├── SelectionSummary.jsx         # Session allocation summary with validation
+│   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
+│   └── student/                 # Student components
+│       ├── dashboard/           # Student dashboard components
+│       │   ├── MyGroups.jsx              # Group membership display with avatars
+│       │   ├── RecentResults.jsx         # Recent assessment results with grades
+│       │   ├── StudentCalendar.jsx       # Calendar with assessment dates
+│       │   ├── StudentQuickActions.jsx   # Quick action buttons grid
+│       │   ├── StudentStatsCards.jsx     # Statistics cards using shared UI
+│       │   └── UpcomingAssessments.jsx   # Upcoming assessments list
 │
 ├── services/                    # API integration layer
 │   ├── apiClient.js             # Axios configuration (baseURL points to Spring Boot)
@@ -278,15 +308,20 @@ frontend/
 │   ├── courseService.js         # Course management operations
 │   ├── assignmentService.js     # Assignment CRUD operations with mock data
 │   ├── userService.js           # User management (assignment-centric members API)
+│   ├── studentGroupsService.js  # Student groups and collaboration management
+│   ├── examinerTimeslotService.js # Examiner self-assignment and schedule management
 │   └── schedulingService.js     # Booking and scheduling
 │
 ├── store/                       # State management
 │   ├── authStore.js             # Authentication state (Zustand)
-│   └── uiStore.js               # UI preferences (Zustand)
+│   ├── uiStore.js               # UI preferences (Zustand)
+│   └── scheduleFilterStore.js   # Schedule filtering state (Zustand)
 │
 ├── hooks/                       # Custom React hooks
 │   ├── useAuth.js               # Authentication helpers
-│   └── useDarkMode.js           # Theme management
+│   ├── useDarkMode.js           # Theme management
+│   ├── useExaminerAuth.js       # Examiner authentication and role validation
+│   └── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
 │
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
@@ -356,76 +391,6 @@ frontend/
 - **Mock Integration**: Seamless switching between mock and real APIs
 - **Error Handling**: Global interceptors with user-friendly messages
 
-## 🎨 Component Structure Guidelines
-
-### Creating New Components
-
-1. **Choose the Right Level**:
-
-   ```jsx
-   // ✅ Atom - Basic UI element
-   components / ui / Badge.jsx;
-
-   // ✅ Molecule - Combined elements
-   components / layout / UserMenu.jsx;
-
-   // ✅ Organism - Feature-complete
-   components / admin / RubricBuilder.jsx;
-   ```
-
-2. **Follow Naming Conventions**:
-
-   ```jsx
-   // ✅ PascalCase for components
-   OnboardingWelcome.jsx;
-
-   // ✅ camelCase for utilities
-   useAuth.js;
-
-   // ✅ kebab-case for pages
-   assignments / [id] / page.jsx;
-   ```
-
-3. **Use Consistent Props Patterns**:
-   ```jsx
-   // ✅ Standard props structure
-   function MyComponent({
-     data, // Required data
-     onUpdate, // Callbacks
-     onNext,
-     onPrev,
-     className, // Styling
-     children, // Composition
-     ...props // Additional props
-   }) {
-     // Implementation
-   }
-   ```
-
-### Style Guidelines
-
-1. **Tailwind CSS Classes**:
-
-   ```jsx
-   // ✅ Responsive design
-   className = "w-full md:w-1/2 lg:w-1/3";
-
-   // ✅ Dark mode support
-   className = "bg-white dark:bg-gray-800";
-
-   // ✅ Interactive states
-   className = "hover:bg-blue-100 focus:ring-2 focus:ring-blue-500";
-   ```
-
-2. **Component Styling**:
-   ```jsx
-   // ✅ Use CSS-in-JS for complex styles
-   style={{
-     fontFamily: "'Inter', 'Helvetica Neue', Arial, 'sans-serif'",
-     fontWeight: 300
-   }}
-   ```
-
 ## 🔐 Authentication & Security
 
 ### JWT Authentication Flow (Transition)
@@ -446,31 +411,6 @@ const roleRoutes = {
   SUPER_ADMIN: "/superadmin",
 };
 ```
-
-## 🧪 Testing & Development
-
-### Mock API System
-
-The frontend includes a comprehensive mock API system for development while the Java/Spring Boot backend team completes their implementation:
-
-- **Test Accounts**: Pre-configured users for each role
-- **Realistic Delays**: Simulated network latency (500ms-1500ms)
-- **Error Simulation**: Testing error handling flows
-- **Complete Coverage**: All authentication and admin management endpoints mocked
-- **Email Simulation**: Mock email sending with success/failure responses
-- **Backend Readiness**: Easy switching between mock and real APIs via environment variables
-
-See [TESTING.md](./TESTING.md) for detailed testing instructions.
-
-### Development Workflow
-
-1. **Start Development**: `npm run dev`
-2. **Access Login**: http://localhost:3000/login
-3. **Use Test Accounts**: Click "Fill" buttons for quick access
-4. **Test Features**: Navigate through role-specific interfaces
-5. **Dev Toggles** (optional):
-   - `NEXT_PUBLIC_USE_MOCK_API=true` to use local mocks for services
-   - `NEXT_PUBLIC_BYPASS_AUTH=true` to bypass middleware auth in development
 
 ## 🔗 Implementation Status
 
@@ -495,7 +435,7 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 **✅ Onboarding System Integration Complete:**
 
 - Full Spring Boot integration for onboarding token verification (`GET /onboarding/verify`)
-- Complete user registration flow with Spring Boot (`POST /onboarding/register`) 
+- Complete user registration flow with Spring Boot (`POST /onboarding/register`)
 - Role-based onboarding wizard (Course Admin, Student, Examiner)
 - Token-based email invitation system integration
 - Automatic login after successful registration
@@ -583,8 +523,8 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 
 - Course Admin interface: 80% complete (missing comment library)
 - Super Admin interface: 90% complete
-- Student interface: 10% complete (only basic dashboard)
-- Examiner interface: 10% complete (only basic dashboard)
+- Student interface: 20% complete (dashboard complete, booking/results pending)
+- Examiner interface: 20% complete (dashboard and scheduling complete, marking pending)
 - Backend APIs: Spring Boot auth endpoints available; additional domain APIs in progress
 - Database: Schema complete, integration pending
 
@@ -641,6 +581,14 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Target: Connect rubric CRUD to Spring Boot.
 - User can: Configure rubrics in UI with mock persistence.
 
+### Student Groups System — ✅ Complete (with mock services)
+
+- Current: Complete student groups interface with group overview and detailed member information; comprehensive mock API layer with realistic test data.
+- Implementation: Assignment-level group membership display, group overview with card/table views, detailed member information with contact details, responsive design with mobile optimization, comprehensive error handling for access control.
+- User can: View all active group memberships with course/assignment context; switch between card and table view for group overview; access detailed group information including all member details with contact information; see group collaboration tips and guidelines; refresh group data manually.
+- Features: Professional gradient-themed interface matching student dashboard design; avatar generation for group members; search and filtering capabilities; responsive mobile-first design; error boundaries and loading states.
+- API Integration: Following Student-Groups-API-Contracts specification with GET `/api/students/{studentId}/groups` for overview and GET `/api/students/{studentId}/groups/{groupId}` for details; mock service with realistic delays and error scenarios; membership validation and access control simulation.
+
 ### Student/Group Data Import — 🚧 Frontend Ready (backend endpoints available)
 
 - Current: CSV upload UI integrated in assignment workflows; frontend ready to call backend.
@@ -653,11 +601,19 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Target: Build scheduling UI and integrate with backend scheduling APIs.
 - User can: Not available yet.
 
-### Examiner Self-Assignment — ❌ Not Started
+### Examiner Self-Assignment — ✅ Complete (with mock services)
 
-- Current: No UI for examiner self-assignment.
-- Target: Build UI for examiner slot sign-up and limits; integrate with backend.
-- User can: Not available yet.
+- Current: Complete examiner timeslot self-assignment system with withdrawal functionality; comprehensive mock API layer with realistic test data.
+- Implementation: Two-step selection wizard (assignment selection → timeslot selection), calendar-based timeslot browsing, session limit management, conflict detection, and withdrawal functionality following API contracts.
+- User can: Browse available assignments needing examiners; select timeslots via calendar interface; view assigned sessions in schedule; withdraw from slots when no students are booked; see real-time booking status and eligibility.
+- Features: `useExaminerAuth` and `useTimeslotAssignment` custom hooks; optimized polling (60s-3min intervals); comprehensive error handling; visual booking status indicators; withdrawal only when `bookingCount === 0`.
+
+### Course Admin Timeslot Configuration — ✅ Complete (with mock services)
+
+- Current: Complete course admin timeslot management system with calendar-based interface and bulk operations; comprehensive mock API layer with realistic test data.
+- Implementation: Three-step configuration wizard (session parameters → timeslot creation → examiner assignment), calendar-based timeslot display, batch operations (duplicate, delete, notify), and real-time status tracking.
+- User can: Configure assessment session parameters (duration, gap time, required examiners); create and manage timeslots with venue assignment; view calendar-based schedule with staffing status; perform bulk operations on selected timeslots; track examiner assignments and booking status.
+- Features: Dynamic end time calculation, status indicators (full/partial/empty staffing), modal-based timeslot creation/editing, comprehensive error handling, and professional UX with loading states.
 
 ### Assessment Execution (Examiner Interface) — ✅ Complete (UI implemented)
 
@@ -732,6 +688,26 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **Responsive Design**: Mobile-first approach with collapsible sidebar and touch-friendly interactions
 - **Accessibility Features**: Proper ARIA labels, keyboard navigation, and screen reader compatibility
 
+**🎯 Enhanced Student Dashboard**
+
+- **Professional Layout**: Complete student interface with dedicated sidebar navigation, top navigation bar with profile dropdown, and responsive design
+- **Welcome Animation**: Engaging welcome overlay with student-specific branding using shared WelcomeAnimation component
+- **Comprehensive Stats Cards**: Key metrics display using shared StatsCard component including total assessments, upcoming assessments, completed assessments, and group memberships
+- **Upcoming Assessments Management**: Detailed view of scheduled assessments with booking status, deadlines, and quick action buttons for booking and viewing details
+- **Recent Results Display**: Assessment results with grades, feedback links, and performance trends using consistent card patterns
+- **Group Collaboration Interface**: Group membership management with member avatars, group assessment coordination, and team communication features
+- **Assessment Calendar**: Interactive calendar showing assessment dates, deadlines, and booking status with month navigation
+- **Quick Actions Grid**: Fast access to common student tasks including booking assessments, viewing results, accessing help, and managing groups
+- **Navigation Structure**: Hierarchical menu with main functions (Dashboard, Assignments, Booking, Results, Groups), tools (Calendar, Help), and settings
+- **Profile Management**: Top navigation dropdown with profile access and logout functionality matching examiner/admin patterns
+- **Dynamic Semester Display**: Automatic semester calculation (Feb-July: Semester 1, Aug-Nov: Semester 2, Dec-Jan: Summer Term) in header info box
+- **Consistent Design System**: Utilizes shared UI components (StatsCard, WelcomeAnimation) for consistency across all user roles
+- **Component Reuse**: Maximum code reuse through shared dashboard patterns while maintaining student-specific functionality
+- **Dark Mode Support**: Complete theme switching with student-specific color schemes and visual consistency
+- **Responsive Design**: Mobile-first approach with adaptive layouts for all screen sizes
+- **Animation System**: Smooth transitions and loading animations using shared animation classes
+- **Mock Data Integration**: Realistic assessment data, group information, and calendar events for development and testing
+
 **🎯 Course Admin Management Interface**
 
 - **Dedicated Admin Management Page** (`/superadmin/admins`): Full-featured interface for Course Admin lifecycle management
@@ -767,16 +743,41 @@ The following reflects the current state of the frontend only. Backend capabilit
 **🏗️ Component Architecture**
 
 - **Atomic Design Pattern**: UI primitives (button, input, card) → Layout components (sidebars, nav) → Feature components (dashboards, forms)
-- **Role-specific Libraries**: Separate component hierarchies for Course Admin and Super Admin interfaces
-- **Layout Components**: AdminSidebar/TopNav and SuperAdminSidebar/TopNav with consistent branding
-- **Dashboard Systems**: Comprehensive component libraries for both admin dashboards
+- **Role-specific Libraries**: Separate component hierarchies for Course Admin, Super Admin, and Examiner interfaces
+- **Layout Components**: AdminSidebar/TopNav, SuperAdminSidebar/TopNav, ExaminerSidebar/TopNav, and StudentSidebar/TopNav with consistent branding
+- **Dashboard Systems**: Comprehensive component libraries for admin, examiner, and student dashboards
   - **Course Admin**: StatsCard, AssignmentStatusTable, QuickActions, SimpleCalendar, ActionItems
   - **Super Admin**: AdminManagementHub, CourseOverviewTable with advanced filtering
+  - **Examiner**: TodaySchedule, WeeklyOverview, PendingFeedback, StatsCard
+  - **Student**: StudentStatsCards (using shared StatsCard), UpcomingAssessments, RecentResults, MyGroups, StudentCalendar, StudentQuickActions
 - **Course Management System**: Complete course lifecycle components
   - **CourseCreationModal**: Multi-section form with progress tracking and validation
   - **EditCourseModal**: Full-featured editing with unsaved changes detection
   - **CourseList**: Dual view (table/card) with advanced filtering and animations
   - **CourseOverviewStats**: Statistical dashboard with animated counters
+- **Timeslot Management System**: Complete examiner self-assignment and course admin configuration
+  - **Examiner Components**:
+    - **AssessmentsToAssign**: Available assignments display with filtering and urgency indicators
+    - **AssignedSlots**: Current assignments management with withdrawal functionality
+    - **ExaminerCalendar**: Calendar view with booking status and real-time updates
+    - **TimeslotList**: Interactive timeslot selection with conflict detection and validation
+    - **WeekSchedule**: Week view with navigation and filtering capabilities
+    - **DaySchedule**: Detailed day view with booking status and withdrawal actions
+    - **ScheduleFilters**: Course, assessment type, and search filtering system
+    - **AssessmentSelectionStep**: Two-step assignment selection wizard
+    - **TimeslotSelectionCalendar**: Calendar interface for date-based timeslot browsing
+    - **SelectionSummary**: Session allocation summary with validation and management
+    - **UpcomingAssessments**: Near-term assessment overview with action buttons
+  - **Course Admin Components**:
+    - **AddTimeSlotModal**: Comprehensive timeslot creation/editing with venue and examiner assignment
+    - **EditTimeSlotModal**: Wrapper for editing existing timeslots with validation
+    - Calendar-based timeslot management interface with status visualization
+    - Batch operations system (duplicate, delete, notify examiners)
+    - Real-time staffing status tracking and examiner workload management
+- **Custom Hooks**: Specialized hooks for complex state management
+  - **useExaminerAuth**: Examiner authentication and role validation
+  - **useTimeslotAssignment**: Timeslot assignment logic with conflict detection
+  - **useScheduleFilterStore**: Global filter state management (Zustand)
 - **Documentation System**: Comprehensive FAQ and help system with search and categorization
 - **UI Foundation**: Complete Shadcn UI integration with custom styling and dark mode support
 
@@ -798,8 +799,16 @@ The following reflects the current state of the frontend only. Backend capabilit
   - **courseService**: Course creation, editing, and management
   - **userService**: User management and role assignment
   - **assignmentService**: Assignment configuration and workflows
-- **Mock API system for development** (Backend Java/Spring Boot team not started yet)
-- Error handling and retry logic
+  - **studentGroupsService**: Student groups and collaboration management
+  - **examinerTimeslotService**: Examiner self-assignment and schedule management
+    - **getAvailableAssignments**: Fetch assignments needing examiner allocation
+    - **getExaminerSchedule**: Retrieve examiner's current schedule with filtering
+    - **getAvailableTimeslots**: Get selectable timeslots for assignment with conflict detection
+    - **assignExaminerToTimeslots**: Bulk timeslot assignment with validation
+    - **withdrawFromTimeslot**: Examiner withdrawal with booking status checking
+    - Comprehensive mock data with realistic scheduling scenarios and booking states
+- **Mock API system for development** with realistic delays and validation scenarios
+- Error handling and retry logic with user-friendly messages
 - **Email notifications**: Currently mocked, will be implemented in Java backend
 
 **Development Tools**
@@ -816,7 +825,10 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **API Infrastructure**: Authentication, admin management, and partial course management endpoints
 - **Course Admin Interface**: Complete dashboard, course management, assignment configuration, and rubric builder
 - **Super Admin Interface**: Full admin management system with invitation workflow and course oversight
-- **Component Architecture**: Atomic design with role-specific libraries and Shadcn UI integration
+- **Student Dashboard Interface**: Complete dashboard with stats cards, upcoming assessments, recent results, group management, calendar, and quick actions using shared UI components
+- **Student Groups System**: Complete groups interface with overview and detailed member information, dual view modes, search functionality, and comprehensive mock API integration
+- **Examiner Interface**: Complete dashboard and timeslot self-assignment system with comprehensive scheduling management
+- **Component Architecture**: Atomic design with role-specific libraries, shared UI components, and Shadcn UI integration
 - **Service Layer**: Complete API integration with mock data and error handling
 - **Database Setup**: MySQL 8.0 with complete schema and test data (ready for integration)
 - **Professional UI/UX**: Dark mode, animations, micro-interactions, and responsive design
@@ -824,24 +836,51 @@ The following reflects the current state of the frontend only. Backend capabilit
 **🚧 Critical Gaps**
 
 - **Comment Library System**: Missing centralized comment management (only basic comments in rubric)
-- **Student Interface**: Only skeleton dashboard - missing booking, results, and group features
-- **Examiner Interface**: Only skeleton dashboard - missing marking interface and scheduling
-- **Time Slot Management**: No implementation for scheduling, venues, or conflict detection
+- **Student Booking System**: Dashboard complete, but booking interface and results viewing need backend integration
+- **Examiner Marking Interface**: Dashboard and scheduling complete, but marking interface needs implementation
+- **Time Slot Management**: Examiner self-assignment complete, but course admin scheduling needs backend integration
 - **Assessment Execution**: No examiner marking interface or draft saving
 - **Results System**: No mark aggregation, release control, or Canvas export
-### User Management (Admin)
 
-Admin users can manage assignment members at `/admin/users` with an assignment‑scoped flow:
+## 📋 Changelog
 
-- UI: Two‑pane layout (Course → Assignment scope on the left; members on the right) with tabs for Students | Examiners, search, add, and remove (single/bulk) with polished confirmations.
-- API (aligned to backend contracts):
-  - GET `/api/assignments/{assignmentId}/members?role=ROLE_STUDENT|ROLE_EXAMINER&q=&pageNum=&pageSize=`
-  - POST `/api/assignments/{assignmentId}/members` (payload includes `role: ROLE_STUDENT|ROLE_EXAMINER` and optional IDs/group)
-  - DELETE `/api/assignments/{assignmentId}/members/{assignmentUserId}` (cascades: cancels bookings, clears examiner slots)
-- Response wrapper: `{ success, code, data }` with lists in `data: { pageNum, pageSize, total, data: [...] }`
-- Mocks: Fully aligned to the above for seamless backend integration.
+### ✅ **Latest Refactoring (2024-12-28)**
 
-- **Database Integration**: API routes still use mock data
+**🎯 Course Admin Timeslot System Architectural Refactoring**
+
+- **Complete architectural overhaul** of the Course Admin timeslot management system following SOLID principles
+- **Replaced monolithic components** with modular, reusable components following the Single Responsibility Principle
+- **Implemented service layer pattern** with mock/real API switching via `NEXT_PUBLIC_USE_MOCKS` environment variable
+- **Migrated from local state to server state** using React Query hooks for all data operations
+- **Added comprehensive JSDoc typedefs** for all data models (TimeSlot, SessionConfig, Examiner, etc.)
+- **Fixed query key structures** to follow specification pattern: `['assignment', assignmentId, 'resource']`
+- **Integrated notification system** replacing all browser `alert()` calls with professional toast notifications
+- **Created modular component architecture**:
+  - `SessionConfigStep.jsx` - Step 1 of wizard using `useSessionConfig` hook
+  - `TimeSlotForm.jsx` - Form component with session config injection
+  - `TimeSlotList.jsx` - List component with batch operations
+  - `ExaminerLimitsStep.jsx` - Step 3 with capacity validation
+  - `CalendarMonth.jsx` - Calendar component using `useCalendar` hook
+  - `TimeSlotCard.jsx` - Individual timeslot display component
+  - `BulkActionsBar.jsx` - Bulk operations interface
+- **Implemented service factory pattern** (`lib/services/serviceFactory.js`) for seamless mock/real API switching
+- **Added utility modules**: `timeMath.js`, `validation.js`, `notifications.js`, `mappers.js`
+- **Created comprehensive React Query hooks**:
+  - `useSessionConfig.js` - Session configuration management
+  - `useTimeSlots.js` - Timeslot CRUD operations with batch processing
+  - `useExaminerLimits.js` - Examiner capacity management
+  - `useScheduleRelease.js` - Schedule release control
+  - `useCalendar.js` - Calendar state management
+- **Fixed session configuration injection** in `AddTimeSlotModal` to eliminate hard-coded values
+- **Maintained UI consistency** while completely overhauling underlying data architecture
+- **Added type safety** with comprehensive JSDoc documentation throughout
+- **Files refactored**: 
+  - `app/admin/courses/[courseId]/assignments/[assignmentId]/schedule/page.jsx` (750+ lines → modular composition)
+  - `app/admin/courses/[courseId]/assignments/[assignmentId]/timeslots/page.jsx` (complete server state migration)
+  - `components/admin/schedule/` (complete component decomposition)
+  - `lib/hooks/` (comprehensive hook library)
+  - `lib/services/` (service layer with factory pattern)
+  - `lib/types/timeslot.js` (JSDoc type definitions)
 
 **📋 Next Phase Priorities**
 

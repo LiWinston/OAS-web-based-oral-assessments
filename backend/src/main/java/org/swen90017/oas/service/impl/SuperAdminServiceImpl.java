@@ -77,7 +77,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         try {
             UpdateWrapper<SysUser> uw = new UpdateWrapper<>();
             uw.eq("status", UserStatus.INACTIVE.code())
-              .eq("registration_status", RegistrationStatus.INVITED.code())
+              .eq("registration_status", RegistrationStatus.Pending.code())
               .lt("invited_at", expireBefore)
               .set("registration_status", RegistrationStatus.EXPIRED.code());
             sysUserMapper.update(null, uw);
@@ -116,6 +116,16 @@ public class SuperAdminServiceImpl implements SuperAdminService {
                 query.setStatus(UserStatus.INACTIVE.code());
             }
         }
+        if (StringUtils.isNotEmpty(request.getRegistrationStatus())) {
+            String s = request.getRegistrationStatus().toUpperCase();
+            if (Objects.equals(s, "PENDING")) {
+                query.setStatus(RegistrationStatus.Pending.code());
+            } else if (Objects.equals(s, "REGISTERED")) {
+                query.setStatus(RegistrationStatus.REGISTERED.code());
+            }else if (Objects.equals(s, "EXPIRED")) {
+                query.setStatus(RegistrationStatus.EXPIRED.code());
+            }
+        }
         // Build dynamic query conditions
         QueryWrapper<SysUser> wrapper = QueryWrapperUtil.build(query, SysUser.class);
 
@@ -140,6 +150,10 @@ public class SuperAdminServiceImpl implements SuperAdminService {
             ext.setId(String.valueOf(u.getUserId()));
             ext.setEmail(u.getEmail());
             ext.setName(u.getUserName());
+            ext.setInvitedAt(u.getInvitedAt());
+            ext.setLastLoginAt(u.getLastLoginAt());
+            ext.setRegisteredAt(u.getRegisteredAt());
+
             transStatus(u, ext);
             return ext;
         }).collect(Collectors.toList());
@@ -160,8 +174,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         }
         // Map registrationStatus
         if (u.getRegistrationStatus() != null) {
-            if (RegistrationStatus.INVITED.code().equals(u.getRegistrationStatus())) {
-                ext.setRegistrationStatus("INVITED");
+            if (RegistrationStatus.Pending.code().equals(u.getRegistrationStatus())) {
+                ext.setRegistrationStatus("PENDING");
             } else if (RegistrationStatus.REGISTERED.code().equals(u.getRegistrationStatus())) {
                 ext.setRegistrationStatus("REGISTERED");
             } else if (RegistrationStatus.EXPIRED.code().equals(u.getRegistrationStatus())) {
@@ -231,8 +245,10 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         String email = null;
         if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
             email = dto.getEmail();
-        } else {
+        } else if (dto.getSisUserId() != null && !dto.getSisUserId().isEmpty()) {
             email = dto.getSisLoginId() + "@unimelb.edu.au";
+        } else {
+            throw new BusinessException("Email and login id cannot be both null", CommonError.BAD_REQUEST.getCode());
         }
         // Validate email domain
         if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
@@ -250,7 +266,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         u.setUserName(dto.getName() != null ? dto.getName() : dto.getEmail());
         u.setEmail(email);
         u.setStatus(UserStatus.INACTIVE.code());
-        u.setRegistrationStatus(RegistrationStatus.INVITED.code());
+        u.setRegistrationStatus(RegistrationStatus.Pending.code());
         u.setPassword("123456");
         Date invitedAt = new Date();
         u.setInvitedAt(invitedAt);
@@ -344,6 +360,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
             user.setStatus(UserStatus.ACTIVE.code());
         }else if ("INACTIVE".equalsIgnoreCase(status)) {
             user.setStatus(UserStatus.INACTIVE.code());
+        } else {
+            throw new BusinessException("This status is not allowed.", CommonError.BAD_REQUEST.getCode());
         }
         sysUserMapper.updateById(user);
 
@@ -422,7 +440,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
                 normalizedSemester,
                 req.getSearch(),
                 req.getAdminId(),
-                req.getStatus()
+                req.getStatus(),
+                null // SuperAdmin可以看到所有状态的课程，包括非活跃的
         );
 
         List<SuperAdminCourseItemDTO> items = pageResult.getRecords().stream()

@@ -153,7 +153,7 @@ const mockAssignments = [
 ];
 
 // Generate realistic schedule data with current dates
-const generateScheduleSlot = (id, assignmentInfo, dayOffset, hour, minute, duration, participants, isBooked = true) => {
+const generateScheduleSlot = (id, assignmentInfo, dayOffset, hour, minute, duration, participants, bookingCount = 0) => {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() + dayOffset);
   startDate.setHours(hour, minute, 0, 0);
@@ -170,6 +170,9 @@ const generateScheduleSlot = (id, assignmentInfo, dayOffset, hour, minute, durat
     { name: "Law", building: "LAW", room: "104" }
   ];
   
+  const isBooked = bookingCount > 0;
+  const canWithdraw = bookingCount === 0; // Follow API contract: can only withdraw when no bookings
+  
   return {
     slotId: id,
     start: startDate.toISOString(),
@@ -178,10 +181,11 @@ const generateScheduleSlot = (id, assignmentInfo, dayOffset, hour, minute, durat
     sessionCount: 1,
     requiredExaminers: assignmentInfo.requiredExaminers,
     currentExaminers: assignmentInfo.requiredExaminers,
+    isAssigned: true, // Mock: assume all slots in schedule are assigned to current examiner
     isBooked,
-    bookingCount: isBooked ? 1 : 0,
-    canWithdraw: dayOffset > 1, // Can withdraw if more than 1 day away
-    withdrawalDeadline: getDateOffset(dayOffset - 1, 17, 0),
+    bookingCount,
+    canWithdraw,
+    cannotWithdrawReason: bookingCount > 0 ? 'STUDENT_BOOKED' : null,
     participants: isBooked ? participants : []
   };
 };
@@ -194,19 +198,19 @@ const mockScheduleData = {
       courseCode: "COMP90082",
       courseName: "Software Project Management",
       slots: [
-        // Today's assessments
-        generateScheduleSlot(5001, {requiredExaminers: 2}, 0, 9, 30, 30, ["Team Alpha"], true),
-        generateScheduleSlot(5002, {requiredExaminers: 2}, 0, 14, 0, 30, ["Team Beta"], true),
-        generateScheduleSlot(5003, {requiredExaminers: 2}, 0, 16, 0, 30, ["Team Gamma"], true),
+        // Today's assessments - booked (cannot withdraw)
+        generateScheduleSlot(5001, {requiredExaminers: 2}, 0, 9, 30, 30, ["Team Alpha"], 1),
+        generateScheduleSlot(5002, {requiredExaminers: 2}, 0, 14, 0, 30, ["Team Beta"], 1),
+        generateScheduleSlot(5003, {requiredExaminers: 2}, 0, 16, 0, 30, ["Team Gamma"], 1),
         
-        // Tomorrow's assessments  
-        generateScheduleSlot(5004, {requiredExaminers: 2}, 1, 10, 0, 30, ["Team Delta"], true),
-        generateScheduleSlot(5005, {requiredExaminers: 2}, 1, 13, 30, 30, ["Team Echo"], true),
+        // Tomorrow's assessments - mixed booking status
+        generateScheduleSlot(5004, {requiredExaminers: 2}, 1, 10, 0, 30, ["Team Delta"], 1),
+        generateScheduleSlot(5005, {requiredExaminers: 2}, 1, 13, 30, 30, ["Team Echo"], 1),
         
-        // Next few days
-        generateScheduleSlot(5006, {requiredExaminers: 2}, 2, 11, 0, 30, ["Team Foxtrot"], true),
-        generateScheduleSlot(5007, {requiredExaminers: 2}, 3, 15, 30, 30, ["Team Golf"], true),
-        generateScheduleSlot(5008, {requiredExaminers: 2}, 4, 9, 0, 30, [], false),
+        // Next few days - mix of booked and unbooked for testing withdrawal
+        generateScheduleSlot(5006, {requiredExaminers: 2}, 2, 11, 0, 30, ["Team Foxtrot"], 1), // cannot withdraw
+        generateScheduleSlot(5007, {requiredExaminers: 2}, 3, 15, 30, 30, [], 0), // can withdraw
+        generateScheduleSlot(5008, {requiredExaminers: 2}, 4, 9, 0, 30, [], 0), // can withdraw
       ]
     },
     {
@@ -215,10 +219,10 @@ const mockScheduleData = {
       courseCode: "INFO30005",
       courseName: "Web Information Technologies",
       slots: [
-        generateScheduleSlot(5009, {requiredExaminers: 2}, 1, 11, 30, 25, ["WebDev Team 1"], true),
-        generateScheduleSlot(5010, {requiredExaminers: 2}, 2, 14, 0, 25, ["WebDev Team 2"], true),
-        generateScheduleSlot(5011, {requiredExaminers: 2}, 5, 10, 30, 25, ["WebDev Team 3"], true),
-        generateScheduleSlot(5012, {requiredExaminers: 2}, 6, 16, 0, 25, [], false),
+        generateScheduleSlot(5009, {requiredExaminers: 2}, 1, 11, 30, 25, ["WebDev Team 1"], 1),
+        generateScheduleSlot(5010, {requiredExaminers: 2}, 2, 14, 0, 25, [], 0), // can withdraw
+        generateScheduleSlot(5011, {requiredExaminers: 2}, 5, 10, 30, 25, ["WebDev Team 3"], 1),
+        generateScheduleSlot(5012, {requiredExaminers: 2}, 6, 16, 0, 25, [], 0), // can withdraw
       ]
     },
     {
@@ -227,12 +231,12 @@ const mockScheduleData = {
       courseCode: "INFO20003",
       courseName: "Database Systems",
       slots: [
-        generateScheduleSlot(5013, {requiredExaminers: 1}, 3, 9, 15, 15, ["Alice Chen"], true),
-        generateScheduleSlot(5014, {requiredExaminers: 1}, 3, 9, 30, 15, ["Bob Smith"], true),
-        generateScheduleSlot(5015, {requiredExaminers: 1}, 3, 9, 45, 15, ["Carol Johnson"], true),
-        generateScheduleSlot(5016, {requiredExaminers: 1}, 4, 13, 0, 15, ["David Wilson"], true),
-        generateScheduleSlot(5017, {requiredExaminers: 1}, 4, 13, 15, 15, ["Emma Davis"], true),
-        generateScheduleSlot(5018, {requiredExaminers: 1}, 7, 10, 0, 15, [], false),
+        generateScheduleSlot(5013, {requiredExaminers: 1}, 3, 9, 15, 15, ["Alice Chen"], 1),
+        generateScheduleSlot(5014, {requiredExaminers: 1}, 3, 9, 30, 15, [], 0), // can withdraw
+        generateScheduleSlot(5015, {requiredExaminers: 1}, 3, 9, 45, 15, ["Carol Johnson"], 1),
+        generateScheduleSlot(5016, {requiredExaminers: 1}, 4, 13, 0, 15, [], 0), // can withdraw
+        generateScheduleSlot(5017, {requiredExaminers: 1}, 4, 13, 15, 15, ["Emma Davis"], 1),
+        generateScheduleSlot(5018, {requiredExaminers: 1}, 7, 10, 0, 15, [], 0), // can withdraw
       ]
     },
     {
@@ -241,9 +245,9 @@ const mockScheduleData = {
       courseCode: "COMP90049",
       courseName: "Introduction to Machine Learning",
       slots: [
-        generateScheduleSlot(5019, {requiredExaminers: 2}, 6, 11, 0, 20, ["Frank Miller"], true),
-        generateScheduleSlot(5020, {requiredExaminers: 2}, 7, 14, 30, 20, ["Grace Lee"], true),
-        generateScheduleSlot(5021, {requiredExaminers: 2}, 8, 9, 30, 20, [], false),
+        generateScheduleSlot(5019, {requiredExaminers: 2}, 6, 11, 0, 20, ["Frank Miller"], 1),
+        generateScheduleSlot(5020, {requiredExaminers: 2}, 7, 14, 30, 20, [], 0), // can withdraw
+        generateScheduleSlot(5021, {requiredExaminers: 2}, 8, 9, 30, 20, [], 0), // can withdraw
       ]
     },
     {
@@ -252,9 +256,9 @@ const mockScheduleData = {
       courseCode: "SWEN90007",
       courseName: "Software Design and Architecture",
       slots: [
-        generateScheduleSlot(5022, {requiredExaminers: 2}, 8, 13, 0, 40, ["Architecture Team 1"], true),
-        generateScheduleSlot(5023, {requiredExaminers: 2}, 9, 10, 30, 40, ["Architecture Team 2"], true),
-        generateScheduleSlot(5024, {requiredExaminers: 2}, 11, 15, 0, 40, [], false),
+        generateScheduleSlot(5022, {requiredExaminers: 2}, 8, 13, 0, 40, ["Architecture Team 1"], 1),
+        generateScheduleSlot(5023, {requiredExaminers: 2}, 9, 10, 30, 40, [], 0), // can withdraw
+        generateScheduleSlot(5024, {requiredExaminers: 2}, 11, 15, 0, 40, [], 0), // can withdraw
       ]
     }
   ]
@@ -573,6 +577,87 @@ export const assignExaminerToTimeslots = async (assignmentId, data) => {
 };
 
 /**
+ * Withdraw from timeslot (wrapper around unassign for hook compatibility)
+ * Used by useTimeslotAssignment hook
+ */
+export const withdrawFromTimeslot = async (slotId, options = {}) => {
+  const { examinerId } = options;
+  
+  try {
+    await delay(Math.random() * 600 + 400); // 400-1000ms delay
+    
+    // Find the slot in our mock data to check booking status
+    let targetSlot = null;
+    let targetAssignmentId = null;
+    
+    for (const assignment of mockScheduleData.assignments) {
+      const slot = assignment.slots.find(s => s.slotId === parseInt(slotId));
+      if (slot) {
+        targetSlot = slot;
+        targetAssignmentId = assignment.assignmentId;
+        break;
+      }
+    }
+    
+    if (!targetSlot) {
+      return {
+        success: false,
+        code: 'NOT_FOUND',
+        data: null,
+        message: 'Timeslot not found'
+      };
+    }
+    
+    // Check withdrawal eligibility based on API contract
+    if (targetSlot.bookingCount > 0) {
+      return {
+        success: false,
+        code: 'STUDENT_BOOKED',
+        data: null,
+        message: 'Cannot withdraw: Students are already booked for this session',
+        reason: 'STUDENT_BOOKED'
+      };
+    }
+    
+    // Simulate occasional other failures
+    if (Math.random() > 0.95) { // 5% chance of session started failure
+      return {
+        success: false,
+        code: 'SESSION_STARTED',
+        data: null,
+        message: 'Cannot withdraw: Session has already started',
+        reason: 'SESSION_STARTED'
+      };
+    }
+    
+    // Success case - remove the slot from mock data to simulate withdrawal
+    const assignment = mockScheduleData.assignments.find(a => a.assignmentId === targetAssignmentId);
+    if (assignment) {
+      assignment.slots = assignment.slots.filter(s => s.slotId !== parseInt(slotId));
+    }
+    
+    return {
+      success: true,
+      code: 'OK',
+      data: {
+        assignmentId: targetAssignmentId,
+        slotId: parseInt(slotId),
+        examinerId,
+        updatedAssignedSessions: 2 // Mock updated count
+      }
+    };
+  } catch (error) {
+    console.error('Error withdrawing from timeslot:', error);
+    return {
+      success: false,
+      code: 'SERVER_ERROR',
+      data: null,
+      message: 'Failed to withdraw from timeslot'
+    };
+  }
+};
+
+/**
  * Unassign examiner from timeslot
  * Aligns with DELETE /api/assignments/{assignmentId}/timeslots/{slotId}/unassign
  */
@@ -580,8 +665,25 @@ export const unassignExaminerFromTimeslot = async (assignmentId, slotId, examine
   try {
     await delay(Math.random() * 600 + 400); // 400-1000ms delay
     
-    // Simulate validation failures
-    if (Math.random() > 0.9) { // 10% chance of failure
+    // Find the slot in our mock data to check booking status
+    let targetSlot = null;
+    
+    const assignment = mockScheduleData.assignments.find(a => a.assignmentId === parseInt(assignmentId));
+    if (assignment) {
+      targetSlot = assignment.slots.find(s => s.slotId === parseInt(slotId));
+    }
+    
+    if (!targetSlot) {
+      return {
+        success: false,
+        code: 'NOT_FOUND',
+        data: null,
+        message: 'Timeslot not found'
+      };
+    }
+    
+    // Check withdrawal eligibility based on API contract  
+    if (targetSlot.bookingCount > 0) {
       return {
         success: false,
         code: 'STUDENT_BOOKED',
@@ -590,6 +692,7 @@ export const unassignExaminerFromTimeslot = async (assignmentId, slotId, examine
       };
     }
     
+    // Success case
     return {
       success: true,
       code: 'OK',
@@ -617,6 +720,7 @@ export const examinerTimeslotService = {
   getExaminerSchedule,
   getAvailableTimeslots,
   assignExaminerToTimeslots,
+  withdrawFromTimeslot,
   unassignExaminerFromTimeslot
 };
 

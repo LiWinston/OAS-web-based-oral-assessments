@@ -20,12 +20,5 @@ public interface AssignmentMapper extends BaseMapper<Assignment> {
      * Batch get assignment counts by subject IDs using SQL aggregation
      * Returns Map with subjectId as key and count as value
      */
-    @Select("SELECT subject_id as subjectId, COUNT(*) as assignmentCount " +
-            "FROM assignment " +
-            "WHERE subject_id IN " +
-            "<foreach collection='subjectIds' item='id' open='(' separator=',' close=')'>" +
-            "#{id}" +
-            "</foreach> " +
-            "GROUP BY subject_id")
     List<Map<String, Object>> selectAssignmentCountsBySubjectIds(@Param("subjectIds") List<Long> subjectIds);
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useAuthStore } from "../../../store/authStore";
 import { Button } from "../../../components/ui/button";
 import { CourseOverviewStats } from "../../../components/admin/courses/CourseOverviewStats";
 import { CourseList } from "../../../components/admin/courses/CourseList";
+import { courseService } from "../../../services/courseService";
 import { CourseCreationModal } from "../../../components/admin/courses/CourseCreationModal";
 import { EditCourseModal } from "../../../components/admin/courses/EditCourseModal";
 
@@ -14,11 +15,154 @@ export default function CoursesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
-  const [viewMode, setViewMode] = useState("table"); // 'table' or 'card'
+  const [viewMode, setViewMode] = useState("card"); // 'table' or 'card'
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState(""); // 默认显示所有课程
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
+  const [availableYears, setAvailableYears] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCourses, setTotalCourses] = useState(0);
+  const pageSize = 10;
+  const courseListRef = useRef();
+  
+  // Course stats state
+  const [courseStats, setCourseStats] = useState({
+    activeCourses: 0,
+    totalStudents: 0,
+    assignments: 0,
+    currentSemester: "",
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
+
+  // Fetch courses based on view mode and filters
+  const fetchCourses = useCallback(async (page = 1) => {
+    try {
+      setLoading(true);
+      const filters = {
+        year: yearFilter || undefined,
+        semester: undefined,
+        status: statusFilter || undefined,
+        courseCode: searchTerm || undefined,
+        adminUserId: user?.id
+      };
+      
+      console.log('User data:', user);
+      console.log('User ID:', user?.id);
+      console.log('Filters being sent:', filters);
+
+      let result;
+      if (viewMode === 'table') {
+        // 分页查询
+        console.log('Fetching page:', page, 'with filters:', filters);
+        result = await courseService.getCoursesPaginated(page, pageSize, filters);
+      } else {
+        // 获取所有数据
+        result = await courseService.getAllCourses(filters);
+      }
+
+      console.log('API Response:', result);
+      
+      if (result.success) {
+        const { data } = result;
+        // 如果是表格视图，使用传入的页码，否则使用默认值
+        const { 
+          total = 0, 
+          current = viewMode === 'table' ? page : 1, 
+          data: coursesData = [], 
+          size = pageSize 
+        } = data;
+        
+        // 更新分页信息
+        setTotalCourses(total);
+        setCurrentPage(current);
+        
+        // 设置课程数据（确保是数组）
+        const coursesList = Array.isArray(coursesData) ? coursesData : [];
+        setCourses(coursesList);
+      }
+    } catch (error) {
+      console.error('Failed to fetch courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [viewMode, yearFilter, statusFilter, searchTerm, user?.id]);
+
+  // Fetch course statistics
+  const fetchCourseStats = useCallback(async () => {
+    try {
+      setStatsLoading(true);
+      setStatsError('');
+      
+      // Ensure user data is available before making the request
+      if (!user?.id) {
+        console.warn('User ID not available for course stats request');
+        setStatsLoading(false);
+        return;
+      }
+      
+      const result = await courseService.getCourseStats(user.id);
+      
+      if (result.success && result.data) {
+        setCourseStats({
+          activeCourses: result.data.activeCourses || 0,
+          totalStudents: result.data.totalStudents || 0,
+          assignments: result.data.totalAssignments || 0,
+          currentSemester: result.data.currentSemester || "2025 S2",
+        });
+      } else {
+        setStatsError(result.message || 'Failed to fetch course statistics');
+        // Set default values
+        setCourseStats({
+          activeCourses: 0,
+          totalStudents: 0,
+          assignments: 0,
+          currentSemester: "2025 S2",
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching course stats:', error);
+      setStatsError('Failed to load course statistics');
+      // Set default values
+      setCourseStats({
+        activeCourses: 0,
+        totalStudents: 0,
+        assignments: 0,
+        currentSemester: "2025 S2",
+      });
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [user?.id]);
+
+  // 初始化统计数据 - 只依赖用户ID，不受筛选器影响
+  useEffect(() => {
+    if (user?.id) {
+      fetchCourseStats();
+    }
+  }, [user?.id, fetchCourseStats]);
+
+  // 初始化和筛选条件变化时获取课程数据 - 不包含统计数据
+  useEffect(() => {
+    // 只有当用户数据加载完成后才开始获取课程
+    if (user?.id) {
+      fetchCourses(1);
+    }
+  }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id, fetchCourses]);
+
+  // 初始化 courseListRef
+  useEffect(() => {
+    courseListRef.current = fetchCourses;
+  }, [fetchCourses]);
+
+  // 初始化年份选项
+  useEffect(() => {
+    const years = generateYearRange();
+    setAvailableYears(years);
+  }, []);
 
   // Initialize welcome animation
   useEffect(() => {
@@ -38,12 +182,15 @@ export default function CoursesPage() {
     setIsModalOpen(false);
   };
 
-  const handleCourseCreated = (courseData) => {
+  const handleCourseCreated = async (courseData) => {
     // Handle successful course creation
     console.log("Course created:", courseData);
     setIsModalOpen(false);
-    // TODO: Refresh course list, show success notification
-    // Navigate to assignment configuration if desired
+    // 直接调用 fetchCourses 刷新数据
+    await fetchCourses(1);
+    
+    // Refresh statistics to reflect the new course
+    await fetchCourseStats();
   };
 
   const handleEditCourse = (course) => {
@@ -61,47 +208,89 @@ export default function CoursesPage() {
     console.log("Course updated:", updatedCourse);
     setEditModalOpen(false);
     setSelectedCourse(null);
-    // TODO: Refresh course list, show success notification
+    
+    // Refresh course list to show updated data
+    if (courseListRef.current) {
+      courseListRef.current();
+    }
+    
+    // Refresh statistics to reflect changes (especially active course count)
+    fetchCourseStats();
   };
+
+  // 生成固定范围的年份：当前年份+1年到7年前
+  const generateYearRange = () => {
+    const currentYear = new Date().getFullYear();
+    const maxYear = currentYear + 1;
+    const minYear = currentYear - 6; // 7年前
+    const yearRange = [];
+    
+    for (let year = maxYear; year >= minYear; year--) {
+      yearRange.push(year);
+    }
+    
+    return yearRange;
+  };
+
+
+
+
 
   return (
     <div className="space-y-6">
       {/* Enhanced Welcome Animation Overlay - Matching Assignment Page Style */}
       {showWelcomeAnimation && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900/90 via-purple-900/90 to-indigo-900/90 backdrop-blur-sm animate-fade-in cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-900/90 via-purple-900/90 to-indigo-900/90 backdrop-blur-sm animate-fade-in cursor-pointer min-h-screen h-full"
           onClick={() => setShowWelcomeAnimation(false)}
         >
-          <div className="text-center text-white animate-scale-in">
-            <div className="flex justify-center mb-6">
-              <div className="relative">
-                <i className="fas fa-graduation-cap text-8xl text-blue-400 animate-bounce-slow"></i>
-                <i className="fas fa-sparkles text-2xl text-yellow-300 absolute -top-2 -right-2 animate-pulse"></i>
+          <div className="text-center text-white max-w-2xl px-8">
+            <div className="relative mb-8 animate-scale-in">
+              <div className="text-8xl mb-4 relative">
+                <i className="fas fa-graduation-cap text-white animate-bounce-slow"></i>
+                <div className="absolute -top-4 -left-4 text-2xl">
+                  <i className="fas fa-sparkles text-yellow-300 animate-ping"></i>
+                </div>
+                <div className="absolute -top-2 -right-6 text-xl">
+                  <i className="fas fa-star text-yellow-400 animate-ping" style={{ animationDelay: "0.5s" }}></i>
+                </div>
+                <div className="absolute -bottom-2 -left-6 text-lg">
+                  <i className="fas fa-sparkles text-blue-300 animate-ping" style={{ animationDelay: "1s" }}></i>
+                </div>
+                <div className="absolute -bottom-4 -right-2 text-xl">
+                  <i className="fas fa-star text-purple-300 animate-ping" style={{ animationDelay: "1.5s" }}></i>
+                </div>
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-4 animate-slide-up">
-              Course Management
-            </h1>
-            <p className="text-xl opacity-90 animate-slide-up animation-delay-200">
-              Create and manage courses for your institution
-            </p>
-            <p className="text-sm opacity-70 mt-6 animate-fade-in">
-              Click anywhere to continue
-            </p>
+            <div className="animate-slide-up animation-delay-200">
+              <h1 className="text-4xl font-bold mb-4 text-white">Course Management</h1>
+              <p className="text-xl text-blue-100 mb-8">Create and manage courses for your institution</p>
+              <div className="animate-fade-in animation-delay-500">
+                <p className="text-sm text-blue-200 mb-2 flex items-center justify-center">
+                  <i className="fas fa-mouse-pointer mr-2 animate-bounce"></i>
+                  Click anywhere to continue
+                </p>
+                <div className="flex justify-center">
+                  <div className="w-6 h-1 bg-white/30 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-white/60 rounded-full animate-shimmer"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* Breadcrumb Navigation */}
       <div className="mb-4">
-        <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
-          <ol className="flex items-center space-x-2">
+        <nav className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+          <ol className="flex items-center">
             <li className="flex items-center">
               <Link
                 href="/admin"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
               >
-                <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">
+                <span className="font-bold text-blue-600 dark:text-blue-400 mr-3">
                   OAS
                 </span>
                 <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -110,20 +299,9 @@ export default function CoursesPage() {
               </Link>
             </li>
             <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <Link
-                href="/admin/courses"
-                className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
-              >
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  My Courses
-                </span>
-              </Link>
-            </li>
-            <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Course Management
+              <i className="fas fa-chevron-right text-gray-400 ml-2 mr-2 text-xs"></i>
+              <span className="text-blue-600 dark:text-blue-400 text-sm">
+                Courses
               </span>
             </li>
           </ol>
@@ -156,31 +334,35 @@ export default function CoursesPage() {
       </div>
 
       {/* Course Overview Statistics */}
-      <CourseOverviewStats />
+      <CourseOverviewStats 
+        stats={courseStats}
+        loading={statsLoading}
+        error={statsError}
+      />
 
       {/* Enhanced Quick Tips Section */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
         <div className="flex items-start">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-800 flex items-center justify-center mr-3 flex-shrink-0">
-            <i className="fas fa-lightbulb text-emerald-600 dark:text-emerald-400"></i>
+          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center mr-3 flex-shrink-0">
+            <i className="fas fa-lightbulb text-amber-600 dark:text-amber-400"></i>
           </div>
           <div>
-            <h3 className="font-medium text-emerald-900 dark:text-emerald-100 mb-1">
+            <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
               Course Management Tips
             </h3>
-            <ul className="text-sm text-emerald-800 dark:text-emerald-200 space-y-1">
+            <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Set up courses at the beginning of each semester with clear
                 naming conventions
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Use descriptive course codes that follow your institution's
                 standards
               </li>
               <li className="flex items-start">
-                <i className="fas fa-check-circle text-emerald-600 mr-2 mt-0.5"></i>
+                <i className="fas fa-check-circle text-amber-600 mr-2 mt-0.5"></i>
                 Add detailed descriptions to help students and examiners
                 understand course content
               </li>
@@ -191,11 +373,11 @@ export default function CoursesPage() {
 
       {/* Enhanced Course Filters and View Toggle */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
-          <div className="flex items-center space-x-2 mb-3 md:mb-0">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
-              Your Courses
-            </h2>
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
+                          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
+                Courses
+              </h2>
 
             {/* Enhanced View Mode Toggle with Gradient */}
             <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
@@ -252,9 +434,9 @@ export default function CoursesPage() {
                 className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200 hover:shadow-md"
               >
                 <option value="">All Years</option>
-                <option value="2025">2025</option>
-                <option value="2024">2024</option>
-                <option value="2023">2023</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2">
                 <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
@@ -283,11 +465,14 @@ export default function CoursesPage() {
       {/* Course List */}
       <CourseList
         viewMode={viewMode}
-        searchTerm={searchTerm}
-        yearFilter={yearFilter}
-        statusFilter={statusFilter}
+        courses={courses}
+        currentPage={currentPage}
+        totalCourses={totalCourses}
+        pageSize={pageSize}
+        loading={loading}
         onCreateCourse={handleCreateCourse}
         onEditCourse={handleEditCourse}
+        onPageChange={(page) => fetchCourses(page)}
       />
 
       {/* Course Creation Modal */}

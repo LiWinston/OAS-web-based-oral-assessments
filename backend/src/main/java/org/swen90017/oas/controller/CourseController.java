@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
@@ -13,7 +13,7 @@ import org.swen90017.oas.dto.SubjectDto;
 import org.swen90017.oas.dto.request.CourseCreateRequestDTO;
 import org.swen90017.oas.dto.request.CourseQueryRequestDTO;
 import org.swen90017.oas.dto.request.CourseUpdateRequestDTO;
-import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+
 import org.swen90017.oas.dto.response.CourseListResponseDTO;
 import org.swen90017.oas.dto.response.CourseResponseDTO;
 import org.swen90017.oas.dto.response.CourseStatsResponseDTO;
@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
  * Course Controller (Frontend-Compatible API)
  * Provides simplified course management API that matches frontend expectations
  */
+@Slf4j
 @Tag(name = "Course Management", description = "API endpoints for managing academic courses")
 @RestController
 @RequestMapping("/api/courses")
@@ -43,13 +44,13 @@ public class CourseController {
     private final AssignmentService assignmentService;
 
     /**
-     * Get courses with pagination and filters
+     * List courses with pagination and filters (POST method for complex query)
      */
-    @Operation(summary = "Get courses", description = "Retrieve courses with pagination and optional filters")
-    @GetMapping
+    @Operation(summary = "List courses", description = "Retrieve courses with pagination and optional filters using POST")
+    @PostMapping("/list")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseListResponseDTO> getCourses(
-            @Parameter(description = "Query parameters for course search") CourseQueryRequestDTO queryDTO) {
+    public Result<CourseListResponseDTO> listCourses(
+            @Parameter(description = "Query parameters for course search") @RequestBody CourseQueryRequestDTO queryDTO) {
         
         IPage<Subject> result = subjectService.getCourses(
             queryDTO.getPageNum(), 
@@ -58,7 +59,8 @@ public class CourseController {
             queryDTO.getSemester(), 
             queryDTO.getCourseCode(), 
             queryDTO.getAdminUserId(), 
-            queryDTO.getStatus()
+            queryDTO.getStatus(),
+            queryDTO.getIsActive()
         );
         
         // Transform data to CourseResponseDTO with dual-path optimization
@@ -131,14 +133,17 @@ public class CourseController {
     }
 
     /**
-     * Get course statistics for dashboard (Optimized with SQL aggregation)
+     * Get course statistics (Optimized with SQL aggregation)
+     * @param adminUserId Optional admin user ID. If provided, returns stats for specific admin; if null, returns global stats
      */
-    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses")
+    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses. Optional adminUserId parameter for specific admin stats")
     @GetMapping("/stats")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseStatsResponseDTO> getCourseStats() {
-        // Use optimized SQL aggregation query (single query instead of N+1)
-        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized();
+    public Result<CourseStatsResponseDTO> getCourseStats(
+            @Parameter(description = "Optional admin user ID for specific admin stats") 
+            @RequestParam(required = false) Long adminUserId) {
+        // Use optimized SQL aggregation query (global if adminUserId is null, specific admin if provided)
+        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized(adminUserId);
         
         // Add current semester information
         String currentSemester = getCurrentSemesterOptimized();
@@ -189,41 +194,56 @@ public class CourseController {
                 .collect(Collectors.toList());
 
         try {
-            // Path 1: Cache-based approach (async)
-            CompletableFuture<Map<Long, Integer>> cacheBasedFuture = CompletableFuture.supplyAsync(() -> {
+            // Path 1: Cache-based approach (async) - simple and reliable
+            CompletableFuture<WinnerResult> cacheBasedFuture = CompletableFuture.supplyAsync(() -> {
                 Map<Long, Integer> cacheCountMap = new java.util.HashMap<>();
                 for (Long subjectId : subjectIds) {
                     try {
                         Integer count = assignmentService.getAssignmentCountBySubject(subjectId);
                         cacheCountMap.put(subjectId, count);
                     } catch (Exception e) {
+                        // Individual error handling - continue with other subjects
+                        log.error("Error fetching cached assignment count for subjectId {}: {}", subjectId, e.getMessage());
                         cacheCountMap.put(subjectId, 0);
                     }
                 }
-                return cacheCountMap;
+                return new WinnerResult("cache", cacheCountMap);
+            }).exceptionally(throwable -> {
+                // Fallback for the entire cache-based approach
+                log.error("Cache-based approach failed: {}", throwable.getMessage());
+                Map<Long, Integer> fallbackMap = new java.util.HashMap<>();
+                for (Long subjectId : subjectIds) {
+                    fallbackMap.put(subjectId, 0);
+                }
+                return new WinnerResult("cache-fallback", fallbackMap);
             });
 
             // Path 2: SQL aggregation approach (async)
-            CompletableFuture<Map<Long, Integer>> sqlBasedFuture = CompletableFuture.supplyAsync(() -> {
-                try {
-                    return assignmentService.getAssignmentCountsBySubjectIds(subjectIds);
-                } catch (Exception e) {
-                    // Fallback to empty map
-                    Map<Long, Integer> fallbackMap = new java.util.HashMap<>();
-                    for (Long subjectId : subjectIds) {
-                        fallbackMap.put(subjectId, 0);
-                    }
-                    return fallbackMap;
+            CompletableFuture<WinnerResult> sqlBasedFuture = CompletableFuture.supplyAsync(() -> {
+                Map<Long, Integer> sqlCountMap = assignmentService.getAssignmentCountsBySubjectIds(subjectIds);
+                return new WinnerResult("sql", sqlCountMap);
+            }).exceptionally(throwable -> {
+                // Handle exceptions in SQL aggregation approach
+                log.error("SQL aggregation approach failed: {}", throwable.getMessage());
+                Map<Long, Integer> fallbackMap = new java.util.HashMap<>();
+                for (Long subjectId : subjectIds) {
+                    fallbackMap.put(subjectId, 0);
                 }
+                return new WinnerResult("sql-fallback", fallbackMap);
             });
 
             // Race condition: use whichever completes first
-            CompletableFuture<Map<Long, Integer>> winnerFuture = CompletableFuture.anyOf(
+            CompletableFuture<Object> winnerFuture = CompletableFuture.anyOf(
                     cacheBasedFuture, sqlBasedFuture
-            ).thenApply(result -> (Map<Long, Integer>) result);
+            );
 
             // Get the result with timeout
-            Map<Long, Integer> assignmentCountMap = winnerFuture.get(3, TimeUnit.SECONDS);
+            WinnerResult winner = (WinnerResult) winnerFuture.get(3, TimeUnit.SECONDS);
+            
+            // Log the winner for performance analysis
+            log.info("Assignment count dual-path winner: {} for {} subjects", winner.getSource(), subjectIds.size());
+            
+            Map<Long, Integer> assignmentCountMap = winner.getData();
 
             // Convert subjects to DTOs using the winning result
             return subjects.stream()
@@ -232,6 +252,7 @@ public class CourseController {
 
         } catch (Exception e) {
             // Fallback: use original single-path approach
+            log.warn("Dual-path optimization failed, falling back to single-path approach: {}", e.getMessage());
             return subjects.stream()
                     .map(this::convertToDTO)
                     .collect(Collectors.toList());
@@ -323,5 +344,26 @@ public class CourseController {
         dto.setStatus(requestDTO.getStatus());
         dto.setIsActive(requestDTO.getIsActive());
         return dto;
+    }
+
+    /**
+     * Wrapper class to identify the winner of dual-path optimization
+     */
+    private static class WinnerResult {
+        private final String source;
+        private final Map<Long, Integer> data;
+
+        public WinnerResult(String source, Map<Long, Integer> data) {
+            this.source = source;
+            this.data = data;
+        }
+
+        public String getSource() {
+            return source;
+        }
+
+        public Map<Long, Integer> getData() {
+            return data;
+        }
     }
 }

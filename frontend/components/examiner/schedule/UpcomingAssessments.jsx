@@ -1,47 +1,59 @@
-import React from 'react';
+"use client";
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
-import { useAuthStore } from '@/store/authStore';
+import { useExaminerAuth } from '@/hooks/useExaminerAuth';
+import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const UpcomingAssessments = () => {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
+  const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   
-  
-  // Debug: Create a mock user if no user is logged in (for development testing)
-  const debugUser = user || {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  
-
-  const { data: scheduleData, isLoading, error } = useQuery({
-    queryKey: ['examinerUpcoming', debugUser?.id],
+  const { data: scheduleData, isLoading, error, dataUpdatedAt } = useQuery({
+    queryKey: ['examinerUpcoming', examinerId],
     queryFn: () => {
       const today = new Date();
       const twoWeeksFromNow = new Date();
       twoWeeksFromNow.setDate(today.getDate() + 14);
       
-      return examinerTimeslotService.getExaminerSchedule(debugUser?.id, {
+      return examinerTimeslotService.getExaminerSchedule(examinerId, {
         dateFrom: today.toISOString().split('T')[0],
         dateTo: twoWeeksFromNow.toISOString().split('T')[0]
       });
     },
-    refetchInterval: 30000,
-    enabled: !!debugUser?.id
+    refetchInterval: 3 * 60 * 1000, // Reduced to 3 minutes from 30 seconds
+    staleTime: 90 * 1000, // 90 seconds stale time
+    enabled: isValidExaminer
   });
 
-  const allSlots = scheduleData?.data?.assignments?.flatMap(assignment => 
+  const allSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment => 
     assignment.slots.map(slot => ({
       ...slot,
+      assignmentId: assignment.assignmentId,
       assignmentName: assignment.assignmentName,
       courseCode: assignment.courseCode,
-      courseName: assignment.courseName
+      courseName: assignment.courseName,
+      assessmentType: (slot.requiredExaminers === 1) ? 'INDIVIDUAL' : 'GROUP'
     }))
-  ) || [];
+  ) || [], [scheduleData]);
+
+  const allSlots = useMemo(() => {
+    let filtered = allSlotsRaw;
+    if (selectedCourse) filtered = filtered.filter(s => s.courseCode === selectedCourse);
+    if (assessmentType && assessmentType !== 'ALL') filtered = filtered.filter(s => s.assessmentType === assessmentType);
+    if (searchText && searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      filtered = filtered.filter(s =>
+        s.assignmentName.toLowerCase().includes(q) ||
+        s.courseName.toLowerCase().includes(q) ||
+        s.courseCode.toLowerCase().includes(q) ||
+        (s.participants && s.participants.some(p => p.toLowerCase().includes(q)))
+      );
+    }
+    return filtered;
+  }, [allSlotsRaw, selectedCourse, assessmentType, searchText]);
   
 
   const now = new Date();
@@ -381,6 +393,7 @@ const UpcomingAssessments = () => {
         
         {/* Live indicator and urgent notifications */}
         <div className="flex items-center space-x-3">
+          <div className="text-xs text-gray-500 dark:text-gray-400">Updated {(() => { const diff = dataUpdatedAt ? Math.floor((Date.now() - dataUpdatedAt)/1000) : null; if (diff == null) return '—'; if (diff < 1) return 'just now'; if (diff < 60) return `${diff}s ago`; const m=Math.floor(diff/60), s=diff%60; return `${m}m ${s}s ago`; })()}</div>
           {groupedSlots.today.some(slot => getSlotStatus(slot) === 'active') && (
             <div className="flex items-center text-xs text-green-600 dark:text-green-400">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>

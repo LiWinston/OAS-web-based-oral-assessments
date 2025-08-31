@@ -1,24 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { Card } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { AdminManagementHub } from "../../components/superadmin/dashboard/AdminManagementHub";
 import { CourseOverviewTable } from "../../components/superadmin/dashboard/CourseOverviewTable";
+import { superadminCourseService } from "../../services/superadminCourseService";
 
 export default function SuperAdminDashboard() {
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState("overview");
-
-  // Mock stats for dashboard cards
-  const stats = {
-    totalCourses: 28,
-    activeCourses: 23,
-    totalAdmins: 12,
-    pendingInvitations: 2,
-    totalStudents: 1847,
+  
+  // Dynamic stats from API
+  const [stats, setStats] = useState({
+    totalCourses: 0,
+    activeCourses: 0,
+    totalAdmins: 12, // 暂时保持硬编码，待后续API完善
+    pendingInvitations: 2, // 暂时保持硬编码，待后续API完善
+    totalStudents: 0,
+    totalAssignments: 0,
     systemHealth: "excellent",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Ensure component is mounted (client-side) before fetching data
+  useEffect(() => {
+    setIsMounted(true);
+    fetchSuperAdminStats();
+  }, []);
+
+  const fetchSuperAdminStats = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      
+      // SuperAdmin获取全局统计数据（不传adminUserId参数）
+      const result = await superadminCourseService.getCourseStats();
+      
+      if (result.success && result.data) {
+        setStats(prev => ({
+          ...prev,
+          totalCourses: result.data.totalCourses || 0,
+          activeCourses: result.data.activeCourses || 0,
+          totalStudents: result.data.totalStudents || 0,
+          totalAssignments: result.data.totalAssignments || 0,
+        }));
+      } else {
+        setError(result.message || 'Failed to fetch statistics');
+      }
+    } catch (error) {
+      console.error('Error fetching SuperAdmin stats:', error);
+      setError('Failed to load system statistics');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const tabs = [
@@ -48,7 +86,6 @@ export default function SuperAdminDashboard() {
       </div>
 
       {/* Stats Cards */}
-      
 
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">

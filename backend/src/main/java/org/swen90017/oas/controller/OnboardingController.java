@@ -17,8 +17,7 @@ import org.swen90017.oas.service.StudentService;
 @RestController
 @RequestMapping("/onboarding")
 public class OnboardingController {
-    @Autowired
-    StudentService studentService;
+
     @Autowired
     private ISysUserService userService;
     @Autowired
@@ -40,7 +39,7 @@ public class OnboardingController {
     @PostMapping("/register")
     @Operation(summary = "Register a new user", description = "Registers a new user using the provided registration details.")
     public Result<LoginResponseDTO> register(@Validated @RequestBody RegisterRequestDTO requestDTO) {
-        SysUser user = studentService.register(requestDTO);
+        SysUser user = onboardingService.register(requestDTO);
         LoginResponseDTO response = userService.login(user.getEmail(), requestDTO.getPassword());
         return Result.success(response);
     }

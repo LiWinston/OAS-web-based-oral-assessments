@@ -7,6 +7,7 @@ export const superadminCourseService = {
   // Get all courses (superadmin view)
   async getCourses(filters = {}, page = 1, pageSize = 20) {
     try {
+
       // Add pagination parameters to the request
       const requestParams = {
         ...filters,
@@ -15,6 +16,7 @@ export const superadminCourseService = {
       };
 
       const response = await api.post("/api/superadmin/courses", requestParams);
+
 
       // Debug: Log the raw response to see what backend returns
       console.log("=== COURSES API DEBUG ===");
@@ -134,6 +136,7 @@ export const superadminCourseService = {
         pagination: pagination
       };
     } catch (error) {
+
       console.error("Get courses API error:", error);
       return { 
         success: false, 
@@ -147,6 +150,7 @@ export const superadminCourseService = {
           hasPrev: false
         }
       };
+
     }
   },
 
@@ -215,7 +219,7 @@ export const superadminCourseService = {
     }
   },
 
-  // Get course statistics for superadmin dashboard
+  // Get course statistics for superadmin dashboard (global stats)
   async getCourseStats() {
     try {
       const response = await api.get("/api/courses/stats");
@@ -264,6 +268,7 @@ export const superadminCourseService = {
           totalDepartments: 0,
           totalAssignments: 0
         } 
+
       };
     }
   },

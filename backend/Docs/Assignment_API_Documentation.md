@@ -269,6 +269,46 @@ All endpoints require authentication. Users must have appropriate roles:
 
 **Response:** List of assignments created by the specified user
 
+### 10. Get Assignment Status Statistics
+**GET** `/api/assignments/stats`
+
+**Description:** Retrieve statistics about assignment statuses across all subjects
+
+**Response:**
+```json
+{
+  "code": "200",
+  "message": "Success",
+  "data": {
+    "totalCount": 100,
+    "statusCounts": {
+      "PENDING": 20,
+      "IN_PROGRESS": 30,
+      "COMPLETED": 40,
+      "CANCELLED": 10
+    },
+    "statusPercentages": {
+      "PENDING": 20.0,
+      "IN_PROGRESS": 30.0,
+      "COMPLETED": 40.0,
+      "CANCELLED": 10.0
+    }
+  }
+}
+```
+
+**Note:** `statusPercentages` represents the percentage of total assignment weight (not count) for each status. This gives a more accurate representation of the academic impact of assignments in each status.
+
+### 11. Get Assignment Status Statistics by Subject
+**GET** `/api/assignments/subject/{subjectId}/stats`
+
+**Path Parameters:**
+- `subjectId`: Subject ID
+
+**Description:** Retrieve statistics about assignment statuses for a specific subject
+
+**Response:** Same format as Get Assignment Status Statistics, but filtered by subject
+
 ## Error Responses
 
 ### Common Error Codes
@@ -280,6 +320,7 @@ All endpoints require authentication. Users must have appropriate roles:
 - `4036`: Invalid assignment progress
 - `4037`: Assignment has submissions and cannot be deleted
 - `4038`: Assignment already exists for this subject
+- `4047`: Total assignment weight for subject cannot exceed 100%
 
 ### Error Response Format
 ```json
@@ -299,6 +340,7 @@ All endpoints require authentication. Users must have appropriate roles:
 - `startDate`: Cannot be null
 - `endDate`: Cannot be null and must be after startDate
 - `weight`: Must be between 0.0 and 100.0
+- **Total weight constraint**: The sum of all assignment weights for a subject cannot exceed 100.0
 
 ### Rubric Information
 - `rubricMetaInfo`: JSON string containing name, description, and totalPoints
