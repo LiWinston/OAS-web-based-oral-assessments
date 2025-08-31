@@ -145,9 +145,12 @@ export function AdminManagementHub() {
 
   // 处理页面大小变化
   const handlePageSizeChange = (newPageSize) => {
-    console.log("🔄 Changing page size to:", newPageSize);
+    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
     setPageSize(newPageSize);
     setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Immediately trigger data reload with new page size
+    console.log("🔄 Triggering immediate data reload with new page size");
   };
 
   // 清除所有筛选

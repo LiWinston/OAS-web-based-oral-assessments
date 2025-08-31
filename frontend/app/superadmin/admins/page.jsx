@@ -130,9 +130,12 @@ export default function AdminManagementPage() {
 
   // 处理页面大小变化
   const handlePageSizeChange = (newPageSize) => {
-    console.log("🔄 Changing page size to:", newPageSize);
+    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
     setPageSize(newPageSize);
     setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Immediately trigger data reload with new page size
+    console.log("🔄 Triggering immediate data reload with new page size");
   };
 
   // 清除所有筛选
@@ -525,21 +528,49 @@ export default function AdminManagementPage() {
 
   const filteredAdmins =
     adminData?.activeAdmins?.filter((admin) => {
-      // Handle search with null safety
-      const matchesSearch =
-        (!debouncedSearchName || (admin.name && admin.name.toLowerCase().includes(debouncedSearchName.toLowerCase()))) &&
-        (!debouncedSearchEmail || (admin.email && admin.email.toLowerCase().includes(debouncedSearchEmail.toLowerCase()))) &&
-        (!admin.department || !debouncedSearchName || admin.department.toLowerCase().includes(debouncedSearchName.toLowerCase()));
+      // Name search: search in name only
+      const nameMatch = !debouncedSearchName || (admin.name && admin.name.toLowerCase().includes(debouncedSearchName.toLowerCase()));
+      
+      // Email search: search in email only  
+      const emailMatch = !debouncedSearchEmail || (admin.email && admin.email.toLowerCase().includes(debouncedSearchEmail.toLowerCase()));
+      
+      // Combined search logic: if we have name search, it should match name OR department
+      // But email search should only match email
+      const matchesSearch = nameMatch && emailMatch;
 
-      // Handle status filtering with null safety and case insensitivity
       const matchesStatus =
         statusFilter === "all" ||
         (admin.status &&
           (admin.status === statusFilter ||
             admin.status.toLowerCase() === statusFilter.toLowerCase()));
 
-    return matchesSearch && matchesStatus;
+      // Debug log for each admin to see why they're being filtered
+      if (admin.id === "61" || admin.name === "Haocheng Li") {
+        console.log(`🔍 FILTERING DEBUG for ${admin.name} (ID: ${admin.id}):`);
+        console.log("  - nameMatch:", nameMatch, "| debouncedSearchName:", debouncedSearchName);
+        console.log("  - emailMatch:", emailMatch, "| debouncedSearchEmail:", debouncedSearchEmail);
+        console.log("  - matchesSearch:", matchesSearch);
+        console.log("  - matchesStatus:", matchesStatus, "| statusFilter:", statusFilter, "| admin.status:", admin.status);
+        console.log("  - FINAL RESULT:", matchesSearch && matchesStatus);
+      }
+
+      return matchesSearch && matchesStatus;
     }) || [];
+
+  // Debug logs for data tracking
+  console.log("=== ADMIN PAGE DEBUG ===");
+  console.log("adminData:", adminData);
+  console.log("filteredInvitations.length:", filteredInvitations.length);
+  console.log("adminData?.pendingInvitations?.length:", adminData?.pendingInvitations?.length);
+  console.log("filteredAdmins.length:", filteredAdmins.length);
+  console.log("adminData?.activeAdmins?.length:", adminData?.activeAdmins?.length);
+  console.log("pagination:", pagination);
+  console.log("🔍 ALL ADMINS SUMMARY:");
+  adminData?.activeAdmins?.forEach((admin, index) => {
+    const isFiltered = filteredAdmins.some(fa => fa.id === admin.id);
+    console.log(`  ${index + 1}. ${admin.name} (ID: ${admin.id}) - Department: ${admin.department} - Status: ${admin.status} - Filtered: ${isFiltered ? '✅' : '❌'}`);
+  });
+  console.log("=== END ADMIN PAGE DEBUG ===");
 
   // Show loading state
   if (isLoading) {
@@ -572,52 +603,7 @@ export default function AdminManagementPage() {
     );
   }
 
-  // Show error state if no data
-  if (
-    !adminData ||
-    !adminData.pendingInvitations ||
-    !adminData.activeAdmins ||
-    (adminData.pendingInvitations.length === 0 &&
-      adminData.activeAdmins.length === 0)
-  ) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-lg">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-              <i className="fas fa-user-shield text-orange-500 text-2xl"></i>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                Course Administrator Management
-              </h1>
-              <p className="text-lg text-orange-100 mt-1">
-                No administrator data available
-              </p>
-            </div>
-            </div>
-          </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-              Unable to load administrator data
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              Please check your connection and try again
-            </p>
-            <Button
-              onClick={loadAdminData}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              Retry
-            </Button>
-            </div>
-            </div>
-          </div>
-    );
-  }
+
 
   return (
     <div className="space-y-6">
@@ -1088,49 +1074,22 @@ export default function AdminManagementPage() {
         </div>
       )}
 
-      {/* Pending Invitations */}
+            {/* Pending Invitations */}
       {filteredInvitations.length > 0 && (
         <Card className="p-6">
-                  {/* Filter Results Summary for Pending Invitations */}
-        {(debouncedSearchName || debouncedSearchEmail || statusFilter !== "all") && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300">
-                <span className="font-medium">Filter Results:</span>
-                {debouncedSearchName && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    <i className="fas fa-search mr-1"></i>Name: "{debouncedSearchName}"
-                  </span>
-                )}
-                {debouncedSearchEmail && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    <i className="fas fa-search mr-1"></i>Email: "{debouncedSearchEmail}"
-                  </span>
-                )}
-                {statusFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                    <i className="fas fa-filter mr-1"></i>
-                    Status: {statusFilter}
-                  </span>
-                )}
-                <span className="text-blue-600 dark:text-blue-400">
-                  Showing {filteredInvitations.length} of{" "}
-                  {adminData?.pendingInvitations?.length || 0} invitations
-                </span>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Pending Invitations
+              </h3>
+              <div className="text-xs text-gray-500">
+                <i className="fas fa-clock mr-1"></i>
+                Invitations expire after 7 days
               </div>
             </div>
-          </div>
-        )}
-
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Pending Invitations ({filteredInvitations.length})
-            </h3>
-            <div className="text-xs text-gray-500">
-              <i className="fas fa-clock mr-1"></i>
-              Invitations expire after 7 days
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Showing {filteredInvitations.length} of{" "}
+              {adminData?.pendingInvitations?.length || 0} invitations
             </div>
-          </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1263,40 +1222,9 @@ export default function AdminManagementPage() {
 
       {/* Active Administrators */}
       <Card className="p-6">
-        {/* Filter Results Summary */}
-        {(debouncedSearchName || debouncedSearchEmail || statusFilter !== "all") && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300">
-                <span className="font-medium">Filter Results:</span>
-                {debouncedSearchName && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    <i className="fas fa-search mr-1"></i>Name: "{debouncedSearchName}"
-                  </span>
-                )}
-                {debouncedSearchEmail && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    <i className="fas fa-search mr-1"></i>Email: "{debouncedSearchEmail}"
-                  </span>
-                )}
-                {statusFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                    <i className="fas fa-filter mr-1"></i>
-                    Status: {statusFilter}
-                  </span>
-                )}
-                <span className="text-blue-600 dark:text-blue-400">
-                  Showing {filteredAdmins.length} of{" "}
-                  {adminData?.activeAdmins?.length || 0} administrators
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Active Course Administrators ({filteredAdmins.length})
+            Course Administrators
           </h3>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
@@ -1305,6 +1233,7 @@ export default function AdminManagementPage() {
             Active
           </div>
         </div>
+        
         
         <div className="overflow-x-auto">
           <table className="w-full">

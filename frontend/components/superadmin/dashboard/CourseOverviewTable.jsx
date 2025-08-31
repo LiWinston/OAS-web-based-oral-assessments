@@ -424,6 +424,82 @@ export function CourseOverviewTable() {
         </p>
       </div>
 
+      {/* Enhanced Summary Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {/* Debug: Log courseStats state */}
+        {console.log("=== RENDER DEBUG ===")}
+        {console.log("courseStats:", courseStats)}
+        {console.log("statsLoading:", statsLoading)}
+        {console.log("courseStats.totalCourses:", courseStats.totalCourses)}
+        {console.log("courseStats.activeCourses:", courseStats.activeCourses)}
+        {console.log("courseStats.totalAssignments:", courseStats.totalAssignments)}
+        {console.log("=== END RENDER DEBUG ===")}
+        
+        <Card className="p-6 text-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <i className="fas fa-university text-white text-lg"></i>
+          </div>
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
+            {statsLoading ? (
+              <div className="animate-pulse bg-blue-300 dark:bg-blue-600 h-8 w-16 rounded"></div>
+            ) : (
+              courseStats.totalCourses.toLocaleString()
+            )}
+          </div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Courses
+          </div>
+        </Card>
+        
+        <Card className="p-6 text-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <i className="fas fa-check-circle text-white text-lg"></i>
+          </div>
+          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
+            {statsLoading ? (
+              <div className="animate-pulse bg-green-300 dark:bg-green-600 h-8 w-16 rounded"></div>
+            ) : (
+              courseStats.activeCourses.toLocaleString()
+            )}
+          </div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Active Courses
+          </div>
+        </Card>
+        
+        <Card className="p-6 text-center bg-gradient-to-br from-purple-50 to-violet-100 dark:from-purple-900/20 dark:to-violet-800/20 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <i className="fas fa-users text-white text-lg"></i>
+          </div>
+          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
+            {statsLoading ? (
+              <div className="animate-pulse bg-purple-300 dark:bg-purple-600 h-8 w-16 rounded"></div>
+            ) : (
+              courseStats.totalStudents.toLocaleString()
+            )}
+          </div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Students
+          </div>
+        </Card>
+        
+        <Card className="p-6 text-center bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-800/20 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
+          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <i className="fas fa-clipboard-list text-white text-lg"></i>
+          </div>
+          <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+            {statsLoading ? (
+              <div className="animate-pulse bg-orange-300 dark:bg-orange-600 h-8 w-16 rounded"></div>
+            ) : (
+              courseStats.totalAssignments.toLocaleString()
+            )}
+          </div>
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+            Total Assignments
+          </div>
+        </Card>
+      </div>
+
       {/* Enhanced Filters and Search */}
       <Card className="p-6 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-orange-100 dark:border-orange-900/30">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
@@ -693,81 +769,7 @@ export function CourseOverviewTable() {
         />
       )}
 
-      {/* Enhanced Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Debug: Log courseStats state */}
-        {console.log("=== RENDER DEBUG ===")}
-        {console.log("courseStats:", courseStats)}
-        {console.log("statsLoading:", statsLoading)}
-        {console.log("courseStats.totalCourses:", courseStats.totalCourses)}
-        {console.log("courseStats.activeCourses:", courseStats.activeCourses)}
-        {console.log("courseStats.totalAssignments:", courseStats.totalAssignments)}
-        {console.log("=== END RENDER DEBUG ===")}
-        
-        <Card className="p-6 text-center bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <i className="fas fa-university text-white text-lg"></i>
-          </div>
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-1">
-            {statsLoading ? (
-              <div className="animate-pulse bg-blue-300 dark:bg-blue-600 h-8 w-16 rounded"></div>
-            ) : (
-              courseStats.totalCourses.toLocaleString()
-            )}
-          </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Courses
-          </div>
-        </Card>
-        
-        <Card className="p-6 text-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/20 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-          <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <i className="fas fa-check-circle text-white text-lg"></i>
-          </div>
-          <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-1">
-            {statsLoading ? (
-              <div className="animate-pulse bg-green-300 dark:bg-green-600 h-8 w-16 rounded"></div>
-            ) : (
-              courseStats.activeCourses.toLocaleString()
-            )}
-          </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Active Courses
-          </div>
-        </Card>
-        
-        <Card className="p-6 text-center bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <i className="fas fa-user-graduate text-white text-lg"></i>
-          </div>
-          <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-1">
-            {statsLoading ? (
-              <div className="animate-pulse bg-purple-300 dark:bg-purple-600 h-8 w-16 rounded"></div>
-            ) : (
-              courseStats.totalStudents.toLocaleString()
-            )}
-          </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Students
-          </div>
-        </Card>
-        
-        <Card className="p-6 text-center bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-900/20 dark:to-red-800/20 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300 hover:scale-105">
-          <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <i className="fas fa-clipboard-list text-white text-lg"></i>
-          </div>
-          <div className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-1">
-            {statsLoading ? (
-              <div className="animate-pulse bg-orange-300 dark:bg-orange-600 h-8 w-16 rounded"></div>
-            ) : (
-              courseStats.totalAssignments.toLocaleString()
-            )}
-          </div>
-          <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
-            Total Assignments
-          </div>
-        </Card>
-      </div>
+
 
       {/* Course Detail Modal */}
       {selectedCourse && (
