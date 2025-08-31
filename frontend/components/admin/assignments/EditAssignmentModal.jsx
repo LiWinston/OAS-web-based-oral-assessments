@@ -25,6 +25,34 @@ export function EditAssignmentModal({
   const [hasChanges, setHasChanges] = useState(false);
   const { showNotification } = useNotification();
 
+  // Helper function to convert datetime to datetime-local format for HTML datetime-local input
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    
+    try {
+      // Create Date object from the input string
+      const date = new Date(dateString);
+      
+      // Check if the date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('Invalid date string:', dateString);
+        return '';
+      }
+      
+      // Format to YYYY-MM-DDTHH:MM for datetime-local input
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, dateString);
+      return '';
+    }
+  };
+
   // Initialize form with assignment data
   useEffect(() => {
     if (assignment && isOpen) {
@@ -32,8 +60,8 @@ export function EditAssignmentModal({
         name: assignment.name || '',
         description: assignment.description || '',
         type: assignment.type || 'individual',
-        startDate: assignment.startDate || '',
-        endDate: assignment.endDate || '',
+        startDate: formatDateForInput(assignment.startDate),
+        endDate: formatDateForInput(assignment.endDate),
         weight: assignment.weight || 25
       });
       setHasChanges(false);
@@ -48,8 +76,8 @@ export function EditAssignmentModal({
         formData.name !== assignment.name ||
         formData.description !== assignment.description ||
         formData.type !== assignment.type ||
-        formData.startDate !== assignment.startDate ||
-        formData.endDate !== assignment.endDate ||
+        formData.startDate !== formatDateForInput(assignment.startDate) ||
+        formData.endDate !== formatDateForInput(assignment.endDate) ||
         formData.weight !== assignment.weight;
       setHasChanges(changed);
     }
@@ -75,7 +103,9 @@ export function EditAssignmentModal({
       errors.endDate = 'End date must be after start date';
     }
     
-    if (!formData.weight || formData.weight < 0 || formData.weight > 100) {
+    if (!formData.weight || formData.weight === '') {
+      errors.weight = 'Weight is required';
+    } else if (formData.weight < 0 || formData.weight > 100) {
       errors.weight = 'Weight must be between 0 and 100';
     }
 
@@ -124,8 +154,11 @@ export function EditAssignmentModal({
       const result = await assignmentService.updateAssignment(assignment.id, updateData);
       
       if (result.success) {
-        showNotification('success', 'Assignment updated successfully');
         onAssignmentUpdated(result.data);
+      } else {
+        // Handle backend validation errors
+        const errorMessage = result.data || result.message || 'Failed to update assignment';
+        showNotification('error', errorMessage);
       }
     } catch (error) {
       showNotification('error', 'Failed to update assignment');
@@ -341,11 +374,11 @@ export function EditAssignmentModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Start Date <span className="text-red-500">*</span>
+                    Start Date & Time <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={formData.startDate}
                       onChange={(e) => handleInputChange('startDate', e.target.value)}
                       className={`
@@ -356,7 +389,7 @@ export function EditAssignmentModal({
                         transition-all duration-200
                       `}
                     />
-                    <i className="fas fa-calendar-day absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                   </div>
                   {validationErrors.startDate && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -367,11 +400,11 @@ export function EditAssignmentModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    End Date <span className="text-red-500">*</span>
+                    End Date & Time <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
                     <input
-                      type="date"
+                      type="datetime-local"
                       value={formData.endDate}
                       onChange={(e) => handleInputChange('endDate', e.target.value)}
                       className={`
@@ -382,7 +415,7 @@ export function EditAssignmentModal({
                         transition-all duration-200
                       `}
                     />
-                    <i className="fas fa-calendar-check absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                   </div>
                   {validationErrors.endDate && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -399,7 +432,17 @@ export function EditAssignmentModal({
                     <input
                       type="number"
                       value={formData.weight}
-                      onChange={(e) => handleInputChange('weight', parseInt(e.target.value) || 0)}
+                                              onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            handleInputChange('weight', '');
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue)) {
+                              handleInputChange('weight', numValue);
+                            }
+                          }
+                        }}
                       min="0"
                       max="100"
                       className={`
@@ -421,10 +464,10 @@ export function EditAssignmentModal({
                   )}
                   <div className="mt-2">
                     <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
-                        style={{ width: `${formData.weight}%` }}
-                      />
+                                              <div 
+                          className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
+                          style={{ width: `${formData.weight === '' || !formData.weight ? 0 : formData.weight}%` }}
+                        />
                     </div>
                   </div>
                 </div>
@@ -447,11 +490,11 @@ export function EditAssignmentModal({
                       {formData.type !== assignment.type && (
                         <li>Type: {assignment.type} → {formData.type}</li>
                       )}
-                      {formData.startDate !== assignment.startDate && (
-                        <li>Start Date: {assignment.startDate} → {formData.startDate}</li>
+                      {formData.startDate !== formatDateForInput(assignment.startDate) && (
+                        <li>Start Date: {formatDateForInput(assignment.startDate)} → {formData.startDate}</li>
                       )}
-                      {formData.endDate !== assignment.endDate && (
-                        <li>End Date: {assignment.endDate} → {formData.endDate}</li>
+                      {formData.endDate !== formatDateForInput(assignment.endDate) && (
+                        <li>End Date: {formatDateForInput(assignment.endDate)} → {formData.endDate}</li>
                       )}
                       {formData.weight !== assignment.weight && (
                         <li>Weight: {assignment.weight}% → {formData.weight}%</li>

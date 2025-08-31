@@ -175,12 +175,17 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         assignmentMapper.deleteById(id);
 
-        // Clear cache directly - simpler approach
-        try {
-            cacheSupport.evictBySubjectId(assignment.getSubjectId());
-        } catch (Exception ignore) {
-            // Log cache eviction failure but don't fail the operation
-        }
+        // Clear cache AFTER successful deletion commit
+        final Long sidForEvict = assignment.getSubjectId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    cacheSupport.evictBySubjectId(sidForEvict);
+                } catch (Exception ignore) {
+                }
+            }
+        });
     }
 
     @Override

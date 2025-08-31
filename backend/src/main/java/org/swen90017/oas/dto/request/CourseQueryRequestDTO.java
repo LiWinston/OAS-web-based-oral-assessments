@@ -38,6 +38,12 @@ public class CourseQueryRequestDTO {
      */
     @Schema(description = "Semester filter (1, 2, summer)", example = "1")
     private String semester;
+    
+    /**
+     * Is active filter
+     */
+    @Schema(description = "Is active filter", example = "true")
+    private Boolean isActive;
 
     /**
      * Course status filter

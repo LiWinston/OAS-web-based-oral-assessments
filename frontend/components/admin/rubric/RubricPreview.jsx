@@ -3,17 +3,6 @@
 import { FileText, Award, Target, Star, Hash, MessageSquare } from 'lucide-react';
 
 export default function RubricPreview({ rubric, assignment, course }) {
-  const getLevelColorClasses = (color) => {
-    const colorMap = {
-      green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
-      blue: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
-      yellow: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-700 dark:text-yellow-300',
-      orange: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300',
-      red: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-      gray: 'bg-gray-50 dark:bg-gray-800/20 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300'
-    };
-    return colorMap[color] || colorMap.gray;
-  };
 
   const getScaleIcon = (scale) => {
     switch (scale) {
@@ -26,6 +15,24 @@ export default function RubricPreview({ rubric, assignment, course }) {
       default:
         return null;
     }
+  };
+
+  const getLetterGrade = (index, total) => {
+    const grades = [
+      "A+",
+      "A",
+      "A-",
+      "B+",
+      "B",
+      "B-",
+      "C+",
+      "C",
+      "C-",
+      "D",
+      "F",
+    ];
+    const gradeIndex = Math.floor((index / (total - 1)) * (grades.length - 1));
+    return grades[gradeIndex];
   };
 
   const totalWeight = rubric.criteria ? rubric.criteria.reduce((sum, c) => sum + (c.weight || 0), 0) : 0;
@@ -126,11 +133,12 @@ export default function RubricPreview({ rubric, assignment, course }) {
                   {criterion.levels.map((level, levelIndex) => (
                     <div
                       key={level.id}
-                      className={`p-3 rounded-lg border ${getLevelColorClasses(level.color)} transition-all hover:shadow-sm`}
+                      className="p-3 rounded-lg border bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 transition-all hover:shadow-sm"
                     >
-                      <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center justify-between mb-2">
                         <span className="font-medium text-sm">
-                          {level.name}
+                          Level {levelIndex + 1}
+                          {criterion.markingScale === "letter" && ` (${getLetterGrade(levelIndex, criterion.levels.length)})`}
                         </span>
                         <span className="text-xs font-medium">
                           {level.minPoints}-{level.maxPoints} pts
@@ -157,9 +165,11 @@ export default function RubricPreview({ rubric, assignment, course }) {
                     <div className="space-y-1">
                       {criterion.comments.slice(0, 3).map(comment => {
                         const level = criterion.levels.find(l => l.id === comment.levelId);
+                        const levelIndex = criterion.levels.findIndex(l => l.id === comment.levelId);
+                        const levelTitle = level ? `Level ${levelIndex + 1}${criterion.markingScale === "letter" ? ` (${getLetterGrade(levelIndex, criterion.levels.length)})` : ''}` : 'Unknown Level';
                         return (
                           <div key={comment.id} className="text-xs text-gray-500 dark:text-gray-400 italic">
-                            <span className="font-medium">{level?.name}:</span> "{comment.text}"
+                            <span className="font-medium">{levelTitle}:</span> "{comment.text}"
                           </div>
                         );
                       })}

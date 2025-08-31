@@ -1,9 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { assignmentService } from "../../../services/assignmentService";
 import { useNotification } from "../../../hooks/useNotification";
+
+function Tooltip({ children, show, x, y }) {
+  if (!show) return null;
+  
+  return createPortal(
+    <div 
+      className="fixed px-2 py-1 bg-gray-900 text-white text-xs rounded pointer-events-none whitespace-nowrap z-[9999] animate-fade-in"
+      style={{
+        left: x,
+        top: y,
+        transform: 'translate(-50%, -100%) translateY(-8px)'
+      }}
+    >
+      {children}
+      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+    </div>,
+    document.body
+  );
+}
 
 export function AssignmentList({
   assignments,
@@ -18,6 +38,7 @@ export function AssignmentList({
   const [filteredAssignments, setFilteredAssignments] = useState([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
+  const [tooltip, setTooltip] = useState({ show: false, text: '', x: 0, y: 0 });
   const [isFiltering, setIsFiltering] = useState(false);
   const { showNotification } = useNotification();
 
@@ -60,7 +81,7 @@ export function AssignmentList({
       const result = await assignmentService.deleteAssignment(assignmentId);
       if (result.success) {
         showNotification("success", "Assignment deleted successfully");
-        // 通知父组件刷新数据
+        // Notify parent component to refresh data
         if (onAssignmentDeleted) {
           onAssignmentDeleted();
         }
@@ -202,32 +223,35 @@ export function AssignmentList({
 
   return (
     <>
+      <Tooltip show={tooltip.show} x={tooltip.x} y={tooltip.y}>
+        {tooltip.text}
+      </Tooltip>
       {viewMode === "table" ? (
         // Enhanced Table View with hover effects
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full table-fixed">
               <thead className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[280px]">
                     Assignment
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[100px]">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[180px]">
                     Schedule
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[80px]">
                     Weight
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
                     Progress
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[120px]">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-[140px]">
                     Actions
                   </th>
                 </tr>
@@ -241,22 +265,21 @@ export function AssignmentList({
                   return (
                     <tr
                       key={assignment.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 animate-fadeInUp transform hover:scale-[1.01]"
-                      style={{ animationDelay: `${index * 0.05}s` }}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 transform hover:scale-[1.01]"
                     >
                       <td className="px-6 py-4">
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[320px]">
                             {assignment.name}
                           </div>
                           {assignment.description && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate max-w-[320px]">
                               {assignment.description}
                             </div>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 hover:scale-105`}
                         >
@@ -264,27 +287,27 @@ export function AssignmentList({
                           {assignment.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div className="text-sm text-gray-900 dark:text-gray-300">
                           <div className="flex items-center group/item">
                             <i className="fas fa-calendar-alt text-gray-400 mr-2 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
-                            {new Date(
-                              assignment.startDate
-                            ).toLocaleDateString()}{" "}
-                            -{" "}
-                            {new Date(assignment.endDate).toLocaleDateString()}
+                            <span>
+                              {new Date(assignment.startDate).getFullYear()}/{String(new Date(assignment.startDate).getMonth() + 1).padStart(2, '0')}/{String(new Date(assignment.startDate).getDate()).padStart(2, '0')}{" "}
+                              -{" "}
+                              {new Date(assignment.endDate).getFullYear()}/{String(new Date(assignment.endDate).getMonth() + 1).padStart(2, '0')}/{String(new Date(assignment.endDate).getDate()).padStart(2, '0')}
+                            </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {assignment.weight}%
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <div>
-                          <div className="flex items-center">
-                            <div className="flex-1 mr-3">
+                          <div className="flex items-center justify-center">
+                            <div className="flex-1 mr-3 max-w-[80px]">
                               <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                                 <div
                                   className={`h-full transition-all duration-500 rounded-full progress-bar-glow ${
@@ -304,13 +327,10 @@ export function AssignmentList({
                               {progress}%
                             </span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {assignment.completedSessions}/
-                            {assignment.totalSessions} sessions
-                          </div>
+
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <span
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusStyles.bgColor} ${statusStyles.textColor} transition-all duration-200 hover:scale-105`}
                         >
@@ -318,12 +338,21 @@ export function AssignmentList({
                           {assignment.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end items-center space-x-2">
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex justify-center items-center space-x-2">
                           <button
                             onClick={() => onEditAssignment(assignment)}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110"
-                            title="Edit Assignment"
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 cursor-pointer"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Edit Assignment',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-edit text-blue-600 dark:text-blue-400 group-hover:animate-wiggle"></i>
                           </button>
@@ -333,7 +362,16 @@ export function AssignmentList({
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasRubric ? "animate-pulse" : ""
                             }`}
-                            title="Configure Rubric"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Configure Rubric',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-clipboard-list text-amber-600 dark:text-amber-400 group-hover:animate-wiggle"></i>
                           </Link>
@@ -343,15 +381,33 @@ export function AssignmentList({
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasTimeSlots ? "animate-pulse" : ""
                             }`}
-                            title="Schedule Time Slots"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Schedule Time Slots',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-calendar-week text-green-600 dark:text-green-400 group-hover:animate-wiggle"></i>
                           </Link>
 
                           <button
                             onClick={() => setShowDeleteConfirm(assignment.id)}
-                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110"
-                            title="Delete Assignment"
+                            className="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 cursor-pointer"
+                            onMouseEnter={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setTooltip({
+                                show: true,
+                                text: 'Delete Assignment',
+                                x: rect.left + rect.width / 2,
+                                y: rect.top
+                              });
+                            }}
+                            onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
                             <i className="fas fa-trash text-red-600 dark:text-red-400 group-hover:animate-wiggle"></i>
                           </button>
@@ -400,15 +456,7 @@ export function AssignmentList({
               return (
                 <div
                   key={assignment.id}
-                  className={`
-                  course-card bg-white dark:bg-gray-800 rounded-lg shadow group relative overflow-hidden
-                  animate-fadeInUp ${
-                    hoveredAssignment === assignment.id ? "hovered" : ""
-                  }
-                `}
-                  style={{
-                    animationDelay: `${index * 100}ms`,
-                  }}
+                  className="course-card bg-white dark:bg-gray-800 rounded-lg shadow group relative overflow-hidden transition-all duration-500 hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px] flex flex-col"
                   onMouseEnter={() => setHoveredAssignment(assignment.id)}
                   onMouseLeave={() => setHoveredAssignment(null)}
                 >
@@ -420,20 +468,32 @@ export function AssignmentList({
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 translate-x-full group-hover:translate-x-[-200%] transition-transform duration-1000"></div>
                   </div>
 
-                  <div className="p-6 relative z-10">
+                  <div className="p-6 relative z-10 flex-1 flex flex-col">
+                    {/* Header section */}
                     <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300 mb-1 overflow-hidden text-ellipsis whitespace-nowrap">
                           {assignment.name}
                         </h3>
-                        {assignment.description && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
-                            {assignment.description}
-                          </p>
-                        )}
+                        {/* Fixed height container for description to ensure alignment */}
+                        <div className="h-[40px] overflow-hidden">
+                          {assignment.description ? (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors overflow-hidden" 
+                               style={{
+                                 display: '-webkit-box',
+                                 WebkitLineClamp: 2,
+                                 WebkitBoxOrient: 'vertical',
+                                 textOverflow: 'ellipsis'
+                               }}>
+                              {assignment.description}
+                            </p>
+                          ) : (
+                            <div className="h-[40px]"></div>
+                          )}
+                        </div>
                       </div>
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 group-hover:scale-105`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${typeStyles.bgColor} ${typeStyles.textColor} transition-all duration-200 group-hover:scale-105 ml-3 flex-shrink-0`}
                       >
                         <i
                           className={`fas ${typeStyles.icon} mr-1 group-hover:animate-wiggle`}
@@ -442,9 +502,12 @@ export function AssignmentList({
                       </span>
                     </div>
 
+                    {/* Content section */}
                     <div className="space-y-3 mb-4">
                       <div className="flex items-center text-sm group/item">
-                        <i className="fas fa-calendar-alt text-gray-400 w-5 mr-2 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i className="fas fa-calendar-alt text-gray-400 group-hover/item:text-blue-500 transition-colors duration-300 group-hover:animate-wiggle"></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {new Date(assignment.startDate).toLocaleDateString()}{" "}
                           - {new Date(assignment.endDate).toLocaleDateString()}
@@ -452,20 +515,24 @@ export function AssignmentList({
                       </div>
 
                       <div className="flex items-center text-sm group/item">
-                        <i
-                          className="fas fa-percentage text-gray-400 w-5 mr-2 group-hover/item:text-green-500 transition-colors duration-300 group-hover:animate-wiggle"
-                          style={{ animationDelay: "0.1s" }}
-                        ></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i
+                            className="fas fa-percentage text-gray-400 group-hover/item:text-green-500 transition-colors duration-300 group-hover:animate-wiggle"
+                            style={{ animationDelay: "0.1s" }}
+                          ></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {assignment.weight}% of final grade
                         </span>
                       </div>
 
                       <div className="flex items-center text-sm group/item">
-                        <i
-                          className="fas fa-users text-gray-400 w-5 mr-2 group-hover/item:text-purple-500 transition-colors duration-300 group-hover:animate-wiggle"
-                          style={{ animationDelay: "0.2s" }}
-                        ></i>
+                        <div className="w-5 flex justify-center mr-2">
+                          <i
+                            className="fas fa-users text-gray-400 group-hover/item:text-purple-500 transition-colors duration-300 group-hover:animate-wiggle"
+                            style={{ animationDelay: "0.2s" }}
+                          ></i>
+                        </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {assignment.students} students
                           {assignment.groups > 0 &&
@@ -573,10 +640,13 @@ export function AssignmentList({
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+                    {/* Flexible spacer to push buttons to bottom */}
+                    <div className="flex-1"></div>
+
+                    <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700 mt-auto">
                       <button
                         onClick={() => onEditAssignment(assignment)}
-                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105"
+                        className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-all duration-200 transform hover:scale-105 cursor-pointer"
                       >
                         <i className="fas fa-edit mr-1 hover:animate-wiggle"></i>{" "}
                         Edit
@@ -588,7 +658,16 @@ export function AssignmentList({
                           className={`text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasRubric ? "animate-pulse" : ""
                           }`}
-                          title="Configure Rubric"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Configure Rubric',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-clipboard-list hover:animate-wiggle"></i>
                         </Link>
@@ -598,15 +677,33 @@ export function AssignmentList({
                           className={`text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasTimeSlots ? "animate-pulse" : ""
                           }`}
-                          title="Schedule Time Slots"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Schedule Time Slots',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-calendar-week hover:animate-wiggle"></i>
                         </Link>
 
                         <button
                           onClick={() => setShowDeleteConfirm(assignment.id)}
-                          className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 transform hover:scale-110"
-                          title="Delete Assignment"
+                          className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 transform hover:scale-110 cursor-pointer"
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Delete Assignment',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-trash hover:animate-wiggle"></i>
                         </button>
@@ -617,25 +714,17 @@ export function AssignmentList({
               );
             })}
 
-          {/* Enhanced Add New Assignment Card with Magic Effects */}
+          {/* Create New Assignment Card */}
           {!isFiltering && (
             <div
-              className="create-course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 
-                       hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 cursor-pointer group
-                       flex items-center justify-center min-h-[320px] animate-fadeInUp hover:shadow-xl relative overflow-hidden"
+              className="course-card bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-500 group hover:shadow-xl hover:transform hover:-translate-y-2 min-h-[400px] flex flex-col"
               onClick={onCreateAssignment}
-              style={{
-                animationDelay: `${filteredAssignments.length * 100}ms`,
-              }}
             >
-              <div className="text-center p-6">
-                <div
-                  className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center mx-auto mb-4 
-                              group-hover:scale-110 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-all duration-300 group-hover:rotate-12"
-                >
-                  <i className="fas fa-plus text-blue-600 dark:text-blue-400 text-2xl group-hover:rotate-90 transition-transform duration-300 group-hover:scale-125"></i>
+              <div className="text-center p-8">
+                <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mx-auto mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors duration-300">
+                  <i className="fas fa-plus text-blue-600 dark:text-blue-400 text-lg group-hover:scale-110 transition-transform duration-200"></i>
                 </div>
-                <h3 className="font-medium text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <h3 className="font-medium text-gray-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                   Create New Assignment
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-300 transition-colors">

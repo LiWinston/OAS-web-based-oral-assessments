@@ -30,6 +30,21 @@ export function AssignmentCreationModal({
     weight: 25
   });
 
+  // Helper function to format datetime for input[type="datetime-local"]
+  const formatDateTimeForInput = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
+
   // CSV upload data - independent structure
   const [csvData, setCsvData] = useState({
     student: {
@@ -125,7 +140,9 @@ export function AssignmentCreationModal({
         if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
           errors.endDate = 'End date must be after start date';
         }
-        if (!formData.weight || formData.weight < 0 || formData.weight > 100) {
+        if (!formData.weight || formData.weight === '') {
+          errors.weight = 'Weight is required';
+        } else if (formData.weight < 0 || formData.weight > 100) {
           errors.weight = 'Weight must be between 0 and 100';
         }
         break;
@@ -356,6 +373,10 @@ export function AssignmentCreationModal({
         setTimeout(() => {
           onAssignmentCreated(result.data);
         }, 2500);
+      } else {
+        // Handle backend validation errors
+        const errorMessage = result.data || result.message || 'Failed to create assignment';
+        showNotification('error', errorMessage);
       }
     } catch (error) {
       showNotification('error', 'Failed to create assignment');
@@ -414,7 +435,7 @@ export function AssignmentCreationModal({
               Create New Assignment
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {courseName} ({courseCode}) • {courseSemester}
+              {courseName} ({courseCode}) • {courseSemester.split(' ')[0]} Semester {courseSemester.split(' ')[1]}
             </p>
           </div>
           <button
@@ -428,49 +449,73 @@ export function AssignmentCreationModal({
 
         {/* Progress Steps */}
         <div className="px-6 py-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between max-w-md mx-auto">
-            {[1, 2, 3].map((num) => (
-              <div key={num} className="flex items-center">
-                <div
-                  className={`
-                    w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all duration-300
-                    ${step >= num 
-                      ? 'bg-blue-600 text-white scale-110 shadow-lg' 
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                    }
-                    ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
-                  `}
-                >
-                  {stepCompletion[num] ? (
-                    <i className="fas fa-check"></i>
-                  ) : (
-                    num
+          <div className="max-w-md mx-auto">
+            {/* Step circles with flex layout */}
+            <div className="flex items-center justify-center">
+              {[1, 2, 3].map((num, index) => (
+                <div key={num} className="flex items-center">
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all duration-300
+                      ${step >= num 
+                        ? 'bg-blue-600 text-white scale-110 shadow-lg' 
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      }
+                      ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                    `}
+                  >
+                    {stepCompletion[num] ? (
+                      <i className="fas fa-check"></i>
+                    ) : (
+                      num
+                    )}
+                  </div>
+                  {index < 2 && (
+                    <div 
+                      className={`
+                        h-1 w-32 mx-3 rounded-full transition-all duration-500
+                        ${step > num 
+                          ? 'bg-blue-600' 
+                          : 'bg-gray-200 dark:bg-gray-700'
+                        }
+                      `}
+                    />
                   )}
                 </div>
-                {num < 3 && (
-                  <div 
-                    className={`
-                      h-1 w-20 mx-2 rounded-full transition-all duration-500
-                      ${step > num 
-                        ? 'bg-blue-600' 
-                        : 'bg-gray-200 dark:bg-gray-700'
-                      }
-                    `}
-                  />
-                )}
+              ))}
+            </div>
+            
+            {/* Step labels with precise positioning */}
+            <div className="flex justify-center mt-2 relative">
+              <div className="flex items-center">
+                {/* First label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Assignment Details
+                  </span>
+                </div>
+                
+                {/* Spacer for first line */}
+                <div style={{ width: '152px' }}></div>
+                
+                {/* Second label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Participants
+                  </span>
+                </div>
+                
+                {/* Spacer for second line */}
+                <div style={{ width: '152px' }}></div>
+                
+                {/* Third label */}
+                <div className="w-10 flex justify-center">
+                  <span className={`text-xs whitespace-nowrap ${step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                    Summary
+                  </span>
+                </div>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-between text-xs mt-2">
-            <span className={step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Details & Type
-            </span>
-            <span className={step >= 2 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Participants
-            </span>
-            <span className={step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}>
-              Configure
-            </span>
+            </div>
           </div>
         </div>
 
@@ -506,7 +551,7 @@ export function AssignmentCreationModal({
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                         transition-all duration-200
                       `}
-                      placeholder="e.g., Mid-Semester Project Presentation"
+                      placeholder="e.g. Mid-Semester Project Presentation"
                     />
                     {validationErrors.name && (
                       <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -524,7 +569,7 @@ export function AssignmentCreationModal({
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       rows={3}
                       className="w-full rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
-                      placeholder="Provide a brief description of the assignment..."
+                      placeholder="Provide a brief description of this assignment..."
                     />
                   </div>
                 </div>
@@ -592,11 +637,11 @@ export function AssignmentCreationModal({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Start Date <span className="text-red-500">*</span>
+                      Start Date & Time <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
-                        type="date"
+                        type="datetime-local"
                         value={formData.startDate}
                         onChange={(e) => handleInputChange('startDate', e.target.value)}
                         className={`
@@ -607,7 +652,7 @@ export function AssignmentCreationModal({
                           transition-all duration-200
                         `}
                       />
-                      <i className="fas fa-calendar-day absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                      <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                     </div>
                     {validationErrors.startDate && (
                       <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -618,11 +663,11 @@ export function AssignmentCreationModal({
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      End Date <span className="text-red-500">*</span>
+                      End Date & Time <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
-                        type="date"
+                        type="datetime-local"
                         value={formData.endDate}
                         onChange={(e) => handleInputChange('endDate', e.target.value)}
                         className={`
@@ -633,7 +678,7 @@ export function AssignmentCreationModal({
                           transition-all duration-200
                         `}
                       />
-                      <i className="fas fa-calendar-check absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                      <i className="fas fa-calendar-clock absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                     </div>
                     {validationErrors.endDate && (
                       <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -650,7 +695,17 @@ export function AssignmentCreationModal({
                       <input
                         type="number"
                         value={formData.weight}
-                        onChange={(e) => handleInputChange('weight', parseInt(e.target.value) || 0)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          if (value === '') {
+                            handleInputChange('weight', '');
+                          } else {
+                            const numValue = parseInt(value);
+                            if (!isNaN(numValue)) {
+                              handleInputChange('weight', numValue);
+                            }
+                          }
+                        }}
                         min="0"
                         max="100"
                         className={`
@@ -674,7 +729,7 @@ export function AssignmentCreationModal({
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
-                          style={{ width: `${formData.weight}%` }}
+                          style={{ width: `${formData.weight === '' || !formData.weight ? 0 : formData.weight}%` }}
                         />
                       </div>
                     </div>
@@ -1200,7 +1255,7 @@ export function AssignmentCreationModal({
 
           {/* Success Animation */}
           {showSuccess && (
-            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50">
+            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/30 backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-800 rounded-xl p-8 text-center animate-bounceIn">
                 <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
                   <i className="fas fa-check text-3xl text-green-600 animate-scaleIn"></i>

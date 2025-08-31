@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
@@ -14,7 +13,7 @@ import org.swen90017.oas.dto.SubjectDto;
 import org.swen90017.oas.dto.request.CourseCreateRequestDTO;
 import org.swen90017.oas.dto.request.CourseQueryRequestDTO;
 import org.swen90017.oas.dto.request.CourseUpdateRequestDTO;
-import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+
 import org.swen90017.oas.dto.response.CourseListResponseDTO;
 import org.swen90017.oas.dto.response.CourseResponseDTO;
 import org.swen90017.oas.dto.response.CourseStatsResponseDTO;
@@ -45,13 +44,13 @@ public class CourseController {
     private final AssignmentService assignmentService;
 
     /**
-     * Get courses with pagination and filters
+     * List courses with pagination and filters (POST method for complex query)
      */
-    @Operation(summary = "Get courses", description = "Retrieve courses with pagination and optional filters")
-    @GetMapping
+    @Operation(summary = "List courses", description = "Retrieve courses with pagination and optional filters using POST")
+    @PostMapping("/list")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseListResponseDTO> getCourses(
-            @Parameter(description = "Query parameters for course search") CourseQueryRequestDTO queryDTO) {
+    public Result<CourseListResponseDTO> listCourses(
+            @Parameter(description = "Query parameters for course search") @RequestBody CourseQueryRequestDTO queryDTO) {
         
         IPage<Subject> result = subjectService.getCourses(
             queryDTO.getPageNum(), 
@@ -60,7 +59,8 @@ public class CourseController {
             queryDTO.getSemester(), 
             queryDTO.getCourseCode(), 
             queryDTO.getAdminUserId(), 
-            queryDTO.getStatus()
+            queryDTO.getStatus(),
+            queryDTO.getIsActive()
         );
         
         // Transform data to CourseResponseDTO with dual-path optimization
@@ -133,14 +133,17 @@ public class CourseController {
     }
 
     /**
-     * Get course statistics for dashboard (Optimized with SQL aggregation)
+     * Get course statistics (Optimized with SQL aggregation)
+     * @param adminUserId Optional admin user ID. If provided, returns stats for specific admin; if null, returns global stats
      */
-    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses")
+    @Operation(summary = "Get course statistics", description = "Retrieve dashboard statistics for courses. Optional adminUserId parameter for specific admin stats")
     @GetMapping("/stats")
     @Log(module = "Course Management", businessType = BusinessType.QUERY)
-    public Result<CourseStatsResponseDTO> getCourseStats() {
-        // Use optimized SQL aggregation query (single query instead of N+1)
-        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized();
+    public Result<CourseStatsResponseDTO> getCourseStats(
+            @Parameter(description = "Optional admin user ID for specific admin stats") 
+            @RequestParam(required = false) Long adminUserId) {
+        // Use optimized SQL aggregation query (global if adminUserId is null, specific admin if provided)
+        Map<String, Object> stats = subjectService.getCourseStatisticsOptimized(adminUserId);
         
         // Add current semester information
         String currentSemester = getCurrentSemesterOptimized();
