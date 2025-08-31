@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.dto.request.BatchCreateTimeSlotsRequestDTO;
 import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
 import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
@@ -116,6 +117,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     @Override
     @Transactional
     public BatchCreateTimeSlotsResponseDTO batchCreateTimeSlots(Long assignmentId, BatchCreateTimeSlotsRequestDTO request) {
+        ensureAssignmentNotReleased(assignmentId);
         // Get session configuration
         AssignmentSessionConfig config = sessionConfigMapper.selectById(assignmentId);
         if (config == null || !config.getIsConfigured()) {
@@ -175,6 +177,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         if (existingSlot == null) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
+        ensureAssignmentNotReleased(existingSlot.getAssignmentId());
 
         // Update time slot
         LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
@@ -224,6 +227,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         if (sourceSlot == null) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
+        ensureAssignmentNotReleased(sourceSlot.getAssignmentId());
 
         // Create new time slot based on source
         TimeSlotRequestDTO newSlotRequest = new TimeSlotRequestDTO();
@@ -251,6 +255,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     @Override
     @Transactional
     public void deleteTimeSlots(Long assignmentId, List<Long> timeSlotIds) {
+        ensureAssignmentNotReleased(assignmentId);
         // Delete sessions first
         for (Long timeSlotId : timeSlotIds) {
             // Delete slot sessions
@@ -385,6 +390,16 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         dto.setSessionNumber(session.getSessionNumber());
         dto.setBookedBy(null); // Would need to lookup student/group info
         return dto;
+    }
+
+    /**
+     * Guard: block any time slot modifications when assignment is released
+     */
+    private void ensureAssignmentNotReleased(Long assignmentId) {
+        Boolean released = assignmentMapper.isReleased(assignmentId);
+        if (Boolean.TRUE.equals(released)) {
+            throw new BusinessException(CommonError.FORBIDDEN);
+        }
     }
 
     /**
