@@ -197,16 +197,18 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         
         timeSlotMapper.updateById(existingSlot);
 
-        // 先查询超出新范围的 sessions 用于响应，然后一次性批量删除（利用范围条件）
-        List<SlotSession> outOfRange = slotSessionMapper.findOutOfRangeBySlot(
-                timeSlotId, existingSlot.getStartAt(), existingSlot.getEndAt());
+        // 删除该 slot 的全部旧 sessions，并记录被删除的会话用于响应
+        List<SlotSession> oldSessions = slotSessionMapper.findBySlotId(timeSlotId);
         List<SessionDetailDTO> deleted = new ArrayList<>();
-        if (!CollectionUtils.isEmpty(outOfRange)) {
-            for (SlotSession s : outOfRange) {
+        if (!CollectionUtils.isEmpty(oldSessions)) {
+            for (SlotSession s : oldSessions) {
                 deleted.add(convertSessionToDTO(s));
             }
-            slotSessionMapper.deleteOutOfRangeBySlot(timeSlotId, existingSlot.getStartAt(), existingSlot.getEndAt());
+            slotSessionMapper.deleteBySlotId(timeSlotId);
         }
+
+        // 按请求的 sessionCount 重新生成 sessions
+        generateSessions(existingSlot, request.getSessionCount());
 
         UpdateTimeSlotResponseDTO response = new UpdateTimeSlotResponseDTO();
         response.setTimeSlot(convertToDetailDTO(existingSlot));

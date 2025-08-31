@@ -10,6 +10,7 @@ import java.util.List;
 public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     int batchInsert(@Param("list") List<SlotSession> list);
     List<SlotSession> findBySlotId(@Param("slotId") Long slotId);
+    int deleteBySlotId(@Param("slotId") Long slotId);
     List<SlotSession> findOutOfRangeBySlot(
             @Param("slotId") Long slotId,
             @Param("startAt") java.time.LocalDateTime startAt,

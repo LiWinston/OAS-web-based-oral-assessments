@@ -19,6 +19,11 @@
         ORDER BY session_number ASC
     </select>
 
+    <delete id="deleteBySlotId">
+        DELETE FROM slot_sessions
+        WHERE slot_id = #{slotId}
+    </delete>
+
     <!-- 查询该 slot 下超出给定时间范围的 sessions -->
     <select id="findOutOfRangeBySlot" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT *
