@@ -35,7 +35,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
      * Get paginated courses/subjects (matches frontend API expectations)
      */
     public IPage<Subject> getCourses(int pageNum, int pageSize, Integer academicYear, String semester, 
-                                    String subjectCode, Long adminUserId, String status) {
+                                    String subjectCode, Long adminUserId, String status, Boolean isActive) {
         Page<Subject> page = new Page<>(pageNum, pageSize);
         
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
@@ -46,16 +46,26 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             queryWrapper.eq(Subject::getSemester, semester);
         }
         if (StringUtils.hasText(subjectCode)) {
-            queryWrapper.like(Subject::getSubjectCode, subjectCode);
+            // 在课程代码、课程名称、描述中进行模糊搜索
+            queryWrapper.and(wrapper -> wrapper
+                .like(Subject::getSubjectCode, subjectCode)
+                .or()
+                .like(Subject::getSubjectName, subjectCode)  
+                .or()
+                .like(Subject::getDescription, subjectCode)
+            );
         }
         if (adminUserId != null) {
             queryWrapper.eq(Subject::getAdminUserId, adminUserId);
         }
         if (StringUtils.hasText(status)) {
             queryWrapper.eq(Subject::getStatus, status);
-        } else {
-            queryWrapper.eq(Subject::getIsActive, true);
         }
+        // isActive过滤逻辑：null=不过滤(查询所有), true=只查询活跃, false=只查询非活跃
+        if (isActive != null) {
+            queryWrapper.eq(Subject::getIsActive, isActive);
+        }
+        // 当isActive为null时，不添加过滤条件，SuperAdmin可以查看所有状态的课程
         queryWrapper.orderByDesc(Subject::getAcademicYear)
                    .orderByAsc(Subject::getSemester)
                    .orderByAsc(Subject::getSubjectCode);
@@ -214,11 +224,11 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
     }
 
     /**
-     * Get course statistics efficiently using SQL aggregation
+     * Get course statistics efficiently using SQL aggregation for specific admin
      * This method uses a single optimized query instead of N+1 queries
      */
-    public Map<String, Object> getCourseStatisticsOptimized() {
-        Map<String, Object> stats = subjectMapper.getCourseStatistics();
+    public Map<String, Object> getCourseStatisticsOptimized(Long adminUserId) {
+        Map<String, Object> stats = subjectMapper.getCourseStatistics(adminUserId);
         
         // Convert Long to Integer for consistency with frontend expectations
         if (stats.get("totalCourses") != null) {

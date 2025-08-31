@@ -57,33 +57,37 @@ export default function CourseAssignmentsPage() {
         const [courseResult, assignmentsResult, statsResult] = await Promise.all([
           courseService.getCourse(courseId).catch(err => ({ success: false, error: err })),
           courseId ? assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false }),
-          // 暂时禁用统计接口
-          Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+          courseId ? assignmentService.getAssignmentStats(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false })
         ]);
         
         if (!isMounted) return;
 
-        if (courseResult.success && courseResult.data.length > 0) {
-          const foundCourse = courseResult.data.find(
-            (c) => c.id.toString() === courseId
-          );
-          if (foundCourse) {
-            setCourse(foundCourse);
-          } else {
-            showNotification("error", "Course not found");
-            router.push("/admin/courses");
-            return;
-          }
+        if (courseResult.success && courseResult.data) {
+          // Use the returned course data directly since API returns a single course object
+          setCourse(courseResult.data);
+        } else {
+          showNotification("error", "Course not found");
+          router.push("/admin/courses");
+          return;
         }
         
-        // 处理作业列表数据
+        // Process assignment list data
         if (assignmentsResult.success) {
           setAssignments(assignmentsResult.data);
         }
         
-        // 处理统计数据
+        // Process statistics data
         if (statsResult.success) {
-          setAssignmentStats(statsResult.data);
+          const stats = statsResult.data;
+          const totalWeight = Object.values(stats.statusPercentages || {}).reduce((sum, percentage) => sum + percentage, 0);
+          
+          setAssignmentStats({
+            total: stats.totalCount || 0,
+            active: stats.statusCounts?.IN_PROGRESS || 0,
+            upcoming: stats.statusCounts?.PENDING || 0,
+            completed: 0, // Temporarily set to 0, can be adjusted later
+            totalWeight: totalWeight
+          });
         }
         
       } catch (error) {
@@ -120,8 +124,7 @@ export default function CourseAssignmentsPage() {
       
       const [assignmentsResult, statsResult] = await Promise.all([
         assignmentService.getAssignments(courseId).catch(err => ({ success: false, error: err })),
-        // 暂时禁用统计接口
-        Promise.resolve({ success: false, message: 'Stats API temporarily disabled' })
+        assignmentService.getAssignmentStats(courseId).catch(err => ({ success: false, error: err }))
       ]);
       
       if (assignmentsResult.success) {
@@ -129,7 +132,16 @@ export default function CourseAssignmentsPage() {
       }
       
       if (statsResult.success) {
-        setAssignmentStats(statsResult.data);
+        const stats = statsResult.data;
+        const totalWeight = Object.values(stats.statusPercentages || {}).reduce((sum, percentage) => sum + percentage, 0);
+        
+        setAssignmentStats({
+          total: stats.totalCount || 0,
+          active: stats.statusCounts?.IN_PROGRESS || 0,
+          upcoming: stats.statusCounts?.PENDING || 0,
+          completed: 0, // Temporarily set to 0, can be adjusted later
+          totalWeight: totalWeight
+        });
       }
     } catch (error) {
       showNotification("error", "Failed to refresh data");
@@ -154,13 +166,22 @@ export default function CourseAssignmentsPage() {
   const createAssignment = async (formData, isDraft = false) => {
     try {
       const currentUserId = getUserId();
+      // Helper function to format date for backend
+      const formatDateForBackend = (dateString) => {
+        if (!dateString) return null;
+        // If already in datetime format, return as is
+        if (dateString.includes('T')) return dateString;
+        // Convert YYYY-MM-DD to YYYY-MM-DDTHH:MM:SS format
+        return `${dateString}T11:50:17`;
+      };
+
       const assignmentData = {
         subjectId: formData.courseId,
         name: formData.name,
         description: formData.description,
         type: formData.type,
-        startDate: new Date(formData.startDate).toISOString(),
-        endDate: new Date(formData.endDate).toISOString(),
+        startDate: formatDateForBackend(formData.startDate),
+        endDate: formatDateForBackend(formData.endDate),
         weight: Number(formData.weight),
         progress: 0,
         status: isDraft ? 'DRAFT' : 'PENDING',
@@ -244,7 +265,7 @@ export default function CourseAssignmentsPage() {
 
   // Handle assignment deletion
   const handleAssignmentDeleted = () => {
-    // 刷新数据
+    // Refresh data
     refreshData();
   };
 
@@ -277,14 +298,14 @@ export default function CourseAssignmentsPage() {
 
       {/* Breadcrumb Navigation */}
       <div className="mb-4">
-        <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
-          <ol className="flex items-center space-x-2">
+        <nav className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow mb-6">
+          <ol className="flex items-center">
             <li className="flex items-center">
               <Link
                 href="/admin"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
               >
-                <span className="font-bold text-blue-600 dark:text-blue-400 mr-1">
+                <span className="font-bold text-blue-600 dark:text-blue-400 mr-3">
                   OAS
                 </span>
                 <span className="text-sm text-gray-600 dark:text-gray-300">
@@ -293,31 +314,20 @@ export default function CourseAssignmentsPage() {
               </Link>
             </li>
             <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
+              <i className="fas fa-chevron-right text-gray-400 ml-2 mr-2 text-xs"></i>
               <Link
                 href="/admin/courses"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
               >
                 <span className="text-sm text-gray-600 dark:text-gray-300">
-                  My Courses
+                  Courses
                 </span>
               </Link>
             </li>
             <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <Link
-                href="/admin/courses"
-                className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex items-center transition-colors"
-              >
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  {course?.courseCode || "Course"}
-                </span>
-              </Link>
-            </li>
-            <li className="flex items-center">
-              <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-              <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Assignments
+              <i className="fas fa-chevron-right text-gray-400 ml-2 mr-2 text-xs"></i>
+              <span className="text-blue-600 dark:text-blue-400 text-sm">
+                {course?.courseName || "Course"}
               </span>
             </li>
           </ol>
@@ -343,8 +353,7 @@ export default function CourseAssignmentsPage() {
               </span>
               <span className="flex items-center">
                 <i className="fas fa-calendar mr-2"></i>
-                {course?.academicYear || "2025"} •{" "}
-                {course?.semester || "Semester"}
+                {course?.academicYear || "2025"} Semester {course?.semester || "1"}
               </span>
             </div>
           </div>
@@ -352,7 +361,7 @@ export default function CourseAssignmentsPage() {
           <div className="mt-4 md:mt-0">
             <Button
               onClick={handleCreateAssignment}
-              className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all duration-200"
+              className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all duration-200 btn-magic"
             >
               <i className="fas fa-plus"></i>
               <span>New Assignment</span>
@@ -367,15 +376,15 @@ export default function CourseAssignmentsPage() {
         loading={dataLoading} 
       />
 
-      {/* Quick Tips */}
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
+      {/* Enhanced Quick Tips Section */}
+      <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
         <div className="flex items-start">
           <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-800 flex items-center justify-center mr-3 flex-shrink-0">
             <i className="fas fa-lightbulb text-amber-600 dark:text-amber-400"></i>
           </div>
           <div>
             <h3 className="font-medium text-amber-900 dark:text-amber-100 mb-1">
-              Quick Tips
+              Assignment Management Tips
             </h3>
             <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-1">
               <li className="flex items-start">
@@ -400,8 +409,8 @@ export default function CourseAssignmentsPage() {
 
       {/* Assignment List Controls */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-2">
-          <div className="flex items-center space-x-2 mb-3 md:mb-0">
+        <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mr-4">
               Assignments
             </h2>
@@ -411,10 +420,10 @@ export default function CourseAssignmentsPage() {
               <button
                 onClick={() => setViewMode("table")}
                 className={`
-                  px-3 py-1.5 text-sm font-medium transition-all duration-200
+                  px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105
                   ${
                     viewMode === "table"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }
                 `}
@@ -424,10 +433,10 @@ export default function CourseAssignmentsPage() {
               <button
                 onClick={() => setViewMode("card")}
                 className={`
-                  px-3 py-1.5 text-sm font-medium transition-all duration-200
+                  px-3 py-1.5 text-sm font-medium transition-all duration-200 transform hover:scale-105
                   ${
                     viewMode === "card"
-                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+                      ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
                       : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
                   }
                 `}
@@ -449,7 +458,7 @@ export default function CourseAssignmentsPage() {
                 placeholder="Search assignments..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent px-3 py-2 transition-all duration-200"
+                className="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent px-3 py-2 transition-all duration-200 hover:shadow-md"
               />
             </div>
 
@@ -458,7 +467,7 @@ export default function CourseAssignmentsPage() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200"
+                className="appearance-none rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent pr-8 py-2 px-3 transition-all duration-200 hover:shadow-md"
               >
                 <option value="">All Status</option>
                 <option value="PENDING">Pending</option>
@@ -471,19 +480,19 @@ export default function CourseAssignmentsPage() {
             </div>
           </div>
         </div>
-
-        {/* Assignment List */}
-        <AssignmentList
-          assignments={assignments}
-          loading={dataLoading}
-          viewMode={viewMode}
-          searchTerm={searchTerm}
-          statusFilter={statusFilter}
-          onCreateAssignment={handleCreateAssignment}
-          onEditAssignment={handleEditAssignment}
-          onAssignmentDeleted={handleAssignmentDeleted}
-        />
       </div>
+
+      {/* Assignment List */}
+      <AssignmentList
+        assignments={assignments}
+        loading={dataLoading}
+        viewMode={viewMode}
+        searchTerm={searchTerm}
+        statusFilter={statusFilter}
+        onCreateAssignment={handleCreateAssignment}
+        onEditAssignment={handleEditAssignment}
+        onAssignmentDeleted={handleAssignmentDeleted}
+      />
 
       {/* Assignment Creation Modal */}
       <AssignmentCreationModal

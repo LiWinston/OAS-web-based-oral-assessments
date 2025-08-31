@@ -38,10 +38,10 @@ export function WelcomeAnimation({
 
   return (
     <div
-      className="fixed inset-0 bg-gradient-to-br from-blue-900/90 via-purple-900/90 to-indigo-900/90 backdrop-blur-sm z-50 flex items-center justify-center cursor-pointer"
+      className="fixed inset-0 bg-gradient-to-br from-blue-900/90 via-purple-900/90 to-indigo-900/90 backdrop-blur-sm z-50 flex items-center justify-center cursor-pointer min-h-screen h-full"
       onClick={handleDismiss}
     >
-      <div className="text-center text-white max-w-lg px-8">
+      <div className="text-center text-white max-w-2xl px-8">
         {/* Main Icon with Sparkles */}
         <div className="relative mb-8 animate-scale-in">
           <div className="text-8xl mb-4 relative">

@@ -7,7 +7,21 @@ export const superadminCourseService = {
   // Get all courses (superadmin view)
   async getCourses(filters = {}) {
     try {
-      const response = await api.get("/api/courses", { params: filters });
+      // Build query parameters for SuperAdmin API
+      const queryParams = {
+        page: filters.page || 1,
+        limit: filters.limit || 100, // Large limit for SuperAdmin to see all courses
+        year: filters.year || null,
+        semester: filters.semester || null,
+        search: filters.search || null,
+        adminId: filters.adminId || null,
+        status: filters.status || null,
+        department: filters.department || null,
+        sortBy: filters.sortBy || "createdAt",
+        sortOrder: filters.sortOrder || "desc"
+      };
+      
+      const response = await api.post("/api/superadmin/courses", queryParams);
 
       // Debug: Log the raw response to see what backend returns
       console.log("=== COURSES API DEBUG ===");
@@ -90,7 +104,7 @@ export const superadminCourseService = {
 
       return { success: true, data: courses };
     } catch (error) {
-      console.error("Get courses API error:", error);
+      console.error("SuperAdmin courses API error:", error);
       return { success: false, data: [] };
     }
   },
@@ -160,11 +174,29 @@ export const superadminCourseService = {
     }
   },
 
-  // Get course statistics for superadmin dashboard
+  // Get course statistics for superadmin dashboard (global stats)
   async getCourseStats() {
-    // This endpoint is not in the current Swagger API
-    // For now, return mock data or implement when backend adds it
-    console.warn("Course stats endpoint not available in current backend API");
-    return { success: true, data: { totalCourses: 0, activeCourses: 0 } };
+    try {
+      // SuperAdmin调用不带adminUserId参数的统计接口，获取全局数据
+      const response = await api.get('/api/courses/stats');
+      
+      // Handle nested data structure from API response
+      const result = response.data;
+      if (result.success && result.data?.data) {
+        // If the API returns nested data structure, flatten it to match expected format
+        return {
+          success: result.success,
+          data: result.data.data
+        };
+      }
+      return result;
+    } catch (error) {
+      console.error("Failed to fetch SuperAdmin course statistics:", error);
+      return { 
+        success: false, 
+        message: "Failed to load statistics",
+        data: { totalCourses: 0, activeCourses: 0, totalAssignments: 0 } 
+      };
+    }
   },
 };

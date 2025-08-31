@@ -12,6 +12,8 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.swen90017.oas.common.BusinessError;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -207,12 +209,17 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         assignmentMapper.deleteById(id);
 
-        // Clear cache directly - simpler approach
-        try {
-            cacheSupport.evictBySubjectId(assignment.getSubjectId());
-        } catch (Exception ignore) {
-            // Log cache eviction failure but don't fail the operation
-        }
+        // Clear cache AFTER successful deletion commit
+        final Long sidForEvict = assignment.getSubjectId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    cacheSupport.evictBySubjectId(sidForEvict);
+                } catch (Exception ignore) {
+                }
+            }
+        });
     }
 
     @Override

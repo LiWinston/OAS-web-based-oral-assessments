@@ -5,7 +5,7 @@
 
 <mapper namespace="org.swen90017.oas.mapper.SubjectMapper">
 
-    <!-- Get course statistics efficiently using SQL aggregation -->
+    <!-- Get course statistics efficiently using SQL aggregation (global or specific admin) -->
     <select id="getCourseStatistics" resultType="java.util.Map">
         SELECT 
             COUNT(s.subject_id) as totalCourses,
@@ -19,6 +19,9 @@
             FROM assignment 
             GROUP BY subject_id
         ) a ON s.subject_id = a.subject_id
+        <if test="adminUserId != null">
+            WHERE s.admin_user_id = #{adminUserId}
+        </if>
     </select>
 
     <!-- Get the most recent academic year from active courses -->
