@@ -24,7 +24,9 @@
         SELECT *
         FROM slot_sessions
         WHERE slot_id = #{slotId}
+        <![CDATA[
           AND (start_at < #{startAt} OR end_at > #{endAt})
+        ]]>
         ORDER BY session_number ASC
     </select>
 
@@ -32,7 +34,9 @@
     <delete id="deleteOutOfRangeBySlot">
         DELETE FROM slot_sessions
         WHERE slot_id = #{slotId}
+        <![CDATA[
           AND (start_at < #{startAt} OR end_at > #{endAt})
+        ]]>
     </delete>
 
     <update id="book">
