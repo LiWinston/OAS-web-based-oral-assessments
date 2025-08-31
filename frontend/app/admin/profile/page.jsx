@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuthStore } from '../../../store/authStore';
+import profileService from '../../../services/profileService';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
@@ -35,20 +36,28 @@ export default function AdminProfile() {
     confirmPassword: ''
   });
 
-  const handleSaveProfile = () => {
-    // Update user info in auth store
-    updateUser({
-      ...user,
-      name: formData.name,
-      email: formData.email,
-      department: formData.department,
-      phone: formData.phone
-    });
-    setIsEditing(false);
-    // Show success message (would integrate with notification system)
+  const handleSaveProfile = async () => {
+    try {
+      await profileService.updateProfile({
+        name: formData.name,
+        department: formData.department,
+        phone: formData.phone
+      });
+      updateUser({
+        ...user,
+        name: formData.name,
+        email: formData.email,
+        department: formData.department,
+        phone: formData.phone
+      });
+      setIsEditing(false);
+      alert('Profile updated');
+    } catch (e) {
+      alert('Failed to update profile');
+    }
   };
 
-  const handlePasswordChange = () => {
+  const handlePasswordChange = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       alert('Passwords do not match');
       return;
@@ -57,9 +66,13 @@ export default function AdminProfile() {
       alert('Password must be at least 8 characters');
       return;
     }
-    // Handle password change (would integrate with backend)
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    alert('Password updated successfully');
+    try {
+      await profileService.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      alert('Password updated successfully');
+    } catch (e) {
+      alert('Failed to update password');
+    }
   };
 
   const managedCourses = [
