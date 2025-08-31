@@ -128,6 +128,12 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         }
         // Build dynamic query conditions
         QueryWrapper<SysUser> wrapper = QueryWrapperUtil.build(query, SysUser.class);
+        
+        // CRITICAL: Add role-based filtering - only include users with ADMIN role
+        List<Long> adminUserIds = adminUserRoles.stream()
+                .map(SysUserRole::getUserId)
+                .collect(Collectors.toList());
+        wrapper.in("user_id", adminUserIds);
 
         // Apply sorting (default by create_time)
         String sortBy = StringUtils.isNotEmpty(request.getSortBy()) ? request.getSortBy() : "create_time";
