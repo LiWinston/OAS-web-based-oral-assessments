@@ -113,7 +113,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         }
 
         // Check if student/group already has an active booking
-        //checkExistingBooking(request.getStudentId(), assignmentId, request.getGroupId());
+        checkExistingBooking(request.getStudentId(), assignmentId, request.getGroupId());
 
         // Check if session is already booked
         checkSessionAvailability(request.getSessionId());
@@ -182,9 +182,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
         // Update current session to available
         currentSession.setStatus(SessionStatus.AVAILABLE);
-        currentSession.setBookedSubjectId(null);
-        currentSession.setBookedSubjectType(null);
-        currentSession.setBookedAt(null);
+        // currentSession.setBookedSubjectId(null);
+        // currentSession.setBookedSubjectType(null);
+        // currentSession.setBookedAt(null);
         slotSessionMapper.updateById(currentSession);
 
         // Update target session to booked
@@ -216,9 +216,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         
         // Update session to available
         session.setStatus(SessionStatus.AVAILABLE);
-        session.setBookedSubjectId(null);
-        session.setBookedSubjectType(null);
-        session.setBookedAt(null);
+        // session.setBookedSubjectId(null);
+        // session.setBookedSubjectType(null);
+        // session.setBookedAt(null);
         slotSessionMapper.updateById(session);
 
         return sessionId;
