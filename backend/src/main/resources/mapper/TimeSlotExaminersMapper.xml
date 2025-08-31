@@ -34,5 +34,14 @@
         ORDER BY ts.start_at ASC
     </select>
 
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO time_slot_examiners (slot_id, examiner_id, assigned_at, assigned_by)
+        VALUES
+        <foreach collection="list" item="e" separator=",">
+            (#{e.slotId}, #{e.examinerId}, #{e.assignedAt}, #{e.assignedBy})
+        </foreach>
+        ON DUPLICATE KEY UPDATE assigned_at = VALUES(assigned_at), assigned_by = VALUES(assigned_by)
+    </insert>
+
 
 </mapper>

@@ -2,15 +2,29 @@ package org.swen90017.oas.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.AssignExaminersRequestDTO;
 import org.swen90017.oas.dto.response.GetAvailableExaminersResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerDetailDTO;
 import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
+import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.entity.AssignmentSessionConfig;
 import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 import org.swen90017.oas.entity.SysUser;
+import org.swen90017.oas.entity.TimeSlot;
+import org.swen90017.oas.entity.TimeSlotExaminer;
+import org.swen90017.oas.entity.SlotSession;
+import org.swen90017.oas.enums.UserRole;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.AdminExaminerService;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 @Service
 public class AdminExaminerServiceImpl implements AdminExaminerService {
     @Autowired
@@ -31,13 +45,12 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
         AssignmentSessionConfig cfg = configMapper.selectById(assignmentId);
         int defaultMax = (cfg == null || cfg.getDefaultMaxSessionsPerExaminer() == null)
                 ? 0 : cfg.getDefaultMaxSessionsPerExaminer();
-        // 简化：此处示例从 sys_user 表获取 examiner 用户；实际可基于角色、状态等筛选
-        java.util.List<SysUser> users = this.baseListExaminers();
-        java.util.List<ExaminerDetailDTO> list = new java.util.ArrayList<>();
-        java.time.LocalDateTime slotStart = null;
-        java.time.LocalDateTime slotEnd = null;
+        List<SysUser> users = this.baseListExaminers();
+        List<ExaminerDetailDTO> list = new ArrayList<>();
+        LocalDateTime slotStart = null;
+        LocalDateTime slotEnd = null;
         if (timeSlotId != null) {
-            org.swen90017.oas.entity.TimeSlot ts = timeSlotMapper.selectById(timeSlotId);
+            TimeSlot ts = timeSlotMapper.selectById(timeSlotId);
             if (ts != null) {
                 slotStart = ts.getStartAt();
                 slotEnd = ts.getEndAt();
@@ -58,7 +71,7 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
             // 冲突检测：若提供 timeSlotId，则检查 examiner 在该时段是否与已分配 slot 冲突
             boolean hasConflict = false;
             if (slotStart != null && slotEnd != null) {
-                java.util.List<Long> conflicted = tseMapper.findConflictedSlotsForExaminer(u.getUserId(), slotStart, slotEnd);
+                List<Long> conflicted = tseMapper.findConflictedSlotsForExaminer(u.getUserId(), slotStart, slotEnd);
                 hasConflict = conflicted != null && !conflicted.isEmpty();
             }
             // 可用性：需同时满足容量与无冲突
@@ -71,13 +84,92 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
         return resp;
     }
 
-    private java.util.List<SysUser> baseListExaminers() {
-        // 暂用简单策略：查询所有用户作为示例。实际应基于角色表 sys_user_role 过滤 role=EXAMINER
-        return sysUserMapper.selectList(null);
+    private List<SysUser> baseListExaminers() {
+        return sysUserMapper.selectByRoleKey(UserRole.EXAMINER.code());
     }
 
     @Override
     public TimeSlotDetailDTO assignExaminersToSlot(Long assignmentId, Long timeSlotId, AssignExaminersRequestDTO request) {
-        return null;
+        // 校验 slot 属于该 assignment
+        TimeSlot slot = timeSlotMapper.selectById(timeSlotId);
+        if (slot == null || !slot.getAssignmentId().equals(assignmentId)) {
+            throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
+        }
+
+        // 构造插入列表（去重）
+        Set<Long> uniqueIds = new HashSet<>(request.getExaminerIds());
+        List<TimeSlotExaminer> rows = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+        Long operatorId = null; // 可从登录上下文获取
+        for (Long examinerId : uniqueIds) {
+            TimeSlotExaminer e = new TimeSlotExaminer();
+            e.setSlotId(timeSlotId);
+            e.setExaminerId(examinerId);
+            e.setAssignedAt(now);
+            e.setAssignedBy(operatorId);
+            rows.add(e);
+        }
+        if (!rows.isEmpty()) {
+            tseMapper.batchInsert(rows);
+        }
+
+        // 更新 slot 的 currentExaminers 与状态
+        List<Long> assignedIds = tseMapper.listExaminerIdsBySlot(timeSlotId);
+        int currentExaminers = assignedIds == null ? 0 : assignedIds.size();
+        int booked = slotSessionMapper.countBookedBySlot(timeSlotId);
+        timeSlotMapper.updateCountersAndStatus(timeSlotId, currentExaminers, booked);
+
+        // 返回最新详情（包含 sessions 与已分配考官）
+        TimeSlot refreshed = timeSlotMapper.selectById(timeSlotId);
+        return buildTimeSlotDetail(refreshed);
+    }
+
+    private TimeSlotDetailDTO buildTimeSlotDetail(TimeSlot timeSlot) {
+        TimeSlotDetailDTO dto = new TimeSlotDetailDTO();
+        dto.setId(timeSlot.getSlotId());
+        dto.setDate(timeSlot.getSlotDate());
+        dto.setStartTime(timeSlot.getStartAt().toLocalTime());
+        dto.setEndTime(timeSlot.getEndAt().toLocalTime());
+        dto.setVenueId(timeSlot.getVenueId());
+        dto.setRequiredExaminers(timeSlot.getRequiredExaminers());
+        dto.setSessionCount(timeSlot.getSessionCount());
+        dto.setStatus(timeSlot.getStatus());
+        dto.setBookedSessions(timeSlot.getBookedSessions());
+        dto.setCreatedAt(timeSlot.getCreatedAt());
+        dto.setLastModified(timeSlot.getUpdatedAt());
+
+        // Sessions
+        java.util.List<SlotSession> sessions = slotSessionMapper.findBySlotId(timeSlot.getSlotId());
+        java.util.List<SessionDetailDTO> sessionDTOs = new java.util.ArrayList<>();
+        if (sessions != null) {
+            for (SlotSession s : sessions) {
+                SessionDetailDTO sd = new SessionDetailDTO();
+                sd.setId(s.getSessionId());
+                sd.setStartTime(s.getStartAt().toLocalTime());
+                sd.setEndTime(s.getEndAt().toLocalTime());
+                sd.setStatus(s.getStatus());
+                sd.setSessionNumber(s.getSessionNumber());
+                sd.setBookedBy(null);
+                sessionDTOs.add(sd);
+            }
+        }
+        dto.setSessions(sessionDTOs);
+
+        // Assigned examiners (with user info)
+        java.util.List<Long> examinerIds = tseMapper.listExaminerIdsBySlot(timeSlot.getSlotId());
+        java.util.List<org.swen90017.oas.dto.response.ExaminerDetailDTO> assigned = new java.util.ArrayList<>();
+        if (examinerIds != null && !examinerIds.isEmpty()) {
+            java.util.List<org.swen90017.oas.entity.SysUser> users = sysUserMapper.selectBatchIds(examinerIds);
+            for (org.swen90017.oas.entity.SysUser u : users) {
+                org.swen90017.oas.dto.response.ExaminerDetailDTO ed = new org.swen90017.oas.dto.response.ExaminerDetailDTO();
+                ed.setId(u.getUserId());
+                ed.setName(u.getUserName());
+                ed.setEmail(u.getEmail());
+                assigned.add(ed);
+            }
+        }
+        dto.setAssignedExaminers(assigned);
+
+        return dto;
     }
 }

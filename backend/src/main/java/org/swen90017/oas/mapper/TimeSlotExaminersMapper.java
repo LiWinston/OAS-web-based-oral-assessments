@@ -22,4 +22,6 @@ public interface TimeSlotExaminersMapper extends BaseMapper<TimeSlotExaminer> {
      */
     List<TimeSlot> listSlotsByExaminer(@Param("examinerId") Long examinerId,
                                        @Param("assignmentId") Long assignmentId);
+
+    int batchInsert(@Param("list") java.util.List<TimeSlotExaminer> list);
 }
