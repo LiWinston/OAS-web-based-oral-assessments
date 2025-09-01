@@ -2,6 +2,7 @@ package org.swen90017.oas.service.impl;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.AssignExaminersRequestDTO;
 import org.swen90017.oas.dto.response.GetAvailableExaminersResponseDTO;
@@ -16,6 +17,7 @@ import org.swen90017.oas.entity.TimeSlotExaminer;
 import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
+import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.AdminExaminerService;
 
@@ -39,13 +41,20 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
     private SysUserMapper sysUserMapper;
     @Autowired
     private ExaminerAssignmentLimitMapper limitMapper;
+    @Autowired
+    private AssignmentParticipantMapper assignmentParticipantMapper;
+    @Autowired
+    private AssignmentMapper assignmentMapper;
 
     @Override
     public GetAvailableExaminersResponseDTO getAvailableExaminers(Long assignmentId, Long timeSlotId) {
         AssignmentSessionConfig cfg = configMapper.selectById(assignmentId);
         int defaultMax = (cfg == null || cfg.getDefaultMaxSessionsPerExaminer() == null)
                 ? 0 : cfg.getDefaultMaxSessionsPerExaminer();
-        List<SysUser> users = this.baseListExaminers();
+        List<Long> examinerUserIds = assignmentParticipantMapper.listExaminerUserIdsByAssignment(assignmentId);
+        List<SysUser> users = (examinerUserIds == null || examinerUserIds.isEmpty())
+                ? new ArrayList<>()
+                : sysUserMapper.selectBatchIds(examinerUserIds);
         List<ExaminerDetailDTO> list = new ArrayList<>();
         LocalDateTime slotStart = null;
         LocalDateTime slotEnd = null;
@@ -89,19 +98,43 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
     }
 
     @Override
+    @Transactional
     public TimeSlotDetailDTO assignExaminersToSlot(Long assignmentId, Long timeSlotId, AssignExaminersRequestDTO request) {
         // 校验 slot 属于该 assignment
         TimeSlot slot = timeSlotMapper.selectById(timeSlotId);
         if (slot == null || !slot.getAssignmentId().equals(assignmentId)) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
+        // Released 后不允许调整分配
+        if (Boolean.TRUE.equals(assignmentMapper.isReleased(assignmentId))) {
+            throw new BusinessException(CommonError.FORBIDDEN);
+        }
 
-        // 构造插入列表（去重）
+        // 读取已分配考官，准备增量插入列表（去重并排除已存在）
+        List<Long> alreadyAssigned = tseMapper.listExaminerIdsBySlot(timeSlotId);
         Set<Long> uniqueIds = new HashSet<>(request.getExaminerIds());
+        Set<Long> toInsertIds = new HashSet<>();
+        if (alreadyAssigned == null || alreadyAssigned.isEmpty()) {
+            toInsertIds.addAll(uniqueIds);
+        } else {
+            for (Long id : uniqueIds) {
+                if (!alreadyAssigned.contains(id)) {
+                    toInsertIds.add(id);
+                }
+            }
+        }
+
+        // 校验不得超过 requiredExaminers 上限
+        int currentCount = alreadyAssigned == null ? 0 : alreadyAssigned.size();
+        int finalCount = currentCount + toInsertIds.size();
+        if (slot.getRequiredExaminers() != null && finalCount > slot.getRequiredExaminers()) {
+            throw new BusinessException(BusinessError.EXCEEDS_REQUIRED_EXAMINERS);
+        }
+
         List<TimeSlotExaminer> rows = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
         Long operatorId = null; // 可从登录上下文获取
-        for (Long examinerId : uniqueIds) {
+        for (Long examinerId : toInsertIds) {
             TimeSlotExaminer e = new TimeSlotExaminer();
             e.setSlotId(timeSlotId);
             e.setExaminerId(examinerId);

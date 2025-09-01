@@ -63,7 +63,7 @@ public class AdminCsvHandler implements CsvHandler<AdminInviteDTO, Void> {
             // Parse after validation
             return CSVUtils.readCsv(new ByteArrayInputStream(bytes), AdminInviteDTO.class);
         } catch (Exception e) {
-            throw new BusinessException(BusinessError.CSV_READ_FAILED);
+            throw new BusinessException(e.getMessage());
         }
     }
 

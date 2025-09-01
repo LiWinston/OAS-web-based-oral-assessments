@@ -17,6 +17,7 @@ import org.swen90017.oas.enums.SlotStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
+import org.swen90017.oas.mapper.AssignmentParticipantMapper;
 import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.service.EmailService;
@@ -38,6 +39,7 @@ public class ScheduleServiceImpl implements ScheduleService {
     private final AssignmentMapper assignmentMapper;
     private final TimeSlotMapper timeSlotMapper;
     private final AssignmentSessionConfigMapper assignmentSessionConfigMapper;
+    private final AssignmentParticipantMapper assignmentParticipantMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
     private final EmailService emailService;
 
@@ -93,9 +95,12 @@ public class ScheduleServiceImpl implements ScheduleService {
             timeSlotMapper.updateById(slot);
         }
 
-        // Send notifications (mock implementation)
-        ReleaseScheduleResponseDTO.NotificationsSentDTO notifications = sendNotifications(
-            assignmentId, request);
+        // Build notifications by counting participants who joined
+        ReleaseScheduleResponseDTO.NotificationsSentDTO notifications = new ReleaseScheduleResponseDTO.NotificationsSentDTO();
+        int studentCount = assignmentParticipantMapper.countParticipantsByRoleAndJoin(assignmentId, 3L);
+        int examinerCount = assignmentParticipantMapper.countParticipantsByRoleAndJoin(assignmentId, 2L);
+        notifications.setStudents(studentCount);
+        notifications.setExaminers(examinerCount);
 
         ReleaseScheduleResponseDTO response = new ReleaseScheduleResponseDTO();
         response.setReleasedAt(releasedAt);
@@ -126,13 +131,16 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional
     public int updateExaminerSessionLimits(Long assignmentId, UpdateExaminerSessionLimitsRequestDTO request) {
+        if (Boolean.TRUE.equals(assignmentMapper.isReleased(assignmentId))) {
+            throw new BusinessException(CommonError.FORBIDDEN);
+        }
         if (request == null || CollectionUtils.isEmpty(request.getExaminerLimits())) {
-            throw new BusinessException(CommonError.INVALID_PARAMS);
+            throw new BusinessException(BusinessError.EXAMINER_LIMIT_INVALID);
         }
         int updated = 0;
         for (ExaminerSessionLimitDTO limit : request.getExaminerLimits()) {
             if (limit.getExaminerId() == null || limit.getMaxSessions() == null || limit.getMaxSessions() < 0) {
-                throw new BusinessException(CommonError.INVALID_PARAMS);
+                throw new BusinessException(BusinessError.EXAMINER_LIMIT_INVALID);
             }
             // 先尝试更新；若更新行数为 0，则插入
             int rows = examinerAssignmentLimitMapper.updateMaxSessionsByPair(limit.getExaminerId(), assignmentId, limit.getMaxSessions());
@@ -171,18 +179,21 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         for (TimeSlot slot : timeSlots) {
             totalSessions += slot.getSessionCount();
-            
-            if (slot.getStatus() == SlotStatus.FULL) {
+
+            int required = slot.getRequiredExaminers() == null ? 0 : slot.getRequiredExaminers();
+            int current = slot.getCurrentExaminers() == null ? 0 : slot.getCurrentExaminers();
+
+            if (current >= required && required > 0) {
                 fullyStaffed++;
-            } else if (slot.getStatus() == SlotStatus.EMPTY) {
+            } else if (current == 0) {
                 unstaffed++;
                 issues.add(String.format("Time slot %d has no assigned examiners", slot.getSlotId()));
-            } else if (slot.getCurrentExaminers() < slot.getRequiredExaminers()) {
-                issues.add(String.format("Time slot %d needs %d more examiner(s)", 
-                    slot.getSlotId(), slot.getRequiredExaminers() - slot.getCurrentExaminers()));
+            } else if (current < required) {
+                issues.add(String.format("Time slot %d needs %d more examiner(s)",
+                        slot.getSlotId(), Math.max(0, required - current)));
             }
-            
-            totalExaminers += slot.getCurrentExaminers();
+
+            totalExaminers += current;
         }
 
         summary.setTotalSessions(totalSessions);

@@ -11,6 +11,8 @@ public enum BusinessError implements Error {
     CSV_WRITE_FAILED("2003", "CSV write failed"),
     USER_NOT_FOUND("2004", "User not found"),
     INVALID_CSV_TYPE("2005", "invalid CSV type"),
+    CSV_MISSING_HEADERS("2006", "CSV headers missing or invalid"),
+    CSV_HEADER_MISMATCH("2007", "CSV header does not match expected format"),
     
     // Epic 4.1 Course Management (Simplified) errors
     SUBJECT_NOT_FOUND("4021", "Course not found"),
@@ -45,6 +47,10 @@ public enum BusinessError implements Error {
     TIME_SLOT_NOT_FOUND("5004", "Time slot not found"),
     SCHEDULE_NOT_READY("5005", "Schedule is not ready for release"),
     SESSION_GENERATION_FAILED("5006", "Failed to generate sessions for time slot"),
+    ASSIGNMENT_RELEASED_IMMUTABLE("5007", "Assignment is released and cannot be modified"),
+    EXCEEDS_REQUIRED_EXAMINERS("5008", "Assigned examiners exceed required count for time slot"),
+    EXAMINER_LIMIT_INVALID("5009", "Invalid examiner limit payload"),
+    INVALID_SESSION_CONFIG_EXAMINERS("5010", "Examiners per session must be at least 1"),
     
     // Epic 6 Student Booking errors
     SESSION_TAKEN("6001", "Session already taken"),

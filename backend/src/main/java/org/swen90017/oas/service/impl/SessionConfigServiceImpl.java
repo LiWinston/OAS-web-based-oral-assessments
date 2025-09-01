@@ -63,7 +63,7 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
 
         // Guard: examiners per session must be >= 1
         if (config.getExaminersPerSession() == null || config.getExaminersPerSession() < 1) {
-            throw new BusinessException(CommonError.INVALID_PARAMS);
+            throw new BusinessException(BusinessError.INVALID_SESSION_CONFIG_EXAMINERS);
         }
 
         // Set updater information

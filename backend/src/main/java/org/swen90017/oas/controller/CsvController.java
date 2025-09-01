@@ -72,7 +72,7 @@ public class CsvController {
         } else if ("group".equalsIgnoreCase(dto.getType())) {
             return importGroupCsv((List<GroupCSVRequestDTO>) csvData);
         } else if ("examiner".equalsIgnoreCase(dto.getType())) {
-            return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData);
+            return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
@@ -126,8 +126,8 @@ public class CsvController {
         return Result.success(sysStudents);
     }
 
-    private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData) {
-        List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, null));
+    private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData, Long assignmentId) {
+        List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, assignmentId));
         emailService.sendExaminerActivationEmail(examiners);
         return Result.success(examiners);
     }

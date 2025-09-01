@@ -424,7 +424,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private void ensureAssignmentNotReleased(Long assignmentId) {
         Boolean released = assignmentMapper.isReleased(assignmentId);
         if (Boolean.TRUE.equals(released)) {
-            throw new BusinessException(CommonError.FORBIDDEN);
+            throw new BusinessException(BusinessError.ASSIGNMENT_RELEASED_IMMUTABLE);
         }
     }
 
