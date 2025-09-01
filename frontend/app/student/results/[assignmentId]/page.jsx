@@ -7,6 +7,7 @@ import { Button } from '../../../../components/ui/button';
 import { Badge } from '../../../../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../components/ui/tabs';
 import RubricBreakdown from '../../../../components/student/results/RubricBreakdown';
+import CanvasRubricTable from '../../../../components/student/results/CanvasRubricTable';
 import ExaminerFeedback from '../../../../components/student/results/ExaminerFeedback';
 import ResultsEmptyState from '../../../../components/student/results/ResultsEmptyState';
 import { studentResultsService } from '../../../../services/studentResultsService';
@@ -24,6 +25,7 @@ import {
   Eye,
   BarChart3
 } from 'lucide-react';
+import { exportResultsService } from '../../../../services/exportResultsService';
 import { format } from 'date-fns';
 
 /**
@@ -40,6 +42,7 @@ export default function StudentResultDetails() {
   const [assignment, setAssignment] = useState(null);
   const [rubricData, setRubricData] = useState(null);
   const [feedbackData, setFeedbackData] = useState(null);
+  const [rubricScale, setRubricScale] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -68,6 +71,16 @@ export default function StudentResultDetails() {
         }
       } catch (rubricError) {
         console.warn('Could not load rubric breakdown:', rubricError);
+      }
+
+      // Load rubric scale (levels per criterion) for Canvas grid
+      try {
+        const scaleResponse = await studentResultsService.getAssignmentRubricScale(user.id, assignmentId);
+        if (scaleResponse.success) {
+          setRubricScale(scaleResponse.data);
+        }
+      } catch (scaleError) {
+        console.warn('Could not load rubric scale:', scaleError);
       }
 
       // Load examiner feedback
@@ -334,7 +347,11 @@ export default function StudentResultDetails() {
         
         <TabsContent value="rubric" className="mt-6">
           {rubricData ? (
-            <RubricBreakdown rubricData={rubricData} />
+            <CanvasRubricTable 
+              rubricBreakdown={rubricData.rubricBreakdown}
+              rubricScale={rubricScale}
+              showExaminerDetails={true}
+            />
           ) : (
             <ResultsEmptyState 
               type="no-results"
@@ -359,7 +376,11 @@ export default function StudentResultDetails() {
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row gap-3">
-            <Button variant="outline" className="flex-1">
+            <Button 
+              variant="outline" 
+              className="flex-1"
+              onClick={() => exportResultsService.exportResultToPDF({ studentId: user?.id, assignmentId })}
+            >
               <Download className="w-4 h-4 mr-2" />
               Download PDF
             </Button>

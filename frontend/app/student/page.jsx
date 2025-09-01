@@ -7,9 +7,7 @@ import { Button } from "../../components/ui/button";
 import { WelcomeAnimation } from "../../components/ui/welcome-animation";
 import { StudentStatsCards } from "../../components/student/dashboard/StudentStatsCards";
 import { UpcomingAssessments } from "../../components/student/dashboard/UpcomingAssessments";
-import { RecentResults } from "../../components/student/dashboard/RecentResults";
 import { MyGroups } from "../../components/student/dashboard/MyGroups";
-import { StudentCalendar } from "../../components/student/dashboard/StudentCalendar";
 import { StudentQuickActions } from "../../components/student/dashboard/StudentQuickActions";
 
 /**
@@ -102,11 +100,6 @@ export default function StudentDashboard() {
           <div className="animate-fadeInUp" style={{ animationDelay: "700ms" }}>
             <UpcomingAssessments />
           </div>
-
-          {/* Recent Results */}
-          <div className="animate-fadeInUp" style={{ animationDelay: "800ms" }}>
-            <RecentResults />
-          </div>
         </div>
 
         {/* Right column - Enhanced sidebar */}
@@ -116,52 +109,12 @@ export default function StudentDashboard() {
             <MyGroups />
           </div>
 
-          {/* Calendar */}
-          <div
-            className="animate-fadeInUp"
-            style={{ animationDelay: "1000ms" }}
-          >
-            <StudentCalendar />
-          </div>
-
           {/* Quick Actions */}
           <div
             className="animate-fadeInUp"
             style={{ animationDelay: "1100ms" }}
           >
             <StudentQuickActions />
-          </div>
-
-          {/* Enhanced Help Card - matching examiner/admin pattern */}
-          <div
-            className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-fadeInUp"
-            style={{ animationDelay: "1200ms" }}
-          >
-            <div className="flex items-start">
-              <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-800 flex items-center justify-center mr-4 flex-shrink-0 transform hover:scale-110 transition-all duration-300">
-                <i className="fas fa-question-circle text-purple-600 dark:text-purple-400 text-lg"></i>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-purple-900 dark:text-purple-300 mb-2 text-lg">
-                  📚 Need Help?
-                </h4>
-                <p className="text-purple-800 dark:text-purple-200 text-sm mb-4 leading-relaxed">
-                  Access comprehensive guides, assessment tips, and step-by-step
-                  tutorials for managing your oral assessments effectively.
-                </p>
-                <div className="flex space-x-2">
-                  <Link href="/student/help" className="flex-1">
-                    <Button
-                      variant="outline"
-                      className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 dark:border-purple-600 dark:text-purple-300 dark:hover:bg-purple-900/20 text-sm"
-                    >
-                      <i className="fas fa-book-open mr-2"></i>
-                      View Help
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

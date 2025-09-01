@@ -2176,3 +2176,39 @@
     }
   }
 }
+
+/* Print styles for clean rubric/feedback output */
+@media print {
+  /* Remove shadows, gradients, and animations */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  .bg-gradient-to-r,
+  .bg-gradient-to-br {
+    background: #fff !important;
+  }
+  .dashboard-card,
+  .card-hover-shadow {
+    transform: none !important;
+  }
+  /* Ensure borders show for rubric rows */
+  .print-border,
+  .border,
+  .border-gray-200,
+  .dark\:border-gray-700 {
+    border-color: #999 !important;
+  }
+  /* Avoid breaking inside criterion blocks */
+  .avoid-page-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* Increase contrast for text */
+  body {
+    color: #000 !important;
+    background: #fff !important;
+  }
+}

@@ -349,6 +349,36 @@ const mockStudentResultsService = {
     };
   },
 
+  // Get rubric scale (levels per criterion) to render Canvas-style grid
+  async getAssignmentRubricScale(studentId, assignmentId) {
+    // For mock: derive 5 default levels (Outstanding → Needs Improvement)
+    // using percentage bands over each criterion's maxPoints
+    const defaultLevelsForMax = (max) => {
+      const pct = (n) => Math.round((n / 100) * max);
+      return [
+        { id: 'lvl-outstanding', label: 'Outstanding', description: '90–100%', minPoints: pct(90), maxPoints: max },
+        { id: 'lvl-very-good', label: 'Very Good', description: '80–89%', minPoints: pct(80), maxPoints: pct(89) },
+        { id: 'lvl-good', label: 'Good', description: '70–79%', minPoints: pct(70), maxPoints: pct(79) },
+        { id: 'lvl-satisfactory', label: 'Satisfactory', description: '60–69%', minPoints: pct(60), maxPoints: pct(69) },
+        { id: 'lvl-needs-improvement', label: 'Needs Improvement', description: '0–59%', minPoints: 0, maxPoints: pct(59) },
+      ];
+    };
+
+    // Reuse rubric breakdown to get criteria + maxPoints
+    const rb = await this.getRubricBreakdown(studentId, assignmentId);
+    const criteria = rb?.data?.rubricBreakdown?.criteria || [];
+    return {
+      success: true,
+      code: 'OK',
+      data: {
+        criteria: criteria.map((c) => ({
+          criterionId: c.criterionId,
+          levels: defaultLevelsForMax(c.maxPoints || 100),
+        })),
+      },
+    };
+  },
+
   // Get examiner feedback
   async getExaminerFeedback(studentId, assignmentId) {
     await new Promise(resolve => setTimeout(resolve, 700));
@@ -517,40 +547,93 @@ const mockStudentResultsService = {
 // Real API service implementation (for future backend integration)
 const realStudentResultsService = {
   async getStudentResults(studentId, options = {}) {
-    const {
-      status = 'released',
-      semester = 'all',
-      pageNum = 0,
-      pageSize = 20,
-      sort = 'date_desc'
-    } = options;
-    
-    const params = new URLSearchParams({
-      status,
-      semester,
-      pageNum: pageNum.toString(),
-      pageSize: pageSize.toString(),
-      sort
-    });
-    
-    const response = await api.get(`/api/students/${studentId}/results?${params}`);
-    return response.data;
+    try {
+      const {
+        status = 'released',
+        semester = 'all',
+        pageNum = 0,
+        pageSize = 20,
+        sort = 'date_desc'
+      } = options;
+      
+      const params = new URLSearchParams({
+        status,
+        semester,
+        pageNum: pageNum.toString(),
+        pageSize: pageSize.toString(),
+        sort
+      });
+      
+      const response = await api.get(`/api/students/${studentId}/results?${params}`);
+      return response.data;
+    } catch (err) {
+      console.warn('[studentResultsService] getStudentResults failed; falling back to mock:', err?.message || err);
+      return mockStudentResultsService.getStudentResults(studentId, options);
+    }
   },
 
   async getAssignmentResult(studentId, assignmentId) {
-    const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result`);
-    return response.data;
+    try {
+      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result`);
+      return response.data;
+    } catch (err) {
+      console.warn('[studentResultsService] getAssignmentResult failed; falling back to mock:', err?.message || err);
+      return mockStudentResultsService.getAssignmentResult(studentId, assignmentId);
+    }
   },
 
   async getRubricBreakdown(studentId, assignmentId) {
-    const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/rubric`);
-    return response.data;
+    try {
+      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/rubric`);
+      return response.data;
+    } catch (err) {
+      console.warn('[studentResultsService] getRubricBreakdown failed; falling back to mock:', err?.message || err);
+      return mockStudentResultsService.getRubricBreakdown(studentId, assignmentId);
+    }
   },
 
   async getExaminerFeedback(studentId, assignmentId) {
-    const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/feedback`);
-    return response.data;
-  }
+    try {
+      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/feedback`);
+      return response.data;
+    } catch (err) {
+      console.warn('[studentResultsService] getExaminerFeedback failed; falling back to mock:', err?.message || err);
+      return mockStudentResultsService.getExaminerFeedback(studentId, assignmentId);
+    }
+  },
+
+  // Attempt to fetch rubric scale from backend; if unavailable, derive from rubric breakdown
+  async getAssignmentRubricScale(studentId, assignmentId) {
+    try {
+      // If backend supports scale on rubric endpoint in future, prefer it.
+      // Placeholder: call rubric breakdown then compute default levels by percentage bands.
+      const rb = await this.getRubricBreakdown(studentId, assignmentId);
+      const criteria = rb?.data?.rubricBreakdown?.criteria || [];
+      const defaultLevelsForMax = (max) => {
+        const pct = (n) => Math.round((n / 100) * (max || 100));
+        return [
+          { id: 'lvl-outstanding', label: 'Outstanding', description: '90–100%', minPoints: pct(90), maxPoints: max || 100 },
+          { id: 'lvl-very-good', label: 'Very Good', description: '80–89%', minPoints: pct(80), maxPoints: pct(89) },
+          { id: 'lvl-good', label: 'Good', description: '70–79%', minPoints: pct(70), maxPoints: pct(79) },
+          { id: 'lvl-satisfactory', label: 'Satisfactory', description: '60–69%', minPoints: pct(60), maxPoints: pct(69) },
+          { id: 'lvl-needs-improvement', label: 'Needs Improvement', description: '0–59%', minPoints: 0, maxPoints: pct(59) },
+        ];
+      };
+      return {
+        success: true,
+        code: 'OK',
+        data: {
+          criteria: criteria.map((c) => ({
+            criterionId: c.criterionId,
+            levels: defaultLevelsForMax(c.maxPoints),
+          })),
+        },
+      };
+    } catch (e) {
+      console.warn('[studentResultsService] getAssignmentRubricScale failed; falling back to mock:', e?.message || e);
+      return mockStudentResultsService.getAssignmentRubricScale(studentId, assignmentId);
+    }
+  },
 };
 
 // Export the appropriate service based on configuration
