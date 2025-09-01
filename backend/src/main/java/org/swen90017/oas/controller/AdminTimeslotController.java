@@ -26,6 +26,7 @@ import org.swen90017.oas.service.TimeSlotService;
 
 import javax.validation.Valid;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -162,12 +163,12 @@ public class AdminTimeslotController {
     @Operation(summary = "Delete time slots", description = "Delete multiple time slots")
     @DeleteMapping("/{assignmentId}/timeslots")
     @Log(module = "Time Slot Management", businessType = BusinessType.DELETE)
-    public ResponseEntity<Result<String>> deleteTimeSlots(
+    public ResponseEntity<Result<List<Long>>> deleteTimeSlots(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody DeleteTimeSlotsRequestDTO request) {
-        timeSlotService.deleteTimeSlots(assignmentId, request.getTimeSlotIds());
-        String message = String.format("%d time slots deleted successfully", request.getTimeSlotIds().size());
-        return ResponseEntity.ok(Result.success(message));
+        List<Long> deletedIds = timeSlotService.deleteTimeSlots(assignmentId, request.getTimeSlotIds());
+        return ResponseEntity.ok(Result.success(deletedIds, 
+            String.format("%d time slots deleted successfully", deletedIds.size())));
     }
 
     /**

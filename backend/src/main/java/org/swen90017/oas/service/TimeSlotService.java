@@ -64,9 +64,10 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * Delete multiple time slots
      *
      * @param assignmentId Assignment ID
-     * @param timeSlotIds List of time slot IDs to delete
+     * @param timeSlotIds  List of time slot IDs to delete
+     * @return List of successfully deleted time slot IDs
      */
-    void deleteTimeSlots(Long assignmentId, List<Long> timeSlotIds);
+    List<Long> deleteTimeSlots(Long assignmentId, List<Long> timeSlotIds);
 
     /**
      * Generate sessions for a time slot based on session configuration

@@ -264,8 +264,20 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
     @Override
     @Transactional
-    public void deleteTimeSlots(Long assignmentId, List<Long> timeSlotIds) {
+    public List<Long> deleteTimeSlots(Long assignmentId, List<Long> timeSlotIds) {
         ensureAssignmentNotReleased(assignmentId);
+        
+        // Verify all time slots exist and belong to the assignment
+        for (Long timeSlotId : timeSlotIds) {
+            TimeSlot timeSlot = timeSlotMapper.selectById(timeSlotId);
+            if (timeSlot == null) {
+                throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
+            }
+            if (!timeSlot.getAssignmentId().equals(assignmentId)) {
+                throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
+            }
+        }
+        
         // Delete sessions first
         for (Long timeSlotId : timeSlotIds) {
             // Delete slot sessions
@@ -282,6 +294,8 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             // Delete time slot
             timeSlotMapper.deleteById(timeSlotId);
         }
+        
+        return new ArrayList<>(timeSlotIds);
     }
 
     @Override
@@ -422,6 +436,11 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
      * Guard: block any time slot modifications when assignment is released
      */
     private void ensureAssignmentNotReleased(Long assignmentId) {
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+        
         Boolean released = assignmentMapper.isReleased(assignmentId);
         if (Boolean.TRUE.equals(released)) {
             throw new BusinessException(BusinessError.ASSIGNMENT_RELEASED_IMMUTABLE);
