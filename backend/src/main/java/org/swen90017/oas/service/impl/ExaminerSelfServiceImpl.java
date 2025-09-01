@@ -12,6 +12,7 @@ import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
+import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.entity.*;
@@ -215,7 +216,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     @Transactional
-    public void unassign(Long assignmentId, Long slotId, Long examinerId) {
+    public ExaminerUnassignResponseDTO unassign(Long assignmentId, Long slotId, Long examinerId) {
         TimeSlot ts = timeSlotMapper.selectById(slotId);
         if (ts == null || !Objects.equals(ts.getAssignmentId(), assignmentId)) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
@@ -227,6 +228,18 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             int booked = ts.getBookedSessions() == null ? 0 : ts.getBookedSessions();
             timeSlotMapper.updateCountersAndStatus(slotId, newCurrent, booked);
         }
+
+        // 计算更新后的总分配session数
+        int updatedAssignedSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+
+        // 构造响应DTO
+        ExaminerUnassignResponseDTO response = new ExaminerUnassignResponseDTO();
+        response.setAssignmentId(assignmentId);
+        response.setSlotId(slotId);
+        response.setExaminerId(examinerId);
+        response.setUpdatedAssignedSessions(updatedAssignedSessions);
+
+        return response;
     }
 
     private AssignmentResponseDTO toAssignmentDTO(Assignment a) {

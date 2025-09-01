@@ -11,6 +11,7 @@ import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
+import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.enums.BusinessType;
@@ -64,12 +65,12 @@ public class ExaminerController {
     @Operation(summary = "Unassign examiner from time slot")
     @DeleteMapping("/api/assignments/{assignmentId}/timeslots/{slotId}/unassign")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.DELETE)
-    public Result<Boolean> unassign(
+    public Result<ExaminerUnassignResponseDTO> unassign(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Parameter(description = "Time Slot ID") @PathVariable Long slotId,
             @RequestParam("examinerId") Long examinerId) {
-        examinerSelfService.unassign(assignmentId, slotId, examinerId);
-        return Result.success(true);
+        ExaminerUnassignResponseDTO response = examinerSelfService.unassign(assignmentId, slotId, examinerId);
+        return Result.success(response);
     }
 }
 
