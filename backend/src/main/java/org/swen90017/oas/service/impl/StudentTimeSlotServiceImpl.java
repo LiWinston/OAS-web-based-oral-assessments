@@ -182,9 +182,6 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
         // Update current session to available
         currentSession.setStatus(SessionStatus.AVAILABLE);
-        // currentSession.setBookedSubjectId(null);
-        // currentSession.setBookedSubjectType(null);
-        // currentSession.setBookedAt(null);
         slotSessionMapper.updateById(currentSession);
 
         // Update target session to booked
@@ -216,9 +213,6 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         
         // Update session to available
         session.setStatus(SessionStatus.AVAILABLE);
-        // session.setBookedSubjectId(null);
-        // session.setBookedSubjectType(null);
-        // session.setBookedAt(null);
         slotSessionMapper.updateById(session);
 
         return sessionId;
@@ -245,7 +239,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             List<SlotSession> slotSessions = slotSessionMapper.findBySlotId(slot.getSlotId());
             for (SlotSession session : slotSessions) {
                 if (session.getStatus() == SessionStatus.BOOKED && 
-                    "group".equals(session.getBookedSubjectType()) &&
+                    "GROUP".equals(session.getBookedSubjectType()) &&
                     groupId.equals(session.getBookedSubjectId())) {
                     return session;
                 }
@@ -292,20 +286,27 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     }
 
     private void checkExistingBooking(Long studentId, Long assignmentId, Long groupId) {
-        List<SlotSession> existingBookings = null;
-        if (groupId != null) {
-            // For group bookings, we still return a single session for now
-            SlotSession groupBooking = findActiveBookingByGroup(groupId, assignmentId);
-            existingBookings = new ArrayList<>();
-            if (groupBooking != null) {
-                existingBookings.add(groupBooking);
-            }
-        } else {
-            existingBookings = findActiveBookingByStudent(studentId, assignmentId);
+        // 第一个检查：这个studentId有没有个人预定过
+        List<SlotSession> studentBookings = findActiveBookingByStudent(studentId, assignmentId);
+        if (!studentBookings.isEmpty()) {
+            throw new BusinessException("Student already has an individual booking for this assignment");
         }
         
-        if (!existingBookings.isEmpty()) {
-            throw new BusinessException("Already has an active booking");
+        // 第二个检查：studentId所在的全部组有没有预定过
+        Long studentGroupId = getStudentGroupId(studentId, assignmentId);
+        if (studentGroupId != null) {
+            SlotSession groupBooking = findActiveBookingByGroup(studentGroupId, assignmentId);
+            if (groupBooking != null) {
+                throw new BusinessException("Student's group already has a booking for this assignment");
+            }
+        }
+        
+        // 第三个检查：如果当前是组预定，检查该组是否已经预定过
+        if (groupId != null) {
+            boolean groupHasBooking = slotSessionMapper.hasGroupBookedAssignment(groupId, assignmentId);
+            if (groupHasBooking) {
+                throw new BusinessException("Group already has a booking for this assignment");
+            }
         }
     }
 
@@ -453,7 +454,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         // Set entity info
         CurrentBookingResponseDTO.EntityInfoDTO entityInfo = new CurrentBookingResponseDTO.EntityInfoDTO();
         entityInfo.setType(assignment.getType());
-        if ("group".equals(session.getBookedSubjectType())) {
+        if ("GROUP".equals(session.getBookedSubjectType())) {
             entityInfo.setGroupId(session.getBookedSubjectId());
         }
         bookingInfo.setEntity(entityInfo);
