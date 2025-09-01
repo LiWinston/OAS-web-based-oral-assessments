@@ -15,6 +15,7 @@ import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
+import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
 import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
@@ -27,6 +28,8 @@ import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -82,14 +85,65 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     }
 
     @Override
-    public List<SelectableTimeSlotDTO> listSelectableTimeSlots(Long assignmentId, Long examinerId, String date, Boolean includeFullSlots) {
+    public TimeSlotsSelectionResponseDTO listSelectableTimeSlots(Long assignmentId, Long examinerId, String date, Boolean includeFullSlots) {
         // 验证考官是否存在且具有EXAMINER角色
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
+        // 构建响应DTO
+        TimeSlotsSelectionResponseDTO response = new TimeSlotsSelectionResponseDTO();
+        
+        // 1. 获取Assignment信息
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+        
+        TimeSlotsSelectionResponseDTO.AssignmentBasicInfoDTO assignmentInfo = new TimeSlotsSelectionResponseDTO.AssignmentBasicInfoDTO();
+        assignmentInfo.setAssignmentId(assignmentId);
+        assignmentInfo.setAssignmentName(assignment.getName());
+        assignmentInfo.setAssessmentType(assignment.getType() != null ? assignment.getType().toUpperCase() : "INDIVIDUAL");
+        
+        // 获取课程信息
+        if (assignment.getSubjectId() != null) {
+            try {
+                Subject subject = subjectService.getSubjectById(assignment.getSubjectId());
+                if (subject != null) {
+                    assignmentInfo.setCourseCode(subject.getSubjectCode());
+                    assignmentInfo.setCourseName(subject.getSubjectName());
+                }
+            } catch (BusinessException ex) {
+                assignmentInfo.setCourseCode("N/A");
+                assignmentInfo.setCourseName("Course Unavailable");
+            }
+        }
+        response.setAssignment(assignmentInfo);
+        
+        // 2. 获取考官容量信息
+        TimeSlotsSelectionResponseDTO.ExaminerCapacityInfoDTO examinerInfo = new TimeSlotsSelectionResponseDTO.ExaminerCapacityInfoDTO();
+        
+        // 查找考官限制
+        QueryWrapper<ExaminerAssignmentLimit> limitQuery = new QueryWrapper<>();
+        limitQuery.eq("examiner_id", examinerId).eq("assignment_id", assignmentId);
+        ExaminerAssignmentLimit limit = examinerAssignmentLimitMapper.selectOne(limitQuery);
+        
+        int maxSessions = 10; // 默认值
+        if (limit != null && limit.getMaxSessions() != null) {
+            maxSessions = limit.getMaxSessions();
+        }
+        
+        // 计算当前已分配的session数量
+        int currentAssigned = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+        
+        examinerInfo.setMaxSessions(maxSessions);
+        examinerInfo.setCurrentAssignedSessions(currentAssigned);
+        examinerInfo.setRemainingCapacity(Math.max(0, maxSessions - currentAssigned));
+        response.setExaminerInfo(examinerInfo);
+        
+        // 3. 获取时间段信息
         List<TimeSlot> slots = timeSlotMapper.listByAssignment(assignmentId);
-        Set<Long> already = new HashSet<>(tseMapper.listSlotsByExaminer(examinerId, assignmentId)
+        Set<Long> alreadyAssigned = new HashSet<>(tseMapper.listSlotsByExaminer(examinerId, assignmentId)
                 .stream().map(TimeSlot::getSlotId).collect(Collectors.toSet()));
 
         // 解析日期过滤参数
@@ -102,7 +156,10 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             }
         }
 
-        List<SelectableTimeSlotDTO> result = new ArrayList<>();
+        List<TimeSlotsSelectionResponseDTO.TimeSlotSelectionDTO> timeSlotDTOs = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
+        ZoneId timezone = ZoneId.of("Australia/Melbourne");
+        
         for (TimeSlot ts : slots) {
             // 日期过滤
             if (filterDate != null && ts.getStartAt() != null) {
@@ -112,23 +169,68 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 }
             }
 
-            SelectableTimeSlotDTO dto = toSelectable(ts);
-            dto.setAssigned(already.contains(ts.getSlotId()));
             boolean isFull = ts.getCurrentExaminers() != null && ts.getRequiredExaminers() != null
                     && ts.getCurrentExaminers() >= ts.getRequiredExaminers();
-            dto.setFull(isFull);
             
             // 满员过滤：如果includeFullSlots为false且当前slot已满，则跳过
             if (includeFullSlots != null && !includeFullSlots && isFull) {
                 continue;
             }
             
-            // 冲突判断：与该 slot 时间段重叠的既有分配
-            boolean conflict = !tseMapper.findConflictedSlotsForExaminer(examinerId, ts.getStartAt(), ts.getEndAt()).isEmpty();
-            dto.setConflict(conflict);
-            result.add(dto);
+            TimeSlotsSelectionResponseDTO.TimeSlotSelectionDTO slotDTO = new TimeSlotsSelectionResponseDTO.TimeSlotSelectionDTO();
+            slotDTO.setSlotId(ts.getSlotId());
+            
+            // 格式化时间
+            if (ts.getStartAt() != null) {
+                slotDTO.setStart(ts.getStartAt().atZone(timezone).format(formatter));
+            }
+            if (ts.getEndAt() != null) {
+                slotDTO.setEnd(ts.getEndAt().atZone(timezone).format(formatter));
+            }
+            slotDTO.setTimezone("Australia/Melbourne");
+            
+            // 设置venue信息
+            TimeSlotsSelectionResponseDTO.VenueInfoDTO venueDTO = new TimeSlotsSelectionResponseDTO.VenueInfoDTO();
+            if (ts.getVenueId() != null) {
+                Venue venue = venueMapper.selectById(ts.getVenueId());
+                if (venue != null) {
+                    venueDTO.setVenueId(venue.getId());
+                    venueDTO.setName(venue.getRoomName());
+                    venueDTO.setBuilding(venue.getBuilding());
+                    venueDTO.setRoom(venue.getRoomName());
+                }
+            }
+            slotDTO.setVenue(venueDTO);
+            
+            slotDTO.setSessionCount(ts.getBookedSessions() != null ? ts.getBookedSessions() : 0);
+            slotDTO.setRequiredExaminers(ts.getRequiredExaminers() != null ? ts.getRequiredExaminers() : 1);
+            slotDTO.setCurrentExaminers(ts.getCurrentExaminers() != null ? ts.getCurrentExaminers() : 0);
+            slotDTO.setIsFull(isFull);
+            
+            // 设置可选性
+            TimeSlotsSelectionResponseDTO.AvailabilityInfoDTO availability = new TimeSlotsSelectionResponseDTO.AvailabilityInfoDTO();
+            boolean isAssigned = alreadyAssigned.contains(ts.getSlotId());
+            boolean hasConflict = !tseMapper.findConflictedSlotsForExaminer(examinerId, ts.getStartAt(), ts.getEndAt()).isEmpty();
+            
+            boolean canSelect = !isAssigned && !hasConflict && !isFull;
+            availability.setCanSelect(canSelect);
+            
+            if (!canSelect) {
+                if (isAssigned) {
+                    availability.setReason("ALREADY_ASSIGNED");
+                } else if (hasConflict) {
+                    availability.setReason("TIME_CONFLICT");
+                } else if (isFull) {
+                    availability.setReason("SLOT_FULL");
+                }
+            }
+            
+            slotDTO.setAvailability(availability);
+            timeSlotDTOs.add(slotDTO);
         }
-        return result;
+        
+        response.setTimeSlots(timeSlotDTOs);
+        return response;
     }
 
     @Override
