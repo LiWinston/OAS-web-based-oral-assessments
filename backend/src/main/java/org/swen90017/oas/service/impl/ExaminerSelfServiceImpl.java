@@ -21,6 +21,7 @@ import org.swen90017.oas.service.ExaminerSelfService;
 import org.swen90017.oas.service.SubjectService;
 import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.entity.Venue;
+import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -37,6 +38,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final TimeSlotExaminersMapper tseMapper;
     private final SubjectService subjectService;
     private final VenueMapper venueMapper;
+    private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId) {
@@ -76,9 +78,18 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
-        // 2) 读取 maxSessions 配置
-        AssignmentSessionConfig cfg = configMapper.selectById(assignmentId);
-        Integer maxSessions = cfg == null ? null : cfg.getDefaultMaxSessionsPerExaminer();
+        // 2) 读取 maxSessions 配置 - 优先读取个性化限制，否则读取默认配置
+        ExaminerAssignmentLimit personalLimit = examinerAssignmentLimitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
+        Integer maxSessions = null;
+        
+        if (personalLimit != null && personalLimit.getMaxSessions() != null) {
+            // 使用个性化限制
+            maxSessions = personalLimit.getMaxSessions();
+        } else {
+            // 使用默认配置
+            AssignmentSessionConfig cfg = configMapper.selectById(assignmentId);
+            maxSessions = cfg == null ? null : cfg.getDefaultMaxSessionsPerExaminer();
+        }
 
         // 3) 统计已分配 session 数
         int currentSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
