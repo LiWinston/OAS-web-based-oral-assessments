@@ -88,3 +88,5 @@ cors:
   allowed-headers: ${CORS_ALLOWED_HEADERS:Content-Type,Authorization,X-Requested-With,Accept,Origin,Access-Control-Request-Method,Access-Control-Request-Headers,X-Trace-ID,X-CSRF-TOKEN}
   # Response headers exposed to the frontend
   exposed-headers: ${CORS_EXPOSED_HEADERS:Authorization,Content-Disposition,X-Trace-ID,Access-Control-Allow-Origin,Access-Control-Allow-Credentials}
+
+

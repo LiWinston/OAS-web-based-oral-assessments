@@ -42,10 +42,12 @@ import org.swen90017.oas.mapper.SubjectMapper;
 import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.cache.AssignmentCacheSupport;
 import org.swen90017.oas.dto.response.StudentAssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
 import org.swen90017.oas.entity.TimeSlot;
 import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
+import org.swen90017.oas.constant.AssignmentConstants;
 
 import java.util.List;
 import java.util.Map;
@@ -645,36 +647,13 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                     .collect(Collectors.groupingBy(TimeSlot::getAssignmentId)));
         }
 
-        // Batch query 3: Check all bookings for the student in one SQL query using JOIN
+        // Batch query 3: Check all bookings for the student in one optimized SQL query
+        // This includes both individual student bookings and group bookings the student belongs to
         final Set<Long> bookedAssignmentIds = new HashSet<>();
         if (!assignmentIds.isEmpty()) {
-            // Use a single SQL query with JOIN to get all booked assignments for this student
-            QueryWrapper<SlotSession> bookingQuery = new QueryWrapper<>();
-            bookingQuery.eq("booked_subject_id", studentId)
-                       .eq("booked_subject_type", "student")
-                       .eq("status", "booked");
-            
-            // Get all booked sessions for this student
-            List<SlotSession> bookedSessions = slotSessionMapper.selectList(bookingQuery);
-            
-            if (!bookedSessions.isEmpty()) {
-                // Extract slot IDs from booked sessions
-                List<Long> bookedSlotIds = bookedSessions.stream()
-                        .map(SlotSession::getSlotId)
-                        .collect(Collectors.toList());
-                
-                // Get time slots for these slots to find assignment IDs
-                if (!bookedSlotIds.isEmpty()) {
-                    QueryWrapper<TimeSlot> slotQuery = new QueryWrapper<>();
-                    slotQuery.in("slot_id", bookedSlotIds)
-                            .in("assignment_id", assignmentIds); // Only for our assignments
-                    List<TimeSlot> relevantSlots = timeSlotMapper.selectList(slotQuery);
-                    
-                    bookedAssignmentIds.addAll(relevantSlots.stream()
-                            .map(TimeSlot::getAssignmentId)
-                            .collect(Collectors.toSet()));
-                }
-            }
+            // Use the optimized mapper method to get all booked assignment IDs in one query
+            List<Long> bookedIds = slotSessionMapper.getStudentBookedAssignmentIds(studentId, assignmentIds);
+            bookedAssignmentIds.addAll(bookedIds);
         }
 
         // Build DTOs in memory
@@ -772,5 +751,96 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             "SELECT slot_id FROM time_slots WHERE assignment_id = " + assignmentId);
         
         return slotSessionMapper.selectCount(queryWrapper) > 0;
+    }
+
+    @Override
+    public AssignmentAvailabilityResponseDTO getAssignmentAvailability(Long assignmentId, Long studentId) {
+        // Get assignment details
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Get subject information
+        Subject subject = subjectMapper.selectById(assignment.getSubjectId());
+        if (subject == null) {
+            throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
+        }
+
+        // Check if student is enrolled in this subject (basic validation)
+        // This could be enhanced with more specific enrollment checks
+        if (!isStudentEnrolledInSubject(studentId, assignment.getSubjectId())) {
+            throw new BusinessException(BusinessError.FORBIDDEN);
+        }
+
+        // Get all time slots for this assignment
+        List<TimeSlot> timeSlots = timeSlotMapper.listByAssignment(assignmentId);
+
+        // Build availability summary
+        AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO summary = buildAvailabilitySummary(timeSlots);
+
+        // Build response DTO
+        AssignmentAvailabilityResponseDTO response = new AssignmentAvailabilityResponseDTO();
+        response.setAssignmentId(assignmentId);
+        response.setAssessmentType(assignment.getType().toUpperCase());
+        response.setReleased(assignment.getIsReleased());
+        response.setVisibilityRule(AssignmentConstants.DEFAULT_VISIBILITY_RULE);
+        response.setReschedulingEnabled(AssignmentConstants.DEFAULT_RESCHEDULING_ENABLED);
+        response.setBookingDeadline(assignment.getStartDate().minusDays(1));
+        response.setLockoutEnabled(AssignmentConstants.DEFAULT_LOCKOUT_ENABLED);
+        response.setLockoutWindowHours(AssignmentConstants.DEFAULT_LOCKOUT_WINDOW_HOURS);
+        response.setSummary(summary);
+        response.setPollingHintSeconds(AssignmentConstants.DEFAULT_POLLING_HINT_SECONDS);
+
+        return response;
+    }
+
+    /**
+     * Build availability summary from time slots
+     */
+    private AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO buildAvailabilitySummary(List<TimeSlot> timeSlots) {
+        AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO summary = new AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO();
+        
+        if (timeSlots.isEmpty()) {
+            summary.setTotalSlots(0);
+            summary.setTotalSessions(0);
+            summary.setAvailableSessions(0);
+            summary.setDaysWithAvailability(new ArrayList<>());
+            return summary;
+        }
+
+        // Calculate total slots
+        summary.setTotalSlots(timeSlots.size());
+
+        // Calculate total sessions
+        int totalSessions = timeSlots.stream()
+                .mapToInt(ts -> ts.getSessionCount() != null ? ts.getSessionCount() : 0)
+                .sum();
+        summary.setTotalSessions(totalSessions);
+
+        // Calculate available sessions
+        int bookedSessions = timeSlots.stream()
+                .mapToInt(ts -> ts.getBookedSessions() != null ? ts.getBookedSessions() : 0)
+                .sum();
+        summary.setAvailableSessions(totalSessions - bookedSessions);
+
+        // Get unique dates with availability
+        Set<String> availableDates = timeSlots.stream()
+                .filter(ts -> ts.getSlotDate() != null)
+                .map(ts -> ts.getSlotDate().toString())
+                .collect(Collectors.toSet());
+        summary.setDaysWithAvailability(new ArrayList<>(availableDates));
+
+        return summary;
+    }
+
+    /**
+     * Check if student is enrolled in the subject
+     * This is a basic implementation - could be enhanced with actual enrollment checks
+     */
+    private boolean isStudentEnrolledInSubject(Long studentId, Long subjectId) {
+        // For now, we'll assume the student has access if they can see the assignment
+        // In a real implementation, this would check enrollment records
+        return true;
     }
 }

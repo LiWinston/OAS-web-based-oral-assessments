@@ -88,9 +88,59 @@
         INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
         WHERE ts.assignment_id = #{assignmentId}
           AND ss.status = 'booked'
-          AND ss.booked_subject_type = 'student'
+          AND ss.booked_subject_type = 'STUDENT'
           AND ss.booked_subject_id = #{studentId}
         ORDER BY ts.start_at ASC, ss.session_number ASC
+    </select>
+
+    <!-- 检查学生是否已经为某个assignment预定过（包括个人预定和组预定） -->
+    <select id="hasStudentBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND (
+            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+            OR
+            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+              SELECT sg.group_id 
+              FROM sys_student_group sg 
+              WHERE sg.user_id = #{studentId}
+            ))
+          )
+    </select>
+
+    <!-- 检查组是否已经为某个assignment预定过 -->
+    <select id="hasGroupBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND ss.booked_subject_type = 'GROUP'
+          AND ss.booked_subject_id = #{groupId}
+    </select>
+
+    <!-- 批量检查学生对多个assignment的预定状态（包括个人预定和组预定） -->
+    <select id="getStudentBookedAssignmentIds" resultType="java.lang.Long">
+        SELECT DISTINCT ts.assignment_id
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id IN 
+        <foreach collection="assignmentIds" item="assignmentId" open="(" separator="," close=")">
+            #{assignmentId}
+        </foreach>
+          AND ss.status = 'booked'
+          AND (
+            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+            OR
+            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+              SELECT sg.group_id 
+              FROM sys_student_group sg 
+              WHERE sg.user_id = #{studentId}
+            ))
+          )
     </select>
 
 </mapper>

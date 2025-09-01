@@ -30,4 +30,20 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     List<SlotSession> findAvailableSessionsByAssignment(@Param("assignmentId") Long assignmentId);
     
     List<SlotSession> findActiveBookingsByStudent(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
+    
+    /**
+     * 检查学生是否已经为某个assignment预定过（包括个人预定和组预定）
+     */
+    boolean hasStudentBookedAssignment(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
+    
+    /**
+     * 检查组是否已经为某个assignment预定过
+     */
+    boolean hasGroupBookedAssignment(@Param("groupId") Long groupId, @Param("assignmentId") Long assignmentId);
+    
+    /**
+     * 批量检查学生对多个assignment的预定状态（包括个人预定和组预定）
+     * 返回该学生已预定的assignment ID集合
+     */
+    List<Long> getStudentBookedAssignmentIds(@Param("studentId") Long studentId, @Param("assignmentIds") List<Long> assignmentIds);
 }

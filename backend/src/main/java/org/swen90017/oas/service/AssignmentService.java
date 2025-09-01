@@ -5,6 +5,7 @@ import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.request.StudentAssignmentQueryRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
 import org.swen90017.oas.dto.response.GroupContextResponseDTO;
 import org.swen90017.oas.dto.response.StudentAssignmentListResponseDTO;
 import org.swen90017.oas.entity.Assignment;
@@ -77,4 +78,10 @@ public interface AssignmentService extends IService<Assignment> {
      * Returns paginated list of assignments for a specific student
      */
     StudentAssignmentListResponseDTO getStudentAssignments(Long studentId, StudentAssignmentQueryRequestDTO queryDTO);
+
+    /**
+     * Get assignment availability information for a specific student
+     * Returns availability details including policies and quick stats
+     */
+    AssignmentAvailabilityResponseDTO getAssignmentAvailability(Long assignmentId, Long studentId);
 }
