@@ -13,10 +13,13 @@ import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.SubjectDto;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.entity.Subject;
+import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SubjectMapper;
+import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.service.AssignmentService;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +33,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
 
     private final SubjectMapper subjectMapper;
     private final AssignmentService assignmentService;
+    private final SysUserMapper sysUserMapper;
 
     /**
      * Get paginated courses/subjects (matches frontend API expectations)
@@ -131,10 +135,8 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
 
-        // Validate admin user ID
-        if (dto.getAdminUserId() == null || dto.getAdminUserId() <= 0) {
-            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
-        }
+        // Validate admin user ID - check existence and admin privileges
+        validateAdminUser(dto.getAdminUserId());
 
         Subject subject = new Subject();
         BeanUtils.copyProperties(dto, subject);
@@ -178,10 +180,8 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
 
-        // Validate admin user ID
-        if (dto.getAdminUserId() == null || dto.getAdminUserId() <= 0) {
-            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
-        }
+        // Validate admin user ID - check existence and admin privileges
+        validateAdminUser(dto.getAdminUserId());
 
         BeanUtils.copyProperties(dto, existingSubject, "subjectId", "createTime", "creator");
         subjectMapper.updateById(existingSubject);
@@ -272,5 +272,26 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             throw new BusinessException(BusinessError.SUBJECT_NOT_FOUND);
         }
         return subject;
+    }
+
+    /**
+     * Validate that the user ID exists and has admin privileges
+     * Uses a single SQL query for efficient validation
+     * 
+     * @param userId User ID to validate
+     * @throws BusinessException if user doesn't exist or lacks admin privileges
+     */
+    private void validateAdminUser(Long userId) {
+        if (userId == null) {
+            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
+        }
+        
+        // Use single SQL query to check existence and roles
+        List<String> adminRoles = Arrays.asList(UserRole.ADMIN.code(), UserRole.SUPER_ADMIN.code());
+        boolean isValidAdmin = sysUserMapper.existsUserWithRoles(userId, adminRoles);
+        
+        if (!isValidAdmin) {
+            throw new BusinessException(BusinessError.SUBJECT_ADMIN_INVALID);
+        }
     }
 }
