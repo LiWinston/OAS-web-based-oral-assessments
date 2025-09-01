@@ -169,10 +169,16 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
             // 补充课程信息
             if (a != null && a.getSubjectId() != null) {
-                Subject subj = subjectService.getSubjectById(a.getSubjectId());
-                if (subj != null) {
-                    as.setCourseCode(subj.getSubjectCode());
-                    as.setCourseName(subj.getSubjectName());
+                try {
+                    Subject subj = subjectService.getSubjectById(a.getSubjectId());
+                    if (subj != null) {
+                        as.setCourseCode(subj.getSubjectCode());
+                        as.setCourseName(subj.getSubjectName());
+                    }
+                } catch (BusinessException ex) {
+                    // 如果课程不存在或已删除，设置默认值继续处理
+                    as.setCourseCode("N/A");
+                    as.setCourseName("Course Unavailable");
                 }
             }
 
