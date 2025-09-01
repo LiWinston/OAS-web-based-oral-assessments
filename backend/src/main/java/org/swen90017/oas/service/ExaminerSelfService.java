@@ -11,7 +11,7 @@ import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import java.util.List;
 
 public interface ExaminerSelfService {
-    List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId);
+    List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId, Long courseId, String sort);
     List<SelectableTimeSlotDTO> listSelectableTimeSlots(Long assignmentId, Long examinerId);
     PartialAssignmentResultDTO bulkAssign(Long assignmentId, ExaminerBulkAssignRequestDTO request);
     ExaminerScheduleDTO getSchedule(Long examinerId, Long assignmentId);

@@ -31,8 +31,10 @@ public class ExaminerController {
     @GetMapping("/api/examiners/{examinerId}/assignments")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
     public Result<List<AssignmentResponseDTO>> listAssignments(
-            @Parameter(description = "Examiner ID") @PathVariable Long examinerId) {
-        return Result.success(examinerSelfService.listAssignmentsAvailable(examinerId));
+            @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
+            @Parameter(description = "Course ID filter") @RequestParam(value = "courseId", required = false) Long courseId,
+            @Parameter(description = "Sort order") @RequestParam(value = "sort", required = false, defaultValue = "date_desc") String sort) {
+        return Result.success(examinerSelfService.listAssignmentsAvailable(examinerId, courseId, sort));
     }
 
     @Operation(summary = "List time slots for selection")

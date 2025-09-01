@@ -44,14 +44,49 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final SysUserMapper sysUserMapper;
 
     @Override
-    public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId) {
-        // 简化：返回所有 isReleased=true 的 assignment
-        List<Assignment> all = assignmentMapper.selectList(new QueryWrapper<Assignment>().eq("is_released", true));
+    public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId, Long courseId, String sort) {
+        // 验证考官是否存在且具有EXAMINER角色
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
+        // 构建查询条件
+        QueryWrapper<Assignment> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("is_released", true);
+        
+        // 添加课程筛选
+        if (courseId != null) {
+            queryWrapper.eq("subject_id", courseId);
+        }
+        
+        // 添加排序
+        if (sort != null) {
+            switch (sort.toLowerCase()) {
+                case "date_asc":
+                    queryWrapper.orderByAsc("start_date");
+                    break;
+                case "date_desc":
+                    queryWrapper.orderByDesc("start_date");
+                    break;
+                default:
+                    queryWrapper.orderByDesc("start_date"); // 默认排序
+                    break;
+            }
+        } else {
+            queryWrapper.orderByDesc("start_date"); // 默认排序
+        }
+        
+        List<Assignment> all = assignmentMapper.selectList(queryWrapper);
         return all.stream().map(this::toAssignmentDTO).collect(Collectors.toList());
     }
 
     @Override
     public List<SelectableTimeSlotDTO> listSelectableTimeSlots(Long assignmentId, Long examinerId) {
+        // 验证考官是否存在且具有EXAMINER角色
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
         List<TimeSlot> slots = timeSlotMapper.listByAssignment(assignmentId);
         Set<Long> already = new HashSet<>(tseMapper.listSlotsByExaminer(examinerId, assignmentId)
                 .stream().map(TimeSlot::getSlotId).collect(Collectors.toSet()));
@@ -74,6 +109,12 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     @Transactional
     public PartialAssignmentResultDTO bulkAssign(Long assignmentId, ExaminerBulkAssignRequestDTO request) {
         Long examinerId = request.getExaminerId();
+        
+        // 验证考官是否存在且具有EXAMINER角色
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
         // 1) 校验 examiner 属于 assignment（存在参与关系或全局放行）
         AssignmentParticipant rel = participantMapper.selectOne(new QueryWrapper<AssignmentParticipant>()
                 .eq("assignment_id", assignmentId).eq("user_id", examinerId).last("limit 1"));
@@ -224,6 +265,11 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     @Override
     @Transactional
     public ExaminerUnassignResponseDTO unassign(Long assignmentId, Long slotId, Long examinerId) {
+        // 验证考官是否存在且具有EXAMINER角色
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
         TimeSlot ts = timeSlotMapper.selectById(slotId);
         if (ts == null || !Objects.equals(ts.getAssignmentId(), assignmentId)) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
