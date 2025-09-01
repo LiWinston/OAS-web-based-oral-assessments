@@ -1899,38 +1899,334 @@ This is the primary "happy path" test case. It verifies that a new academic cour
 
 ##### Pre-conditions
 
-- An administrator with `adminUserId: 1` exists and is active in the system.
+- An administrator with `adminUserId: 2` exists and is active in the system.
 - A course with `courseCode: "ENG1001"` does not already exist.
 
 ##### Input
 
 ```json
-
+{
+  "method": "POST",
+  "path": "/api/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "courseCode": "ENG1001",
+    "courseName": "Engineering Fundamentals",
+    "description": "An introductory course to core engineering principles.",
+    "academicYear": 2025,
+    "semester": "1",
+    "adminUserId": 2,
+    "status": "active"
+  }
+}
 ```
 
 ##### Expected Output
 
 ```json
-
+{
+  "statusCode": 200,
+  "responseBodySchema": {
+    "type": "object",
+    "properties": {
+      "success": { "const": true },
+      "data": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "number" },
+          "courseCode": { "const": "ENG1001" },
+          "courseName": { "const": "Engineering Fundamentals" },
+          "adminUserId": { "const": 1 },
+          "status": { "const": "active" },
+          "createTime": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "courseCode", "courseName", "createTime"]
+      }
+    }
+  }
+}
 ```
 
 ##### **Execution History**
 
 ###### Test 1
 
-**Execution Date**:
+**Execution Date**: 1/9/2025
 
 **Tester**: Weiran
 
 **Actual Output**:
 
 ```json
-
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": 36,
+        "courseCode": "ENG1001",
+        "courseName": "Engineering Fundamentals",
+        "description": "An introductory course to core engineering principles.",
+        "academicYear": 2025,
+        "semester": "1",
+        "adminUserId": 2,
+        "isActive": true,
+        "status": "active",
+        "students": 0,
+        "assignments": 0,
+        "createTime": null,
+        "creator": null,
+        "updateTime": null,
+        "updater": null
+    }
+}
 ```
 
-**Result**:
+**Result**: Pass.
 
-**Notes**:
+**Notes**: None.
+
+
+
+#### Test Case 2: Attempt to Create a Course with a Duplicate Course Code
+
+##### Description
+
+This is a critical negative test case for a primary business rule. It ensures that the system enforces the uniqueness of `courseCode` to prevent duplicate course entries. The API should identify that the course code is already in use and reject the request with a client error.
+
+##### Pre-conditions
+
+A course with `courseCode: "SWEN90017"` already exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "courseCode": "SWEN90017",
+    "courseName": "A Duplicate Course",
+    "description": "This should not be created.",
+    "academicYear": 2024,
+    "semester": "1",
+    "adminUserId": 2,
+    "status": "active"
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "comment": "A 409 Conflict status code would also be very appropriate here.",
+  "responseBody": {
+    "success": true,
+    "code": "ERROR_COURSE_CODE_EXISTS",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "4022",
+    "data": "Course already exists for this academic year and semester"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Attempt to Create a Course with a Missing Required Field
+
+##### Description
+
+This negative test case checks the API's validation for mandatory fields. It sends a request payload that is missing the `courseName`, which is a critical piece of information. The API must validate the presence of all required fields and reject this incomplete request with a `400 Bad Request` error.
+
+##### Pre-conditions
+
+None.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "courseCode": "PHY1001",
+    "description": "A course without a name.",
+    "academicYear": 2025,
+    "semester": "1",
+    "adminUserId": 1,
+    "status": "active"
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": true,
+    "code": "ERROR_VALIDATION_COURSENAME_REQUIRED",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "timestamp": "2025-09-01 23:25:36",
+    "status": 500,
+    "error": "Internal Server Error",
+    "path": "/api/courses"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Not a decent way.
+
+
+
+#### Test Case 4: Attempt to Create a Course with an Invalid Admin User ID
+
+##### Description
+
+This test verifies the referential integrity of the data being submitted. The API should validate that the provided `adminUserId` corresponds to an actual, existing user in the system. If the `adminUserId` is not found, the API should reject the request to prevent creating orphaned course records.
+
+##### Pre-conditions
+
+No administrator with `adminUserId: 200` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "POST",
+  "path": "/api/courses",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "courseCode": "ENG1001",
+    "courseName": "Engineering Fundamentals",
+    "description": "An introductory course to core engineering principles.",
+    "academicYear": 2024,
+    "semester": "1",
+    "adminUserId": 200,
+    "status": "active"
+  }
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 400,
+  "responseBody": {
+    "success": true,
+    "code": "ERROR_INVALID_ADMIN_USER_ID",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "id": 37,
+        "courseCode": "ENG1001",
+        "courseName": "Engineering Fundamentals",
+        "description": "An introductory course to core engineering principles.",
+        "academicYear": 2024,
+        "semester": "1",
+        "adminUserId": 200,
+        "isActive": true,
+        "status": "active",
+        "students": 0,
+        "assignments": 0,
+        "createTime": null,
+        "creator": null,
+        "updateTime": null,
+        "updater": null
+    }
+}
+```
+
+**Result**: Fail.
+
+**Notes**: No logic related to non-existent admins.
+
+###### Test 2
+
+**Execution Date**: 2/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "4023",
+    "data": "Invalid administrator for course"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
 
 
 
@@ -2353,7 +2649,7 @@ An assignment with `assignmentId: 2` exists in the database.
 
 ###### Test 1
 
-**Execution Date**:
+**Execution Date**: 29/8/2025
 
 **Tester**: Weiran
 
@@ -2421,7 +2717,7 @@ An assignment with `assignmentId: 2` exists in the database.
 
 ###### Test 1
 
-**Execution Date**:
+**Execution Date**: 29/8/2025
 
 **Tester**: Weiran
 
@@ -2447,6 +2743,28 @@ An assignment with `assignmentId: 2` exists in the database.
 **Result**: Fail.
 
 **Notes**: The unlogical data was updated in the database. Additionally, I observed that all four input fields are required, resulting in a 500 internal error (caused by the database, as the four fields are all set to not null).
+
+###### Test 2
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "400",
+    "data": "Bad request"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
 
 
 
@@ -4278,6 +4596,26 @@ This negative test case checks the transactional integrity of the batch delete o
 
 **Notes**: `9999` was deleted according to the response, but the method just deleted all the data related to timeslot `27` and `28` in the database.
 
+###### Test 2
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "5004",
+    "data": "Time slot not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
 
 
 #### Test Case 3: Attempt to Delete Timeslots Belonging to a Different Assignment
@@ -4436,7 +4774,7 @@ No assignment with the ID `999999` exists in the database.
     "Content-Type": "application/json"
   },
   "body": {
-    "timeSlots": [101, 102]
+    "timeSlots": [31, 32]
   }
 }
 ```
@@ -4476,6 +4814,26 @@ No assignment with the ID `999999` exists in the database.
 **Result**: Fail.
 
 **Notes**: The response should never be `200`, since the method deleted nothing.
+
+###### Test 2
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "4031",
+    "data": "Assignment not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
 
 
 
@@ -5602,6 +5960,201 @@ This is the primary happy path. It verifies that with default filters (`includeF
 
 **Notes**: Although the data in the response are all correct, it still lacks the details of the assignment and the examiner. Also, some optional parameters in the path are not developed. 
 
+###### Test 2
+
+**Execution Date**: 2/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignment": {
+            "assignmentId": 2,
+            "assignmentName": "Good Test",
+            "courseCode": "SWEN90017",
+            "courseName": "Software Engineering Project Management",
+            "assessmentType": "MIXED"
+        },
+        "examinerInfo": {
+            "maxSessions": 10,
+            "currentAssignedSessions": 7,
+            "remainingCapacity": 3
+        },
+        "timeSlots": [
+            {
+                "slotId": 1,
+                "start": "2025-04-15T08:00:00+10:00",
+                "end": "2025-04-15T09:30:00+10:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1154,
+                    "name": "101",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "101"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 1,
+                "isFull": false,
+                "availability": {
+                    "canSelect": false,
+                    "reason": "ALREADY_ASSIGNED"
+                }
+            },
+            {
+                "slotId": 30,
+                "start": "2025-04-15T09:00:00+10:00",
+                "end": "2025-04-15T10:30:00+10:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1155,
+                    "name": "102",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "102"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 0,
+                "isFull": false,
+                "availability": {
+                    "canSelect": false,
+                    "reason": "TIME_CONFLICT"
+                }
+            },
+            {
+                "slotId": 32,
+                "start": "2025-09-01T20:56:18+10:00",
+                "end": "2025-09-01T20:56:20+10:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1155,
+                    "name": "102",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "102"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 0,
+                "isFull": false,
+                "availability": {
+                    "canSelect": true,
+                    "reason": null
+                }
+            },
+            {
+                "slotId": 33,
+                "start": "2025-09-01T20:56:18+10:00",
+                "end": "2025-09-01T20:56:20+10:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1156,
+                    "name": "128",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "128"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 0,
+                "isFull": false,
+                "availability": {
+                    "canSelect": true,
+                    "reason": null
+                }
+            },
+            {
+                "slotId": 34,
+                "start": "2025-09-01T20:56:18+10:00",
+                "end": "2025-09-01T20:56:20+10:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1156,
+                    "name": "128",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "128"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 0,
+                "isFull": false,
+                "availability": {
+                    "canSelect": true,
+                    "reason": null
+                }
+            },
+            {
+                "slotId": 13,
+                "start": "2025-10-20T14:00:00+11:00",
+                "end": "2025-10-20T16:00:00+11:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1155,
+                    "name": "102",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "102"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 1,
+                "isFull": false,
+                "availability": {
+                    "canSelect": false,
+                    "reason": "ALREADY_ASSIGNED"
+                }
+            },
+            {
+                "slotId": 2,
+                "start": "2025-10-21T13:00:00+11:00",
+                "end": "2025-10-21T15:00:00+11:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1154,
+                    "name": "101",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "101"
+                },
+                "sessionCount": 0,
+                "requiredExaminers": 2,
+                "currentExaminers": 2,
+                "isFull": true,
+                "availability": {
+                    "canSelect": false,
+                    "reason": "SLOT_FULL"
+                }
+            },
+            {
+                "slotId": 31,
+                "start": "2025-11-05T13:00:00+11:00",
+                "end": "2025-11-05T15:00:00+11:00",
+                "timezone": "Australia/Melbourne",
+                "venue": {
+                    "venueId": 1155,
+                    "name": "102",
+                    "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                    "room": "102"
+                },
+                "sessionCount": 1,
+                "requiredExaminers": 2,
+                "currentExaminers": 0,
+                "isFull": false,
+                "availability": {
+                    "canSelect": true,
+                    "reason": null
+                }
+            }
+        ]
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
 
 
 ### 16. [POST] /api/assignments/{assignmentId}/timeslots/assign
@@ -5830,9 +6383,33 @@ This test verifies the LIMIT_EXCEEDED validation rule. Assigning the examiner to
 
 **Notes**: Exceed the limitation of the examiner `101`. It should return an error rather than a success response and insert data into the database.
 
+###### Test 2
 
+**Execution Date**: 1/9/2025
 
+**Tester**: Weiran
 
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "success": [],
+        "failures": [
+            {
+                "slotId": 32,
+                "reason": "max_sessions_exceeded"
+            }
+        ]
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
 
 
 
@@ -5957,6 +6534,357 @@ An examiner with `examinerId: 101` exists. This examiner is assigned to timeslot
 
 **Notes**: The Data was correct, but the response body format was wrong.
 
+###### Test 2
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignments": [
+            {
+                "assignmentId": 1,
+                "assignmentName": "Oral Presentation Test",
+                "courseCode": "SWEN90017",
+                "courseName": "Software Engineering Project Management",
+                "slots": [
+                    {
+                        "slotId": 12,
+                        "start": "2025-04-16T14:00",
+                        "end": "2025-04-16T15:00",
+                        "venue": {
+                            "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                            "room": "102"
+                        },
+                        "sessionCount": 2,
+                        "requiredExaminers": 1,
+                        "currentExaminers": 1,
+                        "isBooked": false,
+                        "bookingCount": 0,
+                        "canWithdraw": false,
+                        "cannotWithdrawReason": null
+                    }
+                ]
+            },
+            {
+                "assignmentId": 2,
+                "assignmentName": "Good Test",
+                "courseCode": "SWEN90017",
+                "courseName": "Software Engineering Project Management",
+                "slots": [
+                    {
+                        "slotId": 1,
+                        "start": "2025-04-15T08:00",
+                        "end": "2025-04-15T09:30",
+                        "venue": {
+                            "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                            "room": "101"
+                        },
+                        "sessionCount": 3,
+                        "requiredExaminers": 2,
+                        "currentExaminers": 1,
+                        "isBooked": false,
+                        "bookingCount": 0,
+                        "canWithdraw": false,
+                        "cannotWithdrawReason": null
+                    },
+                    {
+                        "slotId": 13,
+                        "start": "2025-10-20T14:00",
+                        "end": "2025-10-20T16:00",
+                        "venue": {
+                            "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                            "room": "102"
+                        },
+                        "sessionCount": 4,
+                        "requiredExaminers": 2,
+                        "currentExaminers": 1,
+                        "isBooked": false,
+                        "bookingCount": 0,
+                        "canWithdraw": false,
+                        "cannotWithdrawReason": null
+                    }
+                ]
+            },
+            {
+                "assignmentId": 3,
+                "assignmentName": "Client Presentation 1 Test",
+                "courseCode": "COMP90082",
+                "courseName": "Software Project",
+                "slots": [
+                    {
+                        "slotId": 7,
+                        "start": "2025-08-30T11:00",
+                        "end": "2025-08-30T14:00",
+                        "venue": {
+                            "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                            "room": "101"
+                        },
+                        "sessionCount": 6,
+                        "requiredExaminers": 2,
+                        "currentExaminers": 2,
+                        "isBooked": false,
+                        "bookingCount": 0,
+                        "canWithdraw": false,
+                        "cannotWithdrawReason": null
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: Null.
+
+
+
+#### Test Case 2: Filter the Schedule by a Specific Assignment ID
+
+##### Description
+
+This test case validates the optional `assignmentId` query parameter. By providing a specific `assignmentId`, the API should filter the schedule and return only the timeslots that belong to that particular assignment.
+
+##### Pre-conditions
+
+An examiner with `examinerId: 101` exists and is assigned to timeslots in both assignment `1` and assignment `2`.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/examiners/{examinerId}/schedule",
+  "pathParameters": {
+    "examinerId": 101
+  },
+  "queryParameters": {
+    "assignmentId": 1
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "comment": "The 'assignments' array should contain exactly one entry, with 'assignmentId' equal to 101.",
+  "responseBodySchema": {
+    "properties": {
+      "data": {
+        "properties": {
+          "assignments": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 1,
+            "items": {
+              "properties": {
+                "assignmentId": { "const": 101 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignments": [
+            {
+                "assignmentId": 1,
+                "assignmentName": "Oral Presentation Test",
+                "courseCode": "SWEN90017",
+                "courseName": "Software Engineering Project Management",
+                "slots": [
+                    {
+                        "slotId": 12,
+                        "start": "2025-04-16T14:00",
+                        "end": "2025-04-16T15:00",
+                        "venue": {
+                            "building": "143-151 BARRY ST, CARLTON SOUTH, VIC 3053",
+                            "room": "102"
+                        },
+                        "sessionCount": 2,
+                        "requiredExaminers": 1,
+                        "currentExaminers": 1,
+                        "isBooked": false,
+                        "bookingCount": 0,
+                        "canWithdraw": false,
+                        "cannotWithdrawReason": null
+                    }
+                ]
+            }
+        ]
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 3: Retrieve Schedule for an Examiner with No Scheduled Slots
+
+##### Description
+
+This edge case test verifies that the API handles requests for a valid examiner who has no schedule. The API should return a `200 OK` success response with an empty `assignments` array.
+
+##### Pre-conditions
+
+An examiner with `examinerId: 102` exists in the database, but they have not been assigned to any timeslots.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/examiners/{examinerId}/schedule",
+  "pathParameters": {
+    "examinerId": 102
+  },
+  "queryParameters": {},
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 200,
+  "responseBody": {
+    "success": true,
+    "code": "string",
+    "data": {
+      "assignments": []
+    }
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignments": []
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Attempt to Retrieve Schedule for a Non-Existent Examiner
+
+##### Description
+
+This is a negative test case to ensure the API handles requests for non-existent resources correctly. When a non-existent `examinerId` is provided, the API should return a clear client-side error.
+
+##### Pre-conditions
+
+No examiner with the ID `999999` exists in the database.
+
+##### Input
+
+```json
+{
+  "method": "GET",
+  "path": "/api/examiners/{examinerId}/schedule",
+  "pathParameters": {
+    "examinerId": 999999
+  },
+  "queryParameters": {},
+  "headers": {
+    "Accept": "application/json"
+  },
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 404,
+  "comment": "A 404 Not Found is the most semantically correct response for a missing resource.",
+  "responseBody": {
+    "success": false,
+    "code": "ERROR_EXAMINER_NOT_FOUND",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "2008",
+    "data": "Examiner not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
 
 
 ### 18. [DELETE] api/assignments/{assignmentId}/timeslots/{slotId}/unassign?examinerId={examinerId} 
@@ -5965,7 +6893,7 @@ An examiner with `examinerId: 101` exists. This examiner is assigned to timeslot
 
 ##### Description
 
-
+This is the primary happy path test case. It verifies that an examiner can be successfully removed from a timeslot when all conditions for withdrawal are met. A successful operation should be confirmed by a `200 OK` response.
 
 ##### Pre-conditions
 
@@ -5974,19 +6902,19 @@ An examiner with `examinerId: 101` is assigned to `slotId: 31` in `assignmentId:
 ##### Input
 
 ```json
-{
-  "method": "DELETE",
-  "path": "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign",
-  "pathParameters": {
-    "assignmentId": 2,
-    "slotId": 31
-  },
-  "queryParameters": {
-    "examinerId": 101
-  },
-  "headers": {},
-  "body": null
-}
+  {
+    "method": "DELETE",
+    "path": "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign",
+    "pathParameters": {
+      "assignmentId": 2,
+      "slotId": 31
+    },
+    "queryParameters": {
+      "examinerId": 101
+    },
+    "headers": {},
+    "body": null
+  }
 ```
 
 ##### Expected Output
@@ -6030,11 +6958,208 @@ An examiner with `examinerId: 101` is assigned to `slotId: 31` in `assignmentId:
 
 **Notes**: The response sturcture was wrong.
 
+###### Test 2
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": true,
+    "code": "200",
+    "data": {
+        "assignmentId": 2,
+        "slotId": 31,
+        "examinerId": 101,
+        "updatedAssignedSessions": 7
+    }
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
 
 
 
+#### Test Case 2: Reject Unassignment from a Slot with Student Bookings
+
+##### Description
+
+This negative test case verifies a critical business rule: an examiner cannot withdraw from a timeslot once students have booked sessions within it. This prevents disruption to student schedules. The API should respond with a specific conflict error.
+
+##### Pre-conditions
+
+An examiner with `examinerId: 101` is assigned to `slotId: 31` in `assignmentId: 2`. This timeslot has active student bookings.
+
+##### Input
+
+```json
+{
+  "method": "DELETE",
+  "path": "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign",
+  "pathParameters": {
+    "assignmentId": 101,
+    "slotId": 5005
+  },
+  "queryParameters": {
+    "examinerId": 601
+  },
+  "headers": {},
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
 
 
+
+#### Test Case 3: Reject Unassignment from a Non-Existent Timeslot
+
+##### Description
+
+This test case ensures the API correctly handles requests to modify a resource that does not exist. The request should be rejected with a `404 Not Found` error.
+
+##### Pre-conditions
+
+An assignment with `assignmentId: 2` and an examiner with `examinerId: 101` exist. No timeslot with `slotId: 9999` exists.
+
+##### Input
+
+```json
+{
+  "method": "DELETE",
+  "path": "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign",
+  "pathParameters": {
+    "assignmentId": 2,
+    "slotId": 9999
+  },
+  "queryParameters": {
+    "examinerId": 101
+  },
+  "headers": {},
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+    "success": false,
+    "code": "5004",
+    "data": "Time slot not found"
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+{
+    "success": false,
+    "code": "5004",
+    "data": "Time slot not found"
+}
+```
+
+**Result**: Pass.
+
+**Notes**: None.
+
+
+
+#### Test Case 4: Reject Unassignment if the Examiner is Not Assigned to the Slot
+
+##### Description
+
+This test verifies that the API checks for an existing assignment of the specified examiner to the specified timeslot before attempting to perform the unassignment. The request should fail if no such assignment exists.
+
+##### Pre-conditions
+
+Assignment `102` and slot `13` exist. Examiner `102` also exists but is **not** currently assigned to slot `13`.
+
+##### Input
+
+```json
+{
+  "method": "DELETE",
+  "path": "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign",
+  "pathParameters": {
+    "assignmentId": 2,
+    "slotId": 13
+  },
+  "queryParameters": {
+    "examinerId": 102
+  },
+  "headers": {},
+  "body": null
+}
+```
+
+##### Expected Output
+
+```json
+{
+  "statusCode": 403,
+  "comment": "A 403 Forbidden is appropriate as the user is trying to modify a resource relationship they are not a part of.",
+  "responseBody": {
+    "success": false,
+    "code": "FORBIDDEN",
+    "data": {}
+  }
+}
+```
+
+##### **Execution History**
+
+###### Test 1
+
+**Execution Date**: 1/9/2025
+
+**Tester**: Weiran
+
+**Actual Output**:
+
+```json
+
+```
+
+**Result**:
+
+**Notes**:
 
 
 
