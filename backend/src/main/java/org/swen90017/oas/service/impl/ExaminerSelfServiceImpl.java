@@ -16,6 +16,7 @@ import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.entity.*;
+import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.ExaminerSelfService;
@@ -40,6 +41,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final SubjectService subjectService;
     private final VenueMapper venueMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId) {
@@ -157,6 +159,11 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     public ExaminerScheduleResponseDTO getScheduleV2(Long examinerId, Long assignmentId) {
+        // 验证考官是否存在且具有EXAMINER角色
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
         List<TimeSlot> slots = tseMapper.listSlotsByExaminer(examinerId, assignmentId);
         Map<Long, List<TimeSlot>> byAssignment = slots.stream().collect(Collectors.groupingBy(TimeSlot::getAssignmentId));
 
@@ -240,6 +247,14 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         response.setUpdatedAssignedSessions(updatedAssignedSessions);
 
         return response;
+    }
+
+    /**
+     * 验证用户是否为有效的考官
+     */
+    private boolean isValidExaminer(Long examinerId) {
+        List<SysUser> examiners = sysUserMapper.selectByRoleKey(UserRole.EXAMINER.code());
+        return examiners.stream().anyMatch(user -> user.getUserId().equals(examinerId));
     }
 
     private AssignmentResponseDTO toAssignmentDTO(Assignment a) {

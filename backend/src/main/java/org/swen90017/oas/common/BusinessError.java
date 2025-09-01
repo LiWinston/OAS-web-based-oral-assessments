@@ -13,6 +13,7 @@ public enum BusinessError implements Error {
     INVALID_CSV_TYPE("2005", "invalid CSV type"),
     CSV_MISSING_HEADERS("2006", "CSV headers missing or invalid"),
     CSV_HEADER_MISMATCH("2007", "CSV header does not match expected format"),
+    EXAMINER_NOT_FOUND("2008", "Examiner not found"),
     
     // Epic 4.1 Course Management (Simplified) errors
     SUBJECT_NOT_FOUND("4021", "Course not found"),
