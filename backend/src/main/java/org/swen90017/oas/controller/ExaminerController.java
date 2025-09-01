@@ -42,8 +42,10 @@ public class ExaminerController {
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
     public Result<List<SelectableTimeSlotDTO>> listSelectable(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @RequestParam("examinerId") Long examinerId) {
-        return Result.success(examinerSelfService.listSelectableTimeSlots(assignmentId, examinerId));
+            @RequestParam("examinerId") Long examinerId,
+            @Parameter(description = "Filter by date (YYYY-MM-DD)") @RequestParam(value = "date", required = false) String date,
+            @Parameter(description = "Include full slots") @RequestParam(value = "includeFullSlots", required = false, defaultValue = "true") Boolean includeFullSlots) {
+        return Result.success(examinerSelfService.listSelectableTimeSlots(assignmentId, examinerId, date, includeFullSlots));
     }
 
     @Operation(summary = "Assign examiner to time slots in bulk (partial success supported)")

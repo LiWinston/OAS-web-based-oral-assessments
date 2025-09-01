@@ -25,6 +25,7 @@ import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.entity.Venue;
 import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,7 +82,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     }
 
     @Override
-    public List<SelectableTimeSlotDTO> listSelectableTimeSlots(Long assignmentId, Long examinerId) {
+    public List<SelectableTimeSlotDTO> listSelectableTimeSlots(Long assignmentId, Long examinerId, String date, Boolean includeFullSlots) {
         // 验证考官是否存在且具有EXAMINER角色
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
@@ -91,12 +92,37 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         Set<Long> already = new HashSet<>(tseMapper.listSlotsByExaminer(examinerId, assignmentId)
                 .stream().map(TimeSlot::getSlotId).collect(Collectors.toSet()));
 
+        // 解析日期过滤参数
+        LocalDate filterDate = null;
+        if (date != null && !date.trim().isEmpty()) {
+            try {
+                filterDate = LocalDate.parse(date);
+            } catch (Exception e) {
+                // 忽略无效日期格式，不进行日期过滤
+            }
+        }
+
         List<SelectableTimeSlotDTO> result = new ArrayList<>();
         for (TimeSlot ts : slots) {
+            // 日期过滤
+            if (filterDate != null && ts.getStartAt() != null) {
+                LocalDate slotDate = ts.getStartAt().toLocalDate();
+                if (!slotDate.equals(filterDate)) {
+                    continue;
+                }
+            }
+
             SelectableTimeSlotDTO dto = toSelectable(ts);
             dto.setAssigned(already.contains(ts.getSlotId()));
-            dto.setFull(ts.getCurrentExaminers() != null && ts.getRequiredExaminers() != null
-                    && ts.getCurrentExaminers() >= ts.getRequiredExaminers());
+            boolean isFull = ts.getCurrentExaminers() != null && ts.getRequiredExaminers() != null
+                    && ts.getCurrentExaminers() >= ts.getRequiredExaminers();
+            dto.setFull(isFull);
+            
+            // 满员过滤：如果includeFullSlots为false且当前slot已满，则跳过
+            if (includeFullSlots != null && !includeFullSlots && isFull) {
+                continue;
+            }
+            
             // 冲突判断：与该 slot 时间段重叠的既有分配
             boolean conflict = !tseMapper.findConflictedSlotsForExaminer(examinerId, ts.getStartAt(), ts.getEndAt()).isEmpty();
             dto.setConflict(conflict);
