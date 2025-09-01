@@ -567,22 +567,22 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         
         // Join with assignment_participant to get assignments for this student
         queryWrapper.inSql("id", 
-            "SELECT assignment_id FROM assignment_participant WHERE user_id = " + studentId + " AND if_join = 1");
+            "SELECT assignment_id FROM assignment_participant WHERE user_id = " + studentId);
 
         //TODO 状态判断
-//        // Apply status filter
-//        if ("bookable".equals(queryDTO.getStatus())) {
-//            // Only assignments that are released and have available sessions
-//            queryWrapper.eq("is_released", true);
-//        } else if ("booked".equals(queryDTO.getStatus())) {
-//            // Only assignments where student has active bookings
-//            queryWrapper.inSql("id",
-//                "SELECT DISTINCT a.assignment_id FROM assignment_participant a " +
-//                "JOIN slot_sessions s ON s.booked_subject_id = " + studentId + " " +
-//                "JOIN time_slots ts ON s.slot_id = ts.slot_id " +
-//                "WHERE a.user_id = " + studentId + " AND a.if_join = 1");
-//        }
-//        // "all" status - no additional filter needed
+        // Apply status filter
+        if ("bookable".equals(queryDTO.getStatus())) {
+            // Only assignments that are released and have available sessions
+            queryWrapper.eq("is_released", true);
+        } else if ("booked".equals(queryDTO.getStatus())) {
+            // Only assignments where student has active bookings
+            queryWrapper.inSql("id",
+                "SELECT DISTINCT a.assignment_id FROM assignment_participant a " +
+                "JOIN slot_sessions s ON s.booked_subject_id = " + studentId + " " +
+                "JOIN time_slots ts ON s.slot_id = ts.slot_id " +
+                "WHERE a.user_id = " + studentId);
+        }
+        // "all" status - no additional filter needed
         
         // Apply sorting
         if ("date_desc".equals(queryDTO.getSort())) {
