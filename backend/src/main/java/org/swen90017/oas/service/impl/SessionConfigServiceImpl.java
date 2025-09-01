@@ -66,6 +66,19 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
             throw new BusinessException(BusinessError.INVALID_SESSION_CONFIG_EXAMINERS);
         }
 
+        // Time must > 0
+        if (config.getGapTimeMin() == null || config.getGapTimeMin() <= 0) {
+            throw new BusinessException(CommonError.BAD_REQUEST);
+        }
+
+        if (config.getSessionLengthMin() == null || config.getSessionLengthMin() <= 0) {
+            throw new BusinessException(CommonError.BAD_REQUEST);
+        }
+
+        if (config.getDefaultMaxSessionsPerExaminer() == null || config.getDefaultMaxSessionsPerExaminer() < 1) {
+            throw new BusinessException(CommonError.BAD_REQUEST);
+        }
+
         // Set updater information
         LoginUser currentUser = SecurityUtils.getLoginUser();
         config.setUpdatedBy(currentUser != null ? currentUser.getUserId() : null);
