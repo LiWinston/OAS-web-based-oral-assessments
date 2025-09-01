@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import javax.validation.constraints.Min;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -30,7 +29,7 @@ public class TimeSlotRequestDTO {
     @Min(value = 1, message = "Session count must be at least 1")
     private Integer sessionCount;
 
-    @Schema(description = "Venue description", example = "Engineering Building, Room 405")
-    @NotBlank(message = "Venue cannot be blank")
+    @Schema(description = "Venue ID", example = "31")
+    @NotNull(message = "VenueId cannot be null")
     private Long venueId;
 }

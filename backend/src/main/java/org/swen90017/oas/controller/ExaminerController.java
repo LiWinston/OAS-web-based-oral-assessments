@@ -10,6 +10,7 @@ import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleDTO;
+import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.enums.BusinessType;
@@ -54,10 +55,10 @@ public class ExaminerController {
     @Operation(summary = "Get examiner schedule")
     @GetMapping("/api/examiners/{examinerId}/schedule")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
-    public Result<ExaminerScheduleDTO> schedule(
+    public Result<ExaminerScheduleResponseDTO> schedule(
             @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
             @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
-        return Result.success(examinerSelfService.getSchedule(examinerId, assignmentId));
+        return Result.success(examinerSelfService.getScheduleV2(examinerId, assignmentId));
     }
 
     @Operation(summary = "Unassign examiner from time slot")

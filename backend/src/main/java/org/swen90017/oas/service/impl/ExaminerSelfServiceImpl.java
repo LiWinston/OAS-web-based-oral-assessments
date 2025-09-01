@@ -11,12 +11,16 @@ import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleDTO;
+import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.entity.*;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.ExaminerSelfService;
+import org.swen90017.oas.service.SubjectService;
+import org.swen90017.oas.mapper.VenueMapper;
+import org.swen90017.oas.entity.Venue;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -31,6 +35,8 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final AssignmentParticipantMapper participantMapper;
     private final TimeSlotMapper timeSlotMapper;
     private final TimeSlotExaminersMapper tseMapper;
+    private final SubjectService subjectService;
+    private final VenueMapper venueMapper;
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId) {
@@ -135,6 +141,59 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         dto.setAssignmentId(assignmentId);
         dto.setSlots(slots.stream().map(this::toAssigned).collect(Collectors.toList()));
         return dto;
+    }
+
+    @Override
+    public ExaminerScheduleResponseDTO getScheduleV2(Long examinerId, Long assignmentId) {
+        List<TimeSlot> slots = tseMapper.listSlotsByExaminer(examinerId, assignmentId);
+        Map<Long, List<TimeSlot>> byAssignment = slots.stream().collect(Collectors.groupingBy(TimeSlot::getAssignmentId));
+
+        List<ExaminerScheduleResponseDTO.AssignmentScheduleDTO> assignments = new ArrayList<>();
+        for (Map.Entry<Long, List<TimeSlot>> e : byAssignment.entrySet()) {
+            Long aId = e.getKey();
+            Assignment a = assignmentMapper.selectById(aId);
+            ExaminerScheduleResponseDTO.AssignmentScheduleDTO as = new ExaminerScheduleResponseDTO.AssignmentScheduleDTO();
+            as.setAssignmentId(aId);
+            as.setAssignmentName(a != null ? a.getName() : null);
+
+            // 补充课程信息
+            if (a != null && a.getSubjectId() != null) {
+                Subject subj = subjectService.getSubjectById(a.getSubjectId());
+                if (subj != null) {
+                    as.setCourseCode(subj.getSubjectCode());
+                    as.setCourseName(subj.getSubjectName());
+                }
+            }
+
+            List<ExaminerScheduleResponseDTO.SlotScheduleDTO> slotDtos = new ArrayList<>();
+            for (TimeSlot ts : e.getValue()) {
+                ExaminerScheduleResponseDTO.SlotScheduleDTO sd = new ExaminerScheduleResponseDTO.SlotScheduleDTO();
+                sd.setSlotId(ts.getSlotId());
+                sd.setStart(ts.getStartAt().toString());
+                sd.setEnd(ts.getEndAt().toString());
+                ExaminerScheduleResponseDTO.VenueInfo v = new ExaminerScheduleResponseDTO.VenueInfo();
+                Venue venue = venueMapper.selectById(ts.getVenueId());
+                if (venue != null) {
+                    v.setBuilding(venue.getBuilding());
+                    v.setRoom(venue.getRoomName());
+                }
+                sd.setVenue(v);
+                sd.setSessionCount(ts.getSessionCount());
+                sd.setRequiredExaminers(ts.getRequiredExaminers());
+                sd.setCurrentExaminers(ts.getCurrentExaminers());
+                sd.setIsBooked((ts.getBookedSessions() != null) && ts.getBookedSessions() > 0);
+                sd.setBookingCount(ts.getBookedSessions());
+                sd.setCanWithdraw(false);
+                sd.setCannotWithdrawReason(sd.getIsBooked() ? "STUDENT BOOKED" : null);
+                slotDtos.add(sd);
+            }
+            as.setSlots(slotDtos);
+            assignments.add(as);
+        }
+
+        ExaminerScheduleResponseDTO out = new ExaminerScheduleResponseDTO();
+        out.setAssignments(assignments);
+        return out;
     }
 
     @Override
