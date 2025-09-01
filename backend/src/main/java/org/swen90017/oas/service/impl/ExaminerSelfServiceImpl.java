@@ -1,10 +1,13 @@
 package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerScheduleDTO;
@@ -163,7 +166,20 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         dto.setProgress(a.getProgress());
         dto.setStatus(a.getStatus());
         dto.setRubricMetaInfo(a.getRubricMetaInfo());
-        // rubricsInfo 略
+
+        // 补上rubric info
+        if (a.getRubricsInfo() != null && !a.getRubricsInfo().trim().isEmpty()) {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                List<RubricsInfoDto> rubricsInfo = mapper.readValue(a.getRubricsInfo(),
+                        mapper.getTypeFactory().constructCollectionType(List.class, RubricsInfoDto.class));
+                dto.setRubricsInfo(rubricsInfo);
+            } catch (JsonProcessingException e) {
+                // If JSON parsing fails, set to null
+                dto.setRubricsInfo(null);
+            }
+        }
+        
         dto.setCreator(a.getCreator());
         dto.setUpdater(a.getUpdater());
         dto.setCreateTime(a.getCreateTime());
