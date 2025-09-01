@@ -125,6 +125,9 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             throw new BusinessException(BusinessError.SUBJECT_INVALID_SEMESTER);
         }
 
+        // Fast dual validation: admin user first (likely to be cached), then subject existence
+        validateAdminUser(dto.getAdminUserId());
+        
         // Check if subject code already exists for this academic year and semester
         LambdaQueryWrapper<Subject> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Subject::getSubjectCode, dto.getSubjectCode())
@@ -134,9 +137,6 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         if (subjectMapper.selectCount(queryWrapper) > 0) {
             throw new BusinessException(BusinessError.SUBJECT_ALREADY_EXISTS);
         }
-
-        // Validate admin user ID - check existence and admin privileges
-        validateAdminUser(dto.getAdminUserId());
 
         Subject subject = new Subject();
         BeanUtils.copyProperties(dto, subject);

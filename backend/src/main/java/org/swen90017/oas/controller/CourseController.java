@@ -100,7 +100,9 @@ public class CourseController {
         // Convert request DTO to SubjectDto
         SubjectDto dto = convertCreateRequestToSubjectDto(requestDTO);
         Subject course = subjectService.createCourse(dto);
-        CourseResponseDTO response = convertToDTO(course);
+        
+        // Optimized: use lightweight conversion for new course (no assignment count query needed)
+        CourseResponseDTO response = convertToDTOForCreate(course);
         return Result.success(response);
     }
 
@@ -275,6 +277,30 @@ public class CourseController {
         dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
         dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
         dto.setAssignments(assignmentCount); // Use pre-computed count
+        dto.setCreateTime(subject.getCreateTime());
+        dto.setCreator(subject.getCreator());
+        dto.setUpdateTime(subject.getUpdateTime());
+        dto.setUpdater(subject.getUpdater());
+        return dto;
+    }
+
+    /**
+     * Convert Subject entity to CourseResponseDTO for newly created courses
+     * Optimized version that doesn't query assignment count (new courses have 0 assignments)
+     */
+    private CourseResponseDTO convertToDTOForCreate(Subject subject) {
+        CourseResponseDTO dto = new CourseResponseDTO();
+        dto.setId(subject.getSubjectId());
+        dto.setCourseCode(subject.getSubjectCode());
+        dto.setCourseName(subject.getSubjectName());
+        dto.setDescription(subject.getDescription());
+        dto.setAcademicYear(subject.getAcademicYear());
+        dto.setSemester(subject.getSemester());
+        dto.setAdminUserId(subject.getAdminUserId());
+        dto.setIsActive(subject.getIsActive());
+        dto.setStatus(subject.getStatus() != null ? subject.getStatus() : "active");
+        dto.setStudents(0); // Placeholder - would be calculated from actual enrollments
+        dto.setAssignments(0); // New courses always have 0 assignments - no DB query needed
         dto.setCreateTime(subject.getCreateTime());
         dto.setCreator(subject.getCreator());
         dto.setUpdateTime(subject.getUpdateTime());
