@@ -673,7 +673,7 @@ export function AssignmentList({
                         </Link>
 
                         <Link
-                          href={`/admin/assignments/${assignment.id}/schedule`}
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/schedule`}
                           className={`text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasTimeSlots ? "animate-pulse" : ""
                           }`}
