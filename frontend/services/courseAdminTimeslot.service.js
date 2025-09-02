@@ -1,11 +1,11 @@
 /**
- * Course Admin Timeslot Service
- * 
- * Unified interface for timeslot management operations.
- * Automatically switches between real and mock implementations based on configuration.
+ * Course Admin Timeslot Service (legacy export)
+ *
+ * Kept for backward compatibility. Now re-exports the unified service
+ * implementation that calls real endpoints but returns mock-shaped data.
  */
 
-export { courseAdminTimeslotService, USE_MOCKS } from './serviceFactory';
+export { courseAdminTimeslotService } from './courseAdminTimeslotService.js';
 
 /**
  * Service Interface Documentation

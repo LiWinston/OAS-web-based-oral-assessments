@@ -4,7 +4,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
 import { mapTimeSlotsFromApi, mapTimeSlotsToApi, mapTimeSlotFromApi, mapTimeSlotToApi } from '@/lib/timeslotMappers.js';
 import { showSuccess, showError } from '@/lib/notifications.js';
 

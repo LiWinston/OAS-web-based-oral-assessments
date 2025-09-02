@@ -33,7 +33,8 @@ export default function AssignmentSchedulePage() {
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
 
   // Hooks for server operations
-  const { createBatch, isCreatingBatch } = useTimeSlots(assignmentId);
+  // Disable fetching here; Step 2 uses local draft slots and only needs createBatch
+  const { createBatch, isCreatingBatch } = useTimeSlots(assignmentId, {}, { enabled: false });
   const { data: examiners = [] } = useExaminerLimits(assignmentId);
 
   const progressPercent = useMemo(() => (currentStep / totalSteps) * 100, [currentStep]);

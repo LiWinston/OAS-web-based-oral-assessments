@@ -4,7 +4,7 @@
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { courseAdminTimeslotService } from '@/services/courseAdminTimeslot.service.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
 import { mapCalendarFromApi } from '@/lib/timeslotMappers.js';
 
 /**
