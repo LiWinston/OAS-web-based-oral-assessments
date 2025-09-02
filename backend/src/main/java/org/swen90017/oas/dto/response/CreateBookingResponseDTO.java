@@ -91,11 +91,8 @@ public class CreateBookingResponseDTO {
         @Schema(description = "Venue name", example = "Engineering")
         private String name;
         
-        @Schema(description = "Building", example = "ENG")
-        private String building;
-        
-        @Schema(description = "Room", example = "405")
-        private String room;
+        @Schema(description = "assignmentId", example = "12")
+        private Long assignmentId;
     }
 
     /**

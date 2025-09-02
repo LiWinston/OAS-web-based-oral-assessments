@@ -353,10 +353,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         Venue venue = venueMapper.selectById(slot.getVenueId());
         if (venue != null) {
             BookableSessionsResponseDTO.VenueInfoDTO venueDTO = new BookableSessionsResponseDTO.VenueInfoDTO();
-            venueDTO.setVenueId(venue.getId());
-            venueDTO.setName(venue.getRoomName());
-            venueDTO.setBuilding(venue.getBuilding());
-            venueDTO.setRoom(venue.getRoomUrl());
+            venueDTO.setId(venue.getId());
+            venueDTO.setVenueName(venue.getRoomName());
+            venueDTO.setAssignmentId(venue.getAssignmentId());
             timeSlotDTO.setVenue(venueDTO);
         }
 
@@ -422,8 +421,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
                 CreateBookingResponseDTO.VenueInfoDTO venueInfo = new CreateBookingResponseDTO.VenueInfoDTO();
                 venueInfo.setVenueId(venue.getId());
                 venueInfo.setName(venue.getRoomName());
-                venueInfo.setBuilding(venue.getBuilding());
-                venueInfo.setRoom(venue.getRoomUrl());
+                venueInfo.setAssignmentId(venue.getAssignmentId());
                 sessionInfo.setVenue(venueInfo);
             }
         }
@@ -474,9 +472,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             Venue venue = venueMapper.selectById(timeSlot.getVenueId());
             if (venue != null) {
                 CurrentBookingResponseDTO.VenueInfoDTO venueInfo = new CurrentBookingResponseDTO.VenueInfoDTO();
-                venueInfo.setName(venue.getRoomName());
-                venueInfo.setBuilding(venue.getBuilding());
-                venueInfo.setRoom(venue.getRoomUrl());
+                venueInfo.setVenueName(venue.getRoomName());
+                venueInfo.setId(venue.getId());
+                venueInfo.setAssignmentId(venue.getAssignmentId());
                 sessionInfo.setVenue(venueInfo);
             }
         }

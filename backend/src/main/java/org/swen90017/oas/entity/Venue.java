@@ -12,7 +12,6 @@ public class Venue {
     private Long id;
 
     private String roomName;
-    private Integer capacity;
-    private String building;
-    private String roomUrl;
+
+    private Long assignmentId;
 }

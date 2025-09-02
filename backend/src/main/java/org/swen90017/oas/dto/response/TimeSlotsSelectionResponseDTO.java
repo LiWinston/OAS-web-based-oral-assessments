@@ -93,11 +93,9 @@ public class TimeSlotsSelectionResponseDTO {
         @Schema(description = "Venue name", example = "Engineering")
         private String name;
 
-        @Schema(description = "Building", example = "ENG")
-        private String building;
+        @Schema(description = "assignmentId", example = "12")
+        private Long assignmentId;
 
-        @Schema(description = "Room", example = "405")
-        private String room;
     }
 
     @Data

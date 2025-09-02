@@ -95,13 +95,13 @@ public class CurrentBookingResponseDTO {
     @Data
     @Schema(description = "Venue information")
     public static class VenueInfoDTO {
+        @Schema(description = "Venue ID", example = "31")
+        private Long id;
+
         @Schema(description = "Venue name", example = "Engineering")
-        private String name;
-        
-        @Schema(description = "Building", example = "ENG")
-        private String building;
-        
-        @Schema(description = "Room", example = "405")
-        private String room;
+        private String venueName;
+
+        @Schema(description = "Assignment ID to which venue belongs", example = "101")
+        private Long assignmentId;
     }
 }

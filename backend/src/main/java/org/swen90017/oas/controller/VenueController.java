@@ -1,25 +1,31 @@
 package org.swen90017.oas.controller;
 
-
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.Result;
+import org.swen90017.oas.entity.Venue;
 import org.swen90017.oas.service.VenueService;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/superadmin/venues")
+@RequestMapping("/api")
 public class VenueController {
     @Autowired
     private VenueService venueService;
 
-    @Operation(summary = "导入场地 CSV（按批UPSERT）")
-    @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result importVenues(@RequestPart("file") MultipartFile file,
-                               @RequestParam(value = "batchSize", defaultValue = "1100") int batchSize) {
-        venueService.importCsv(file, batchSize);
-        return Result.success();
+    @Operation(summary = "Create a venue")
+    @PostMapping("/venues")
+    public Result<Venue> create(@RequestBody Venue venue) {
+        return Result.success(venueService.createVenue(venue));
+    }
+
+    @Operation(summary = "List venues by assignment")
+    @GetMapping("/assignments/{assignmentId}/venues")
+    public Result<List<Venue>> listByAssignment(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
+        return Result.success(venueService.listByAssignmentId(assignmentId));
     }
 }

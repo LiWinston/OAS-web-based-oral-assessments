@@ -3,14 +3,20 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.swen90017.oas.mapper.VenueMapper">
     <insert id="upsertBatch">
-        INSERT INTO venue (room_name, capacity, building, room_url)
+        INSERT INTO venue (id, room_name, assignment_id)
         VALUES
         <foreach collection="list" item="item" separator=",">
-            (#{item.roomName}, #{item.capacity}, #{item.building}, #{item.roomUrl})
+            (#{item.id}, #{item.roomName}, #{item.assignmentId})
         </foreach>
         ON DUPLICATE KEY UPDATE
         room_name = VALUES(room_name),
-        capacity  = VALUES(capacity),
-        building  = VALUES(building)
+        assignment_id = VALUES(assignment_id)
     </insert>
+
+    <select id="listByAssignmentId" parameterType="long" resultType="org.swen90017.oas.entity.Venue">
+        SELECT id, room_name AS roomName, assignment_id AS assignmentId
+        FROM venue
+        WHERE assignment_id = #{assignmentId}
+        ORDER BY id ASC
+    </select>
 </mapper>

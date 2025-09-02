@@ -196,8 +196,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 if (venue != null) {
                     venueDTO.setVenueId(venue.getId());
                     venueDTO.setName(venue.getRoomName());
-                    venueDTO.setBuilding(venue.getBuilding());
-                    venueDTO.setRoom(venue.getRoomName());
+                    venueDTO.setAssignmentId(venue.getAssignmentId());
                 }
             }
             slotDTO.setVenue(venueDTO);
@@ -368,8 +367,9 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 ExaminerScheduleResponseDTO.VenueInfo v = new ExaminerScheduleResponseDTO.VenueInfo();
                 Venue venue = venueMapper.selectById(ts.getVenueId());
                 if (venue != null) {
-                    v.setBuilding(venue.getBuilding());
-                    v.setRoom(venue.getRoomName());
+                    v.setId(venue.getId());
+                    v.setVenueName(venue.getRoomName());
+                    v.setAssignmentId(venue.getAssignmentId());
                 }
                 sd.setVenue(v);
                 sd.setSessionCount(ts.getSessionCount());

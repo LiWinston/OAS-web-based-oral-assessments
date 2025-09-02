@@ -10,4 +10,6 @@ import java.util.List;
 @Mapper
 public interface VenueMapper extends BaseMapper<Venue> {
     int upsertBatch(@Param("list") List<Venue> list);
+
+    List<Venue> listByAssignmentId(@Param("assignmentId") Long assignmentId);
 }

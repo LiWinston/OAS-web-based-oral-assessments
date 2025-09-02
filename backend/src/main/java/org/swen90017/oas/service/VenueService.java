@@ -1,7 +1,11 @@
 package org.swen90017.oas.service;
 
-import org.springframework.web.multipart.MultipartFile;
+import org.swen90017.oas.entity.Venue;
+
+import java.util.List;
 
 public interface VenueService {
-    void importCsv(MultipartFile file, int batchSizeIgnored);
+    Venue createVenue(Venue venue);
+
+    List<Venue> listByAssignmentId(Long assignmentId);
 }

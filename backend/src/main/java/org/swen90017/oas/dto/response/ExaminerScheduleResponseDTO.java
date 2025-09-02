@@ -38,8 +38,10 @@ public class ExaminerScheduleResponseDTO {
 
     @Data
     public static class VenueInfo {
-        private String building;
-        private String room;
+        private Long Id;
+        private String venueName;
+        private Long assignmentId;
+
     }
 }
 
