@@ -16,7 +16,7 @@ public class VenueController {
     @Autowired
     private VenueService venueService;
 
-    @Operation(summary = "Create a venue")
+    @Operation(summary = "Create new a venue")
     @PostMapping("/venues")
     public Result<Venue> create(@RequestBody Venue venue) {
         return Result.success(venueService.createVenue(venue));

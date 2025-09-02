@@ -45,6 +45,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private final AssignmentMapper assignmentMapper;
     private final SysUserMapper sysUserMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
+    private final VenueMapper venueMapper;
 
     @Override
     public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, LocalDate date, String status) {
@@ -279,6 +280,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         }
         
         // Delete sessions first
+        List<Long> deleted = new ArrayList<>();
         for (Long timeSlotId : timeSlotIds) {
             // Delete slot sessions
             List<SlotSession> sessions = slotSessionMapper.findBySlotId(timeSlotId);
@@ -292,10 +294,13 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                     .eq("slot_id", timeSlotId));
             
             // Delete time slot
-            timeSlotMapper.deleteById(timeSlotId);
+            int rows = timeSlotMapper.deleteById(timeSlotId);
+            if (rows > 0) {
+                deleted.add(timeSlotId);
+            }
         }
+        return deleted;
         
-        return new ArrayList<>(timeSlotIds);
     }
 
     @Override
@@ -389,6 +394,13 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         dto.setStartTime(timeSlot.getStartAt().toLocalTime());
         dto.setEndTime(timeSlot.getEndAt().toLocalTime());
         dto.setVenueId(timeSlot.getVenueId());
+        // 填充场地名称
+        try {
+            Venue v = venueMapper.selectById(timeSlot.getVenueId());
+            if (v != null) {
+                dto.setVenueName(v.getRoomName());
+            }
+        } catch (Exception ignored) {}
         dto.setRequiredExaminers(timeSlot.getRequiredExaminers());
         dto.setSessionCount(timeSlot.getSessionCount());
         dto.setStatus(timeSlot.getStatus());

@@ -28,6 +28,9 @@ public class TimeSlotDetailDTO {
     @Schema(description = "Venue", example = "Engineering Building, Room 405")
     private Long venueId;
 
+    @Schema(description = "Venue name", example = "Engineering")
+    private String venueName;
+
     @Schema(description = "Required number of examiners", example = "2")
     private Integer requiredExaminers;
 
