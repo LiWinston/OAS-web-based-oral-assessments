@@ -12,6 +12,7 @@ import org.swen90017.oas.dto.request.ReleaseScheduleRequestDTO;
 import org.swen90017.oas.dto.request.UpdateExaminerSessionLimitsRequestDTO;
 import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
+import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 import org.swen90017.oas.entity.TimeSlot;
 import org.swen90017.oas.enums.SlotStatus;
 import org.swen90017.oas.exception.BusinessException;
@@ -145,7 +146,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             // 先尝试更新；若更新行数为 0，则插入
             int rows = examinerAssignmentLimitMapper.updateMaxSessionsByPair(limit.getExaminerId(), assignmentId, limit.getMaxSessions());
             if (rows == 0) {
-                org.swen90017.oas.entity.ExaminerAssignmentLimit record = new org.swen90017.oas.entity.ExaminerAssignmentLimit();
+                ExaminerAssignmentLimit record = new ExaminerAssignmentLimit();
                 record.setExaminerId(limit.getExaminerId());
                 record.setAssignmentId(assignmentId);
                 record.setMaxSessions(limit.getMaxSessions());

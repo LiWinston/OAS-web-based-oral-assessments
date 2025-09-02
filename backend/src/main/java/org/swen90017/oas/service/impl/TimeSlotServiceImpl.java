@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Objects;
 
 /**
  * Time Slot Service Implementation
@@ -127,12 +128,27 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             throw new BusinessException(BusinessError.SESSION_CONFIG_NOT_FOUND);
         }
 
+        // 1) assignment 必须已存在至少一个 venue
+        List<Venue> venuesOfAssignment = venueMapper.listByAssignmentId(assignmentId);
+        if (venuesOfAssignment == null || venuesOfAssignment.isEmpty()) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_HAS_NO_VENUE);
+        }
+
         List<TimeSlotDetailDTO> createdTimeSlots = new ArrayList<>();
         int totalSessionsGenerated = 0;
         
         for (TimeSlotRequestDTO timeSlotRequest : request.getTimeSlots()) {
             try {
-                // Validate venue overlap
+                // 2) 校验传入的 venueId 必须存在，且归属于该 assignment
+                Venue v = venueMapper.selectById(timeSlotRequest.getVenueId());
+                if (v == null) {
+                    throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
+                }
+                if (!Objects.equals(v.getAssignmentId(), assignmentId)) {
+                    throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
+                }
+
+                // 3) Validate venue overlap
                 LocalDateTime startAt = timeSlotRequest.getDate().atTime(timeSlotRequest.getStartTime());
                 LocalDateTime endAt = timeSlotRequest.getDate().atTime(timeSlotRequest.getEndTime());
                 
@@ -182,11 +198,20 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         }
         ensureAssignmentNotReleased(existingSlot.getAssignmentId());
 
-        // Update time slot
+        // 1) 校验 venueId 必须存在且属于该 assignment
+        Venue v = venueMapper.selectById(request.getVenueId());
+        if (v == null) {
+            throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
+        }
+        if (!Objects.equals(v.getAssignmentId(), existingSlot.getAssignmentId())) {
+            throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
+        }
+
+        // 2) Update time slot
         LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
         LocalDateTime endAt = request.getDate().atTime(request.getEndTime());
         
-        // Check venue overlap (excluding current slot)
+        // 3) Check venue overlap (excluding current slot)
         int overlapCount = timeSlotMapper.countVenueOverlap(
             existingSlot.getAssignmentId(), request.getVenueId(), startAt, endAt, timeSlotId);
         
