@@ -1,4 +1,5 @@
 import apiClient from '@/services/apiClient.js';
+import { to24Hour } from '@/lib/timeMath.js';
 
 /**
  * Unified Course Admin Timeslot Service
@@ -8,8 +9,9 @@ import apiClient from '@/services/apiClient.js';
  */
 
 // Toggle: use mocks vs. call real API
-// Default to mocks unless explicitly disabled (NEXT_PUBLIC_USE_MOCKS=false)
-const USE_MOCKS = process.env.NEXT_PUBLIC_USE_MOCKS !== 'false';
+// Support both env var names; default to mocks unless explicitly disabled
+const mockFlag = process.env.NEXT_PUBLIC_USE_MOCK_API ?? 'true';
+const USE_MOCKS = String(mockFlag) !== 'false';
 
 // Helper to optionally call API without triggering axios error logging in dev
 // When USE_MOCKS is true, we skip network calls entirely to avoid 404 logs
@@ -18,9 +20,33 @@ async function callApiIfEnabled(fn) {
     try {
       return await fn();
     } catch (e) {
+      // Log diagnostic details without throwing (interceptor already logs a summary)
+      const status = e?.response?.status;
+      const url = e?.config?.url;
+      const method = e?.config?.method;
+      const data = e?.response?.data;
+      // eslint-disable-next-line no-console
+      console.warn('[courseAdminTimeslotService] API error', { method, url, status, data });
       // swallow errors; service returns mock-shaped data below
     }
   }
+}
+
+// Extract payload from various backend response shapes
+function extractData(resp) {
+  if (!resp) return null;
+  const d = resp.data;
+  if (d == null) return null;
+  if (typeof d === 'object') {
+    if (Object.prototype.hasOwnProperty.call(d, 'data')) return d.data;
+    if (Object.prototype.hasOwnProperty.call(d, 'timeSlots')) return d.timeSlots;
+    if (Object.prototype.hasOwnProperty.call(d, 'dates')) return d.dates;
+  }
+  return d;
+}
+
+function success(data, message = '') {
+  return { success: true, data, message };
 }
 
 // In-memory mock state to keep UI stable and interactive
@@ -87,12 +113,20 @@ const withStatus = (slot) => ({
   status: determineStatus(slot.assignedExaminers?.length || 0, slot.requiredExaminers || 0),
 });
 
-const base = (assignmentId) => `/admin/assignments/${assignmentId}`;
+// NOTE: Backend paths are under /api per Swagger
+const base = (assignmentId) => `/api/admin/assignments/${assignmentId}`;
 
 export const courseAdminTimeslotService = {
   // 1) Session Configuration
   async getSessionConfig(assignmentId) {
-    await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/session-config`));
+    const resp = await callApiIfEnabled(() =>
+      apiClient.get(`${base(assignmentId)}/session-config`)
+    );
+
+    if (!USE_MOCKS && resp) {
+      const data = extractData(resp) || {};
+      return success(data, 'Session configuration (api)');
+    }
 
     await delay();
     const config = mockSessionConfigs[assignmentId] || {
@@ -102,11 +136,18 @@ export const courseAdminTimeslotService = {
       examinersPerSession: 2,
       isConfigured: false,
     };
-    return { success: true, data: config, message: 'Session configuration (mock)' };
+    return success(config, 'Session configuration (mock)');
   },
 
   async saveSessionConfig(assignmentId, body) {
-    await callApiIfEnabled(() => apiClient.put(`${base(assignmentId)}/session-config`, body));
+    const resp = await callApiIfEnabled(() =>
+      apiClient.put(`${base(assignmentId)}/session-config`, body)
+    );
+
+    if (!USE_MOCKS && resp) {
+      const data = extractData(resp) || body || {};
+      return success(data, 'Session configuration saved (api)');
+    }
 
     await delay();
     mockSessionConfigs[assignmentId] = {
@@ -114,7 +155,7 @@ export const courseAdminTimeslotService = {
       ...body,
       isConfigured: true,
     };
-    return { success: true, data: mockSessionConfigs[assignmentId], message: 'Session configuration saved (mock)' };
+    return success(mockSessionConfigs[assignmentId], 'Session configuration saved (mock)');
   },
 
   // 5) Calendar Integration
@@ -149,7 +190,68 @@ export const courseAdminTimeslotService = {
 
   // 2) Time Slot Management
   async createTimeSlotsBatch(assignmentId, { timeSlots }) {
-    await callApiIfEnabled(() => apiClient.post(`${base(assignmentId)}/timeslots/batch`, { timeSlots }));
+    // Prepare request body for real API shape
+    const fallbackVenueId = process.env.NEXT_PUBLIC_TEST_VENUE_ID
+      ? Number(process.env.NEXT_PUBLIC_TEST_VENUE_ID)
+      : undefined;
+
+    const requestSlots = (timeSlots || []).map((slot) => {
+      const end24 = slot.endTime && slot.endTime.includes(' ')
+        ? to24Hour(slot.endTime)
+        : slot.endTime;
+
+      // Derive a venueId if provided directly or via env for testing
+      let venueId = slot.venueId;
+      if (venueId == null) {
+        const parsed = Number(slot.venue);
+        if (!Number.isNaN(parsed)) venueId = parsed;
+      }
+      if (venueId == null && fallbackVenueId != null) venueId = fallbackVenueId;
+
+      return {
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: end24,
+        sessionCount: slot.sessionCount,
+        venueId,
+      };
+    });
+
+    // Validate venueId presence to avoid opaque 400s
+    const missingVenue = requestSlots.find((s) => s.venueId == null);
+    if (!USE_MOCKS && missingVenue) {
+      return { success: false, data: [], message: 'Missing venueId: set NEXT_PUBLIC_TEST_VENUE_ID or provide slot.venueId' };
+    }
+
+    const resp = await callApiIfEnabled(() =>
+      apiClient.post(`${base(assignmentId)}/timeslots/batch`, { timeSlots: requestSlots })
+    );
+
+    if (!USE_MOCKS && resp) {
+      const raw = extractData(resp);
+      // Accept arrays or wrapped objects { timeSlots: [...] }
+      const arr = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.timeSlots)
+        ? raw.timeSlots
+        : Array.isArray(raw?.data?.timeSlots)
+        ? raw.data.timeSlots
+        : [];
+
+      const normalized = arr.map((slot) =>
+        withStatus({
+          id: slot.id,
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          venue: slot.venue,
+          requiredExaminers: slot.requiredExaminers ?? slot.examinersPerSession ?? 0,
+          sessionCount: slot.sessionCount,
+          assignedExaminers: slot.assignedExaminers || [],
+        })
+      );
+      return success(normalized, 'Time slots created (api)');
+    }
 
     await delay();
     // naive conflict detection by same date/venue/start
@@ -162,11 +264,7 @@ export const courseAdminTimeslotService = {
     });
     if (conflicts.length) {
       // still return success true with empty create to keep UI flowing
-      return {
-        success: true,
-        data: [],
-        message: `Conflicts detected (mock): ${conflicts.join(', ')}`,
-      };
+      return success([], `Conflicts detected (mock): ${conflicts.join(', ')}`);
     }
 
     const created = timeSlots.map((slot) =>
@@ -178,7 +276,7 @@ export const courseAdminTimeslotService = {
       }),
     );
     mockTimeSlots.push(...created);
-    return { success: true, data: created, message: `${created.length} time slots created (mock)` };
+    return success(created, `${created.length} time slots created (mock)`);
   },
 
   async getTimeSlots(assignmentId, filters = {}) {

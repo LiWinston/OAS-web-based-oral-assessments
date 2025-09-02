@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { showError } from '@/lib/notifications.js';
 
@@ -21,18 +22,32 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
     examinersPerSession
   } = useSessionConfig(assignmentId);
 
+  // Local form state: only persist to backend when Next is pressed
+  const [formSessionLength, setFormSessionLength] = useState(30);
+  const [formGapTime, setFormGapTime] = useState(5);
+  const [formExaminersPerSession, setFormExaminersPerSession] = useState(2);
+
+  // Initialize local form from loaded config
+  useEffect(() => {
+    if (config) {
+      setFormSessionLength(Number(config.sessionLength ?? 30));
+      setFormGapTime(Number(config.gapTime ?? 5));
+      setFormExaminersPerSession(Number(config.examinersPerSession ?? 2));
+    }
+  }, [config]);
+
   const handleNext = () => {
     // Validate step 1
-    if (sessionLength <= 0 || gapTime < 0 || examinersPerSession <= 0) {
+    if (formSessionLength <= 0 || formGapTime < 0 || formExaminersPerSession <= 0) {
       showError('Please fill in all required fields with valid values');
       return;
     }
 
     // Save session config as specified in Section 8: "Next" on Step 1 → call saveSessionConfig
     const configData = {
-      sessionLength: Number(sessionLength),
-      gapTime: Number(gapTime),
-      examinersPerSession: Number(examinersPerSession)
+      sessionLength: Number(formSessionLength),
+      gapTime: Number(formGapTime),
+      examinersPerSession: Number(formExaminersPerSession)
     };
 
     saveConfig(configData, {
@@ -43,27 +58,15 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
   };
 
   const handleSessionLengthChange = (newValue) => {
-    const updatedConfig = {
-      ...config,
-      sessionLength: Number(newValue)
-    };
-    saveConfig(updatedConfig);
+    setFormSessionLength(Number(newValue));
   };
 
   const handleGapTimeChange = (newValue) => {
-    const updatedConfig = {
-      ...config,
-      gapTime: Number(newValue)
-    };
-    saveConfig(updatedConfig);
+    setFormGapTime(Number(newValue));
   };
 
   const handleExaminersPerSessionChange = (newValue) => {
-    const updatedConfig = {
-      ...config,
-      examinersPerSession: Number(newValue)
-    };
-    saveConfig(updatedConfig);
+    setFormExaminersPerSession(Number(newValue));
   };
 
   if (isLoading) {
@@ -111,7 +114,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
             <div className="number-input-container">
               <button 
                 className="number-btn" 
-                onClick={() => handleSessionLengthChange(Math.max(1, sessionLength - 5))} 
+                onClick={() => handleSessionLengthChange(Math.max(1, formSessionLength - 5))} 
                 title="Decrease session length"
                 disabled={isSaving}
               >
@@ -123,13 +126,13 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 className="number-input"
                 min="1"
                 step="5"
-                value={sessionLength}
+                value={formSessionLength}
                 onChange={(e) => handleSessionLengthChange(Number(e.target.value) || 1)}
                 disabled={isSaving}
               />
               <button 
                 className="number-btn" 
-                onClick={() => handleSessionLengthChange(sessionLength + 5)} 
+                onClick={() => handleSessionLengthChange(formSessionLength + 5)} 
                 title="Increase session length"
                 disabled={isSaving}
               >
@@ -160,7 +163,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
             <div className="number-input-container">
               <button 
                 className="number-btn" 
-                onClick={() => handleGapTimeChange(Math.max(0, gapTime - 1))} 
+                onClick={() => handleGapTimeChange(Math.max(0, formGapTime - 1))} 
                 title="Decrease gap time"
                 disabled={isSaving}
               >
@@ -172,13 +175,13 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 className="number-input"
                 min="0"
                 step="1"
-                value={gapTime}
+                value={formGapTime}
                 onChange={(e) => handleGapTimeChange(Number(e.target.value) || 0)}
                 disabled={isSaving}
               />
               <button 
                 className="number-btn" 
-                onClick={() => handleGapTimeChange(gapTime + 1)} 
+                onClick={() => handleGapTimeChange(formGapTime + 1)} 
                 title="Increase gap time"
                 disabled={isSaving}
               >
@@ -209,7 +212,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
             <div className="number-input-container">
               <button 
                 className="number-btn" 
-                onClick={() => handleExaminersPerSessionChange(Math.max(1, examinersPerSession - 1))} 
+                onClick={() => handleExaminersPerSessionChange(Math.max(1, formExaminersPerSession - 1))} 
                 title="Decrease examiner count"
                 disabled={isSaving}
               >
@@ -221,13 +224,13 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 className="number-input"
                 min="1"
                 step="1"
-                value={examinersPerSession}
+                value={formExaminersPerSession}
                 onChange={(e) => handleExaminersPerSessionChange(Number(e.target.value) || 1)}
                 disabled={isSaving}
               />
               <button 
                 className="number-btn" 
-                onClick={() => handleExaminersPerSessionChange(examinersPerSession + 1)} 
+                onClick={() => handleExaminersPerSessionChange(formExaminersPerSession + 1)} 
                 title="Increase examiner count"
                 disabled={isSaving}
               >
@@ -245,15 +248,15 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-sm text-gray-500 dark:text-gray-400">Session duration:</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{sessionLength} minutes</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formSessionLength} minutes</span>
             </div>
             <div className="flex justify-between">
               <span className="text-sm text-gray-500 dark:text-gray-400">Gap between sessions:</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{gapTime} minutes</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formGapTime} minutes</span>
             </div>
             <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
               <span className="text-sm text-gray-500 dark:text-gray-400">Total time per session:</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{Number(sessionLength) + Number(gapTime)} minutes</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{Number(formSessionLength) + Number(formGapTime)} minutes</span>
             </div>
           </div>
         </div>

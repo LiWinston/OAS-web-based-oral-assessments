@@ -939,7 +939,6 @@ The following reflects the current state of the frontend implementation against 
 
 - **Complete architectural overhaul** of the Course Admin timeslot management system following SOLID principles
 - **Replaced monolithic components** with modular, reusable components following the Single Responsibility Principle
-- **Implemented service layer pattern** with mock/real API switching via `NEXT_PUBLIC_USE_MOCKS` environment variable
 - **Migrated from local state to server state** using React Query hooks for all data operations
 - **Added comprehensive JSDoc typedefs** for all data models (TimeSlot, SessionConfig, Examiner, etc.)
 - **Fixed query key structures** to follow specification pattern: `['assignment', assignmentId, 'resource']`
