@@ -35,7 +35,9 @@ export function mapTimeSlotFromApi(apiTimeSlot) {
     date: apiTimeSlot.date, // Keep YYYY-MM-DD format
     startTime: apiTimeSlot.startTime, // Keep 24h format per spec - API uses 24h
     endTime: apiTimeSlot.endTime,
-    venue: apiTimeSlot.venue,
+    // Prefer 'venue' if already mapped by service, else fall back to 'venueName'
+    venue: apiTimeSlot.venue || apiTimeSlot.venueName || '',
+    venueId: apiTimeSlot.venueId,
     requiredExaminers: apiTimeSlot.requiredExaminers,
     sessionCount: apiTimeSlot.sessionCount, // Use consistent field name
     status: determineStatus(
@@ -60,6 +62,7 @@ export function mapTimeSlotToApi(uiTimeSlot) {
     startTime: uiTimeSlot.startTime, // Already 24h format per spec
     endTime: uiTimeSlot.endTime,
     venue: uiTimeSlot.venue,
+    venueId: uiTimeSlot.venueId,
     requiredExaminers: uiTimeSlot.requiredExaminers,
     sessionCount: uiTimeSlot.sessionCount,
     assignedExaminers: uiTimeSlot.assignedExaminers || []

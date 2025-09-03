@@ -43,6 +43,7 @@ export default function AssignmentTimeSlotsPage() {
   const {
     data: timeSlots,
     isLoading: isLoadingSlots,
+    createBatch,
     updateSlot,
     deleteSlots,
     duplicateSlot,
@@ -104,9 +105,8 @@ export default function AssignmentTimeSlotsPage() {
         data: timeSlotData
       });
     } else {
-      // For adds, we create a single-item batch (per Section 9.2)
-      // This will be handled by the createBatch mutation in useTimeSlots
-      console.log('Add new time slot:', timeSlotData);
+      // For adds, create a single-item batch (per Section 9.2)
+      createBatch([timeSlotData]);
     }
     closeModal();
   };

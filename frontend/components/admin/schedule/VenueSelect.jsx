@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVenues } from '@/hooks/useVenues.js';
 
-export default function VenueSelect({ assignmentId, value = null, onChange, placeholder = 'Select a venue' }) {
+export default function VenueSelect({ assignmentId, value = null, selectedName = '', onChange, placeholder = 'Select a venue' }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { data: venues, isLoading, create, isCreating } = useVenues(assignmentId, '');
@@ -36,13 +36,27 @@ export default function VenueSelect({ assignmentId, value = null, onChange, plac
   const handleCreate = async () => {
     const name = search.trim();
     if (!name) return;
+    // If exact name already exists for this assignment, use it instead of creating
+    const existing = (venues || []).find(v => (v.name || '').trim() === name);
+    if (existing) {
+      // eslint-disable-next-line no-console
+      console.log('[VenueSelect] Using existing venue instead of creating', existing);
+      onChange?.(existing);
+      setSearch('');
+      setOpen(false);
+      return;
+    }
+
+    // Optimistic select and close, then create and replace with real id
+    onChange?.({ id: null, name });
+    setSearch('');
+    setOpen(false);
     // eslint-disable-next-line no-console
     console.log('[VenueSelect] Create venue (frontend)', { name });
     create(name, {
       onSuccess: (venue) => {
-        setSearch('');
+        // Replace optimistic value with actual venue from backend
         onChange?.(venue);
-        setOpen(false);
       }
     });
   };
@@ -56,8 +70,8 @@ export default function VenueSelect({ assignmentId, value = null, onChange, plac
         aria-haspopup="listbox"
         aria-expanded={open}
       >
-        <span className={selected ? '' : 'text-gray-500 dark:text-gray-400'}>
-          {selected ? selected.name : placeholder}
+        <span className={(selected || selectedName) ? '' : 'text-gray-500 dark:text-gray-400'}>
+          {selected ? selected.name : (selectedName || placeholder)}
         </span>
         <i className="fas fa-chevron-down ml-2 text-gray-400" />
       </button>

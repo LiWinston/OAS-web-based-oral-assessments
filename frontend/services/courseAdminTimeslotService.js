@@ -190,6 +190,8 @@ export const courseAdminTimeslotService = {
 
   // 2) Time Slot Management
   async createTimeSlotsBatch(assignmentId, { timeSlots }) {
+    console.log(timeSlots)
+    
     // Prepare request body for real API shape
     const fallbackVenueId = process.env.NEXT_PUBLIC_TEST_VENUE_ID
       ? Number(process.env.NEXT_PUBLIC_TEST_VENUE_ID)
@@ -280,44 +282,142 @@ export const courseAdminTimeslotService = {
   },
 
   async getTimeSlots(assignmentId, filters = {}) {
-    await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/timeslots`, { params: filters }));
+    const url = `${base(assignmentId)}/timeslots`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] GET', url, { params: filters });
+    const resp = await callApiIfEnabled(() => apiClient.get(url, { params: filters }));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] GET timeslots response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const raw = extractData(resp);
+      const arr = Array.isArray(raw?.timeSlots) ? raw.timeSlots : Array.isArray(raw) ? raw : [];
+      const normalized = arr.map((slot) => withStatus({
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        venue: slot.venueName,
+        venueId: slot.venueId,
+        requiredExaminers: slot.requiredExaminers,
+        sessionCount: slot.sessionCount,
+        status: slot.status,
+        assignedExaminers: slot.assignedExaminers || []
+      }));
+      return success(normalized, 'Time slots (api)');
+    }
 
     await delay();
     let res = [...mockTimeSlots];
     if (filters.date) res = res.filter((s) => s.date === filters.date);
     if (filters.status) res = res.filter((s) => s.status === filters.status);
-    return { success: true, data: res.map(withStatus), message: 'Time slots (mock)' };
+    return success(res.map(withStatus), 'Time slots (mock)');
   },
 
   async updateTimeSlot(assignmentId, timeSlotId, body) {
-    await callApiIfEnabled(() => apiClient.put(`${base(assignmentId)}/timeslots/${timeSlotId}`, body));
+    const url = `${base(assignmentId)}/timeslots/${timeSlotId}`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] PUT', url, { body });
+    const req = {
+      date: body.date,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      sessionCount: body.sessionCount,
+      venueId: body.venueId
+    };
+    const resp = await callApiIfEnabled(() => apiClient.put(url, req));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] PUT timeslot response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const raw = extractData(resp);
+      const slot = raw?.timeSlot || raw; // tolerate either
+      const normalized = withStatus({
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        venue: slot.venueName,
+        venueId: slot.venueId,
+        requiredExaminers: slot.requiredExaminers,
+        sessionCount: slot.sessionCount,
+        status: slot.status,
+        assignedExaminers: slot.assignedExaminers || []
+      });
+      return success(normalized, 'Time slot updated (api)');
+    }
 
     await delay();
     const idx = mockTimeSlots.findIndex((s) => s.id === timeSlotId);
     if (idx === -1) {
-      return { success: true, data: null, message: 'Time slot not found (mock)' };
+      return success(null, 'Time slot not found (mock)');
     }
     const updated = withStatus({ ...mockTimeSlots[idx], ...body });
     mockTimeSlots[idx] = updated;
-    return { success: true, data: updated, message: 'Time slot updated (mock)' };
+    return success(updated, 'Time slot updated (mock)');
   },
 
   async deleteTimeSlots(assignmentId, ids) {
-    await callApiIfEnabled(() => apiClient.delete(`${base(assignmentId)}/timeslots`, { data: { timeSlotIds: ids } }));
+    const url = `${base(assignmentId)}/timeslots`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] DELETE', url, { ids });
+    const resp = await callApiIfEnabled(() => apiClient.delete(url, { data: { timeSlotIds: ids } }));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] DELETE timeslots response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const raw = extractData(resp);
+      const deletedIds = Array.isArray(raw) ? raw : raw?.deletedIds || ids;
+      return success({ deletedCount: deletedIds.length, deletedIds }, 'Time slots deleted (api)');
+    }
 
     await delay();
     const before = mockTimeSlots.length;
     mockTimeSlots = mockTimeSlots.filter((s) => !ids.includes(s.id));
     const deleted = before - mockTimeSlots.length;
-    return { success: true, data: { deletedCount: deleted }, message: `${deleted} deleted (mock)` };
+    return success({ deletedCount: deleted }, `${deleted} deleted (mock)`);
   },
 
   async duplicateTimeSlot(assignmentId, timeSlotId, body = {}) {
-    await callApiIfEnabled(() => apiClient.post(`${base(assignmentId)}/timeslots/${timeSlotId}/duplicate`, body));
+    const url = `${base(assignmentId)}/timeslots/${timeSlotId}/duplicate`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] POST', url, { body });
+    const resp = await callApiIfEnabled(() => apiClient.post(url, body));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] POST duplicate response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const slot = extractData(resp);
+      const normalized = withStatus({
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        venue: slot.venueName,
+        venueId: slot.venueId,
+        requiredExaminers: slot.requiredExaminers,
+        sessionCount: slot.sessionCount,
+        status: slot.status,
+        assignedExaminers: slot.assignedExaminers || []
+      });
+      return success(normalized, 'Time slot duplicated (api)');
+    }
 
     await delay();
     const orig = mockTimeSlots.find((s) => s.id === timeSlotId);
-    if (!orig) return { success: true, data: null, message: 'Original not found (mock)' };
+    if (!orig) return success(null, 'Original not found (mock)');
 
     let newDate = body.date;
     if (!newDate) {
@@ -328,7 +428,7 @@ export const courseAdminTimeslotService = {
     const dup = withStatus({ ...orig, id: generateId(), date: newDate, assignedExaminers: [] });
     dup.status = 'empty';
     mockTimeSlots.push(dup);
-    return { success: true, data: dup, message: 'Time slot duplicated (mock)' };
+    return success(dup, 'Time slot duplicated (mock)');
   },
 
   // 3) Examiner Management

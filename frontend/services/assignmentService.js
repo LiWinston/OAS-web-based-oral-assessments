@@ -1,7 +1,11 @@
 import { api } from "./apiClient";
 
-// For development - mock API responses
-const USE_MOCK_API = false;
+// For development - mock API responses (env-controlled)
+const MOCK_FLAG =
+  process.env.NEXT_PUBLIC_USE_MOCK_ASSIGNMENTS ??
+  process.env.NEXT_PUBLIC_USE_MOCK_API ??
+  "false";
+const USE_MOCK_API = String(MOCK_FLAG) === "true";
 
 // Utility function to convert date strings to datetime format for Java backend
 const formatDateForBackend = (dateString) => {
@@ -197,9 +201,22 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignments(courseId);
     }
-    const response = await api.get(`/api/assignments/subject/${courseId}`);
-    // const response = await api.get(`/api/courses/${courseId}/assignments`);
-    return response.data;
+    try {
+      const url = `/api/assignments/subject/${courseId}`;
+      const response = await api.get(url);
+      return response.data;
+    } catch (e) {
+      // Improve frontend-side diagnostics (interceptor also logs a generic message)
+      const status = e?.response?.status;
+      const data = e?.response?.data;
+      // eslint-disable-next-line no-console
+      console.warn("[assignmentService] GET /api/assignments/subject/{id} failed", {
+        courseId,
+        status,
+        data,
+      });
+      return { success: false, message: data?.message || "Assignments fetch failed", code: status };
+    }
   },
 
   async createAssignment(data) {
@@ -277,8 +294,21 @@ export const assignmentService = {
     if (USE_MOCK_API) {
       return await mockAssignmentService.getAssignmentStats(courseId);
     }
-    const response = await api.get(`/api/assignments/subject/${courseId}/stats`);
-    return response.data;
+    try {
+      const url = `/api/assignments/subject/${courseId}/stats`;
+      const response = await api.get(url);
+      return response.data;
+    } catch (e) {
+      const status = e?.response?.status;
+      const data = e?.response?.data;
+      // eslint-disable-next-line no-console
+      console.warn("[assignmentService] GET /api/assignments/subject/{id}/stats failed", {
+        courseId,
+        status,
+        data,
+      });
+      return { success: false, message: data?.message || "Assignment stats fetch failed", code: status };
+    }
   },
 
   // Student CSV Preview - Preview student/group CSV data before import
