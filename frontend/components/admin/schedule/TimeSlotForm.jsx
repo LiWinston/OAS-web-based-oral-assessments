@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
-import { calculateEndTimeWithConfig } from '@/lib/timeMath.js';
+import { calculateEndTimeWithConfig, to24Hour } from '@/lib/timeMath.js';
 import { showError } from '@/lib/notifications.js';
+import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
 
 /**
  * TimeSlotForm - Form for adding/editing time slots in the wizard
@@ -21,34 +22,31 @@ export default function TimeSlotForm({
   const { data: sessionConfig } = useSessionConfig(assignmentId);
   
   const [timeSlotStartDate, setTimeSlotStartDate] = useState(editingSlot?.date || '');
-  const [timeSlotStartTimeHour, setTimeSlotStartTimeHour] = useState(
-    editingSlot ? editingSlot.startTime.split(':')[0] : '9'
-  );
-  const [timeSlotStartTimeMinute, setTimeSlotStartTimeMinute] = useState(
-    editingSlot ? editingSlot.startTime.split(':')[1] : '00'
+  const [timeSlotStartTime, setTimeSlotStartTime] = useState(
+    editingSlot ? editingSlot.startTime : '09:00'
   );
   const [sessionCount, setSessionCount] = useState(editingSlot?.sessionCount || 3);
-  const [timeSlotVenue, setTimeSlotVenue] = useState(editingSlot?.venue || '');
+  const [venueId, setVenueId] = useState(editingSlot?.venueId || null);
+  const [venueName, setVenueName] = useState(editingSlot?.venue || '');
 
-  const calculateEndTime = () => {
-    if (!timeSlotStartDate || sessionCount <= 0 || !sessionConfig) return 'N/A';
-    
-    const startTime24h = `${timeSlotStartTimeHour.padStart(2, '0')}:${timeSlotStartTimeMinute}`;
-    return calculateEndTimeWithConfig(startTime24h, sessionCount, sessionConfig);
-  };
+  const calculatedEndTime12h = useMemo(() => {
+    if (!timeSlotStartDate || sessionCount <= 0 || !sessionConfig || !timeSlotStartTime) return 'N/A';
+    return calculateEndTimeWithConfig(timeSlotStartTime, sessionCount, sessionConfig);
+  }, [timeSlotStartDate, sessionCount, sessionConfig, timeSlotStartTime]);
 
-  const formatTime24h = () => {
-    return `${timeSlotStartTimeHour.padStart(2, '0')}:${timeSlotStartTimeMinute}`;
-  };
+  const calculatedEndTime24h = useMemo(() => {
+    if (!calculatedEndTime12h || calculatedEndTime12h === 'N/A') return '';
+    return to24Hour(calculatedEndTime12h);
+  }, [calculatedEndTime12h]);
 
   const handleSubmit = () => {
-    if (!timeSlotStartDate || !timeSlotVenue || sessionCount <= 0) {
+    if (!timeSlotStartDate || !venueName || sessionCount <= 0) {
       showError('Please fill in all required fields');
       return;
     }
     
-    const startTime = formatTime24h();
-    const endTime = calculateEndTime();
+    const startTime = timeSlotStartTime;
+    const endTime = calculatedEndTime24h || '';
     
     const timeSlotData = {
       id: editingSlot?.id,
@@ -56,21 +54,24 @@ export default function TimeSlotForm({
       startTime: startTime,
       sessionCount: sessionCount,
       endTime: endTime,
-      venue: timeSlotVenue,
+      venue: venueName,
+      venueId: venueId,
       requiredExaminers: sessionConfig?.examinersPerSession || 2,
       assignedExaminers: editingSlot?.assignedExaminers || [],
       status: editingSlot?.status || 'empty'
     };
+    // eslint-disable-next-line no-console
+    console.log('[TimeSlotForm] Add/Update time slot (local draft)', timeSlotData);
     
     onAddTimeSlot?.(timeSlotData);
     
     // Reset form if not editing
     if (!editingSlot) {
       setTimeSlotStartDate('');
-      setTimeSlotStartTimeHour('9');
-      setTimeSlotStartTimeMinute('00');
+      setTimeSlotStartTime('09:00');
       setSessionCount(3);
-      setTimeSlotVenue('');
+      setVenueId(null);
+      setVenueName('');
     }
   };
 
@@ -80,10 +81,10 @@ export default function TimeSlotForm({
     } else {
       // Reset form
       setTimeSlotStartDate('');
-      setTimeSlotStartTimeHour('9');
-      setTimeSlotStartTimeMinute('00');
+      setTimeSlotStartTime('09:00');
       setSessionCount(3);
-      setTimeSlotVenue('');
+      setVenueId(null);
+      setVenueName('');
     }
   };
 
@@ -105,7 +106,9 @@ export default function TimeSlotForm({
           <input
             type="date"
             id="timeSlotStartDate"
-            className="custom-input"
+            lang="en-GB"
+            className="custom-input bg-white dark:bg-white text-gray-900"
+            style={{ backgroundColor: '#ffffff' }}
             value={timeSlotStartDate}
             onChange={(e) => setTimeSlotStartDate(e.target.value)}
           />
@@ -113,32 +116,17 @@ export default function TimeSlotForm({
 
         {/* Start Time */}
         <div className="form-field">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
-          <div className="time-picker">
-            <select
-              className="custom-input"
-              value={timeSlotStartTimeHour}
-              onChange={(e) => setTimeSlotStartTimeHour(e.target.value)}
-              title="Select hour"
-            >
-              {[...Array(24)].map((_, i) => (
-                <option key={i} value={i.toString().padStart(2, '0')}>
-                  {i.toString().padStart(2, '0')}
-                </option>
-              ))}
-            </select>
-            <span className="time-separator">:</span>
-            <select
-              className="custom-input"
-              value={timeSlotStartTimeMinute}
-              onChange={(e) => setTimeSlotStartTimeMinute(e.target.value)}
-              title="Select minute"
-            >
-              {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map(minute => (
-                <option key={minute} value={minute}>{minute}</option>
-              ))}
-            </select>
-          </div>
+          <label htmlFor="startTime" className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Time</label>
+          <input
+            id="startTime"
+            type="time"
+            lang="en-GB"
+            step={300}
+            className="custom-input bg-white dark:bg-white text-gray-900"
+            style={{ backgroundColor: '#ffffff' }}
+            value={timeSlotStartTime}
+            onChange={(e) => setTimeSlotStartTime(e.target.value)}
+          />
         </div>
 
         {/* Session Count */}
@@ -173,23 +161,33 @@ export default function TimeSlotForm({
 
         {/* End Time (calculated) */}
         <div className="form-field">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">End Time (calculated)</label>
-          <div className="time-display">{calculateEndTime()}</div>
-          <p className="helper-text">
-            Based on session length ({sessionConfig?.sessionLength || 30} min) and gap time ({sessionConfig?.gapTime || 5} min)
-          </p>
+          <label htmlFor="endTime" className="text-sm font-medium text-gray-700 dark:text-gray-300">End Time (calculated)</label>
+          <input
+            id="endTime"
+            type="time"
+            lang="en-GB"
+            className="custom-input bg-gray-50 dark:bg-gray-800 text-gray-600 cursor-not-allowed"
+            style={{ backgroundColor: '#f9fafb' }}
+            value={calculatedEndTime24h}
+            disabled
+            tabIndex={-1}
+            aria-disabled="true"
+          />
+          <p className="helper-text">Based on session length ({sessionConfig?.sessionLength || 30} min) and gap time ({sessionConfig?.gapTime || 5} min)</p>
         </div>
 
         {/* Venue */}
         <div className="form-field md:col-span-2">
-          <label htmlFor="timeSlotVenue" className="text-sm font-medium text-gray-700 dark:text-gray-300">Venue</label>
-          <input
-            type="text"
-            id="timeSlotVenue"
-            className="custom-input"
-            placeholder="e.g. Room 405, Engineering Building"
-            value={timeSlotVenue}
-            onChange={(e) => setTimeSlotVenue(e.target.value)}
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Venue</label>
+          <VenueSelect
+            assignmentId={assignmentId}
+            value={venueId}
+            selectedName={venueName}
+            onChange={(venue) => {
+              setVenueId(venue?.id || null);
+              setVenueName(venue?.name || '');
+            }}
+            placeholder="Search or add venue"
           />
         </div>
       </div>

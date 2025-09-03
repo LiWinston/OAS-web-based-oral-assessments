@@ -1,0 +1,119 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useVenues } from '@/hooks/useVenues.js';
+
+export default function VenueSelect({ assignmentId, value = null, onChange, placeholder = 'Select a venue' }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const { data: venues, isLoading, create, isCreating } = useVenues(assignmentId, '');
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => {
+      if (!containerRef.current) return;
+      if (!containerRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = !q ? venues : venues.filter(v => v.name.toLowerCase().includes(q));
+    // Console log for frontend filter action
+    // eslint-disable-next-line no-console
+    console.log('[VenueSelect] Frontend filter venues', {
+      query: search,
+      before: venues?.length || 0,
+      after: list?.length || 0
+    });
+    return list;
+  }, [venues, search]);
+
+  const selected = useMemo(() => venues.find(v => v.id === value) || null, [venues, value]);
+
+  const handleCreate = async () => {
+    const name = search.trim();
+    if (!name) return;
+    // eslint-disable-next-line no-console
+    console.log('[VenueSelect] Create venue (frontend)', { name });
+    create(name, {
+      onSuccess: (venue) => {
+        setSearch('');
+        onChange?.(venue);
+        setOpen(false);
+      }
+    });
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        className="custom-input flex items-center justify-between w-full"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className={selected ? '' : 'text-gray-500 dark:text-gray-400'}>
+          {selected ? selected.name : placeholder}
+        </span>
+        <i className="fas fa-chevron-down ml-2 text-gray-400" />
+      </button>
+
+      {open && (
+        <div className="absolute mt-1 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20">
+          {/* Search/Add row */}
+          <div className="flex items-center p-2 border-b border-gray-200 dark:border-gray-700">
+            <input
+              type="text"
+              className="flex-1 custom-input"
+              placeholder="Search or add venue..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleCreate();
+                }
+              }}
+            />
+            <button
+              className="ml-2 px-2 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+              onClick={handleCreate}
+              disabled={isCreating}
+              title="Add venue"
+            >
+              <i className="fas fa-plus" />
+            </button>
+          </div>
+
+          {/* Options */}
+          <ul className="max-h-56 overflow-auto" role="listbox">
+            {isLoading && (
+              <li className="px-3 py-2 text-sm text-gray-500">Loading...</li>
+            )}
+            {!isLoading && filtered.length === 0 && (
+              <li className="px-3 py-2 text-sm text-gray-500">No venues found</li>
+            )}
+            {!isLoading && filtered.map((v) => (
+              <li
+                key={v.id}
+                role="option"
+                aria-selected={value === v.id}
+                className={`px-3 py-2 text-sm cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${value === v.id ? 'bg-gray-50 dark:bg-gray-700' : ''}`}
+                onClick={() => {
+                  onChange?.(v);
+                  setOpen(false);
+                }}
+              >
+                {v.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
