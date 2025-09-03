@@ -201,7 +201,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             }
             slotDTO.setVenue(venueDTO);
             
-            slotDTO.setSessionCount(ts.getBookedSessions() != null ? ts.getBookedSessions() : 0);
+            slotDTO.setSessionCount(ts.getSessionCount() != null ? ts.getSessionCount() : 0);
             slotDTO.setRequiredExaminers(ts.getRequiredExaminers() != null ? ts.getRequiredExaminers() : 1);
             slotDTO.setCurrentExaminers(ts.getCurrentExaminers() != null ? ts.getCurrentExaminers() : 0);
             slotDTO.setIsFull(isFull);
