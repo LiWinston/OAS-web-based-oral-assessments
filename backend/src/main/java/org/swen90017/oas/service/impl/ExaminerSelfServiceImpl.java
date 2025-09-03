@@ -435,6 +435,22 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         AssignmentResponseDTO dto = new AssignmentResponseDTO();
         dto.setId(a.getId());
         dto.setSubjectId(a.getSubjectId());
+        
+        // 获取并设置subject信息
+        if (a.getSubjectId() != null) {
+            try {
+                Subject subject = subjectService.getSubjectById(a.getSubjectId());
+                if (subject != null) {
+                    dto.setSubjectCode(subject.getSubjectCode());
+                    dto.setSubjectName(subject.getSubjectName());
+                }
+            } catch (BusinessException ex) {
+                // 如果subject不存在或已删除，设置默认值
+                dto.setSubjectCode("N/A");
+                dto.setSubjectName("Course Unavailable");
+            }
+        }
+        
         dto.setName(a.getName());
         dto.setDescription(a.getDescription());
         dto.setType(a.getType());
