@@ -245,6 +245,22 @@ export default function AssignedSlots({ showDebugSection = false }) {
                         </div>
 
                         <div className="flex flex-col items-end gap-2">
+                          {/* Start Assessment button for booked sessions */}
+                          {slot.bookingCount > 0 && (
+                            <Button
+                              onClick={() => {
+                                // Navigate to assessment page with sessionId
+                                window.location.href = `/examiner/assessment/${slot.slotId}`;
+                              }}
+                              variant="default"
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <i className="fas fa-clipboard-check mr-2"></i>
+                              Start Assessment
+                            </Button>
+                          )}
+                          
                           <Button
                             onClick={() => handleWithdraw(slot)}
                             disabled={!canWithdraw(slot) || isSubmitting}
@@ -325,6 +341,20 @@ export default function AssignedSlots({ showDebugSection = false }) {
                                 </div>
                               )}
                           </div>
+                        </div>
+                        
+                        <div className="flex items-end">
+                          <Button
+                            onClick={() => {
+                              // Navigate to assessment page to view/edit assessment
+                              window.location.href = `/examiner/assessment/${slot.slotId}`;
+                            }}
+                            variant="outline"
+                            size="sm"
+                          >
+                            <i className="fas fa-eye mr-2"></i>
+                            View Assessment
+                          </Button>
                         </div>
                       </div>
                     </div>
