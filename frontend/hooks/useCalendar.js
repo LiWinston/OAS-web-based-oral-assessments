@@ -5,7 +5,6 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
-import { mapCalendarFromApi } from '@/lib/timeslotMappers.js';
 
 /**
  * Query key factory for calendar data
@@ -36,7 +35,11 @@ export function useCalendar(assignmentId, month, options = {}) {
       if (!response.success) {
         throw new Error(response.message);
       }
-      return mapCalendarFromApi(response.data);
+      // Use backend structure directly: response.data is expected to be { [date]: { timeSlots, sessions, status } }
+      // If service returns { month, dates }, extract dates
+      const data = response.data;
+      if (data && data.dates) return data.dates;
+      return data || {};
     },
     enabled: !!assignmentId && !!month,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -45,33 +48,25 @@ export function useCalendar(assignmentId, month, options = {}) {
 
   // Helper functions for calendar data
   const getStatusForDate = (date) => {
-    if (!calendarQuery.data || !calendarQuery.data[date]) {
-      return null;
-    }
-    return calendarQuery.data[date].status;
+    const day = calendarQuery.data?.[date];
+    return day?.status || null;
   };
 
   const getSlotCountForDate = (date) => {
-    if (!calendarQuery.data || !calendarQuery.data[date]) {
-      return 0;
-    }
-    return calendarQuery.data[date].slotCount;
+    const day = calendarQuery.data?.[date];
+    return day?.timeSlots ?? 0;
   };
 
   const getSessionCountForDate = (date) => {
-    if (!calendarQuery.data || !calendarQuery.data[date]) {
-      return 0;
-    }
-    return calendarQuery.data[date].totalSessions;
+    const day = calendarQuery.data?.[date];
+    return day?.sessions ?? 0;
   };
 
   const getDatesWithSlots = () => {
     if (!calendarQuery.data) {
       return [];
     }
-    return Object.keys(calendarQuery.data).filter(date => 
-      calendarQuery.data[date].slotCount > 0
-    );
+    return Object.keys(calendarQuery.data).filter(date => (calendarQuery.data[date].timeSlots ?? 0) > 0);
   };
 
   const getDatesWithStatus = (status) => {
@@ -107,8 +102,8 @@ export function useCalendar(assignmentId, month, options = {}) {
 
     dates.forEach(date => {
       const dayData = calendarQuery.data[date];
-      stats.totalSlots += dayData.slotCount;
-      stats.totalSessions += dayData.totalSessions;
+      stats.totalSlots += (dayData.timeSlots ?? 0);
+      stats.totalSessions += (dayData.sessions ?? 0);
 
       switch (dayData.status) {
         case 'full':
@@ -178,7 +173,8 @@ export function useMultiMonthCalendar(assignmentId, months) {
       if (!response.success) {
         throw new Error(response.message);
       }
-      return { month, data: mapCalendarFromApi(response.data) };
+      const data = response.data?.dates || response.data || {};
+      return { month, data };
     },
     enabled: !!assignmentId && !!month,
     staleTime: 5 * 60 * 1000

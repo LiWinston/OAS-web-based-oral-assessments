@@ -10,6 +10,8 @@ import { useTimeSlots } from '@/hooks/useTimeSlots.js';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
+import { to24Hour } from '@/lib/timeMath.js';
+import { venueService } from '@/services/venueService.js';
 
 /**
  * AssignmentTimeSlotsPage - Refactored timeslot management
@@ -97,16 +99,45 @@ export default function AssignmentTimeSlotsPage() {
   };
 
   // CRUD operations using server state (per Section 9.2)
-  const handleModalSave = (timeSlotData) => {
+  const handleModalSave = async (timeSlotData) => {
+    // Normalize modal payload to UI/API expectations
+    const start = timeSlotData.startTime && String(timeSlotData.startTime).includes(' ')
+      ? to24Hour(timeSlotData.startTime)
+      : timeSlotData.startTime;
+    const end = timeSlotData.endTime && String(timeSlotData.endTime).includes(' ')
+      ? to24Hour(timeSlotData.endTime)
+      : timeSlotData.endTime;
+    let venueId = timeSlotData.venueId;
+    const venue = timeSlotData.venue;
+
+    // Resolve venueId if missing but venue name provided
+    if (!venueId && venue) {
+      try {
+        const listRes = await venueService.list(assignmentId, '');
+        const all = listRes?.data || [];
+        const existing = all.find(v => (v.name || '').trim() === venue.trim());
+        if (existing) {
+          venueId = existing.id;
+        }
+      } catch {}
+    }
+
+    const normalized = {
+      id: timeSlotData.id,
+      date: timeSlotData.date,
+      startTime: start,
+      endTime: end,
+      sessionCount: timeSlotData.sessionCount || timeSlotData.sessions || 1,
+      venue,
+      venueId,
+      requiredExaminers: timeSlotData.requiredExaminers,
+      assignedExaminers: timeSlotData.assignedExaminers || []
+    };
+
     if (editingTimeSlot) {
-      // Update existing
-      updateSlot({
-        timeSlotId: editingTimeSlot.id,
-        data: timeSlotData
-      });
+      updateSlot({ timeSlotId: editingTimeSlot.id, data: normalized });
     } else {
-      // For adds, create a single-item batch (per Section 9.2)
-      createBatch([timeSlotData]);
+      createBatch([normalized]);
     }
     closeModal();
   };

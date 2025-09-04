@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import SessionConfigStep from '@/components/admin/schedule/SessionConfigStep.jsx';
 import TimeSlotForm from '@/components/admin/schedule/TimeSlotForm.jsx';
@@ -9,6 +9,8 @@ import ExaminerLimitsStep from '@/components/admin/schedule/ExaminerLimitsStep.j
 import { useTimeSlots } from '@/hooks/useTimeSlots.js';
 import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 import { showSuccess, showError } from '@/lib/notifications.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
+import { mapTimeSlotsFromApi } from '@/lib/timeslotMappers.js';
 
 /**
  * AssignmentSchedulePage - Refactored 3-step wizard
@@ -31,6 +33,10 @@ export default function AssignmentSchedulePage() {
   // Step 2 - Local draft time slots (accumulated locally)
   const [draftTimeSlots, setDraftTimeSlots] = useState([]);
   const [editingSlotIndex, setEditingSlotIndex] = useState(null);
+  const [showSlotModal, setShowSlotModal] = useState(false);
+  const [modalMode, setModalMode] = useState('add'); // 'add' | 'edit' | 'duplicate'
+  const [modalInitialSlot, setModalInitialSlot] = useState(null);
+  const hasPrefilledRef = useRef(false);
 
   // Hooks for server operations
   // Disable fetching here; Step 2 uses local draft slots and only needs createBatch
@@ -38,6 +44,26 @@ export default function AssignmentSchedulePage() {
   const { data: examiners = [] } = useExaminerLimits(assignmentId);
 
   const progressPercent = useMemo(() => (currentStep / totalSteps) * 100, [currentStep]);
+
+  // Prefill Step 2 with existing time slots from backend (one-time per entry into Step 2)
+  useEffect(() => {
+    if (currentStep !== 2 || hasPrefilledRef.current) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await courseAdminTimeslotService.getTimeSlots(assignmentId, {});
+        if (!cancelled && resp?.success && Array.isArray(resp.data)) {
+          const mapped = mapTimeSlotsFromApi(resp.data);
+          setDraftTimeSlots(mapped);
+          hasPrefilledRef.current = true;
+        }
+      } catch (e) {
+        // Ignore; keep local drafts if fetch fails
+        console.warn('[Schedule Step 2] Failed to prefill time slots', e);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentStep, assignmentId]);
 
   // Step 1 handlers
   const handleStep1Next = () => {
@@ -65,8 +91,18 @@ export default function AssignmentSchedulePage() {
     }
   };
 
+  const openAddSlotModal = () => {
+    setEditingSlotIndex(null);
+    setModalMode('add');
+    setModalInitialSlot(null);
+    setShowSlotModal(true);
+  };
+
   const handleEditTimeSlot = (index) => {
     setEditingSlotIndex(index);
+    setModalMode('edit');
+    setModalInitialSlot(draftTimeSlots[index]);
+    setShowSlotModal(true);
   };
 
   const handleCancelEdit = () => {
@@ -74,21 +110,10 @@ export default function AssignmentSchedulePage() {
   };
 
   const handleDuplicateTimeSlot = (index) => {
-    const originalSlot = draftTimeSlots[index];
-    const newId = Math.max(...draftTimeSlots.map(s => s.id || 0)) + 1;
-    
-    // Increment date by 1 day by default (per Section 1.1)
-    const originalDate = new Date(originalSlot.date + 'T00:00:00');
-    originalDate.setDate(originalDate.getDate() + 1);
-    const newDate = originalDate.toISOString().split('T')[0];
-
-    setDraftTimeSlots([...draftTimeSlots, { 
-      ...originalSlot, 
-      id: newId,
-      date: newDate,
-      assignedExaminers: [],
-      status: 'empty'
-    }]);
+    setEditingSlotIndex(null); // treat as add
+    setModalMode('duplicate');
+    setModalInitialSlot({ ...draftTimeSlots[index], id: undefined });
+    setShowSlotModal(true);
   };
 
   const handleDeleteTimeSlot = (index) => {
@@ -191,12 +216,15 @@ export default function AssignmentSchedulePage() {
                 </p>
               </div>
 
-              <TimeSlotForm
-                assignmentId={assignmentId}
-                onAddTimeSlot={handleAddTimeSlot}
-                editingSlot={editingSlotIndex !== null ? draftTimeSlots[editingSlotIndex] : null}
-                onCancelEdit={handleCancelEdit}
-              />
+              <div className="flex justify-end">
+                <button
+                  className="add-time-slot-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2"
+                  onClick={openAddSlotModal}
+                >
+                  <span className="text-lg">+</span>
+                  <span>Add New Time Slot</span>
+                </button>
+              </div>
             </div>
 
             <TimeSlotList
@@ -247,6 +275,50 @@ export default function AssignmentSchedulePage() {
           />
         )}
       </div>
+
+      {/* Add/Edit Time Slot Modal (uses TimeSlotForm) */}
+      {showSlotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => {
+              setShowSlotModal(false);
+              setEditingSlotIndex(null);
+            }}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                {modalMode === 'edit' ? 'Edit Time Slot' : 'Add New Time Slot'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowSlotModal(false);
+                  setEditingSlotIndex(null);
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                aria-label="Close"
+              >
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <TimeSlotForm
+              assignmentId={assignmentId}
+              onAddTimeSlot={(slot) => {
+                handleAddTimeSlot(slot);
+                setShowSlotModal(false);
+              }}
+              editingSlot={modalMode === 'edit' ? modalInitialSlot : (modalMode === 'duplicate' ? modalInitialSlot : null)}
+              onCancelEdit={() => {
+                setShowSlotModal(false);
+                handleCancelEdit();
+              }}
+              submitLabel="Done"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

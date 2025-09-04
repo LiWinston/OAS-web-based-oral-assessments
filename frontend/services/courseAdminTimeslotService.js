@@ -160,10 +160,24 @@ export const courseAdminTimeslotService = {
 
   // 5) Calendar Integration
   async getCalendar(assignmentId, month) {
-    await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/calendar`, { params: { month } }));
+    const url = `${base(assignmentId)}/calendar`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] GET', url, { month });
+    const resp = await callApiIfEnabled(() => apiClient.get(url, { params: { month } }));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] GET calendar response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const raw = extractData(resp);
+      const dates = raw?.dates || raw || {};
+      return success(dates, 'Calendar (api)');
+    }
 
     await delay();
-    // Produce calendar summary keyed by YYYY-MM-DD with { slotCount, status, totalSessions }
+    // Produce calendar summary keyed by YYYY-MM-DD with { timeSlots, status, sessions }
     const date = new Date(`${month}-01T00:00:00`);
     const calendarData = {};
     const targetMonth = date.getMonth();
@@ -178,14 +192,14 @@ export const courseAdminTimeslotService = {
           ? 'partial'
           : 'empty';
         calendarData[d] = {
-          slotCount: daySlots.length,
+          timeSlots: daySlots.length,
           status: overall,
-          totalSessions: daySlots.reduce((sum, s) => sum + (s.sessionCount || 0), 0),
+          sessions: daySlots.reduce((sum, s) => sum + (s.sessionCount || 0), 0),
         };
       }
       date.setDate(date.getDate() + 1);
     }
-    return { success: true, data: calendarData, message: 'Calendar (mock)' };
+    return success(calendarData, 'Calendar (mock)');
   },
 
   // 2) Time Slot Management
@@ -198,7 +212,10 @@ export const courseAdminTimeslotService = {
       : undefined;
 
     const requestSlots = (timeSlots || []).map((slot) => {
-      const end24 = slot.endTime && slot.endTime.includes(' ')
+      const start24 = slot.startTime && String(slot.startTime).includes(' ')
+        ? to24Hour(slot.startTime)
+        : slot.startTime;
+      const end24 = slot.endTime && String(slot.endTime).includes(' ')
         ? to24Hour(slot.endTime)
         : slot.endTime;
 
@@ -212,7 +229,7 @@ export const courseAdminTimeslotService = {
 
       return {
         date: slot.date,
-        startTime: slot.startTime,
+        startTime: start24,
         endTime: end24,
         sessionCount: slot.sessionCount,
         venueId,
@@ -283,9 +300,10 @@ export const courseAdminTimeslotService = {
 
   async getTimeSlots(assignmentId, filters = {}) {
     const url = `${base(assignmentId)}/timeslots`;
+    // Backend currently serves full list; date/status query causes 4xx. Fetch all, then filter client-side.
     // eslint-disable-next-line no-console
-    console.log('[courseAdminTimeslotService] GET', url, { params: filters });
-    const resp = await callApiIfEnabled(() => apiClient.get(url, { params: filters }));
+    console.log('[courseAdminTimeslotService] GET', url, { note: 'fetch-all; filter client-side', filters });
+    const resp = await callApiIfEnabled(() => apiClient.get(url));
 
     if (!USE_MOCKS && resp) {
       // eslint-disable-next-line no-console
@@ -295,7 +313,7 @@ export const courseAdminTimeslotService = {
       });
       const raw = extractData(resp);
       const arr = Array.isArray(raw?.timeSlots) ? raw.timeSlots : Array.isArray(raw) ? raw : [];
-      const normalized = arr.map((slot) => withStatus({
+      let normalized = arr.map((slot) => withStatus({
         id: slot.id,
         date: slot.date,
         startTime: slot.startTime,
@@ -307,6 +325,9 @@ export const courseAdminTimeslotService = {
         status: slot.status,
         assignedExaminers: slot.assignedExaminers || []
       }));
+      // Apply client-side filters to match hook expectations
+      if (filters.date) normalized = normalized.filter(s => s.date === filters.date);
+      if (filters.status) normalized = normalized.filter(s => s.status === filters.status);
       return success(normalized, 'Time slots (api)');
     }
 
@@ -323,8 +344,8 @@ export const courseAdminTimeslotService = {
     console.log('[courseAdminTimeslotService] PUT', url, { body });
     const req = {
       date: body.date,
-      startTime: body.startTime,
-      endTime: body.endTime,
+      startTime: body.startTime && String(body.startTime).includes(' ') ? to24Hour(body.startTime) : body.startTime,
+      endTime: body.endTime && String(body.endTime).includes(' ') ? to24Hour(body.endTime) : body.endTime,
       sessionCount: body.sessionCount,
       venueId: body.venueId
     };
@@ -433,21 +454,56 @@ export const courseAdminTimeslotService = {
 
   // 3) Examiner Management
   async getExaminers(assignmentId) {
-    await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/examiners`));
+    const url = `${base(assignmentId)}/examiners`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] GET', url);
+    const resp = await callApiIfEnabled(() => apiClient.get(url));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] GET examiners response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      const raw = extractData(resp);
+      const arr = Array.isArray(raw?.examiners) ? raw.examiners : Array.isArray(raw) ? raw : [];
+      const mapped = arr.map(ex => ({
+        id: ex.id,
+        name: ex.name,
+        email: ex.email,
+        avatar: ex.avatar || '/api/placeholder/24/24',
+        maxSessions: ex.maxSessions || 0,
+        assignments: ex.currentAssignments || 0
+      }));
+      return success(mapped, 'Examiners (api)');
+    }
+
     await delay();
-    return { success: true, data: mockExaminers, message: 'Examiners (mock)' };
+    return success(mockExaminers, 'Examiners (mock)');
   },
 
   async updateExaminerLimits(assignmentId, limits) {
-    // API expects { examinerLimits: [...] }
-    await callApiIfEnabled(() => apiClient.put(`${base(assignmentId)}/examiners/session-limits`, { examinerLimits: limits }));
+    const url = `${base(assignmentId)}/examiners/session-limits`;
+    const payload = { examinerLimits: limits.map(l => ({ examinerId: l.examinerId || l.id, maxSessions: parseInt(l.maxSessions, 10) })) };
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] PUT', url, payload);
+    const resp = await callApiIfEnabled(() => apiClient.put(url, payload));
+
+    if (!USE_MOCKS && resp) {
+      // eslint-disable-next-line no-console
+      console.log('[courseAdminTimeslotService] PUT examiner limits response', {
+        status: resp?.status,
+        data: resp?.data
+      });
+      return success(limits, 'Examiner limits updated (api)');
+    }
 
     await delay();
     limits.forEach((l) => {
       const ex = mockExaminers.find((e) => e.id === (l.examinerId || l.id));
       if (ex) ex.maxSessions = parseInt(l.maxSessions, 10);
     });
-    return { success: true, data: limits, message: 'Examiner limits updated (mock)' };
+    return success(limits, 'Examiner limits updated (mock)');
   },
 
   // 4) Schedule Management

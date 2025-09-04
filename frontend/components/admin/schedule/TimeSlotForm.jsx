@@ -17,7 +17,8 @@ export default function TimeSlotForm({
   assignmentId, 
   onAddTimeSlot, 
   editingSlot = null, 
-  onCancelEdit = null 
+  onCancelEdit = null,
+  submitLabel
 }) {
   const { data: sessionConfig } = useSessionConfig(assignmentId);
   
@@ -203,7 +204,7 @@ export default function TimeSlotForm({
         )}
         <button onClick={handleSubmit} className="btn btn-primary" title="Add or update time slot">
           <i className="fas fa-plus mr-1.5" />
-          <span>{editingSlot ? 'Update Time Slot' : 'Add Time Slot'}</span>
+          <span>{submitLabel || (editingSlot ? 'Update Time Slot' : 'Add Time Slot')}</span>
         </button>
       </div>
     </div>

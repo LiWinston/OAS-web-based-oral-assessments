@@ -1,6 +1,7 @@
 'use client';
 
-import { useExaminerLimits, useCapacityValidation } from '@/hooks/useExaminerLimits.js';
+import { useEffect, useMemo, useState } from 'react';
+import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { showError } from '@/lib/notifications.js';
 
@@ -19,27 +20,38 @@ export default function ExaminerLimitsStep({
 }) {
   const { data: sessionConfig } = useSessionConfig(assignmentId);
   const {
-    data: examiners,
+    data: serverExaminers,
     isLoading,
     updateLimits,
-    isUpdating,
-    totalCapacity
+    isUpdating
   } = useExaminerLimits(assignmentId);
 
-  const {
-    isValid: capacityValid,
-    canProceed,
-    errors: capacityErrors,
-    warnings: capacityWarnings
-  } = useCapacityValidation(assignmentId, totalSessions, sessionConfig?.examinersPerSession || 2);
+  const [examiners, setExaminers] = useState([]);
+
+  useEffect(() => {
+    if (serverExaminers && serverExaminers.length) {
+      setExaminers(serverExaminers.map(e => ({ ...e })));
+    }
+  }, [serverExaminers]);
+
+  const neededCapacity = useMemo(() => {
+    const perSession = sessionConfig?.examinersPerSession || 2;
+    return (totalSessions || 0) * perSession;
+  }, [totalSessions, sessionConfig]);
+
+  const totalCapacity = useMemo(() => {
+    return (examiners || []).reduce((sum, ex) => sum + (parseInt(ex.maxSessions, 10) || 0), 0);
+  }, [examiners]);
+
+  const capacityValid = totalCapacity >= neededCapacity;
+  const capacityErrors = capacityValid ? [] : [
+    `Required capacity ${neededCapacity} exceeds total examiner capacity ${totalCapacity}`
+  ];
+  const capacityWarnings = [];
+  const canProceed = capacityValid;
 
   const handleExaminerLimitChange = (examinerId, newLimit) => {
-    const updatedLimits = examiners.map(examiner => ({
-      examinerId: examiner.id,
-      maxSessions: examiner.id === examinerId ? newLimit : examiner.maxSessions
-    }));
-    
-    updateLimits(updatedLimits);
+    setExaminers(prev => prev.map(ex => ex.id === examinerId ? { ...ex, maxSessions: newLimit } : ex));
   };
 
   const handleCompleteSetup = () => {
