@@ -19,8 +19,8 @@ export function StudentStatsCards() {
       shadowColor: "hover:shadow-blue-200 dark:hover:shadow-blue-900/50",
       iconBg: "bg-blue-100 dark:bg-blue-800",
       hoverEffect: "hover:-translate-y-1 hover:shadow-xl",
-      actionText: "View All",
-      actionHref: "/student/assignments",
+      actionText: "View Bookings",
+      actionHref: "/student/booking",
       index: 0,
     },
     {

@@ -4,7 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
 import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import { useNotification } from '@/hooks/useNotification';
+import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
+import { formatVenue } from '@/utils/formatVenue';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const ExaminerCalendar = () => {
@@ -17,6 +20,10 @@ const ExaminerCalendar = () => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showNotification } = useNotification();
   
+  const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
+  const [resultOpen, setResultOpen] = useState(false);
+  const [resultProps, setResultProps] = useState({});
+
   const { data: scheduleData, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['examinerSchedule', examinerId, currentMonth.getFullYear(), currentMonth.getMonth()],
     queryFn: () => {
@@ -139,21 +146,23 @@ const ExaminerCalendar = () => {
     if (!selectedEvent) return;
     setIsWithdrawing(true);
     try {
-      const res = await examinerTimeslotService.unassignExaminerFromTimeslot(
-        selectedEvent.assignmentId,
-        selectedEvent.slotId,
-        debugUser.id
-      );
-      if (res.success) {
-        showNotification('success', 'You have withdrawn from this time slot');
+      const res = await withdrawFromTimeslot(selectedEvent, async () => {
         setConfirmOpen(false);
         setShowEventModal(false);
         await refetch();
-      } else {
-        showNotification('error', res.message || 'Failed to withdraw');
+      });
+      if (res?.success) {
+        const start = selectedEvent.start ? new Date(selectedEvent.start) : null;
+        const end = selectedEvent.end ? new Date(selectedEvent.end) : null;
+        const detail = start && end
+          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
+          : `Slot #${selectedEvent.slotId}`;
+        setResultProps({ status: 'success', title: 'Withdrawn from Time Slot', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setResultOpen(true);
       }
     } catch (e) {
-      showNotification('error', 'Failed to withdraw from time slot');
+      setResultProps({ status: 'error', title: 'Withdraw Failed', message: e?.message || 'Failed to withdraw from time slot', autoDismiss: false, primaryActionLabel: 'Close' });
+      setResultOpen(true);
     } finally {
       setIsWithdrawing(false);
     }
@@ -467,9 +476,7 @@ const ExaminerCalendar = () => {
                   </div>
                   <div>
                     <span className="text-sm text-gray-500 dark:text-gray-400">Location</span>
-                    <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {selectedEvent.venue.name} Building, Room {selectedEvent.venue.room}
-                    </div>
+                  <div className="font-medium text-gray-800 dark:text-gray-200">{formatVenue(selectedEvent.venue)}</div>
                   </div>
                 </div>
 
@@ -490,8 +497,8 @@ const ExaminerCalendar = () => {
                     )}
                   </div>
                   
-                  {selectedEvent.canWithdraw ? (
-                    <button onClick={confirmWithdraw} className="text-xs text-red-600 dark:text-red-400 hover:underline">
+                  {canWithdraw(selectedEvent) ? (
+                    <button onClick={confirmWithdraw} className="text-xs text-red-600 dark:text-red-400 hover:underline" disabled={isSubmitting}>
                       <i className="fas fa-times-circle mr-1"></i>
                       Withdraw
                     </button>
@@ -541,6 +548,7 @@ const ExaminerCalendar = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <OperationResultDialog open={resultOpen} onOpenChange={setResultOpen} {...resultProps} />
     </>
   );
 };

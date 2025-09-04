@@ -45,13 +45,20 @@ export const adminService = {
     }
   },
 
-  // Get list of all administrators with filtering
-  async getAdminList(filters = {}) {
+  // Get list of all administrators with filtering and pagination
+  async getAdminList(filters = {}, page = 1, pageSize = 10) {
     try {
-      const response = await api.post("/api/superadmin/admins", filters);
+      const requestBody = {
+        ...filters,
+        page,
+        limit: pageSize  // Backend expects 'limit' parameter
+      };
+      
+      const response = await api.post("/api/superadmin/admins", requestBody);
 
       // Debug: Log the raw response to see what backend returns
       console.log("=== ADMIN LIST API DEBUG ===");
+      console.log("Request body:", requestBody);
       console.log("Full response:", response);
       console.log("Response.data:", response?.data);
       console.log("Response.data type:", typeof response?.data);
@@ -63,6 +70,14 @@ export const adminService = {
         console.log("Response.data is array, length:", response?.data.length);
         console.log("First item:", response?.data[0]);
       }
+      
+      // Check for pagination in different possible locations
+      console.log("=== PAGINATION LOCATION DEBUG ===");
+      console.log("response.data.pagination:", response?.data?.pagination);
+      console.log("response.data.data.pagination:", response?.data?.data?.pagination);
+      console.log("response.pagination:", response?.pagination);
+      console.log("=== END PAGINATION LOCATION DEBUG ===");
+      
       console.log("=== END DEBUG ===");
 
       // Normalize various backend shapes into the UI-required schema
@@ -71,6 +86,14 @@ export const adminService = {
 
       let pendingInvitations = [];
       let activeAdmins = [];
+      let pagination = {
+        currentPage: page,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: pageSize,
+        hasNext: false,
+        hasPrev: false
+      };
 
       if (Array.isArray(payload)) {
         // Backend returned a flat array of admins - need to classify by status
@@ -195,18 +218,80 @@ export const adminService = {
         }
       }
 
+      // Extract pagination info from response
+      console.log("=== PAGINATION EXTRACTION DEBUG ===");
+      console.log("raw:", raw);
+      console.log("raw.pagination:", raw?.pagination);
+      console.log("raw.data.pagination:", raw?.data?.pagination);
+      
+      if (raw?.pagination) {
+        pagination = {
+          currentPage: raw.pagination.currentPage || raw.pagination.page || page,
+          totalPages: raw.pagination.totalPages || raw.pagination.pages || 1,
+          totalItems: raw.pagination.totalItems || raw.pagination.total || 0,
+          itemsPerPage: raw.pagination.itemsPerPage || raw.pagination.limit || pageSize,
+          hasNext: raw.pagination.hasNext || false,
+          hasPrev: raw.pagination.hasPrev || false
+        };
+        console.log("Extracted pagination from raw.pagination:", pagination);
+      } else if (raw?.data?.pagination) {
+        pagination = {
+          currentPage: raw.data.pagination.currentPage || raw.data.pagination.page || page,
+          totalPages: raw.data.pagination.totalPages || raw.data.pagination.pages || 1,
+          totalItems: raw.data.pagination.totalItems || raw.data.pagination.total || 0,
+          itemsPerPage: raw.data.pagination.itemsPerPage || raw.data.pagination.limit || pageSize,
+          hasNext: raw.data.pagination.hasNext || false,
+          hasPrev: raw.data.pagination.hasPrev || false
+        };
+        console.log("Extracted pagination from raw.data.pagination:", pagination);
+      } else {
+        console.log("No pagination found in response, using defaults");
+      }
+      console.log("=== END PAGINATION EXTRACTION DEBUG ===");
+
       // Debug: Log the normalized data
       console.log("=== NORMALIZED DATA DEBUG ===");
       console.log("Normalized pendingInvitations:", pendingInvitations);
       console.log("Normalized activeAdmins:", activeAdmins);
+      console.log("Pagination info:", pagination);
+      
+      // If no pagination was found but we have data, calculate totalItems
+      if (pagination.totalItems === 0 && (pendingInvitations.length > 0 || activeAdmins.length > 0)) {
+        const totalItems = pendingInvitations.length + activeAdmins.length;
+        console.log("Calculating totalItems from data:", totalItems);
+        pagination.totalItems = totalItems;
+        pagination.totalPages = Math.ceil(totalItems / pageSize);
+        pagination.hasNext = currentPage < pagination.totalPages;
+        pagination.hasPrev = currentPage > 1;
+      }
+      
+      console.log("Final pagination info:", pagination);
       console.log("=== END NORMALIZED DEBUG ===");
 
-      return { success: true, data: { pendingInvitations, activeAdmins } };
+      return { 
+        success: true, 
+        data: { 
+          pendingInvitations, 
+          activeAdmins,
+          pagination 
+        } 
+      };
     } catch (error) {
       console.error("Get admin list API error:", error);
       return {
         success: false,
-        data: { pendingInvitations: [], activeAdmins: [] },
+        data: { 
+          pendingInvitations: [], 
+          activeAdmins: [],
+          pagination: {
+            currentPage: page,
+            totalPages: 1,
+            totalItems: 0,
+            itemsPerPage: pageSize,
+            hasNext: false,
+            hasPrev: false
+          }
+        },
       };
     }
   },

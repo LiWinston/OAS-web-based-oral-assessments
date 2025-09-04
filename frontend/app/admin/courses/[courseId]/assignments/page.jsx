@@ -157,7 +157,6 @@ export default function CourseAssignmentsPage() {
   };
 
   const handleAssignmentCreated = (assignment) => {
-    showNotification("success", "Assignment created successfully!");
     setIsCreateModalOpen(false);
     refreshData();
   };
@@ -201,7 +200,11 @@ export default function CourseAssignmentsPage() {
     try {
       const result = await assignmentService.previewStudentCsv(file, type);
       if (!result.success) {
-        throw new Error(result.message || "Failed to preview CSV");
+        // 创建一个保留所有错误信息的错误对象
+        const error = new Error(result.message || "Failed to preview CSV");
+        error.code = result.code;
+        error.data = result.data;
+        throw error;
       }
       return result;
     } catch (error) {
@@ -223,10 +226,10 @@ export default function CourseAssignmentsPage() {
     }
   };
 
-  // CSV Upload functions
-  const uploadStudentCsv = async (file, type) => {
+  // CSV Upload functions - both use the same uploadStudentCsv service with different types
+  const uploadStudentCsv = async (file, type, assignmentId) => {
     try {
-      const result = await assignmentService.uploadStudentCsv(file, type);
+      const result = await assignmentService.uploadStudentCsv(file, type, assignmentId);
       if (!result.success) {
         throw new Error(result.message || "Failed to upload CSV");
       }
@@ -237,9 +240,10 @@ export default function CourseAssignmentsPage() {
     }
   };
 
-  const uploadExaminerCsv = async (file) => {
+  const uploadExaminerCsv = async (file, assignmentId) => {
     try {
-      const result = await assignmentService.uploadExaminerCsv(file);
+      // Use the same uploadStudentCsv service with type 'examiner'
+      const result = await assignmentService.uploadStudentCsv(file, 'examiner', assignmentId);
       if (!result.success) {
         throw new Error(result.message || "Failed to upload CSV");
       }

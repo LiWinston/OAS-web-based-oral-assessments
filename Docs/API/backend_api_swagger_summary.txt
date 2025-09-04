@@ -1,0 +1,7153 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://172.22.80.212:8081",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Examiner Self Assignment",
+      "description": "Examiner self-service APIs for selecting time slots"
+    },
+    {
+      "name": "Student Management",
+      "description": "API endpoints for student operations"
+    },
+    {
+      "name": "Student Booking",
+      "description": "API endpoints for student booking operations"
+    },
+    {
+      "name": "Course Management",
+      "description": "API endpoints for managing academic courses"
+    },
+    {
+      "name": "Assignment Management",
+      "description": "API endpoints for managing course assignments"
+    },
+    {
+      "name": "Super Admin APIs",
+      "description": "Endpoints for super administrator management"
+    },
+    {
+      "name": "Admin Timeslot Management",
+      "description": "API endpoints for administrators to manage time slots and session configurations"
+    },
+    {
+      "name": "Admin Examiner Management",
+      "description": "Admin APIs for examiner listing, session limits and assignment"
+    }
+  ],
+  "paths": {
+    "/api/courses/{courseId}": {
+      "get": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "Get course by ID",
+        "description": "Retrieve a specific course by its ID",
+        "operationId": "getCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "description": "Course ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCourseResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "Update course",
+        "description": "Update an existing course",
+        "operationId": "updateCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "description": "Course ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseUpdateRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCourseResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "Delete course",
+        "description": "Delete a course and its associated assignments",
+        "operationId": "deleteCourse",
+        "parameters": [
+          {
+            "name": "courseId",
+            "in": "path",
+            "description": "Course ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{id}": {
+      "get": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Get assignment by ID",
+        "description": "Retrieve a specific assignment by its ID",
+        "operationId": "getAssignment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssignmentResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Update assignment",
+        "description": "Update an existing assignment",
+        "operationId": "updateAssignment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssignmentResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Delete assignment",
+        "description": "Delete an assignment",
+        "operationId": "deleteAssignment",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}": {
+      "put": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Update time slot",
+        "description": "Update an existing time slot",
+        "operationId": "updateTimeSlot",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "timeSlotId",
+            "in": "path",
+            "description": "Time slot ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TimeSlotRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUpdateTimeSlotResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/session-config": {
+      "get": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Get session configuration",
+        "description": "Retrieve session configuration for a specific assignment",
+        "operationId": "getSessionConfig",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSessionConfigResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Update session configuration",
+        "description": "Create or update session configuration for a specific assignment",
+        "operationId": "updateSessionConfig",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionConfigRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSessionConfigResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Delete session configuration",
+        "description": "Delete session configuration for a specific assignment",
+        "operationId": "deleteSessionConfig",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/examiners/session-limits": {
+      "put": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Set examiner session limits",
+        "description": "Set the maximum number of sessions an examiner can handle per day and per assignment",
+        "operationId": "setExaminerSessionLimits",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateExaminerSessionLimitsRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/token/refresh": {
+      "post": {
+        "tags": [
+          "token-controller"
+        ],
+        "summary": "Refresh access token",
+        "description": "Use a valid refresh token to get a new access token",
+        "operationId": "refreshToken",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTokenResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onboarding/register": {
+      "post": {
+        "tags": [
+          "onboarding-controller"
+        ],
+        "summary": "Register a new user",
+        "description": "Registers a new user using the provided registration details.",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLoginResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/logout": {
+      "post": {
+        "tags": [
+          "login-controller"
+        ],
+        "summary": "Logout",
+        "description": "Revoke the provided refresh token",
+        "operationId": "logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login": {
+      "post": {
+        "tags": [
+          "login-controller"
+        ],
+        "summary": "User login",
+        "description": "Authenticate a user and return access/refresh tokens",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLoginResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset/request": {
+      "post": {
+        "tags": [
+          "password-reset-controller"
+        ],
+        "summary": "Request password reset code",
+        "operationId": "requestCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset/confirm": {
+      "post": {
+        "tags": [
+          "password-reset-controller"
+        ],
+        "summary": "Confirm code and reset password",
+        "operationId": "confirm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/venues/import": {
+      "post": {
+        "tags": [
+          "venue-controller"
+        ],
+        "summary": "导入场地 CSV（按批UPSERT）",
+        "operationId": "importVenues",
+        "parameters": [
+          {
+            "name": "batchSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1100
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/Result"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/courses": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "List courses (Super Admin)",
+        "description": "Retrieve list of all courses/subjects with pagination and filters",
+        "operationId": "getCourses",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuperAdminCourseQueryRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSuperAdminCourseListResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "List course administrators",
+        "description": "List admins with pagination, sorting and optional filters",
+        "operationId": "listAdmins",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListAdminsRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAdminsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/{id}/status": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Update admin status",
+        "description": "Update status to ACTIVE/INACTIVE/INVITED/EXPIRED",
+        "operationId": "updateAdminStatus",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Admin user id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 123
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAdminStatusRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUpdateAdminStatusResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/revoke/{id}": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Revoke admin access",
+        "description": "Logically revoke admin by setting status to INACTIVE and optionally transfer courses (placeholder)",
+        "operationId": "revokeAdmin",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Admin user id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 123
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeAdminAccessRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultRevokeAdminAccessResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/invite": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Invite a new course administrator",
+        "description": "Create an invited admin user and send invitation token",
+        "operationId": "inviteAdmin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminInviteDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSysAdmin"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/invite/import": {
+      "post": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Import course admins via CSV",
+        "description": "Upload a CSV file to invite multiple course administrators",
+        "operationId": "importAdminCsv",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/csv/preview": {
+      "post": {
+        "tags": [
+          "csv-controller"
+        ],
+        "summary": "Preview CSV",
+        "description": "Preview CSV content for student/group before importing",
+        "operationId": "previewCsv",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/csv/import": {
+      "post": {
+        "tags": [
+          "csv-controller"
+        ],
+        "summary": "Import CSV",
+        "description": "Import CSV data for student/group and send activation emails",
+        "operationId": "importCsv",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "dto": {
+                    "$ref": "#/components/schemas/CSVImportDTO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses": {
+      "post": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "Create course",
+        "description": "Create a new academic course",
+        "operationId": "createCourse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseCreateRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCourseResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/list": {
+      "post": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "List courses",
+        "description": "Retrieve courses with pagination and optional filters using POST",
+        "operationId": "listCourses",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseQueryRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCourseListResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments": {
+      "post": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Create assignment",
+        "description": "Create a new assignment",
+        "operationId": "createAssignment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignmentRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssignmentResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/timeslots/assign": {
+      "post": {
+        "tags": [
+          "Examiner Self Assignment"
+        ],
+        "summary": "Assign examiner to time slots in bulk (partial success supported)",
+        "operationId": "bulkAssign",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExaminerBulkAssignRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultPartialAssignmentResultDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/bookings": {
+      "post": {
+        "tags": [
+          "Student Booking"
+        ],
+        "summary": "Create booking",
+        "description": "Create a new booking for a session",
+        "operationId": "createBooking",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCreateBookingResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/bookings/{sessionId}/reschedule": {
+      "post": {
+        "tags": [
+          "Student Booking"
+        ],
+        "summary": "Reschedule booking",
+        "description": "Reschedule an existing booking to a different session",
+        "operationId": "rescheduleBooking",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RescheduleBookingRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultRescheduleBookingResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/examiners": {
+      "post": {
+        "tags": [
+          "Admin Examiner Management"
+        ],
+        "summary": "Assign examiners to a time slot",
+        "description": "Admin assigns examiners at time slot level",
+        "operationId": "assignExaminersToSlot",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "timeSlotId",
+            "in": "path",
+            "description": "Time Slot ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignExaminersRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTimeSlotDetailDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/duplicate": {
+      "post": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Duplicate time slot",
+        "description": "Create a copy of an existing time slot with modifications",
+        "operationId": "duplicateTimeSlot",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "timeSlotId",
+            "in": "path",
+            "description": "Source time slot ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DuplicateTimeSlotRequestDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultTimeSlotDetailDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/timeslots/batch": {
+      "post": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Batch create time slots",
+        "description": "Create multiple time slots with automatic session generation",
+        "operationId": "batchCreateTimeSlots",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchCreateTimeSlotsRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBatchCreateTimeSlotsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/schedule/release": {
+      "post": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Release schedule",
+        "description": "Release the schedule to make it available for student booking",
+        "operationId": "releaseSchedule",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseScheduleRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultReleaseScheduleResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/onboarding/verify": {
+      "get": {
+        "tags": [
+          "onboarding-controller"
+        ],
+        "summary": "Verify onboarding token",
+        "description": "Verifies the provided onboarding token and returns the result.",
+        "operationId": "verify",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultOnboardingVerifyResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deploy-time": {
+      "get": {
+        "tags": [
+          "deployment-time-controller"
+        ],
+        "operationId": "getDeploymentTime",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/courses/{id}": {
+      "get": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Get course by id (Super Admin)",
+        "description": "Get detailed info of a specific course/subject by id",
+        "operationId": "getCourseById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Course id",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "example": 1
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSuperAdminCourseDetailResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/{id}": {
+      "get": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Get admin detail",
+        "description": "Get detailed info of a specific course administrator by id",
+        "operationId": "getAdminById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Admin user id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": 123
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultSysAdmin"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/status": {
+      "get": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Get admin status list (先别测这个！！！)",
+        "description": "Placeholder endpoint for future use",
+        "operationId": "getAdminStatus",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/superadmin/admins/check-email/{email}": {
+      "get": {
+        "tags": [
+          "Super Admin APIs"
+        ],
+        "summary": "Check admin email",
+        "description": "Validate email format and check if it already exists",
+        "operationId": "checkAdminEmailExists",
+        "parameters": [
+          {
+            "name": "email",
+            "in": "path",
+            "description": "Email to check",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "test@student.unimelb.edu.au"
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCheckEmailResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/{studentId}/assignments": {
+      "get": {
+        "tags": [
+          "Student Management"
+        ],
+        "summary": "List student assignments",
+        "description": "Retrieve paginated list of assignments for a student with optional filters",
+        "operationId": "listStudentAssignments",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "Student ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "queryDTO",
+            "in": "query",
+            "description": "Query parameters for assignment search",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/StudentAssignmentQueryRequestDTO"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultStudentAssignmentListResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/{studentId}/assignments/{assignmentId}/group": {
+      "get": {
+        "tags": [
+          "Student Management"
+        ],
+        "summary": "Get group context",
+        "description": "Retrieve group context information for a student in an assignment",
+        "operationId": "getGroupContext",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "Student ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGroupContextResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/students/{studentId}/assignments/{assignmentId}/booking": {
+      "get": {
+        "tags": [
+          "Student Booking"
+        ],
+        "summary": "Get current booking",
+        "description": "Get current booking for a student in an assignment",
+        "operationId": "getCurrentBooking",
+        "parameters": [
+          {
+            "name": "studentId",
+            "in": "path",
+            "description": "Student ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCurrentBookingResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/examiners/{examinerId}/schedule": {
+      "get": {
+        "tags": [
+          "Examiner Self Assignment"
+        ],
+        "summary": "Get examiner schedule",
+        "operationId": "schedule",
+        "parameters": [
+          {
+            "name": "examinerId",
+            "in": "path",
+            "description": "Examiner ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "assignmentId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultExaminerScheduleDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/examiners/{examinerId}/assignments": {
+      "get": {
+        "tags": [
+          "Examiner Self Assignment"
+        ],
+        "summary": "List assignments available to examiner",
+        "operationId": "listAssignments",
+        "parameters": [
+          {
+            "name": "examinerId",
+            "in": "path",
+            "description": "Examiner ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssignmentResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/courses/stats": {
+      "get": {
+        "tags": [
+          "Course Management"
+        ],
+        "summary": "Get course statistics",
+        "description": "Retrieve dashboard statistics for courses. Optional adminUserId parameter for specific admin stats",
+        "operationId": "getCourseStats",
+        "parameters": [
+          {
+            "name": "adminUserId",
+            "in": "query",
+            "description": "Optional admin user ID for specific admin stats",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCourseStatsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/timeslots": {
+      "get": {
+        "tags": [
+          "Examiner Self Assignment"
+        ],
+        "summary": "List time slots for selection",
+        "operationId": "listSelectable",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "examinerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListSelectableTimeSlotDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/sessions": {
+      "get": {
+        "tags": [
+          "Student Booking"
+        ],
+        "summary": "List bookable sessions",
+        "description": "Get bookable sessions for an assignment grouped by slot/day",
+        "operationId": "getBookableSessions",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "description": "Student ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Date filter (YYYY-MM-DD)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "pageNum",
+            "in": "query",
+            "description": "Page number",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Page size",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 20
+            }
+          },
+          {
+            "name": "includeReasons",
+            "in": "query",
+            "description": "Include reasons for unavailable sessions",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBookableSessionsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/subject/{subjectId}": {
+      "get": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Get assignments by subject ID",
+        "description": "Retrieve all assignments for a specific subject",
+        "operationId": "getAssignmentsBySubject",
+        "parameters": [
+          {
+            "name": "subjectId",
+            "in": "path",
+            "description": "Subject ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListAssignmentResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/subject/{subjectId}/stats": {
+      "get": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Get assignment status statistics by subject",
+        "description": "Retrieve statistics about assignment statuses for a specific subject",
+        "operationId": "getAssignmentStatusStatsBySubject",
+        "parameters": [
+          {
+            "name": "subjectId",
+            "in": "path",
+            "description": "Subject ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssignmentStatusStatsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/subject/{subjectId}/count": {
+      "get": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Get assignment count by subject ID",
+        "description": "Retrieve assignment count for a specific subject (cached)",
+        "operationId": "getAssignmentCountBySubject",
+        "parameters": [
+          {
+            "name": "subjectId",
+            "in": "path",
+            "description": "Subject ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultInteger"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/stats": {
+      "get": {
+        "tags": [
+          "Assignment Management"
+        ],
+        "summary": "Get assignment status statistics",
+        "description": "Retrieve statistics about assignment statuses across all subjects",
+        "operationId": "getAssignmentStatusStats",
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultAssignmentStatusStatsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/timeslots": {
+      "get": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Get time slots",
+        "description": "Retrieve time slots for a specific assignment with optional filters",
+        "operationId": "getTimeSlots",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Filter by date (YYYY-MM-DD)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGetTimeSlotsResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Delete time slots",
+        "description": "Delete multiple time slots",
+        "operationId": "deleteTimeSlots",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteTimeSlotsRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/schedule/status": {
+      "get": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Get schedule status",
+        "description": "Get schedule status and readiness for an assignment",
+        "operationId": "getScheduleStatus",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultScheduleStatusResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/examiners": {
+      "get": {
+        "tags": [
+          "Admin Examiner Management"
+        ],
+        "summary": "Get available examiners",
+        "description": "List examiners, their current load and availability",
+        "operationId": "getAvailableExaminers",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "timeSlotId",
+            "in": "query",
+            "description": "Optional Time Slot ID for conflict check",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultGetAvailableExaminersResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/assignments/{assignmentId}/calendar": {
+      "get": {
+        "tags": [
+          "Admin Timeslot Management"
+        ],
+        "summary": "Get Calendar Data",
+        "description": "Return per-date aggregation of time slots and sessions for a given month",
+        "operationId": "getCalendar",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "description": "Target month in YYYY-MM format",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultCalendarResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/timeslots/{slotId}/unassign": {
+      "delete": {
+        "tags": [
+          "Examiner Self Assignment"
+        ],
+        "summary": "Unassign examiner from time slot",
+        "operationId": "unassign",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "slotId",
+            "in": "path",
+            "description": "Time Slot ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "examinerId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assignments/{assignmentId}/bookings/{sessionId}": {
+      "delete": {
+        "tags": [
+          "Student Booking"
+        ],
+        "summary": "Cancel booking",
+        "description": "Cancel an existing booking",
+        "operationId": "cancelBooking",
+        "parameters": [
+          {
+            "name": "assignmentId",
+            "in": "path",
+            "description": "Assignment ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "sessionId",
+            "in": "path",
+            "description": "Session ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "studentId",
+            "in": "query",
+            "description": "Student ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultObject"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultLong"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultObject": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "CourseUpdateRequestDTO": {
+        "required": [
+          "academicYear",
+          "adminUserId",
+          "courseCode",
+          "courseName",
+          "semester"
+        ],
+        "type": "object",
+        "properties": {
+          "courseCode": {
+            "type": "string",
+            "description": "Course code (e.g., SWEN90017, COMP90082)",
+            "example": "SWEN90017"
+          },
+          "courseName": {
+            "type": "string",
+            "description": "Course name",
+            "example": "Software Engineering Project Management"
+          },
+          "description": {
+            "type": "string",
+            "description": "Course description",
+            "example": "Master-level software engineering project management course"
+          },
+          "academicYear": {
+            "type": "integer",
+            "description": "Academic year",
+            "format": "int32",
+            "example": 2024
+          },
+          "semester": {
+            "type": "string",
+            "description": "Semester (1, 2, summer)",
+            "example": "1"
+          },
+          "adminUserId": {
+            "type": "integer",
+            "description": "Administrator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Course status",
+            "example": "active"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the course is active",
+            "example": true
+          }
+        },
+        "description": "Course update data"
+      },
+      "CourseResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Course ID",
+            "format": "int64",
+            "example": 1
+          },
+          "courseCode": {
+            "type": "string",
+            "description": "Course code",
+            "example": "SWEN90017"
+          },
+          "courseName": {
+            "type": "string",
+            "description": "Course name",
+            "example": "Software Engineering Project Management"
+          },
+          "description": {
+            "type": "string",
+            "description": "Course description",
+            "example": "Master-level software engineering project management course"
+          },
+          "academicYear": {
+            "type": "integer",
+            "description": "Academic year",
+            "format": "int32",
+            "example": 2024
+          },
+          "semester": {
+            "type": "string",
+            "description": "Semester",
+            "example": "1"
+          },
+          "adminUserId": {
+            "type": "integer",
+            "description": "Administrator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Whether the course is active",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Course status",
+            "example": "active"
+          },
+          "students": {
+            "type": "integer",
+            "description": "Number of students enrolled",
+            "format": "int32",
+            "example": 25
+          },
+          "assignments": {
+            "type": "integer",
+            "description": "Number of assignments",
+            "format": "int32",
+            "example": 3
+          },
+          "createTime": {
+            "type": "string",
+            "description": "Create time",
+            "format": "date-time"
+          },
+          "creator": {
+            "type": "integer",
+            "description": "Creator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "Update time",
+            "format": "date-time"
+          },
+          "updater": {
+            "type": "integer",
+            "description": "Updater user ID",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "description": "Course response data"
+      },
+      "ResultCourseResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CourseResponseDTO"
+          }
+        }
+      },
+      "AssignmentRequestDTO": {
+        "required": [
+          "endDate",
+          "name",
+          "startDate",
+          "status",
+          "subjectId",
+          "type",
+          "weight"
+        ],
+        "type": "object",
+        "properties": {
+          "subjectId": {
+            "type": "integer",
+            "description": "Subject ID",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "maxLength": 255,
+            "minLength": 0,
+            "type": "string",
+            "description": "Assignment name",
+            "example": "Oral Presentation"
+          },
+          "description": {
+            "type": "string",
+            "description": "Assignment description",
+            "example": "Individual oral presentation on project progress"
+          },
+          "type": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "description": "Assignment type",
+            "example": "individual",
+            "enum": [
+              "individual",
+              "group",
+              "mixed"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Assignment start date",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Assignment end date",
+            "format": "date-time"
+          },
+          "weight": {
+            "maximum": 100,
+            "exclusiveMaximum": false,
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "type": "number",
+            "description": "Assignment weight (0.0 to 100.0)",
+            "format": "double",
+            "example": 25
+          },
+          "progress": {
+            "maximum": 100,
+            "exclusiveMaximum": false,
+            "minimum": 0,
+            "exclusiveMinimum": false,
+            "type": "number",
+            "description": "Assignment progress (0.0 to 100.0)",
+            "format": "double"
+          },
+          "status": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "description": "Assignment status",
+            "example": "PENDING",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "rubricMetaInfo": {
+            "$ref": "#/components/schemas/RubricMetaInfo"
+          },
+          "creator": {
+            "type": "integer",
+            "description": "Creator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "rubricsInfo": {
+            "type": "array",
+            "description": "List of rubric criteria",
+            "items": {
+              "$ref": "#/components/schemas/RubricsInfoDto"
+            }
+          }
+        },
+        "description": "Assignment creation data"
+      },
+      "PerformanceDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Performance level description",
+            "example": "Excellent"
+          },
+          "startPoint": {
+            "type": "number",
+            "description": "Starting point for this performance level",
+            "format": "double",
+            "example": 85
+          },
+          "endPoint": {
+            "type": "number",
+            "description": "Ending point for this performance level",
+            "format": "double",
+            "example": 100
+          }
+        },
+        "description": "Performance level definition for rubric criteria"
+      },
+      "RubricMetaInfo": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Rubric name",
+            "example": "Oral Presentation Rubric"
+          },
+          "description": {
+            "type": "string",
+            "description": "Rubric description",
+            "example": "Evaluation criteria for oral presentations"
+          },
+          "totalPoints": {
+            "type": "number",
+            "description": "Total points for the rubric",
+            "format": "double",
+            "example": 100
+          }
+        },
+        "description": "Rubric meta information"
+      },
+      "RubricsInfoDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Criterion description",
+            "example": "Communication Skills"
+          },
+          "weight": {
+            "type": "number",
+            "description": "Weight of this criterion",
+            "format": "double",
+            "example": 25
+          },
+          "scaleType": {
+            "type": "string",
+            "description": "Scale type",
+            "example": "points"
+          },
+          "performanceLevel": {
+            "type": "array",
+            "description": "List of performance levels",
+            "items": {
+              "$ref": "#/components/schemas/PerformanceDto"
+            }
+          }
+        },
+        "description": "Rubric criteria information"
+      },
+      "AssignmentResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 1
+          },
+          "subjectId": {
+            "type": "integer",
+            "description": "Subject ID",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Assignment name",
+            "example": "Oral Presentation"
+          },
+          "description": {
+            "type": "string",
+            "description": "Assignment description",
+            "example": "Individual oral presentation on project progress"
+          },
+          "type": {
+            "type": "string",
+            "description": "Assignment type",
+            "example": "individual",
+            "enum": [
+              "individual",
+              "group",
+              "mixed"
+            ]
+          },
+          "startDate": {
+            "type": "string",
+            "description": "Assignment start date",
+            "format": "date-time"
+          },
+          "endDate": {
+            "type": "string",
+            "description": "Assignment end date",
+            "format": "date-time"
+          },
+          "weight": {
+            "type": "number",
+            "description": "Assignment weight (0.0 to 100.0)",
+            "format": "double",
+            "example": 25
+          },
+          "progress": {
+            "type": "number",
+            "description": "Assignment progress (0.0 to 100.0)",
+            "format": "double",
+            "example": 50
+          },
+          "status": {
+            "type": "string",
+            "description": "Assignment status",
+            "example": "IN_PROGRESS",
+            "enum": [
+              "PENDING",
+              "IN_PROGRESS",
+              "COMPLETED",
+              "CANCELLED"
+            ]
+          },
+          "rubricMetaInfo": {
+            "type": "string",
+            "description": "Rubric meta information (JSON)",
+            "example": "{\"name\":\"Oral Presentation Rubric\",\"description\":\"Evaluation criteria\",\"totalPoints\":100}"
+          },
+          "rubricsInfo": {
+            "type": "array",
+            "description": "List of rubric criteria",
+            "items": {
+              "$ref": "#/components/schemas/RubricsInfoDto"
+            }
+          },
+          "creator": {
+            "type": "integer",
+            "description": "Creator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "updater": {
+            "type": "integer",
+            "description": "Updater user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "createTime": {
+            "type": "string",
+            "description": "Create time",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "description": "Update time",
+            "format": "date-time"
+          }
+        },
+        "description": "Assignment response data"
+      },
+      "ResultAssignmentResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssignmentResponseDTO"
+          }
+        }
+      },
+      "LocalTime": {
+        "type": "object",
+        "properties": {
+          "hour": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "minute": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "second": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "nano": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "End time",
+        "example": "10:30"
+      },
+      "TimeSlotRequestDTO": {
+        "required": [
+          "date",
+          "endTime",
+          "sessionCount",
+          "startTime",
+          "venueId"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date of the time slot",
+            "format": "date",
+            "example": "2025-04-15"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "sessionCount": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of sessions in this time slot",
+            "format": "int32",
+            "example": 3
+          },
+          "venueId": {
+            "type": "integer",
+            "description": "Venue description",
+            "format": "int64"
+          }
+        },
+        "description": "Time slot request DTO"
+      },
+      "ExaminerDetailDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Examiner ID",
+            "format": "int64",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "description": "Examiner name",
+            "example": "Dr. Emma Thompson"
+          },
+          "email": {
+            "type": "string",
+            "description": "Examiner email",
+            "example": "emma.thompson@university.edu"
+          },
+          "maxSessions": {
+            "type": "integer",
+            "description": "Max sessions allowed for this examiner (0 means unlimited)",
+            "format": "int32",
+            "example": 40
+          },
+          "currentAssignments": {
+            "type": "integer",
+            "description": "Current total assigned sessions within this assignment",
+            "format": "int32",
+            "example": 6
+          },
+          "availability": {
+            "type": "string",
+            "description": "Availability status based on maxSessions and currentAssignments",
+            "example": "available"
+          }
+        },
+        "description": "Examiner detail DTO"
+      },
+      "ResultUpdateTimeSlotResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateTimeSlotResponseDTO"
+          }
+        }
+      },
+      "SessionDetailDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Session ID",
+            "format": "int64",
+            "example": 101
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "status": {
+            "type": "string",
+            "description": "Session status",
+            "example": "available",
+            "enum": [
+              "available",
+              "blocked",
+              "booked"
+            ]
+          },
+          "bookedBy": {
+            "type": "string",
+            "description": "Booked by (student/group info)",
+            "example": "null"
+          },
+          "sessionNumber": {
+            "type": "integer",
+            "description": "Session number",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "Session detail DTO"
+      },
+      "TimeSlotDetailDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Time slot ID",
+            "format": "int64",
+            "example": 1
+          },
+          "date": {
+            "type": "string",
+            "description": "Date",
+            "format": "date",
+            "example": "2025-04-15"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "venueId": {
+            "type": "integer",
+            "description": "Venue",
+            "format": "int64"
+          },
+          "requiredExaminers": {
+            "type": "integer",
+            "description": "Required number of examiners",
+            "format": "int32",
+            "example": 2
+          },
+          "sessionCount": {
+            "type": "integer",
+            "description": "Number of sessions",
+            "format": "int32",
+            "example": 3
+          },
+          "status": {
+            "type": "string",
+            "description": "Time slot status",
+            "example": "empty",
+            "enum": [
+              "draft",
+              "empty",
+              "partial",
+              "full",
+              "closed"
+            ]
+          },
+          "assignedExaminers": {
+            "type": "array",
+            "description": "Currently assigned examiners",
+            "items": {
+              "$ref": "#/components/schemas/ExaminerDetailDTO"
+            }
+          },
+          "sessions": {
+            "type": "array",
+            "description": "Individual sessions within this time slot",
+            "items": {
+              "$ref": "#/components/schemas/SessionDetailDTO"
+            }
+          },
+          "bookedSessions": {
+            "type": "integer",
+            "description": "Number of booked sessions",
+            "format": "int32",
+            "example": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "Creation time",
+            "format": "date-time"
+          },
+          "lastModified": {
+            "type": "string",
+            "description": "Last modification time",
+            "format": "date-time"
+          }
+        },
+        "description": "Time slot detail DTO"
+      },
+      "UpdateTimeSlotResponseDTO": {
+        "type": "object",
+        "properties": {
+          "timeSlot": {
+            "$ref": "#/components/schemas/TimeSlotDetailDTO"
+          },
+          "deletedSessions": {
+            "type": "array",
+            "description": "Sessions removed due to being out of new time range",
+            "items": {
+              "$ref": "#/components/schemas/SessionDetailDTO"
+            }
+          },
+          "deletedCount": {
+            "type": "integer",
+            "description": "Number of deleted sessions",
+            "format": "int32",
+            "example": 2
+          }
+        },
+        "description": "Response for updating a time slot, including deleted sessions info"
+      },
+      "SessionConfigRequestDTO": {
+        "type": "object",
+        "properties": {
+          "sessionLength": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Session length in minutes (optional, only updates if provided)",
+            "format": "int32",
+            "example": 30
+          },
+          "gapTime": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "Gap time between sessions in minutes (optional, only updates if provided)",
+            "format": "int32",
+            "example": 5
+          },
+          "examinersPerSession": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of examiners required per session (optional, only updates if provided)",
+            "format": "int32",
+            "example": 2
+          },
+          "defaultMaxSessionsPerExaminer": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "Default maximum sessions per examiner (optional, 0 means unlimited)",
+            "format": "int32",
+            "example": 40
+          }
+        },
+        "description": "Session configuration request DTO"
+      },
+      "ResultSessionConfigResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionConfigResponseDTO"
+          }
+        }
+      },
+      "SessionConfigResponseDTO": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 123
+          },
+          "sessionLength": {
+            "type": "integer",
+            "description": "Session length in minutes",
+            "format": "int32",
+            "example": 30
+          },
+          "gapTime": {
+            "type": "integer",
+            "description": "Gap time between sessions in minutes",
+            "format": "int32",
+            "example": 5
+          },
+          "examinersPerSession": {
+            "type": "integer",
+            "description": "Number of examiners required per session",
+            "format": "int32",
+            "example": 2
+          },
+          "defaultMaxSessionsPerExaminer": {
+            "type": "integer",
+            "description": "Default maximum sessions per examiner (0 means unlimited)",
+            "format": "int32",
+            "example": 40
+          },
+          "isConfigured": {
+            "type": "boolean",
+            "description": "Whether the configuration is completed",
+            "example": true
+          },
+          "lastModified": {
+            "type": "string",
+            "description": "Last modification time",
+            "format": "date-time"
+          },
+          "updatedBy": {
+            "type": "integer",
+            "description": "Updated by user ID",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "description": "Session configuration response DTO"
+      },
+      "ExaminerSessionLimitDTO": {
+        "required": [
+          "examinerId",
+          "maxSessions"
+        ],
+        "type": "object",
+        "properties": {
+          "examinerId": {
+            "type": "integer",
+            "description": "Examiner ID",
+            "format": "int64",
+            "example": 1
+          },
+          "maxSessions": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "Max sessions allowed for this examiner (0 means unlimited)",
+            "format": "int32",
+            "example": 40
+          }
+        },
+        "description": "Single examiner session limit item"
+      },
+      "UpdateExaminerSessionLimitsRequestDTO": {
+        "required": [
+          "examinerLimits"
+        ],
+        "type": "object",
+        "properties": {
+          "examinerLimits": {
+            "type": "array",
+            "description": "List of examiner limits",
+            "items": {
+              "$ref": "#/components/schemas/ExaminerSessionLimitDTO"
+            }
+          }
+        },
+        "description": "Request to update session limits for multiple examiners"
+      },
+      "ResultString": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshTokenRequestDTO": {
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ResultTokenResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TokenResponseDTO"
+          }
+        }
+      },
+      "TokenResponseDTO": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "RegisterRequestDTO": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponseDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "username": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ResultLoginResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginResponseDTO"
+          }
+        }
+      },
+      "LoginRequestDTO": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "PasswordResetRequestDTO": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "PasswordResetConfirmDTO": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "Result": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "SuperAdminCourseQueryRequestDTO": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Page number",
+            "format": "int32",
+            "example": 1,
+            "default": 1
+          },
+          "limit": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Items per page",
+            "format": "int32",
+            "example": 20,
+            "default": 20
+          },
+          "status": {
+            "type": "string",
+            "description": "Filter by status (ACTIVE/INACTIVE/ARCHIVED)"
+          },
+          "department": {
+            "type": "string",
+            "description": "Filter by department"
+          },
+          "semester": {
+            "type": "string",
+            "description": "Filter by semester (1/2/summer or 'Semester 1')"
+          },
+          "year": {
+            "type": "integer",
+            "description": "Filter by year",
+            "format": "int32",
+            "example": 2025
+          },
+          "search": {
+            "type": "string",
+            "description": "Search by course code or name"
+          },
+          "adminId": {
+            "type": "integer",
+            "description": "Filter by Course Admin user id",
+            "format": "int64"
+          },
+          "sortBy": {
+            "type": "string",
+            "description": "Sort field",
+            "example": "createdAt",
+            "default": "createdAt"
+          },
+          "sortOrder": {
+            "type": "string",
+            "description": "Sort order",
+            "example": "desc",
+            "default": "desc"
+          }
+        },
+        "description": "Super Admin course list query request"
+      },
+      "PaginationDTO": {
+        "type": "object",
+        "properties": {
+          "currentPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalItems": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "itemsPerPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "hasPrev": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResultSuperAdminCourseListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SuperAdminCourseListResponseDTO"
+          }
+        }
+      },
+      "SuperAdminCourseItemDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "semester": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "department": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "adminId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adminName": {
+            "type": "string"
+          },
+          "adminEmail": {
+            "type": "string"
+          },
+          "studentsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Super Admin course list item"
+      },
+      "SuperAdminCourseListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuperAdminCourseItemDTO"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationDTO"
+          }
+        },
+        "description": "Super Admin course list response"
+      },
+      "ListAdminsRequestDTO": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sortBy": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "registrationStatus": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminActivityDTO": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminCourseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "semester": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ListAdminsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "admins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SysAdmin"
+            }
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PaginationDTO"
+          }
+        }
+      },
+      "ResultListAdminsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ListAdminsResponseDTO"
+          }
+        }
+      },
+      "SysAdmin": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "department": {
+            "type": "string"
+          },
+          "invitedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "registeredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastLoginAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "coursesManaged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "studentsManaged": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentsCreated": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "registrationStatus": {
+            "type": "string"
+          },
+          "sisLoginId": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "invitationExpiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "courses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminCourseDTO"
+            }
+          },
+          "recentActivity": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminActivityDTO"
+            }
+          }
+        }
+      },
+      "UpdateAdminStatusRequestDTO": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Target status",
+            "example": "INACTIVE",
+            "enum": [
+              "ACTIVE",
+              "INACTIVE",
+              "INVITED",
+              "EXPIRED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "Optional reason for status change",
+            "example": "Temporary leave of absence"
+          }
+        },
+        "description": "Request body for updating admin status"
+      },
+      "ResultUpdateAdminStatusResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/UpdateAdminStatusResponseDTO"
+          }
+        }
+      },
+      "UpdateAdminStatusResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Admin user id",
+            "example": "123"
+          },
+          "status": {
+            "type": "string",
+            "description": "Updated status",
+            "example": "INACTIVE"
+          },
+          "updatedAt": {
+            "type": "string",
+            "description": "Update time in ISO8601",
+            "example": "2025-01-02T10:30:00Z"
+          }
+        },
+        "description": "Response payload after updating admin status"
+      },
+      "RevokeAdminAccessRequestDTO": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Reason for revoking access",
+            "example": "No longer with institution"
+          },
+          "transferCoursesTo": {
+            "type": "string",
+            "description": "Target admin id to transfer courses to (optional)",
+            "example": "456"
+          }
+        },
+        "description": "Request body for revoking admin access"
+      },
+      "ResultRevokeAdminAccessResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RevokeAdminAccessResponseDTO"
+          }
+        }
+      },
+      "RevokeAdminAccessResponseDTO": {
+        "type": "object",
+        "properties": {
+          "revokedAt": {
+            "type": "string",
+            "description": "Revocation time in ISO8601 UTC",
+            "example": "2025-01-02T10:30:00Z"
+          },
+          "coursesTransferred": {
+            "type": "integer",
+            "description": "Number of courses transferred to the target admin (placeholder)",
+            "format": "int32",
+            "example": 0
+          }
+        },
+        "description": "Response payload after revoking admin access"
+      },
+      "AdminInviteDTO": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Admin email",
+            "example": "newadmin@student.unimelb.edu.au"
+          },
+          "name": {
+            "type": "string",
+            "description": "Admin display name",
+            "example": "Dr. Jane Smith"
+          },
+          "department": {
+            "type": "string",
+            "description": "Department name",
+            "example": "Computer Science"
+          },
+          "message": {
+            "type": "string",
+            "description": "Optional invitation message",
+            "example": "Welcome to OAS! You've been invited to manage oral assessments."
+          },
+          "id": {
+            "type": "string",
+            "description": "External ID from CSV (optional)",
+            "example": "A12345"
+          },
+          "sisUserId": {
+            "type": "string",
+            "description": "SIS user id (optional)",
+            "example": "jsmith"
+          },
+          "sisLoginId": {
+            "type": "string",
+            "description": "SIS login id (used for email if provided)",
+            "example": "jsmith"
+          }
+        },
+        "description": "Request body for inviting a new course administrator"
+      },
+      "ResultSysAdmin": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SysAdmin"
+          }
+        }
+      },
+      "CSVImportDTO": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "assignmentId": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "CourseCreateRequestDTO": {
+        "required": [
+          "academicYear",
+          "adminUserId",
+          "courseCode",
+          "courseName",
+          "semester"
+        ],
+        "type": "object",
+        "properties": {
+          "courseCode": {
+            "type": "string",
+            "description": "Course code (e.g., SWEN90017, COMP90082)",
+            "example": "SWEN90017"
+          },
+          "courseName": {
+            "type": "string",
+            "description": "Course name",
+            "example": "Software Engineering Project Management"
+          },
+          "description": {
+            "type": "string",
+            "description": "Course description",
+            "example": "Master-level software engineering project management course"
+          },
+          "academicYear": {
+            "type": "integer",
+            "description": "Academic year",
+            "format": "int32",
+            "example": 2024
+          },
+          "semester": {
+            "type": "string",
+            "description": "Semester (1, 2, summer)",
+            "example": "1"
+          },
+          "adminUserId": {
+            "type": "integer",
+            "description": "Administrator user ID",
+            "format": "int64",
+            "example": 1
+          },
+          "status": {
+            "type": "string",
+            "description": "Course status",
+            "example": "active",
+            "default": "active"
+          }
+        },
+        "description": "Course creation data"
+      },
+      "CourseQueryRequestDTO": {
+        "type": "object",
+        "properties": {
+          "pageNum": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Page number (starting from 1)",
+            "format": "int32",
+            "example": 1,
+            "default": 1
+          },
+          "pageSize": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Page size",
+            "format": "int32",
+            "example": 10,
+            "default": 10
+          },
+          "year": {
+            "type": "integer",
+            "description": "Academic year filter",
+            "format": "int32",
+            "example": 2024
+          },
+          "semester": {
+            "type": "string",
+            "description": "Semester filter (1, 2, summer)",
+            "example": "1"
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "Is active filter",
+            "example": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Course status filter (active, archived)",
+            "example": "active"
+          },
+          "courseCode": {
+            "type": "string",
+            "description": "Course code filter",
+            "example": "SWEN90017"
+          },
+          "adminUserId": {
+            "type": "integer",
+            "description": "Admin user ID filter",
+            "format": "int64",
+            "example": 1
+          }
+        },
+        "description": "Query parameters for course search"
+      },
+      "CourseListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "description": "List of courses",
+            "items": {
+              "$ref": "#/components/schemas/CourseResponseDTO"
+            }
+          },
+          "success": {
+            "type": "boolean",
+            "description": "Success flag",
+            "example": true
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of records",
+            "format": "int64",
+            "example": 25
+          },
+          "current": {
+            "type": "integer",
+            "description": "Current page number",
+            "format": "int64",
+            "example": 1
+          },
+          "size": {
+            "type": "integer",
+            "description": "Page size",
+            "format": "int64",
+            "example": 10
+          }
+        },
+        "description": "Paginated course list response"
+      },
+      "ResultCourseListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CourseListResponseDTO"
+          }
+        }
+      },
+      "ExaminerBulkAssignRequestDTO": {
+        "required": [
+          "examinerId",
+          "slotIds"
+        ],
+        "type": "object",
+        "properties": {
+          "examinerId": {
+            "type": "integer",
+            "description": "Examiner ID",
+            "format": "int64"
+          },
+          "slotIds": {
+            "type": "array",
+            "description": "Slot IDs to assign",
+            "items": {
+              "type": "integer",
+              "description": "Slot IDs to assign",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "PartialAssignmentResultDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "array",
+            "description": "Succeeded slot IDs",
+            "items": {
+              "type": "integer",
+              "description": "Succeeded slot IDs",
+              "format": "int64"
+            }
+          },
+          "failures": {
+            "type": "array",
+            "description": "Failed slot results",
+            "items": {
+              "$ref": "#/components/schemas/SlotFailure"
+            }
+          }
+        }
+      },
+      "ResultPartialAssignmentResultDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PartialAssignmentResultDTO"
+          }
+        }
+      },
+      "SlotFailure": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "Failed slot results"
+      },
+      "CreateBookingRequestDTO": {
+        "required": [
+          "sessionId",
+          "studentId"
+        ],
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "description": "Student ID",
+            "format": "int64",
+            "example": 201
+          },
+          "sessionId": {
+            "type": "integer",
+            "description": "Session ID to book",
+            "format": "int64",
+            "example": 90011
+          },
+          "groupId": {
+            "type": "integer",
+            "description": "Group ID (required for GROUP or MIXED assignments)",
+            "format": "int64",
+            "example": 501
+          }
+        },
+        "description": "Create booking request"
+      },
+      "CreateBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "integer",
+            "description": "Booking ID",
+            "format": "int64",
+            "example": 70001
+          },
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 101
+          },
+          "entity": {
+            "$ref": "#/components/schemas/EntityInfoDTO"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionInfoDTO"
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotificationsDTO"
+          }
+        },
+        "description": "Create booking response"
+      },
+      "EntityInfoDTO": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Entity type",
+            "example": "GROUP"
+          },
+          "groupId": {
+            "type": "integer",
+            "description": "Group ID",
+            "format": "int64",
+            "example": 501
+          }
+        },
+        "description": "Entity information"
+      },
+      "NotificationsDTO": {
+        "type": "object",
+        "properties": {
+          "emailQueued": {
+            "type": "boolean",
+            "description": "Whether email was queued",
+            "example": true
+          },
+          "icsUrl": {
+            "type": "string",
+            "description": "ICS calendar URL",
+            "example": "/api/calendar/booking/70001.ics"
+          }
+        },
+        "description": "Notifications information"
+      },
+      "ResultCreateBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CreateBookingResponseDTO"
+          }
+        }
+      },
+      "SessionInfoDTO": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "integer",
+            "description": "Session ID",
+            "format": "int64",
+            "example": 90011
+          },
+          "slotId": {
+            "type": "integer",
+            "description": "Slot ID",
+            "format": "int64",
+            "example": 5001
+          },
+          "start": {
+            "type": "string",
+            "description": "Start time",
+            "example": "2025-04-14T10:00:00+10:00"
+          },
+          "end": {
+            "type": "string",
+            "description": "End time",
+            "example": "2025-04-14T10:30:00+10:00"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Timezone",
+            "example": "Australia/Melbourne"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/VenueInfoDTO"
+          }
+        },
+        "description": "Session information"
+      },
+      "VenueInfoDTO": {
+        "type": "object",
+        "properties": {
+          "venueId": {
+            "type": "integer",
+            "description": "Venue ID",
+            "format": "int64",
+            "example": 31
+          },
+          "name": {
+            "type": "string",
+            "description": "Venue name",
+            "example": "Engineering"
+          },
+          "building": {
+            "type": "string",
+            "description": "Building",
+            "example": "ENG"
+          },
+          "room": {
+            "type": "string",
+            "description": "Room",
+            "example": "405"
+          }
+        },
+        "description": "Venue information"
+      },
+      "RescheduleBookingRequestDTO": {
+        "required": [
+          "studentId",
+          "targetSessionId"
+        ],
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "description": "Student ID",
+            "format": "int64",
+            "example": 201
+          },
+          "targetSessionId": {
+            "type": "integer",
+            "description": "Target session ID to reschedule to",
+            "format": "int64",
+            "example": 90021
+          }
+        },
+        "description": "Reschedule booking request"
+      },
+      "RescheduleBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "bookingId": {
+            "type": "integer",
+            "description": "Booking ID",
+            "format": "int64",
+            "example": 70001
+          },
+          "fromSessionId": {
+            "type": "integer",
+            "description": "Original session ID",
+            "format": "int64",
+            "example": 90011
+          },
+          "toSessionId": {
+            "type": "integer",
+            "description": "New session ID",
+            "format": "int64",
+            "example": 90021
+          },
+          "notifications": {
+            "$ref": "#/components/schemas/NotificationsDTO"
+          }
+        },
+        "description": "Reschedule booking response"
+      },
+      "ResultRescheduleBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/RescheduleBookingResponseDTO"
+          }
+        }
+      },
+      "AssignExaminersRequestDTO": {
+        "required": [
+          "examinerIds"
+        ],
+        "type": "object",
+        "properties": {
+          "examinerIds": {
+            "type": "array",
+            "description": "Examiner IDs",
+            "items": {
+              "type": "integer",
+              "description": "Examiner IDs",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "ResultTimeSlotDetailDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/TimeSlotDetailDTO"
+          }
+        }
+      },
+      "DuplicateTimeSlotRequestDTO": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "New date for the duplicated time slot",
+            "format": "date",
+            "example": "2025-04-16"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "clearExaminers": {
+            "type": "boolean",
+            "description": "Whether to clear existing examiners from the duplicated slot",
+            "example": true
+          }
+        },
+        "description": "Duplicate time slot request DTO"
+      },
+      "BatchCreateTimeSlotsRequestDTO": {
+        "required": [
+          "timeSlots"
+        ],
+        "type": "object",
+        "properties": {
+          "timeSlots": {
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array",
+            "description": "List of time slots to create",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotRequestDTO"
+            }
+          }
+        },
+        "description": "Batch create time slots request DTO"
+      },
+      "BatchCreateTimeSlotsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "timeSlotsCreated": {
+            "type": "integer",
+            "description": "Number of time slots created",
+            "format": "int32",
+            "example": 2
+          },
+          "sessionsGenerated": {
+            "type": "integer",
+            "description": "Total number of sessions generated",
+            "format": "int32",
+            "example": 7
+          },
+          "timeSlots": {
+            "type": "array",
+            "description": "Created time slots with details",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDetailDTO"
+            }
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "2 time slots created with 7 sessions generated"
+          }
+        },
+        "description": "Batch create time slots response DTO"
+      },
+      "ResultBatchCreateTimeSlotsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BatchCreateTimeSlotsResponseDTO"
+          }
+        }
+      },
+      "ReleaseScheduleRequestDTO": {
+        "type": "object",
+        "properties": {
+          "notifyStudents": {
+            "type": "boolean",
+            "description": "Whether to notify students",
+            "example": true
+          },
+          "notifyExaminers": {
+            "type": "boolean",
+            "description": "Whether to notify examiners",
+            "example": true
+          },
+          "releaseMessage": {
+            "type": "string",
+            "description": "Release message",
+            "example": "Assessment schedule is now available for booking."
+          }
+        },
+        "description": "Release schedule request DTO"
+      },
+      "NotificationsSentDTO": {
+        "type": "object",
+        "properties": {
+          "students": {
+            "type": "integer",
+            "description": "Number of students notified",
+            "format": "int32",
+            "example": 45
+          },
+          "examiners": {
+            "type": "integer",
+            "description": "Number of examiners notified",
+            "format": "int32",
+            "example": 6
+          }
+        },
+        "description": "Notifications sent"
+      },
+      "ReleaseScheduleResponseDTO": {
+        "type": "object",
+        "properties": {
+          "releasedAt": {
+            "type": "string",
+            "description": "Release date/time",
+            "format": "date-time"
+          },
+          "notificationsSent": {
+            "$ref": "#/components/schemas/NotificationsSentDTO"
+          },
+          "message": {
+            "type": "string",
+            "description": "Success message",
+            "example": "Schedule released successfully"
+          }
+        },
+        "description": "Release schedule response DTO"
+      },
+      "ResultReleaseScheduleResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReleaseScheduleResponseDTO"
+          }
+        }
+      },
+      "AssignmentContext": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "string"
+          },
+          "assignmentName": {
+            "type": "string"
+          }
+        }
+      },
+      "CourseContext": {
+        "type": "object",
+        "properties": {
+          "courseId": {
+            "type": "string"
+          },
+          "courseName": {
+            "type": "string"
+          },
+          "courseCode": {
+            "type": "string"
+          },
+          "coordinatorName": {
+            "type": "string"
+          }
+        }
+      },
+      "OnboardingVerifyResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "alreadyRegistered": {
+            "type": "boolean"
+          },
+          "role": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "department": {
+            "type": "string"
+          },
+          "courseContext": {
+            "$ref": "#/components/schemas/CourseContext"
+          },
+          "assignmentContext": {
+            "$ref": "#/components/schemas/AssignmentContext"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "ResultOnboardingVerifyResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OnboardingVerifyResponse"
+          }
+        }
+      },
+      "ResultSuperAdminCourseDetailResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SuperAdminCourseDetailResponseDTO"
+          }
+        }
+      },
+      "SuperAdminAssignmentBriefDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "studentsAssessed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "Assignment brief info for Super Admin course detail"
+      },
+      "SuperAdminCourseDetailResponseDTO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "code": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "semester": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "department": {
+            "type": "string"
+          },
+          "venue": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "adminId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "adminName": {
+            "type": "string"
+          },
+          "adminEmail": {
+            "type": "string"
+          },
+          "studentsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "assignmentsCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "assignments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SuperAdminAssignmentBriefDTO"
+            }
+          }
+        },
+        "description": "Super Admin course detail response"
+      },
+      "CheckEmailResponseDTO": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email that is checked",
+            "example": "test@student.unimelb.edu.au"
+          },
+          "exists": {
+            "type": "boolean",
+            "description": "Whether the email already exists"
+          },
+          "isValid": {
+            "type": "boolean",
+            "description": "Whether the email format is valid"
+          }
+        },
+        "description": "Response payload for checking if an email exists and is valid"
+      },
+      "ResultCheckEmailResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CheckEmailResponseDTO"
+          }
+        }
+      },
+      "StudentAssignmentQueryRequestDTO": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Assignment status filter",
+            "example": "bookable",
+            "enum": [
+              "bookable",
+              "booked",
+              "all"
+            ]
+          },
+          "pageNum": {
+            "minimum": 0,
+            "type": "integer",
+            "description": "Page number (0-based)",
+            "format": "int32",
+            "example": 0,
+            "default": 0
+          },
+          "pageSize": {
+            "minimum": 1,
+            "type": "integer",
+            "description": "Page size",
+            "format": "int32",
+            "example": 20,
+            "default": 20
+          },
+          "sort": {
+            "type": "string",
+            "description": "Sort order",
+            "example": "date_asc",
+            "default": "date_asc",
+            "enum": [
+              "date_asc",
+              "date_desc"
+            ]
+          }
+        },
+        "description": "Student assignment query request with filters and pagination"
+      },
+      "AvailabilityInfoDTO": {
+        "type": "object",
+        "properties": {
+          "released": {
+            "type": "boolean",
+            "description": "Whether the assignment is released",
+            "example": true
+          },
+          "availableSessions": {
+            "type": "integer",
+            "description": "Number of available sessions",
+            "format": "int32",
+            "example": 5
+          },
+          "earliestSession": {
+            "type": "string",
+            "description": "Earliest session date/time",
+            "format": "date-time",
+            "example": "2025-04-14T09:00:00+10:00"
+          },
+          "latestSession": {
+            "type": "string",
+            "description": "Latest session date/time",
+            "format": "date-time",
+            "example": "2025-04-16T15:00:00+10:00"
+          },
+          "reschedulingEnabled": {
+            "type": "boolean",
+            "description": "Whether rescheduling is enabled",
+            "example": true
+          },
+          "bookingDeadline": {
+            "type": "string",
+            "description": "Booking deadline",
+            "format": "date-time",
+            "example": "2025-04-12T17:00:00+10:00"
+          },
+          "lockoutEnabled": {
+            "type": "boolean",
+            "description": "Whether lockout is enabled",
+            "example": true
+          },
+          "lockoutWindowHours": {
+            "type": "integer",
+            "description": "Lockout window in hours",
+            "format": "int32",
+            "example": 24
+          },
+          "pollingHintSeconds": {
+            "type": "integer",
+            "description": "Polling hint in seconds",
+            "format": "int32",
+            "example": 30
+          }
+        },
+        "description": "Availability information"
+      },
+      "BookingInfoDTO": {
+        "type": "object",
+        "properties": {
+          "hasActiveBooking": {
+            "type": "boolean",
+            "description": "Whether the student has an active booking",
+            "example": false
+          }
+        },
+        "description": "Booking information"
+      },
+      "ResultStudentAssignmentListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StudentAssignmentListResponseDTO"
+          }
+        }
+      },
+      "StudentAssignmentListResponseDTO": {
+        "type": "object",
+        "properties": {
+          "pageNum": {
+            "type": "integer",
+            "description": "Page number (0-based)",
+            "format": "int32",
+            "example": 0
+          },
+          "pageSize": {
+            "type": "integer",
+            "description": "Page size",
+            "format": "int32",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of records",
+            "format": "int64",
+            "example": 1
+          },
+          "data": {
+            "type": "array",
+            "description": "List of student assignments",
+            "items": {
+              "$ref": "#/components/schemas/StudentAssignmentResponseDTO"
+            }
+          }
+        },
+        "description": "Paginated student assignment list response"
+      },
+      "StudentAssignmentResponseDTO": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 101
+          },
+          "assignmentName": {
+            "type": "string",
+            "description": "Assignment name",
+            "example": "Oral Exam 1"
+          },
+          "courseCode": {
+            "type": "string",
+            "description": "Course code",
+            "example": "COMP90082"
+          },
+          "assessmentType": {
+            "type": "string",
+            "description": "Assessment type",
+            "example": "GROUP",
+            "enum": [
+              "INDIVIDUAL",
+              "GROUP",
+              "MIXED"
+            ]
+          },
+          "sessionDurationMinutes": {
+            "type": "integer",
+            "description": "Session duration in minutes",
+            "format": "int32",
+            "example": 30
+          },
+          "booking": {
+            "$ref": "#/components/schemas/BookingInfoDTO"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/AvailabilityInfoDTO"
+          }
+        },
+        "description": "Student assignment response data"
+      },
+      "GroupContextResponseDTO": {
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "type": "integer",
+            "description": "Group ID",
+            "format": "int64",
+            "example": 501
+          },
+          "groupName": {
+            "type": "string",
+            "description": "Group name",
+            "example": "Team Alpha"
+          },
+          "members": {
+            "type": "array",
+            "description": "List of group members",
+            "items": {
+              "$ref": "#/components/schemas/GroupMemberDTO"
+            }
+          }
+        },
+        "description": "Group context response data"
+      },
+      "GroupMemberDTO": {
+        "type": "object",
+        "properties": {
+          "studentId": {
+            "type": "integer",
+            "description": "Student ID",
+            "format": "int64",
+            "example": 201
+          },
+          "name": {
+            "type": "string",
+            "description": "Student name",
+            "example": "Bob Student"
+          },
+          "email": {
+            "type": "string",
+            "description": "Student email",
+            "example": "bob@student.unimelb.edu.au"
+          }
+        },
+        "description": "Group member information"
+      },
+      "ResultGroupContextResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GroupContextResponseDTO"
+          }
+        }
+      },
+      "CurrentBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "hasActiveBooking": {
+            "type": "boolean",
+            "description": "Whether student has an active booking",
+            "example": true
+          },
+          "booking": {
+            "$ref": "#/components/schemas/BookingInfoDTO"
+          }
+        },
+        "description": "Current booking response"
+      },
+      "ResultCurrentBookingResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CurrentBookingResponseDTO"
+          }
+        }
+      },
+      "AssignedSlotDTO": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "venueId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Assigned slots"
+      },
+      "ExaminerScheduleDTO": {
+        "type": "object",
+        "properties": {
+          "examinerId": {
+            "type": "integer",
+            "description": "Examiner ID",
+            "format": "int64"
+          },
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID (optional)",
+            "format": "int64"
+          },
+          "slots": {
+            "type": "array",
+            "description": "Assigned slots",
+            "items": {
+              "$ref": "#/components/schemas/AssignedSlotDTO"
+            }
+          }
+        }
+      },
+      "ResultExaminerScheduleDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ExaminerScheduleDTO"
+          }
+        }
+      },
+      "ResultListAssignmentResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssignmentResponseDTO"
+            }
+          }
+        }
+      },
+      "CourseStatsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Success flag",
+            "example": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/StatsData"
+          }
+        },
+        "description": "Course statistics response for dashboard"
+      },
+      "ResultCourseStatsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CourseStatsResponseDTO"
+          }
+        }
+      },
+      "StatsData": {
+        "type": "object",
+        "properties": {
+          "totalCourses": {
+            "type": "integer",
+            "description": "Total number of courses",
+            "format": "int32",
+            "example": 15
+          },
+          "activeCourses": {
+            "type": "integer",
+            "description": "Number of active courses",
+            "format": "int32",
+            "example": 12
+          },
+          "totalStudents": {
+            "type": "integer",
+            "description": "Total number of students",
+            "format": "int32",
+            "example": 300
+          },
+          "totalAssignments": {
+            "type": "integer",
+            "description": "Total number of assignments",
+            "format": "int32",
+            "example": 45
+          },
+          "currentSemester": {
+            "type": "string",
+            "description": "Current semester information",
+            "example": "2024 Semester 1"
+          }
+        },
+        "description": "Statistics data container"
+      },
+      "ResultListSelectableTimeSlotDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SelectableTimeSlotDTO"
+            }
+          }
+        }
+      },
+      "SelectableTimeSlotDTO": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "assignmentId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "startTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "endTime": {
+            "$ref": "#/components/schemas/LocalTime"
+          },
+          "venueId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "requiredExaminers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentExaminers": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "empty",
+              "partial",
+              "full",
+              "closed"
+            ]
+          },
+          "full": {
+            "type": "boolean",
+            "description": "Whether the slot has reached examiner capacity"
+          },
+          "conflict": {
+            "type": "boolean",
+            "description": "Whether this slot conflicts with examiner's existing assignments"
+          },
+          "assigned": {
+            "type": "boolean",
+            "description": "Whether the examiner is already assigned to this slot"
+          }
+        }
+      },
+      "AssignmentInfoDTO": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 101
+          },
+          "assignmentName": {
+            "type": "string",
+            "description": "Assignment name",
+            "example": "Oral Exam 1"
+          },
+          "assessmentType": {
+            "type": "string",
+            "description": "Assessment type",
+            "example": "GROUP"
+          }
+        },
+        "description": "Assignment information"
+      },
+      "AvailabilityDetailsDTO": {
+        "type": "object",
+        "properties": {
+          "canBook": {
+            "type": "boolean",
+            "description": "Whether session can be booked",
+            "example": true
+          },
+          "reason": {
+            "type": "string",
+            "description": "Reason if session cannot be booked",
+            "example": "SESSION_TAKEN"
+          }
+        },
+        "description": "Availability details"
+      },
+      "BookableSessionsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "assignment": {
+            "$ref": "#/components/schemas/AssignmentInfoDTO"
+          },
+          "calendar": {
+            "$ref": "#/components/schemas/CalendarInfoDTO"
+          },
+          "timeSlots": {
+            "type": "array",
+            "description": "Time slots with sessions",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotWithSessionsDTO"
+            }
+          }
+        },
+        "description": "Bookable sessions response"
+      },
+      "CalendarInfoDTO": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Date",
+            "example": "2025-04-14"
+          }
+        },
+        "description": "Calendar information"
+      },
+      "ResultBookableSessionsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/BookableSessionsResponseDTO"
+          }
+        }
+      },
+      "SessionAvailabilityDTO": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "integer",
+            "description": "Session ID",
+            "format": "int64",
+            "example": 90011
+          },
+          "start": {
+            "type": "string",
+            "description": "Start time",
+            "example": "2025-04-14T10:00:00+10:00"
+          },
+          "end": {
+            "type": "string",
+            "description": "End time",
+            "example": "2025-04-14T10:30:00+10:00"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status",
+            "example": "available"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/AvailabilityDetailsDTO"
+          }
+        },
+        "description": "Session availability information"
+      },
+      "TimeSlotWithSessionsDTO": {
+        "type": "object",
+        "properties": {
+          "slotId": {
+            "type": "integer",
+            "description": "Slot ID",
+            "format": "int64",
+            "example": 5001
+          },
+          "start": {
+            "type": "string",
+            "description": "Start time",
+            "example": "2025-04-14T10:00:00+10:00"
+          },
+          "end": {
+            "type": "string",
+            "description": "End time",
+            "example": "2025-04-14T11:30:00+10:00"
+          },
+          "timezone": {
+            "type": "string",
+            "description": "Timezone",
+            "example": "Australia/Melbourne"
+          },
+          "venue": {
+            "$ref": "#/components/schemas/VenueInfoDTO"
+          },
+          "requiredExaminers": {
+            "type": "integer",
+            "description": "Required examiners",
+            "format": "int32",
+            "example": 2
+          },
+          "currentExaminers": {
+            "type": "integer",
+            "description": "Current examiners",
+            "format": "int32",
+            "example": 2
+          },
+          "isFullyStaffed": {
+            "type": "boolean",
+            "description": "Whether slot is fully staffed",
+            "example": true
+          },
+          "sessions": {
+            "type": "array",
+            "description": "Sessions in this slot",
+            "items": {
+              "$ref": "#/components/schemas/SessionAvailabilityDTO"
+            }
+          }
+        },
+        "description": "Time slot with sessions"
+      },
+      "AssignmentStatusStatsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "totalCount": {
+            "type": "integer",
+            "description": "Total number of assignments",
+            "format": "int32",
+            "example": 100
+          },
+          "statusCounts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "description": "Count of assignments by status",
+              "format": "int32"
+            },
+            "description": "Count of assignments by status",
+            "example": {
+              "PENDING": 20,
+              "IN_PROGRESS": 30,
+              "COMPLETED": 40,
+              "CANCELLED": 10
+            }
+          },
+          "statusPercentages": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "description": "Percentage of total weight by status (based on assignment weights)",
+              "format": "double"
+            },
+            "description": "Percentage of total weight by status (based on assignment weights)",
+            "example": {
+              "PENDING": 20,
+              "IN_PROGRESS": 30,
+              "COMPLETED": 40,
+              "CANCELLED": 10
+            }
+          }
+        },
+        "description": "Assignment status statistics response"
+      },
+      "ResultAssignmentStatusStatsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AssignmentStatusStatsResponseDTO"
+          }
+        }
+      },
+      "ResultInteger": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "GetTimeSlotsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "timeSlots": {
+            "type": "array",
+            "description": "List of time slots",
+            "items": {
+              "$ref": "#/components/schemas/TimeSlotDetailDTO"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/TimeSlotsSummaryDTO"
+          }
+        },
+        "description": "Get time slots response DTO"
+      },
+      "ResultGetTimeSlotsResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GetTimeSlotsResponseDTO"
+          }
+        }
+      },
+      "TimeSlotsSummaryDTO": {
+        "type": "object",
+        "properties": {
+          "totalTimeSlots": {
+            "type": "integer",
+            "description": "Total number of time slots",
+            "format": "int32",
+            "example": 4
+          },
+          "totalSessions": {
+            "type": "integer",
+            "description": "Total number of sessions",
+            "format": "int32",
+            "example": 12
+          },
+          "fullyStaffed": {
+            "type": "integer",
+            "description": "Number of fully staffed slots",
+            "format": "int32",
+            "example": 2
+          },
+          "partiallyStaffed": {
+            "type": "integer",
+            "description": "Number of partially staffed slots",
+            "format": "int32",
+            "example": 1
+          },
+          "unstaffed": {
+            "type": "integer",
+            "description": "Number of unstaffed slots",
+            "format": "int32",
+            "example": 1
+          }
+        },
+        "description": "Time slots summary"
+      },
+      "ResultScheduleStatusResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ScheduleStatusResponseDTO"
+          }
+        }
+      },
+      "ScheduleStatusResponseDTO": {
+        "type": "object",
+        "properties": {
+          "assignmentId": {
+            "type": "integer",
+            "description": "Assignment ID",
+            "format": "int64",
+            "example": 123
+          },
+          "scheduleStatus": {
+            "type": "string",
+            "description": "Schedule status",
+            "example": "draft",
+            "enum": [
+              "draft",
+              "released"
+            ]
+          },
+          "isReleased": {
+            "type": "boolean",
+            "description": "Whether the schedule is released",
+            "example": false
+          },
+          "releasedAt": {
+            "type": "string",
+            "description": "Release date/time",
+            "format": "date-time"
+          },
+          "totalTimeSlots": {
+            "type": "integer",
+            "description": "Total number of time slots",
+            "format": "int32",
+            "example": 4
+          },
+          "readyForRelease": {
+            "type": "boolean",
+            "description": "Whether the schedule is ready for release",
+            "example": true
+          },
+          "issues": {
+            "type": "array",
+            "description": "Issues preventing release",
+            "items": {
+              "type": "string",
+              "description": "Issues preventing release"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/ScheduleSummaryDTO"
+          }
+        },
+        "description": "Schedule status response DTO"
+      },
+      "ScheduleSummaryDTO": {
+        "type": "object",
+        "properties": {
+          "totalSessions": {
+            "type": "integer",
+            "description": "Total sessions",
+            "format": "int32",
+            "example": 12
+          },
+          "fullyStaffedSlots": {
+            "type": "integer",
+            "description": "Fully staffed slots",
+            "format": "int32",
+            "example": 2
+          },
+          "unstaffedSlots": {
+            "type": "integer",
+            "description": "Unstaffed slots",
+            "format": "int32",
+            "example": 0
+          },
+          "totalExaminers": {
+            "type": "integer",
+            "description": "Total examiners",
+            "format": "int32",
+            "example": 6
+          }
+        },
+        "description": "Schedule summary"
+      },
+      "GetAvailableExaminersResponseDTO": {
+        "type": "object",
+        "properties": {
+          "examiners": {
+            "type": "array",
+            "description": "Examiners",
+            "items": {
+              "$ref": "#/components/schemas/ExaminerDetailDTO"
+            }
+          }
+        }
+      },
+      "ResultGetAvailableExaminersResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/GetAvailableExaminersResponseDTO"
+          }
+        }
+      },
+      "CalendarResponseDTO": {
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string",
+            "description": "Month in YYYY-MM format",
+            "example": "2025-08"
+          },
+          "dates": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DateInfoDTO"
+            },
+            "description": "Per-date calendar data keyed by YYYY-MM-DD"
+          }
+        },
+        "description": "Admin calendar aggregated view for a given month"
+      },
+      "DateInfoDTO": {
+        "type": "object",
+        "properties": {
+          "timeSlots": {
+            "type": "integer",
+            "description": "Number of time slots on this date",
+            "format": "int32",
+            "example": 2
+          },
+          "status": {
+            "type": "string",
+            "description": "Aggregated staffing status for the date: empty/partial/full",
+            "example": "partial"
+          },
+          "sessions": {
+            "type": "integer",
+            "description": "Total sessions on this date",
+            "format": "int32",
+            "example": 6
+          }
+        },
+        "description": "Aggregated information for a specific date"
+      },
+      "ResultCalendarResponseDTO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CalendarResponseDTO"
+          }
+        }
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "object"
+          }
+        }
+      },
+      "ResultBoolean": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResultLong": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          },
+          "data": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DeleteTimeSlotsRequestDTO": {
+        "required": [
+          "timeSlotIds"
+        ],
+        "type": "object",
+        "properties": {
+          "timeSlotIds": {
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array",
+            "description": "List of time slot IDs to delete",
+            "example": [1, 2, 3],
+            "items": {
+              "type": "integer",
+              "description": "List of time slot IDs to delete",
+              "format": "int64"
+            }
+          }
+        },
+        "description": "Delete time slots request DTO"
+      }
+    }
+  }
+}

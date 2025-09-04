@@ -26,15 +26,6 @@ export function StudentTopNav({ onSidebarToggle }) {
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState("all");
-
-  // Mock courses data - will be replaced with real data
-  const courses = [
-    { id: "all", name: "All Courses" },
-    { id: "comp90082", name: "COMP90082 - SPM" },
-    { id: "info30005", name: "INFO30005 - Web Info Tech" },
-    { id: "comp30022", name: "COMP30022 - IT Project" },
-  ];
 
   // Mock notifications data
   const notifications = [
@@ -80,22 +71,6 @@ export function StudentTopNav({ onSidebarToggle }) {
         >
           <i className="fas fa-bars"></i>
         </button>
-
-        {/* Course selector */}
-        <div className="ml-4 md:ml-0">
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-48 md:w-64">
-              <SelectValue placeholder="Select a course" />
-            </SelectTrigger>
-            <SelectContent>
-              {courses.map((course) => (
-                <SelectItem key={course.id} value={course.id}>
-                  {course.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
       {/* Right side - Dark mode, notifications, user profile */}
@@ -216,7 +191,7 @@ export function StudentTopNav({ onSidebarToggle }) {
               />
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 border border-gray-200 dark:border-gray-700">
                 <a
-                  href="/student/settings"
+                  href="/student/profile"
                   className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center"
                   onClick={() => setUserMenuOpen(false)}
                 >

@@ -330,14 +330,14 @@ export const assignmentService = {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || "Failed to preview CSV",
-        code: error.response?.status || 500,
+        message: error.response?.data?.message || error.response?.data?.data || "Failed to upload CSV",
+        code: error.response?.data?.code || error.response?.status || 500,
       };
     }
   },
 
   // Student CSV Upload - Upload student/group CSV data to backend
-  async uploadStudentCsv(file, type) {
+  async uploadStudentCsv(file, type, assignmentId) {
     if (USE_MOCK_API) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
@@ -357,8 +357,9 @@ export const assignmentService = {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", type);
+      formData.append("assignmentId", assignmentId);
       
-      const response = await api.post("/api/csv/upload", formData, {
+      const response = await api.post("/api/csv/import", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -433,7 +434,7 @@ export const assignmentService = {
       formData.append("file", file);
       formData.append("type", "examiner");
       
-      const response = await api.post("/api/csv/upload", formData, {
+      const response = await api.post("/api/csv/import", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

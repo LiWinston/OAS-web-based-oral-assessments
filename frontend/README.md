@@ -190,7 +190,9 @@ frontend/
 │   │   ├── schedule/            # Self-assignment and availability management
 │   │   │   ├── page.jsx         # Schedule overview with multiple views
 │   │   │   └── select/page.jsx  # Two-step timeslot selection wizard
-│   │   ├── assessments/         # Assessment conduct
+│   │   ├── assessment/          # Assessment conduct (marking UI)
+│   │   │   ├── page.jsx         # Session picker (choose a session to mark)
+│   │   │   └── [sessionId]/page.jsx # Marking page for a specific session
 │   │   └── comments/            # Comment templates
 │   ├── student/                 # Student interface
 │   │   ├── layout.jsx           # Student layout
@@ -204,8 +206,9 @@ frontend/
 │   ├── superadmin/              # Super Admin interface
 │   │   ├── layout.jsx           # Super admin layout
 │   │   ├── page.jsx             # System overview
-│   │   ├── courses/             # Course management
-│   │   └── admins/              # Admin user management
+│   │   ├── courses/page.jsx    # System-wide course management
+│   │   ├── admins/page.jsx     # Course Admin user management
+│   │   └── profile/page.jsx    # Super Admin profile
 │   ├── globals.css              # Global styles
 │   └── layout.js                # Root layout
 │
@@ -265,6 +268,14 @@ frontend/
 │   │   │   ├── AddUserModal.jsx            # Add member (ROLE_STUDENT/ROLE_EXAMINER)
 │   │   │   ├── UsersEmptyState.jsx         # Empty state for tabs
 │   │   │   └── ConfirmDialog.jsx           # Polished delete confirmation
+│   ├── examiner/                # Examiner specific components
+│   │   ├── assessment/          # Marking UI building blocks
+│   │   │   ├── HeaderStatusBar.jsx  # Timer + autosave + progress chips
+│   │   │   ├── StudentSwitcher.jsx  # Per-student selector with completion badges
+│   │   │   ├── SubmitDialog.jsx     # Submit confirmation dialog
+│   │   │   ├── SessionInfo.jsx      # Session header info (assignment, time, venue)
+│   │   │   ├── RubricTable.jsx      # Canvas-style rubric grid
+│   │   │   └── TotalsPanel.jsx      # Scores summary card
 │   │   ├── schedule/            # Course Admin timeslot management
 │   │   │   ├── AddTimeSlotModal.jsx        # Comprehensive timeslot creation/editing modal
 │   │   │   └── EditTimeSlotModal.jsx       # Wrapper for editing existing timeslots
@@ -279,6 +290,10 @@ frontend/
 │   │       ├── AdminManagementHub.jsx # Course Admin management
 │   │       └── CourseOverviewTable.jsx # System-wide course view
 │   ├── examiner/                # Examiner specific components
+│   │   ├── assessment/          # Examiner marking UI components
+│   │   │   ├── SessionInfo.jsx          # Session header: assignment, time, venue, participants
+│   │   │   ├── RubricTable.jsx          # Canvas-style rubric (criteria x levels, comments)
+│   │   │   └── TotalsPanel.jsx          # Group/individual totals and mixed weighting summary
 │   │   └── schedule/            # Examiner timeslot self-assignment system
 │   │       ├── AssessmentsToAssign.jsx      # Available assignments display with filtering
 │   │       ├── AssignedSlots.jsx            # Current assignments with withdrawal functionality
@@ -309,7 +324,8 @@ frontend/
 │   ├── assignmentService.js     # Assignment CRUD operations with mock data
 │   ├── userService.js           # User management (assignment-centric members API)
 │   ├── studentGroupsService.js  # Student groups and collaboration management
-│   ├── examinerTimeslotService.js # Examiner self-assignment and schedule management
+│   ├── examinerTimeslotService.js   # Examiner self-assignment and schedule management
+│   ├── examinerAssessmentService.js # Examiner marking APIs (mock/real switch, contract-aligned)
 │   └── schedulingService.js     # Booking and scheduling
 │
 ├── store/                       # State management
@@ -326,6 +342,16 @@ frontend/
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
 │   └── utils.js                 # Helper functions
+
+├── hooks/                       # Custom hooks
+│   └── examiner/assessment/     # Examiner marking hooks
+│       ├── useMarkingSessionQuery.js   # Query + mutations for context/draft/submit
+│       ├── useAssessmentDraft.js       # Local draft state (ratings/comments)
+│       ├── useAssessmentValidation.js  # Missing/required counts by entity
+│       └── useAutoSave.js              # Debounced draft autosave
+
+├── utils/                       # Domain utilities
+│   └── assessment.js            # buildAssessmentPayload and helpers
 │
 ├── middleware.js                # Next.js middleware (auth)
 ├── tailwind.config.js           # Tailwind configuration
@@ -521,10 +547,10 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 3. Configure CORS and security policies between frontend (localhost:3000) and backend (localhost:8081)
 4. Set up deployment pipelines for separate frontend and backend services
 
-- Course Admin interface: 80% complete (missing comment library)
-- Super Admin interface: 90% complete
-- Student interface: 20% complete (dashboard complete, booking/results pending)
-- Examiner interface: 20% complete (dashboard and scheduling complete, marking pending)
+- Course Admin interface: 85% complete (missing reports, results release control, Canvas export UI)
+- Super Admin interface: 95% complete (fully functional)
+- Student interface: 90% complete (booking and results implemented, missing notification preferences)
+- Examiner interface: 85% complete (dashboard, scheduling, marking UI with mocks; backend integration pending)
 - Backend APIs: Spring Boot auth endpoints available; additional domain APIs in progress
 - Database: Schema complete, integration pending
 
@@ -547,9 +573,33 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - Test data seeding scripts
 - Backend-only DB access; frontend accesses data via REST APIs
 
-## Frontend Implementation Status
+## Frontend Implementation Status vs PRD Requirements
 
-The following reflects the current state of the frontend only. Backend capabilities are provided by a separate Spring Boot service. Status levels:
+### Executive Summary
+
+**What's Working:**
+- ✅ All four user roles have complete dashboards and navigation
+- ✅ Authentication system fully integrated with Spring Boot backend  
+- ✅ Course and assignment creation/management interfaces complete
+- ✅ Rubric builder with customizable criteria and performance levels
+- ✅ Student booking workflow with calendar-based slot selection
+- ✅ Examiner self-assignment to timeslots with conflict detection
+- ✅ Student groups display and collaboration features
+- ✅ Student results viewing with detailed rubric breakdown
+- ✅ CSV import for student/group data
+- ✅ Course Admin and Super Admin management systems
+
+**Critical PRD Gaps:**
+- ❌ **Examiner Marking Interface**: No actual assessment execution interface
+- ❌ **Reporting System**: Three required reports not implemented
+- ❌ **Email Notifications**: System specified in PRD not functional
+- ❌ **Results Release Control**: Admin control over result timing missing
+- ❌ **Mark Aggregation**: Multiple examiner score combination not implemented
+- ❌ **Canvas Export**: Results export to LMS not complete
+
+### Detailed Implementation Status
+
+The following reflects the current state of the frontend implementation against PRD requirements. Backend capabilities are provided by a separate Spring Boot service. Status levels:
 
 - ✅ Complete (UI implemented + Spring Boot backend integration working)
 - 🚧 Frontend Ready (UI built, awaiting Spring Boot API integration)
@@ -575,31 +625,48 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Target: Wire course and assignment services to Spring Boot endpoints.
 - User can: Create/edit courses and assignments in the UI; data persists only in mock layer.
 
-### Rubric and Feedback Customization — 🚧 Frontend Ready (mock)
+### Rubric and Feedback Customization — ✅ Complete (with mock services)
 
-- Current: Full rubric builder UI, drag-and-drop criteria, performance levels, and predefined comments; service mocks in place.
-- Target: Connect rubric CRUD to Spring Boot.
-- User can: Configure rubrics in UI with mock persistence.
+- Current: Full rubric builder UI with comprehensive configuration capabilities.
+- Implementation: Dedicated rubric configuration page at `/admin/courses/[courseId]/assignments/[assignmentId]/rubric`; criterion management with drag-and-drop; customizable performance levels with variable count per criterion; predefined comment management; rubric preview functionality.
+- Components: RubricCriterion.jsx, PerformanceLevel.jsx, CommentManager.jsx, RubricPreview.jsx.
+- User can: Create and edit rubric criteria; define custom performance levels with point values; manage predefined feedback comments; preview complete rubric structure; save and update rubric configurations.
 
 ### Student Groups System — ✅ Complete (with mock services)
 
-- Current: Complete student groups interface with group overview and detailed member information; comprehensive mock API layer with realistic test data.
-- Implementation: Assignment-level group membership display, group overview with card/table views, detailed member information with contact details, responsive design with mobile optimization, comprehensive error handling for access control.
-- User can: View all active group memberships with course/assignment context; switch between card and table view for group overview; access detailed group information including all member details with contact information; see group collaboration tips and guidelines; refresh group data manually.
-- Features: Professional gradient-themed interface matching student dashboard design; avatar generation for group members; search and filtering capabilities; responsive mobile-first design; error boundaries and loading states.
-- API Integration: Following Student-Groups-API-Contracts specification with GET `/api/students/{studentId}/groups` for overview and GET `/api/students/{studentId}/groups/{groupId}` for details; mock service with realistic delays and error scenarios; membership validation and access control simulation.
+- Current: Complete student groups interface with group overview and detailed member information; comprehensive mock API layer.
+- Implementation: Assignment-level group membership display, group overview with card/table views, detailed member information with contact details, responsive design.
+- User can: View all active group memberships; switch between card and table view; access detailed group information; see collaboration guidelines.
+- Features: Professional gradient-themed interface; avatar generation; search and filtering; responsive mobile-first design.
+- API Integration: Following API specification with mock service; realistic delays and error scenarios.
 
-### Student/Group Data Import — 🚧 Frontend Ready (backend endpoints available)
+### Student/Group Data Import — ✅ Complete (with mock services)
 
-- Current: CSV upload UI integrated in assignment workflows; frontend ready to call backend.
-- Backend: Spring Boot /api/csv/preview and /api/csv/import available.
-- User can: Upload CSV in UI; integration to backend to be finalized in services.
+- Current: CSV upload UI fully integrated in assignment workflows with preview functionality.
+- Implementation: File upload interface in assignment configuration; CSV preview before import; validation and error handling.
+- Backend: Spring Boot /api/csv/preview and /api/csv/import endpoints available.
+- User can: Upload student/group CSV files; preview data before import; see validation errors; confirm import.
 
-### Scheduling & Time Slot Management — ❌ Not Started
+### Student Slot Booking System — ✅ Complete (with mock services)
 
-- Current: No scheduling UI yet (time slots, venues, conflict detection).
-- Target: Build scheduling UI and integrate with backend scheduling APIs.
-- User can: Not available yet.
+- Current: Full booking workflow implemented with calendar-based slot selection and confirmation.
+- Implementation: Multi-step booking wizard at `/student/booking/[assignmentId]`; calendar view with available dates; session selection with venue and examiner info; booking confirmation page; group booking support; reschedule capability.
+- Components: AssignmentsAvailable.jsx, MyBookings.jsx, StudentCalendar.jsx; integrated with studentBookingReal.js service.
+- User can: View available assignments for booking; select dates from calendar; choose specific sessions; confirm bookings; view and manage existing bookings; reschedule if allowed.
+
+### Scheduling & Time Slot Management — ✅ Complete (with mock services)
+
+- Current: Complete scheduling and timeslot management for both Course Admin configuration and Examiner self-assignment; comprehensive mock API layer with realistic test data.
+- Implementation: Three-step session configuration wizard for Course Admin; calendar-based timeslot display and management; batch operations (duplicate, delete, notify); examiner self-assignment with conflict detection; withdrawal functionality when no students booked.
+- User can: Configure assessment session parameters; create and manage timeslots with venues; assign examiners to slots; view calendar-based schedules; perform bulk operations; track booking status.
+
+### Notifications System — ⏳ Partial (UI notifications only)
+
+- Current: In-app toast notifications via notification.jsx component; email notifications mocked in services.
+- Implementation: Toast notification system with success/error/info/warning types; useNotification hook for global notification management.
+- Backend: Email notification endpoints to be implemented in Spring Boot backend.
+- User can: See in-app notifications for actions; email notifications not yet functional.
+- Missing: Actual email sending for booking confirmations, reminders, user invitations, and result releases.
 
 ### Examiner Self-Assignment — ✅ Complete (with mock services)
 
@@ -615,35 +682,45 @@ The following reflects the current state of the frontend only. Backend capabilit
 - User can: Configure assessment session parameters (duration, gap time, required examiners); create and manage timeslots with venue assignment; view calendar-based schedule with staffing status; perform bulk operations on selected timeslots; track examiner assignments and booking status.
 - Features: Dynamic end time calculation, status indicators (full/partial/empty staffing), modal-based timeslot creation/editing, comprehensive error handling, and professional UX with loading states.
 
-### Assessment Execution (Examiner Interface) — ✅ Complete (UI implemented)
+### Examiner Marking — ✅ Complete (with mock services)
 
-- Current: Full examiner dashboard with comprehensive assessment management interface implemented.
-- Implementation: Complete layout with sidebar navigation, dashboard components, and all examiner pages.
-- User can: Access professional examiner dashboard; view today's schedule; manage pending feedback; use comment library; navigate to assessment, results, schedule, documentation, and profile pages.
+- Route: `/examiner/assessment` (session picker → marking UI)
+- Features: Canvas-style rubric table (criteria rows × level columns), per-criterion comments with predefined “quick comments”, numeric points with level-bound validation, auto-save to draft, submit with confirmation lock, mixed assignment toggle (Group/Individual), per-student selector with live “x/y complete”, compact per-student chips, totals panel (group, individual, final for mixed), and read-only lock for submitted sessions.
+- Mock data: Three scenarios aligned to API contract
+  - Mixed (101): session 90011 (unmarked)
+  - Individual (102): session 90012 (draft resumes)
+  - Group (103): session 90013 (submitted, locked)
+- Services: `services/examinerAssessmentService.js` (contract-aligned endpoints, `{ success, code, data }` wrapper), toggled by `NEXT_PUBLIC_USE_MOCKS=true`
+- Components: `components/examiner/assessment/HeaderStatusBar.jsx`, `StudentSwitcher.jsx`, `SubmitDialog.jsx`, `SessionInfo.jsx`, `RubricTable.jsx`, `TotalsPanel.jsx`
+- Status: UI complete with mocks; Spring Boot integration pending
 
-### Mark Calculation & Aggregation — ❌ Not Started
+### Mark Calculation & Aggregation — ⏳ Partial (display only)
 
-- Current: No aggregation UI.
-- Target: Show aggregated results and configure methods; backend computes.
-- User can: Not available yet.
+- Current: Student results display with rubric breakdown implemented; aggregation calculation not implemented.
+- Implementation: Results pages show detailed rubric scores, examiner feedback, and performance levels; Canvas-style rubric display components.
+- User can: View detailed assessment results with rubric breakdown; see examiner feedback and comments.
+- Missing: Mark aggregation configuration, multiple examiner score combination, calculation methods selection.
 
 ### Reporting and Analytics — ❌ Not Started
 
-- Current: No reports UI yet (scheduling overview, marking results, examiner trends).
-- Target: Build reports UI and integrate exports.
-- User can: Not available yet.
+- Current: No dedicated reports UI (scheduling overview report, mark results report, examiner trends report).
+- Implementation: Dashboard statistics cards exist but no formal reporting pages as specified in PRD.
+- Target: Build three key reports specified in PRD - Scheduling Overview, Mark Results & Aggregation, Examiner Trends.
+- User can: View basic statistics on dashboards only; formal reports not available yet.
 
 ### Results Release Control — ❌ Not Started
 
-- Current: No results release controls in UI.
-- Target: Implement release flow and student visibility controls.
-- User can: Not available yet.
+- Current: No results release controls in Course Admin interface.
+- Implementation: Students can view results but no admin control over release timing.
+- Target: Implement Course Admin controls to review marks before release, manual release trigger, and student notifications.
+- User can: Students can view results (if available); admins cannot control release timing yet.
 
-### Canvas LMS Integration — ❌ Not Started
+### Canvas LMS Integration — ⏳ Partial (CSV import ready)
 
-- Current: No Canvas import/export implemented in UI.
-- Target: Add CSV export of results and student import alignment with Canvas formats.
-- User can: Not available yet.
+- Current: CSV student/group data import UI implemented; export functionality service exists but UI not complete.
+- Implementation: Assignment service supports CSV upload for student data; exportResultsService.js exists for grade export.
+- User can: Upload student/group CSV files in assignment configuration; preview CSV data before import.
+- Missing: UI for exporting results to Canvas-compatible CSV format; full integration workflow.
 
 **🎯 Enhanced Course Admin Dashboard**
 
@@ -811,6 +888,16 @@ The following reflects the current state of the frontend only. Backend capabilit
 - Error handling and retry logic with user-friendly messages
 - **Email notifications**: Currently mocked, will be implemented in Java backend
 
+#### Examiner Marking Service (Mock/Real Switch)
+
+- File: `services/examinerAssessmentService.js`
+- Toggle: `NEXT_PUBLIC_USE_MOCKS=true` (dev-only)
+- Contract alignment: Implements endpoints in `Docs/API/Examiner-Assessment-API-Contracts.md`
+- Mock scenarios returned:
+  - Mixed assignment (101) → session 90011 (unmarked)
+  - Individual assignment (102) → session 90012 (draft)
+  - Group assignment (103) → session 90013 (submitted)
+
 **Development Tools**
 
 - ESLint configuration for code quality
@@ -833,14 +920,16 @@ The following reflects the current state of the frontend only. Backend capabilit
 - **Database Setup**: MySQL 8.0 with complete schema and test data (ready for integration)
 - **Professional UI/UX**: Dark mode, animations, micro-interactions, and responsive design
 
-**🚧 Critical Gaps**
+**🚧 Critical Gaps (Against PRD Requirements)**
 
-- **Comment Library System**: Missing centralized comment management (only basic comments in rubric)
-- **Student Booking System**: Dashboard complete, but booking interface and results viewing need backend integration
-- **Examiner Marking Interface**: Dashboard and scheduling complete, but marking interface needs implementation
-- **Time Slot Management**: Examiner self-assignment complete, but course admin scheduling needs backend integration
-- **Assessment Execution**: No examiner marking interface or draft saving
-- **Results System**: No mark aggregation, release control, or Canvas export
+- **Notifications System**: Email notification system not implemented (booking confirmations, reminders, user invitations)
+- **Examiner Marking Integration**: Backend integration for examiner marking pending (UI complete with mocks)
+- **Reporting System**: Three required reports not implemented (Scheduling Overview, Mark Results & Aggregation, Examiner Trends)
+- **Results Release Control**: Course Admin control over result release timing not implemented
+- **Mark Aggregation**: Configuration for aggregation methods (average/max/min) not implemented
+- **Mark Aggregation Across Examiners**: Aggregation methods and multi-examiner combination not implemented
+- **Security & Compliance**: Audit logging and WCAG accessibility compliance not fully verified
+- **Canvas Export**: Results export to Canvas-compatible CSV format UI not complete
 
 ## 📋 Changelog
 
@@ -882,11 +971,13 @@ The following reflects the current state of the frontend only. Backend capabilit
   - `lib/services/` (service layer with factory pattern)
   - `lib/types/timeslot.js` (JSDoc type definitions)
 
-**📋 Next Phase Priorities**
+**📋 Next Phase Priorities (Based on PRD Gap Analysis)**
 
-1. **Comment Library**: Implement centralized comment management with search and analytics
-2. **Student Booking System**: Complete time slot selection and group coordination
-3. **Examiner Marking Interface**: Build assessment form with rubric and comment integration
-4. **Scheduling System**: Create time slot management with venue assignment
-5. **Database Connection**: Connect API routes to MySQL database
-6. **Results Management**: Implement mark aggregation and Canvas export
+1. **Examiner Marking Integration**: Wire marking UI to Spring Boot endpoints per `Docs/API/Examiner-Assessment-API-Contracts.md`
+2. **Reporting System**: Implement Scheduling Overview, Mark Results & Aggregation, and Examiner Trends with export
+3. **Results Release Control**: Course Admin review/approval and release workflow with student notifications
+4. **Email Notifications**: Spring Boot email service for booking confirmations, reminders, and releases
+5. **Mark Aggregation Configuration**: Aggregation method selection (average/max/min) for multi-examiner cases
+6. **Canvas Export UI**: Complete the UI for exporting results to Canvas-compatible CSV format (PRD requirement)
+7. **Mixed Assessment Support**: Full support for assessments with both individual and group components (PRD requirement)
+8. **Audit Logging & Compliance**: Implement audit trail and verify WCAG accessibility compliance (PRD requirement)

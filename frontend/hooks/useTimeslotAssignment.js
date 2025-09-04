@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { examinerTimeslotService } from '../services/examinerTimeslotService';
 import { useNotification } from './useNotification';
@@ -12,6 +13,7 @@ export function useTimeslotAssignment() {
   const router = useRouter();
   const { showNotification } = useNotification();
   const { examinerId, requireAuth } = useExaminerAuth();
+  const queryClient = useQueryClient();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -96,17 +98,25 @@ export function useTimeslotAssignment() {
   }, [examinerId, requireAuth, showNotification, router]);
 
   // Withdraw from a timeslot
-  const withdrawFromTimeslot = useCallback(async (slotId, onSuccess) => {
+  const withdrawFromTimeslot = useCallback(async (slotInput, onSuccess) => {
     try {
       requireAuth('withdraw from timeslot');
       setIsSubmitting(true);
+      // Support legacy signature (slotId) and new signature (slot object)
+      const slotId = typeof slotInput === 'object' ? slotInput?.slotId : slotInput;
+      const assignmentId = typeof slotInput === 'object' ? slotInput?.assignmentId : undefined;
 
       const result = await examinerTimeslotService.withdrawFromTimeslot(slotId, {
-        examinerId
+        examinerId,
+        assignmentId,
       });
 
       if (result.success) {
-        showNotification('success', 'Successfully withdrawn from timeslot');
+        // Invalidate schedule and selection caches so availability updates immediately
+        queryClient.invalidateQueries({ queryKey: ['examinerSchedule'] });
+        queryClient.invalidateQueries({ queryKey: ['examinerDay'] });
+        queryClient.invalidateQueries({ queryKey: ['examinerWeek'] });
+        queryClient.invalidateQueries({ queryKey: ['availableTimeslots'] });
         onSuccess?.();
         return result;
       } else {
@@ -130,7 +140,7 @@ export function useTimeslotAssignment() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [examinerId, requireAuth, showNotification]);
+  }, [examinerId, requireAuth, showNotification, queryClient]);
 
   // Check if withdrawal is allowed for a slot
   const canWithdraw = useCallback((slot) => {

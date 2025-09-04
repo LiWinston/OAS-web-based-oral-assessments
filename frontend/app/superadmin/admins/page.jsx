@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { adminService } from "../../../services/adminService";
+import Pagination from "../../../components/ui/Pagination";
 
 export default function AdminManagementPage() {
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -15,13 +16,27 @@ export default function AdminManagementPage() {
     department: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchName, setSearchName] = useState("");
+  const [searchEmail, setSearchEmail] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
   const [adminData, setAdminData] = useState({
     pendingInvitations: [],
     activeAdmins: [],
   });
   const [isLoading, setIsLoading] = useState(true);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 20,
+    hasNext: false,
+    hasPrev: false
+  });
 
   // Edit admin state
   const [showEditForm, setShowEditForm] = useState(false);
@@ -37,15 +52,114 @@ export default function AdminManagementPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
+  // 防抖搜索
+  const [debouncedSearchName, setDebouncedSearchName] = useState("");
+  const [debouncedSearchEmail, setDebouncedSearchEmail] = useState("");
+
+  // 防抖搜索效果
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchName(searchName);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchName]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchEmail(searchEmail);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchEmail]);
+
+  // 构建筛选参数
+  const buildFilters = useCallback(() => {
+    const filters = {};
+    
+    if (debouncedSearchName) {
+      filters.name = debouncedSearchName;
+    }
+    
+    if (debouncedSearchEmail) {
+      filters.email = debouncedSearchEmail;
+    }
+    
+    if (statusFilter !== "all") {
+      filters.status = statusFilter;
+    }
+    
+    return filters;
+  }, [debouncedSearchName, debouncedSearchEmail, statusFilter]);
+
   // Load admin data from API
   useEffect(() => {
     loadAdminData();
   }, []);
 
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isSearchDropdownOpen && !event.target.closest('.search-dropdown')) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchDropdownOpen]);
+
+  // Load admin data when pagination changes
+  useEffect(() => {
+    loadAdminData();
+  }, [currentPage, pageSize]);
+
+  // 当筛选条件改变时，重新加载数据
+  useEffect(() => {
+    setCurrentPage(1); // 重置到第一页
+    loadAdminData();
+  }, [debouncedSearchName, debouncedSearchEmail, statusFilter, pageSize]);
+
+  // 处理分页变化
+  const handlePageChange = (newPage) => {
+    console.log("🔄 Changing to page:", newPage);
+    setCurrentPage(newPage);
+  };
+
+  // 处理页面大小变化
+  const handlePageSizeChange = (newPageSize) => {
+    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Immediately trigger data reload with new page size
+    console.log("🔄 Triggering immediate data reload with new page size");
+  };
+
+  // 清除所有筛选
+  const clearAllFilters = () => {
+    setSearchName("");
+    setSearchEmail("");
+    setStatusFilter("all");
+    setCurrentPage(1);
+    // 不需要手动调用 loadAdminData，useEffect 会自动触发
+  };
+
+
+
   const loadAdminData = async () => {
     try {
       setIsLoading(true);
-      const response = await adminService.getAdminList();
+      const filters = buildFilters();
+      
+      console.log("🔍 Loading admin data...");
+      console.log("Filters:", filters);
+      console.log("Page:", currentPage);
+      console.log("PageSize:", pageSize);
+      
+      const response = await adminService.getAdminList(filters, currentPage, pageSize);
       if (
         response &&
         response.success &&
@@ -53,11 +167,26 @@ export default function AdminManagementPage() {
         (response.data.pendingInvitations || response.data.activeAdmins)
       ) {
         setAdminData(response.data);
+        
+        // 更新分页信息
+        if (response.data.pagination) {
+          console.log("🔄 Updating pagination state:", response.data.pagination);
+          setPagination(response.data.pagination);
+          setCurrentPage(response.data.pagination.currentPage || currentPage);
+        }
       } else {
         // API failed, set empty data
         setAdminData({
           pendingInvitations: [],
           activeAdmins: [],
+        });
+        setPagination({
+          currentPage: currentPage,
+          totalPages: 1,
+          totalItems: 0,
+          itemsPerPage: pageSize,
+          hasNext: false,
+          hasPrev: false
         });
       }
     } catch (error) {
@@ -67,6 +196,14 @@ export default function AdminManagementPage() {
         pendingInvitations: [],
         activeAdmins: [],
       });
+      setPagination({
+        currentPage: currentPage,
+        totalPages: 1,
+        totalItems: 0,
+        itemsPerPage: pageSize,
+        hasNext: false,
+        hasPrev: false
+      });
     } finally {
       setIsLoading(false);
     }
@@ -75,9 +212,9 @@ export default function AdminManagementPage() {
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const universityDomains = ["unimelb.edu.au", "student.unimelb.edu.au"];
-
+    
     if (!emailRegex.test(email)) return false;
-
+    
     const domain = email.split("@")[1];
     return universityDomains.includes(domain);
   };
@@ -92,13 +229,13 @@ export default function AdminManagementPage() {
 
   const handleInvite = async (e) => {
     e.preventDefault();
-
+    
     // Validation
     if (!validateEmail(inviteData.email)) {
       alert("Please use a valid University of Melbourne email address");
       return;
     }
-
+    
     if (checkDuplicateEmail(inviteData.email)) {
       alert(
         "This email address has already been invited or is an existing admin"
@@ -115,32 +252,32 @@ export default function AdminManagementPage() {
       alert("Department is required");
       return;
     }
-
+    
     setIsSubmitting(true);
-
+    
     try {
       // Call the actual API to send invitation
       const response = await adminService.inviteAdmin(inviteData);
 
       if (response && response.success) {
-        setShowInviteForm(false);
+      setShowInviteForm(false);
         setInviteData({ name: "", email: "", department: "" });
-
-        // Show success notification
+      
+      // Show success notification
         const successMessage = document.createElement("div");
         successMessage.className =
           "fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50";
-        successMessage.innerHTML = `
-          <div class="flex items-center">
-            <i class="fas fa-check-circle mr-2"></i>
-            Invitation sent successfully to ${inviteData.email}
-          </div>
-        `;
-        document.body.appendChild(successMessage);
-
-        setTimeout(() => {
-          successMessage.remove();
-        }, 5000);
+      successMessage.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          Invitation sent successfully to ${inviteData.email}
+        </div>
+      `;
+      document.body.appendChild(successMessage);
+      
+      setTimeout(() => {
+        successMessage.remove();
+      }, 5000);
 
         // Reload admin data to reflect changes
         await loadAdminData();
@@ -190,14 +327,14 @@ export default function AdminManagementPage() {
         const targetRow = document.querySelector(
           `[data-admin-id="${adminId}"]`
         );
-        if (targetRow) {
+    if (targetRow) {
           targetRow.style.transform = "scale(0.98)";
           targetRow.style.opacity = "0.7";
-
-          setTimeout(() => {
+      
+      setTimeout(() => {
             targetRow.style.transform = "scale(1)";
             targetRow.style.opacity = "1";
-          }, 300);
+      }, 300);
         }
       } else {
         alert("Failed to resend invitation. Please try again.");
@@ -359,7 +496,8 @@ export default function AdminManagementPage() {
   // Debug: Log the actual data structure to understand filtering
   console.log("=== FILTER DEBUG ===");
   console.log("adminData:", adminData);
-  console.log("searchTerm:", searchTerm);
+  console.log("debouncedSearchName:", debouncedSearchName);
+  console.log("debouncedSearchEmail:", debouncedSearchEmail);
   console.log("statusFilter:", statusFilter);
   if (adminData?.activeAdmins?.length > 0) {
     console.log("First admin item:", adminData.activeAdmins[0]);
@@ -373,12 +511,10 @@ export default function AdminManagementPage() {
   const filteredInvitations =
     adminData?.pendingInvitations?.filter((inv) => {
       // Handle search with null safety
-      const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
-        searchTerm === "" ||
-        (inv.name && inv.name.toLowerCase().includes(searchLower)) ||
-        (inv.email && inv.email.toLowerCase().includes(searchLower)) ||
-        (inv.department && inv.department.toLowerCase().includes(searchLower));
+        (!debouncedSearchName || (inv.name && inv.name.toLowerCase().includes(debouncedSearchName.toLowerCase()))) &&
+        (!debouncedSearchEmail || (inv.email && inv.email.toLowerCase().includes(debouncedSearchEmail.toLowerCase()))) &&
+        (!inv.department || !debouncedSearchName || inv.department.toLowerCase().includes(debouncedSearchName.toLowerCase()));
 
       // Handle status filtering with null safety and case insensitivity
       const matchesStatus =
@@ -387,111 +523,59 @@ export default function AdminManagementPage() {
           (inv.status === statusFilter ||
             inv.status.toLowerCase() === statusFilter.toLowerCase()));
 
-      return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus;
     }) || [];
 
   const filteredAdmins =
     adminData?.activeAdmins?.filter((admin) => {
-      // Handle search with null safety
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        searchTerm === "" ||
-        (admin.name && admin.name.toLowerCase().includes(searchLower)) ||
-        (admin.email && admin.email.toLowerCase().includes(searchLower)) ||
-        (admin.department &&
-          admin.department.toLowerCase().includes(searchLower));
+      // Name search: search in name only
+      const nameMatch = !debouncedSearchName || (admin.name && admin.name.toLowerCase().includes(debouncedSearchName.toLowerCase()));
+      
+      // Email search: search in email only  
+      const emailMatch = !debouncedSearchEmail || (admin.email && admin.email.toLowerCase().includes(debouncedSearchEmail.toLowerCase()));
+      
+      // Combined search logic: if we have name search, it should match name OR department
+      // But email search should only match email
+      const matchesSearch = nameMatch && emailMatch;
 
-      // Handle status filtering with null safety and case insensitivity
       const matchesStatus =
         statusFilter === "all" ||
         (admin.status &&
           (admin.status === statusFilter ||
             admin.status.toLowerCase() === statusFilter.toLowerCase()));
 
+      // Debug log for each admin to see why they're being filtered
+      if (admin.id === "61" || admin.name === "Haocheng Li") {
+        console.log(`🔍 FILTERING DEBUG for ${admin.name} (ID: ${admin.id}):`);
+        console.log("  - nameMatch:", nameMatch, "| debouncedSearchName:", debouncedSearchName);
+        console.log("  - emailMatch:", emailMatch, "| debouncedSearchEmail:", debouncedSearchEmail);
+        console.log("  - matchesSearch:", matchesSearch);
+        console.log("  - matchesStatus:", matchesStatus, "| statusFilter:", statusFilter, "| admin.status:", admin.status);
+        console.log("  - FINAL RESULT:", matchesSearch && matchesStatus);
+      }
+
       return matchesSearch && matchesStatus;
     }) || [];
 
+  // Debug logs for data tracking
+  console.log("=== ADMIN PAGE DEBUG ===");
+  console.log("adminData:", adminData);
+  console.log("filteredInvitations.length:", filteredInvitations.length);
+  console.log("adminData?.pendingInvitations?.length:", adminData?.pendingInvitations?.length);
+  console.log("filteredAdmins.length:", filteredAdmins.length);
+  console.log("adminData?.activeAdmins?.length:", adminData?.activeAdmins?.length);
+  console.log("pagination:", pagination);
+  console.log("🔍 ALL ADMINS SUMMARY:");
+  adminData?.activeAdmins?.forEach((admin, index) => {
+    const isFiltered = filteredAdmins.some(fa => fa.id === admin.id);
+    console.log(`  ${index + 1}. ${admin.name} (ID: ${admin.id}) - Department: ${admin.department} - Status: ${admin.status} - Filtered: ${isFiltered ? '✅' : '❌'}`);
+  });
+  console.log("=== END ADMIN PAGE DEBUG ===");
+
   // Show loading state
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-lg">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-              <i className="fas fa-user-shield text-orange-500 text-2xl"></i>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                Course Administrator Management
-              </h1>
-              <p className="text-lg text-orange-100 mt-1">
-                Loading administrator data...
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400">
-              Loading administrator data...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show error state if no data
-  if (
-    !adminData ||
-    !adminData.pendingInvitations ||
-    !adminData.activeAdmins ||
-    (adminData.pendingInvitations.length === 0 &&
-      adminData.activeAdmins.length === 0)
-  ) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-lg">
-          <div className="flex items-center space-x-4">
-            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-              <i className="fas fa-user-shield text-orange-500 text-2xl"></i>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">
-                Course Administrator Management
-              </h1>
-              <p className="text-lg text-orange-100 mt-1">
-                No administrator data available
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-              Unable to load administrator data
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              Please check your connection and try again
-            </p>
-            <Button
-              onClick={loadAdminData}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              Retry
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header - Synced with Courses Overview Design */}
       <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-lg">
         <div className="flex items-center space-x-4">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
@@ -502,126 +586,184 @@ export default function AdminManagementPage() {
               Course Administrator Management
             </h1>
             <p className="text-lg text-orange-100 mt-1">
-              Invite new course administrators and manage existing accounts
+                Loading administrator data...
             </p>
           </div>
         </div>
       </div>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <i className="fas fa-spinner fa-spin text-4xl text-orange-500 mb-4"></i>
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              Loading administrator data...
+              </p>
+            </div>
+            </div>
+          </div>
+    );
+  }
+
+
+
+  return (
+    <div className="space-y-6">
+      {/* Header - Synced with Courses Overview Design */}
+      <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl p-8 text-white shadow-lg">
+        <div className="flex items-center space-x-4">
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
+            <i className="fas fa-user-shield text-orange-500 text-2xl"></i>
+          </div>
+            <div>
+            <h1 className="text-3xl font-bold text-white">
+              Course Administrator Management
+            </h1>
+            <p className="text-lg text-orange-100 mt-1">
+              Invite new course administrators and manage existing accounts
+              </p>
+            </div>
+            </div>
+      </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Active Admins
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {adminData?.activeAdmins?.filter((a) => a.status === "active")
-                  ?.length || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-user-check text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Pending Invites
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {adminData?.pendingInvitations?.filter(
-                  (i) => i.status === "invited"
-                )?.length || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-envelope text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Total Courses
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {adminData?.activeAdmins?.reduce(
-                  (sum, admin) => sum + (admin.coursesCount || 0),
-                  0
-                ) || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-university text-white"></i>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Expired Invites
-              </p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {adminData?.pendingInvitations?.filter(
-                  (i) => i.status === "expired"
-                )?.length || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-red-600 rounded-lg flex items-center justify-center">
-              <i className="fas fa-clock text-white"></i>
-            </div>
-          </div>
-        </Card>
-      </div>
+      
 
       {/* Action Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+           {/* Advanced Search Dropdown */}
+           <div className="relative search-dropdown">
+             <Button
+               onClick={() => setIsSearchDropdownOpen(!isSearchDropdownOpen)}
+               variant="outline"
+               className="flex items-center space-x-2 px-4 py-2 border-2 border-gray-200 dark:border-gray-700 hover:border-orange-500 dark:hover:border-orange-400 transition-all duration-200"
+             >
+               <i className="fas fa-search text-gray-500"></i>
+               <span className="text-gray-700 dark:text-gray-300">Advanced Search</span>
+               <i className={`fas fa-chevron-down text-xs transition-transform duration-200 ${isSearchDropdownOpen ? 'rotate-180' : ''}`}></i>
+             </Button>
+
+             {/* Search Dropdown */}
+             {isSearchDropdownOpen && (
+               <div className="search-dropdown absolute top-full left-0 mt-2 w-96 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg shadow-xl z-50 p-4">
+                 <div className="space-y-4">
+                   <div className="flex items-center justify-between">
+                     <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                       <i className="fas fa-search text-orange-500 mr-2"></i>
+                       Search Criteria
+                     </h4>
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       onClick={() => setIsSearchDropdownOpen(false)}
+                       className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                     >
+                       <i className="fas fa-times"></i>
+                     </Button>
+                   </div>
+
+                   {/* Name Search */}
+                   <div>
+                     <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                       Name
+                     </Label>
             <Input
-              placeholder="Search admins, emails, or departments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 w-80"
+                       placeholder="Search by admin name..."
+                       value={searchName}
+                       onChange={(e) => setSearchName(e.target.value)}
+                       className="mt-1 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400"
             />
           </div>
+
+                   {/* Email Search */}
+                   <div>
+                     <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                       Email
+                     </Label>
+                     <Input
+                       placeholder="Search by email address..."
+                       value={searchEmail}
+                       onChange={(e) => setSearchEmail(e.target.value)}
+                       className="mt-1 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400"
+                     />
+                   </div>
+
+                   {/* Action Buttons */}
+                   <div className="flex items-center justify-between pt-2">
+                     <Button
+                       variant="outline"
+                       size="sm"
+                       onClick={() => {
+                         setSearchName("");
+                         setSearchEmail("");
+                       }}
+                       className="text-gray-600 border-gray-300 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
+                     >
+                       <i className="fas fa-times mr-2"></i>
+                       Clear Search
+                     </Button>
+                     <Button
+                       onClick={() => setIsSearchDropdownOpen(false)}
+                       size="sm"
+                       className="bg-orange-500 hover:bg-orange-600 text-white"
+                     >
+                       <i className="fas fa-search mr-2"></i>
+                       Search
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             )}
+           </div>
+
+           {/* Status Filter */}
+           <div className="flex items-center space-x-2">
+             <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+               Status:
+             </Label>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:border-gray-600 dark:bg-gray-800"
+               className="px-3 py-2 border-2 border-gray-200 dark:border-gray-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 dark:bg-gray-800 focus:border-orange-500 dark:focus:border-orange-400"
           >
             <option value="all">All Status</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+           </div>
 
-          {/* Clear filters button */}
-          {(searchTerm || statusFilter !== "all") && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSearchTerm("");
-                setStatusFilter("all");
-              }}
-              className="text-gray-600 border-gray-300 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
-            >
-              <i className="fas fa-times mr-2"></i>
-              Clear Filters
-            </Button>
-          )}
+           {/* Clear All Filters Button */}
+           {(searchName || searchEmail || statusFilter !== "all") && (
+             <Button
+               variant="outline"
+               size="sm"
+               onClick={clearAllFilters}
+               className="text-gray-600 border-gray-300 hover:bg-gray-50 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-800"
+             >
+               <i className="fas fa-times mr-2"></i>
+               Clear All
+             </Button>
+           )}
+
+           {/* Active Filter Indicators */}
+           <div className="flex items-center space-x-2">
+             {searchName && (
+               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                 <i className="fas fa-user mr-1"></i>Name: "{searchName}"
+               </span>
+             )}
+             {searchEmail && (
+               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                 <i className="fas fa-envelope mr-1"></i>Email: "{searchEmail}"
+               </span>
+             )}
+             {statusFilter !== "all" && (
+               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                 <i className="fas fa-circle mr-1"></i>Status: {statusFilter}
+               </span>
+             )}
+           </div>
         </div>
-
+        
         <Button
           onClick={() => setShowInviteForm(true)}
           className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
@@ -639,16 +781,16 @@ export default function AdminManagementPage() {
               <i className="fas fa-user-plus text-orange-500 mr-3"></i>
               Invite Course Administrator
             </h3>
-            <Button
-              variant="ghost"
-              size="sm"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={() => setShowInviteForm(false)}
               className="text-gray-500 hover:text-gray-700"
             >
               <i className="fas fa-times"></i>
             </Button>
           </div>
-
+          
           <form onSubmit={handleInvite} className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div>
@@ -692,7 +834,7 @@ export default function AdminManagementPage() {
                 </p>
               </div>
             </div>
-
+            
             <div>
               <Label
                 htmlFor="department"
@@ -711,7 +853,7 @@ export default function AdminManagementPage() {
                 required
               />
             </div>
-
+            
             <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
               <div className="flex items-start space-x-3">
                 <i className="fas fa-info-circle text-blue-500 mt-0.5"></i>
@@ -735,17 +877,17 @@ export default function AdminManagementPage() {
                 </div>
               </div>
             </div>
-
+            
             <div className="flex justify-end space-x-3">
-              <Button
-                type="button"
-                variant="outline"
+              <Button 
+                type="button" 
+                variant="outline" 
                 onClick={() => setShowInviteForm(false)}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
                 disabled={isSubmitting}
                 className="bg-orange-500 hover:bg-orange-600"
               >
@@ -932,45 +1074,23 @@ export default function AdminManagementPage() {
         </div>
       )}
 
-      {/* Pending Invitations */}
+            {/* Pending Invitations */}
       {filteredInvitations.length > 0 && (
         <Card className="p-6">
-          {/* Filter Results Summary for Pending Invitations */}
-          {(searchTerm || statusFilter !== "all") && (
-            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300">
-                  <span className="font-medium">Filter Results:</span>
-                  {searchTerm && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                      <i className="fas fa-search mr-1"></i>"{searchTerm}"
-                    </span>
-                  )}
-                  {statusFilter !== "all" && (
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                      <i className="fas fa-filter mr-1"></i>
-                      Status: {statusFilter}
-                    </span>
-                  )}
-                  <span className="text-blue-600 dark:text-blue-400">
-                    Showing {filteredInvitations.length} of{" "}
-                    {adminData?.pendingInvitations?.length || 0} invitations
-                  </span>
-                </div>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Pending Invitations
+              </h3>
+              <div className="text-xs text-gray-500">
+                <i className="fas fa-clock mr-1"></i>
+                Invitations expire after 7 days
               </div>
             </div>
-          )}
-
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Pending Invitations ({filteredInvitations.length})
-            </h3>
-            <div className="text-xs text-gray-500">
-              <i className="fas fa-clock mr-1"></i>
-              Invitations expire after 7 days
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Showing {filteredInvitations.length} of{" "}
+              {adminData?.pendingInvitations?.length || 0} invitations
             </div>
-          </div>
-
+          
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -985,8 +1105,8 @@ export default function AdminManagementPage() {
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredInvitations.map((invitation) => (
-                  <tr
-                    key={invitation.id}
+                  <tr 
+                    key={invitation.id} 
                     data-admin-id={invitation.id}
                     className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
                   >
@@ -1084,8 +1204,8 @@ export default function AdminManagementPage() {
                           </Button>
                         )}
                         <Button
-                          size="sm"
-                          variant="ghost"
+                          size="sm" 
+                          variant="ghost" 
                           className="text-red-600 hover:text-red-900 hover:bg-red-50"
                         >
                           <i className="fas fa-trash"></i>
@@ -1102,35 +1222,9 @@ export default function AdminManagementPage() {
 
       {/* Active Administrators */}
       <Card className="p-6">
-        {/* Filter Results Summary */}
-        {(searchTerm || statusFilter !== "all") && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-blue-700 dark:text-blue-300">
-                <span className="font-medium">Filter Results:</span>
-                {searchTerm && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    <i className="fas fa-search mr-1"></i>"{searchTerm}"
-                  </span>
-                )}
-                {statusFilter !== "all" && (
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                    <i className="fas fa-filter mr-1"></i>
-                    Status: {statusFilter}
-                  </span>
-                )}
-                <span className="text-blue-600 dark:text-blue-400">
-                  Showing {filteredAdmins.length} of{" "}
-                  {adminData?.activeAdmins?.length || 0} administrators
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Active Course Administrators ({filteredAdmins.length})
+            Course Administrators
           </h3>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
@@ -1139,7 +1233,8 @@ export default function AdminManagementPage() {
             Active
           </div>
         </div>
-
+        
+        
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -1239,9 +1334,9 @@ export default function AdminManagementPage() {
                       >
                         <i className="fas fa-edit" title="Edit Admin"></i>
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
                         className="text-red-600 hover:text-red-900"
                         onClick={() => handleRevokeAccess(admin.id)}
                         disabled={revokingAdminId === admin.id}
@@ -1266,6 +1361,22 @@ export default function AdminManagementPage() {
           </table>
         </div>
       </Card>
+
+      {/* Pagination */}
+      {pagination.totalItems > 0 && (
+        <div className="mt-6">
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            itemsPerPage={pagination.itemsPerPage}
+            hasNext={pagination.hasNext}
+            hasPrev={pagination.hasPrev}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+          />
+        </div>
+      )}
 
       {/* Admin Details Modal */}
       {showDetailsModal && selectedAdmin && (

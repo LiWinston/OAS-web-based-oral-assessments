@@ -291,7 +291,11 @@ const realRubricService = {
         const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
           description: level.description,
           startPoint: level.minPoints,
-          endPoint: level.maxPoints
+          endPoint: level.maxPoints,
+          // Include level-specific comments in preDefinedComment field
+          preDefinedComment: level.comments ? level.comments.map(comment => 
+            typeof comment === 'string' ? comment : comment.text
+          ) : []
         })) : [];
         
         console.log("Mapping criterion:", criterion.description || criterion.title, "with levels:", performanceLevels);
@@ -332,7 +336,11 @@ const realRubricService = {
         const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
           description: level.description,
           startPoint: level.minPoints,
-          endPoint: level.maxPoints
+          endPoint: level.maxPoints,
+          // Include level-specific comments in preDefinedComment field
+          preDefinedComment: level.comments ? level.comments.map(comment => 
+            typeof comment === 'string' ? comment : comment.text
+          ) : []
         })) : [];
         
         return {

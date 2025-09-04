@@ -245,11 +245,18 @@ export function AssignmentCreationModal({
         showNotification('success', 'CSV file validated successfully');
       } catch (error) {
         console.error("CSV upload error:", error);
+        
+        // 检测格式错误
+        const isFormatError = error.code === "2002" || 
+                             error.data === "CSV header does not match expected format" ||
+                             error.data === "CSV read failed";
+        
+        const errorMessage = isFormatError ? "Error Format" : error.message;
+        
         setCsvUploadStatus(prev => ({
           ...prev,
-          student: { ...prev.student, uploading: false, error: error.message },
+          student: { ...prev.student, uploading: false, error: errorMessage },
         }));
-        showNotification('error', error.message);
       }
     } else if (type === "examiner") {
       if (!csvData.examiner.file) {
@@ -263,8 +270,8 @@ export function AssignmentCreationModal({
       }));
 
       try {
-        // Use parent's preview function with simplified parameters
-        const result = await previewExaminerCsv(csvData.examiner.file);
+        // Use parent's preview function with simplified parameters (same as student but with type 'examiner')
+        const result = await previewStudentCsv(csvData.examiner.file, 'examiner');
 
         setCsvUploadStatus(prev => ({
           ...prev,
@@ -280,11 +287,18 @@ export function AssignmentCreationModal({
         showNotification('success', 'Examiner CSV file validated successfully');
       } catch (error) {
         console.error("Examiner CSV upload error:", error);
+        
+        // 检测格式错误
+        const isFormatError = error.code === "2002" || 
+                             error.data === "CSV header does not match expected format" ||
+                             error.data === "CSV read failed";
+        
+        const errorMessage = isFormatError ? "Error Format" : error.message;
+        
         setCsvUploadStatus(prev => ({
           ...prev,
-          examiner: { ...prev.examiner, uploading: false, error: error.message },
+          examiner: { ...prev.examiner, uploading: false, error: errorMessage },
         }));
-        showNotification('error', error.message);
       }
     }
   };
@@ -347,18 +361,19 @@ export function AssignmentCreationModal({
       const result = await createAssignment(formData, isDraft);
 
       if (result.success) {
-        // If not draft, upload CSV data
+        // If not draft, upload CSV data using assignment ID from creation result
         if (!isDraft) {
+          const assignmentId = result.data.id;
           try {
             // Upload student CSV data
             if (csvData.student.file) {
-              const uploadResult = await uploadStudentCsv(csvData.student.file, csvData.student.type);
+              const uploadResult = await uploadStudentCsv(csvData.student.file, csvData.student.type, assignmentId);
               console.log('Student CSV uploaded successfully');
             }
 
             // Upload examiner CSV data
             if (csvData.examiner.file) {
-              const uploadResult = await uploadExaminerCsv(csvData.examiner.file);
+              const uploadResult = await uploadExaminerCsv(csvData.examiner.file, assignmentId);
               console.log('Examiner CSV uploaded successfully');
             }
           } catch (uploadError) {
@@ -645,7 +660,7 @@ export function AssignmentCreationModal({
                         value={formData.startDate}
                         onChange={(e) => handleInputChange('startDate', e.target.value)}
                         className={`
-                          w-full rounded-lg pl-10 pr-4 py-2.5 text-sm
+                          w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                           bg-white dark:bg-gray-700 
                           border ${validationErrors.startDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
@@ -671,7 +686,7 @@ export function AssignmentCreationModal({
                         value={formData.endDate}
                         onChange={(e) => handleInputChange('endDate', e.target.value)}
                         className={`
-                          w-full rounded-lg pl-10 pr-4 py-2.5 text-sm
+                          w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                           bg-white dark:bg-gray-700 
                           border ${validationErrors.endDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
@@ -749,7 +764,7 @@ export function AssignmentCreationModal({
                     <i className="fas fa-file-csv text-white"></i>
                   </div>
                   <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Upload Student/Group Data
+                    Upload Student Data
                   </h4>
                 </div>
 
@@ -923,12 +938,8 @@ export function AssignmentCreationModal({
                   <div className="flex items-start">
                     <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
                     <div className="text-sm text-amber-800 dark:text-amber-200">
-                      <p className="font-medium mb-1">CSV Format Requirements:</p>
-                      <ul className="list-disc list-inside space-y-1 text-xs">
-                        <li>Individual: StudentID, Name, Email</li>
-                        <li>Group: StudentID, Name, Email, GroupID, GroupName</li>
-                        <li>Mixed: Include both individual and group columns</li>
-                      </ul>
+                      <p className="font-medium mb-1">Student CSV Format:</p>
+                      <p className="text-xs">Student, ID, SIS User ID, SIS Login ID, Section, Student Id</p>
                     </div>
                   </div>
                 </div>
@@ -1116,9 +1127,7 @@ export function AssignmentCreationModal({
                     <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
                     <div className="text-sm text-amber-800 dark:text-amber-200">
                       <p className="font-medium mb-1">Examiner CSV Format:</p>
-                      <ul className="list-disc list-inside space-y-1 text-xs">
-                        <li>ExaminerID, Name, Email, Department</li>
-                      </ul>
+                      <p className="text-xs">Email, Name, Department, ID, SIS User ID, SIS Login ID</p>
                     </div>
                   </div>
                 </div>

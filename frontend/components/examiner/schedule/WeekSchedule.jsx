@@ -6,6 +6,8 @@ import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 import { Button } from '@/components/ui/button';
+import OperationResultDialog from '@/components/examiner/schedule/OperationResultDialog';
+import { formatVenue } from '@/utils/formatVenue';
 
 function startOfWeek(date) {
   const d = new Date(date);
@@ -19,6 +21,8 @@ export default function WeekSchedule() {
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogProps, setDialogProps] = useState({});
   const [anchor, setAnchor] = useState(new Date());
 
   const weekStart = startOfWeek(anchor);
@@ -76,12 +80,19 @@ export default function WeekSchedule() {
 
   const handleWithdraw = async (slot) => {
     try {
-      await withdrawFromTimeslot(slot.slotId, () => {
-        refetch(); // Refresh the data after successful withdrawal
-      });
+      const res = await withdrawFromTimeslot(slot, () => { refetch(); });
+      if (res?.success) {
+        const start = slot.start ? new Date(slot.start) : null;
+        const end = slot.end ? new Date(slot.end) : null;
+        const detail = start && end
+          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
+          : `Slot #${slot.slotId}`;
+        setDialogProps({ status: 'success', title: 'Withdrawn from Time Slot', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setDialogOpen(true);
+      }
     } catch (error) {
-      // Error handling is done in the hook
-      console.error('Withdrawal failed:', error);
+      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this timeslot.', autoDismiss: false, primaryActionLabel: 'Close' });
+      setDialogOpen(true);
     }
   };
 
@@ -107,6 +118,7 @@ export default function WeekSchedule() {
 
   return (
     <div className="dashboard-card p-4">
+      <OperationResultDialog open={dialogOpen} onOpenChange={setDialogOpen} {...dialogProps} />
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           <i className="fas fa-calendar-week text-blue-600 dark:text-blue-400 mr-2"></i>
@@ -161,7 +173,7 @@ export default function WeekSchedule() {
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400">
                       {new Date(slot.start).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} – {new Date(slot.end).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}
-                      {' · '} {slot.venue?.name} {slot.venue?.room}
+                      {' · '} {formatVenue(slot.venue)}
                     </div>
                     {typeof slot.bookingCount !== 'undefined' && (
                       <div className={`text-xs mt-1 ${slot.bookingCount > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'}`}>

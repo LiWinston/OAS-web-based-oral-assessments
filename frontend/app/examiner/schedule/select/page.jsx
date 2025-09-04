@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
-import { useAuthStore } from "../../../../store/authStore";
+import { USE_MOCKS } from "../../../../services/serviceFactory";
+import { useExaminerAuth } from "../../../../hooks/useExaminerAuth";
 import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
 import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
 import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
 import SelectionSummary from "../../../../components/examiner/schedule/SelectionSummary";
+import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
 
 /**
  * TimeslotSelection Component
@@ -21,7 +23,7 @@ import SelectionSummary from "../../../../components/examiner/schedule/Selection
 function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuthStore();
+  const { examinerId, isValidExaminer } = useExaminerAuth();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAssignment, setSelectedAssignment] = useState(null);
@@ -33,29 +35,19 @@ function TimeslotSelectionContent() {
   const [submitError, setSubmitError] = useState(null);
   const [submitResult, setSubmitResult] = useState(null);
   const [selectionMessage, setSelectionMessage] = useState(null);
+  const [resultDialogOpen, setResultDialogOpen] = useState(false);
+  const [resultDialogProps, setResultDialogProps] = useState({});
+  const queryClient = useQueryClient();
 
-  // Get examiner ID with dev fallback for deep-link and local testing
-  const devFallbackUser = {
-    id: 'debug-examiner-123',
-    role: 'EXAMINER',
-    username: 'debug_examiner',
-    email: 'debug@examiner.test'
-  };
-  const effectiveUser = user || devFallbackUser;
-  const examinerId = effectiveUser?.id || effectiveUser?.userId;
-  
   // Debug logging for development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Debug - Auth Store Data:', {
-        user: user,
-        userId: user?.id,
-        userIdAlt: user?.userId,
-        examinerId: examinerId,
-        isAuthenticated: user ? 'Yes' : 'No'
+      console.log('🔍 Debug - Examiner Auth:', {
+        examinerId,
+        isValidExaminer
       });
     }
-  }, [user, examinerId]);
+  }, [examinerId, isValidExaminer]);
 
   // Fetch available assignments with debugging
   const { 
@@ -82,7 +74,7 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled: !!examinerId && currentStep === 1,
+    enabled: (USE_MOCKS || isValidExaminer) && !!examinerId && currentStep === 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -131,12 +123,37 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled: !!selectedAssignment && !!examinerId && currentStep === 2,
+    enabled: !!selectedAssignment && (USE_MOCKS || isValidExaminer) && !!examinerId && currentStep === 2,
     refetchInterval: 30000, // 30 seconds
     staleTime: 10000, // 10 seconds
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Availability summary for step 2 banner
+  const availabilitySummary = useMemo(() => {
+    if (!timeslotsData?.success || !timeslotsData.data?.timeSlots) return null;
+    const slots = timeslotsData.data.timeSlots;
+    const selectable = slots.filter(s => s?.availability?.canSelect);
+    const reasonsMap = slots
+      .filter(s => !s?.availability?.canSelect && s?.availability?.reason)
+      .reduce((acc, s) => {
+        const r = s.availability.reason;
+        acc[r] = (acc[r] || 0) + 1;
+        return acc;
+      }, {});
+    let primaryReason = null;
+    if (selectable.length === 0) {
+      const arr = Object.entries(reasonsMap).sort((a,b) => b[1]-a[1]);
+      if (arr.length > 0) primaryReason = arr[0][0];
+    }
+    return {
+      hasAny: slots.length > 0,
+      hasSelectable: selectable.length > 0,
+      primaryReason,
+      reasonsMap
+    };
+  }, [timeslotsData]);
 
   // Pre-fill if coming from assignment link
   useEffect(() => {
@@ -151,6 +168,15 @@ function TimeslotSelectionContent() {
       }
     }
   }, [searchParams, assignmentsData]);
+
+  // Prefer assignment and examiner info from timeslot API payload when available
+  const maxSessions = useMemo(() => (
+    timeslotsData?.data?.examinerInfo?.maxSessions ?? selectedAssignment?.examinerInfo?.maxSessions ?? 12
+  ), [timeslotsData, selectedAssignment]);
+  const summaryAssignment = useMemo(() => ({
+    ...(timeslotsData?.data?.assignment || {}),
+    ...(selectedAssignment || {}),
+  }), [timeslotsData, selectedAssignment]);
 
   // Get available dates from API data
   const getAvailableDates = () => {
@@ -188,8 +214,8 @@ function TimeslotSelectionContent() {
       setAllocatedSlots(newSlots);
       setCurrentAllocation(currentAllocation - removedSessions);
     } else {
-      const maxSessions = selectedAssignment?.examinerInfo?.maxSessions || 12;
-      if (currentAllocation + slot.sessionCount > maxSessions) {
+      const cap = maxSessions;
+      if (currentAllocation + slot.sessionCount > cap) {
         setSelectionMessage({ type: 'error', text: `You have reached your maximum allocation of ${maxSessions} sessions.` });
         return;
       }
@@ -266,20 +292,48 @@ function TimeslotSelectionContent() {
       setSubmitResult(result);
 
       if (result.success) {
-        if (result.data.partial) {
-          // Partial success - show both assigned and failed slots
-          alert(`Partial success: ${result.data.assignedSlots.length} slots assigned, ${result.data.failedSlots.length} failed.`);
-        } else {
-          // Full success
-          alert(`Success: All ${result.data.assignedSlots.length} slots assigned successfully!`);
-        }
-        
-        // Wait a moment to show result, then redirect
-        setTimeout(() => {
-          router.push("/examiner/schedule");
-        }, 2000);
+        // Invalidate schedule queries so main page reflects latest data
+        queryClient.invalidateQueries({ queryKey: ['examinerSchedule'] });
+        queryClient.invalidateQueries({ queryKey: ['examinerDay'] });
+        queryClient.invalidateQueries({ queryKey: ['examinerWeek'] });
+        queryClient.invalidateQueries({ queryKey: ['availableAssignments'] });
+        queryClient.invalidateQueries({ queryKey: ['availableTimeslots', selectedAssignment?.assignmentId] });
+
+        // Show modal dialog in the center with summary
+        const details = (result.data?.assignedSlots || []).slice(0, 5).map((s) => {
+          const match = allocatedSlots.find((x) => x.slotId === s.slotId) || {};
+          const start = match.start ? new Date(match.start) : null;
+          const end = match.end ? new Date(match.end) : null;
+          if (start && end) {
+            return `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`;
+          }
+          return `Slot #${s.slotId}`;
+        });
+        setResultDialogProps({
+          status: result.data?.partial ? 'warning' : 'success',
+          title: result.data?.partial ? 'Partial Assignment Completed' : 'Time Slots Assigned',
+          message: result.data?.partial
+            ? `Assigned ${result.data.assignedSlots.length} slot(s), ${result.data.failedSlots.length} failed.`
+            : `Successfully assigned ${result.data.assignedSlots.length} slot(s).`,
+          details,
+          autoDismiss: true,
+          autoDismissMs: 5000,
+          onAutoDismiss: () => router.push('/examiner/schedule'),
+          onPrimaryAction: () => router.push('/examiner/schedule'),
+          primaryActionLabel: 'View My Schedule',
+        });
+        setResultDialogOpen(true);
       } else {
-        setSubmitError(result.message || 'Failed to submit selections');
+        const msg = result.message || 'Failed to submit selections';
+        setSubmitError(msg);
+        setResultDialogProps({
+          status: 'error',
+          title: 'Assignment Failed',
+          message: msg,
+          autoDismiss: false,
+          primaryActionLabel: 'Close',
+        });
+        setResultDialogOpen(true);
       }
     } catch (error) {
       console.error('Submit error:', error);
@@ -442,33 +496,54 @@ function TimeslotSelectionContent() {
               </h2>
             </div>
 
-            {selectedAssignment && (
+            {summaryAssignment && (
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-book text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{selectedAssignment.courseCode}</span>
+                  <span className="text-sm font-medium">{summaryAssignment.courseCode}</span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-clipboard-check text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">
-                    {selectedAssignment.assignmentName}
-                  </span>
+                  <span className="text-sm font-medium">{summaryAssignment.assignmentName}</span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-users text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{selectedAssignment.assessmentType} Assessment</span>
-                </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                  <i className="fas fa-clock text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{selectedAssignment.sessionDurationMinutes} min per session</span>
+                  <span className="text-sm font-medium">{(summaryAssignment.assessmentType || summaryAssignment.type || '').toString().toUpperCase()} Assessment</span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-chart-bar text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">Sessions: {currentAllocation}/{selectedAssignment.examinerInfo.maxSessions}</span>
+                  <span className="text-sm font-medium">Sessions: {currentAllocation}/{maxSessions}</span>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Availability Banner */}
+          {!isLoadingTimeslots && availabilitySummary && !availabilitySummary.hasSelectable && (
+            <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
+              <div className="flex items-start">
+                <i className="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mr-3 mt-0.5"></i>
+                <div>
+                  <div className="font-medium text-amber-800 dark:text-amber-200">
+                    {availabilitySummary.primaryReason === 'SLOT_FULL' && 'Fully Staffed'}
+                    {availabilitySummary.primaryReason === 'TIME_CONFLICT' && 'All Slots Conflict With Your Schedule'}
+                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You Are Already Assigned To These Slots'}
+                    {!availabilitySummary.primaryReason && (
+                      availabilitySummary.hasAny ? 'No Selectable Slots Available' : 'No Slots Configured Yet'
+                    )}
+                  </div>
+                  <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                    {availabilitySummary.primaryReason === 'SLOT_FULL' && 'Please wait for the course admin to add more slots or for capacity to become available.'}
+                    {availabilitySummary.primaryReason === 'TIME_CONFLICT' && 'Try a different time range, or withdraw from conflicting slots in your schedule.'}
+                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You are already assigned across the current timeslots.'}
+                    {!availabilitySummary.primaryReason && (
+                      availabilitySummary.hasAny ? 'All current slots are unavailable for selection.' : 'Course admin has not configured any slots for this assessment yet.'
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Timeslot Selection Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -487,6 +562,7 @@ function TimeslotSelectionContent() {
                   {isLoadingTimeslots && <span className="text-blue-600 dark:text-blue-400"> Updating...</span>}
                 </p>
               </div>
+              <OperationResultDialog open={resultDialogOpen} onOpenChange={setResultDialogOpen} {...resultDialogProps} />
               <TimeslotList
                 isLoading={isLoadingTimeslots}
                 error={timeslotsError}

@@ -133,7 +133,12 @@ export default function RubricConfigurationPage() {
                   description: level.description || `Level ${levelIndex + 1}`,
                   minPoints: level.startPoint,
                   maxPoints: level.endPoint,
-                  color: "blue"
+                  color: "blue",
+                  // Load level-specific comments from backend
+                  comments: level.preDefinedComment ? level.preDefinedComment.map((comment, commentIndex) => ({
+                    id: `comment_${levelIndex}_${commentIndex}`,
+                    text: comment
+                  })) : []
                 }))
               : [], // Default empty levels if not provided
             comments: []
@@ -198,6 +203,7 @@ export default function RubricConfigurationPage() {
         minPoints: 90,
         maxPoints: 100,
         color: "blue",
+        comments: [],
       },
       {
         id: "2", 
@@ -205,6 +211,7 @@ export default function RubricConfigurationPage() {
         minPoints: 80,
         maxPoints: 89,
         color: "blue",
+        comments: [],
       },
       {
         id: "3",
@@ -212,6 +219,7 @@ export default function RubricConfigurationPage() {
         minPoints: 70,
         maxPoints: 79,
         color: "blue",
+        comments: [],
       },
       {
         id: "4",
@@ -219,6 +227,7 @@ export default function RubricConfigurationPage() {
         minPoints: 60,
         maxPoints: 69,
         color: "blue",
+        comments: [],
       },
       {
         id: "5",
@@ -226,6 +235,7 @@ export default function RubricConfigurationPage() {
         minPoints: 0,
         maxPoints: 59,
         color: "blue",
+        comments: [],
       },
     ],
     comments: [],
@@ -248,6 +258,7 @@ export default function RubricConfigurationPage() {
     setRubric({ ...rubric, criteria: newCriteria });
     setHasChanges(true);
   };
+
 
   const handleDeleteCriterion = (index) => {
     if (!rubric.criteria || rubric.criteria.length === 1) {

@@ -74,11 +74,13 @@ Out of scope
 
 ### 2) Results Overview (by Assignment, All Terms)
 
-- Shows the student's results for all assignments with released results (active and archived terms). Each card shows:
+- Shows the student's results for all assignments with released results (active and archived terms).
+- No global stats cards on this page. Keep it focused on the assignment list with search/filter controls.
+- Each item (card or table row) shows:
   - Course/Assignment: courseCode, assignmentName, semester, assessmentDate.
   - Result: finalGrade, percentage, totalPoints, resultStatus.
   - Primary action: "View Details".
-- Results are sorted by assessment date (most recent first), with clear term/semester grouping.
+- Sorted by assessment date (newest first) with optional term/semester grouping.
 - Empty state: "No results available yet. When your assessments are graded and released, they will appear here."
 
 ### 3) Result Details
@@ -87,9 +89,11 @@ Out of scope
   - Left: Assignment title (e.g., "Network Security Project"), courseCode + assignmentName, assessedOn and releasedOn dates.
   - Right: Final grade badge and percentage score with progress bar.
 - Sections (single page with clear sections)
-  - Rubric Breakdown
-    - Table/cards: criterion name, points earned, total points, examiner comments per criterion.
-    - Shows individual examiner scores if multiple examiners assessed.
+  - Rubric Breakdown (Canvas style)
+    - Canvas-like rubric table with columns: Criterion | Rating | Points.
+    - Each criterion shows name, optional description and weight, aggregated rating (if consistent) or "Mixed", and earned/max points.
+    - Inline section under each criterion lists individual examiner ratings and points when multiple examiners assessed.
+    - Criterion-level comments appear inline under the corresponding row.
   - Examiner Feedback
     - Consolidated feedback from all examiners with positive highlights and improvement areas.
     - Structured feedback per rubric criterion plus overall comments.

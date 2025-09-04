@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { useAuthStore } from '../../../store/authStore';
+import profileService from '../../../services/profileService';
 
 /**
  * ExaminerProfile Component
@@ -14,6 +15,13 @@ import { useAuthStore } from '../../../store/authStore';
 export default function ExaminerProfile() {
   const { user } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
+  const [form, setForm] = useState({
+    name: user?.name || "Dr. Emma Thompson",
+    email: user?.email || "emma.thompson@university.edu.au",
+    department: "School of Computing and Information Systems",
+    phone: "+61 3 8344 7000",
+    preferences: { email: true, darkMode: false, autoSaveFeedback: true }
+  });
 
   return (
     <div className="space-y-6">
@@ -27,7 +35,26 @@ export default function ExaminerProfile() {
             Manage your personal information and account preferences
           </p>
         </div>
-        <Button onClick={() => setIsEditing(!isEditing)}>
+        <Button onClick={async () => {
+          if (isEditing) {
+            try {
+              await profileService.updateProfile({
+                name: form.name,
+                department: form.department,
+                phone: form.phone
+              });
+              await profileService.updatePreferences({
+                notifications: { email: form.preferences.email },
+              });
+              setIsEditing(false);
+              alert('Profile updated');
+            } catch (e) {
+              alert('Failed to update profile');
+            }
+          } else {
+            setIsEditing(true);
+          }
+        }}>
           <i className={`fas ${isEditing ? 'fa-save' : 'fa-edit'} mr-2`}></i>
           {isEditing ? 'Save Changes' : 'Edit Profile'}
         </Button>
@@ -49,7 +76,8 @@ export default function ExaminerProfile() {
                   </label>
                   <input
                     type="text"
-                    defaultValue={user?.name || "Dr. Emma Thompson"}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
                     disabled={!isEditing}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                   />
@@ -60,8 +88,8 @@ export default function ExaminerProfile() {
                   </label>
                   <input
                     type="email"
-                    defaultValue={user?.email || "emma.thompson@university.edu.au"}
-                    disabled={!isEditing}
+                    value={form.email}
+                    disabled
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                   />
                 </div>
@@ -71,7 +99,8 @@ export default function ExaminerProfile() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="School of Computing and Information Systems"
+                    value={form.department}
+                    onChange={(e) => setForm({ ...form, department: e.target.value })}
                     disabled={!isEditing}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                   />
@@ -82,7 +111,8 @@ export default function ExaminerProfile() {
                   </label>
                   <input
                     type="tel"
-                    defaultValue="+61 3 8344 7000"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     disabled={!isEditing}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 disabled:bg-gray-50 dark:disabled:bg-gray-800"
                   />
@@ -106,7 +136,8 @@ export default function ExaminerProfile() {
                 </div>
                 <input
                   type="checkbox"
-                  defaultChecked
+                  checked={form.preferences.email}
+                  onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, email: e.target.checked } })}
                   disabled={!isEditing}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
@@ -120,6 +151,8 @@ export default function ExaminerProfile() {
                 </div>
                 <input
                   type="checkbox"
+                  checked={form.preferences.darkMode}
+                  onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, darkMode: e.target.checked } })}
                   disabled={!isEditing}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
@@ -133,7 +166,8 @@ export default function ExaminerProfile() {
                 </div>
                 <input
                   type="checkbox"
-                  defaultChecked
+                  checked={form.preferences.autoSaveFeedback}
+                  onChange={(e) => setForm({ ...form, preferences: { ...form.preferences, autoSaveFeedback: e.target.checked } })}
                   disabled={!isEditing}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />

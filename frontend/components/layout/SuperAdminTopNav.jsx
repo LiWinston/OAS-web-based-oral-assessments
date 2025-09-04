@@ -48,18 +48,22 @@ export function SuperAdminTopNav({ onSidebarToggle }) {
 
           {/* User menu */}
           <div className="flex items-center space-x-3">
-            <div className="hidden sm:block text-right">
+            <a
+              href="/superadmin/profile"
+              className="hidden sm:flex flex-col items-end pr-2 hover:opacity-90"
+              title="Profile"
+            >
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {user?.username || user?.email?.split('@')[0] || 'Super Admin'}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 System Administrator
               </p>
-            </div>
+            </a>
             
-            <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center">
+            <a href="/superadmin/profile" className="w-8 h-8 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center" title="Profile">
               <i className="fas fa-user-shield text-white text-sm"></i>
-            </div>
+            </a>
             
             <Button 
               onClick={smartLogout} 

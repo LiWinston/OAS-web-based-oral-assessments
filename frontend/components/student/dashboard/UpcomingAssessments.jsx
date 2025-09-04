@@ -78,7 +78,7 @@ export function UpcomingAssessments() {
   const getActionButton = (assessment) => {
     if (assessment.status === "booked") {
       return (
-        <Link href={`/student/assignments/${assessment.id}`}>
+        <Link href={`/student/booking`}>
           <Button variant="outline" size="sm">
             View Details
           </Button>
@@ -116,7 +116,7 @@ export function UpcomingAssessments() {
             Your Upcoming Assessments
           </CardTitle>
           <Link
-            href="/student/assignments"
+            href="/student/booking"
             className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
           >
             View All
@@ -210,7 +210,7 @@ export function UpcomingAssessments() {
         {/* More button - matching examiner/admin pattern */}
         <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
           <Link
-            href="/student/assignments"
+            href="/student/booking"
             className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
           >
             View all {assessments.length} upcoming assessments

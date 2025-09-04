@@ -15,11 +15,6 @@ const navigationItems = [
         exact: true,
       },
       {
-        href: "/student/assignments",
-        icon: "fas fa-tasks",
-        label: "My Assignments",
-      },
-      {
         href: "/student/booking",
         icon: "fas fa-calendar-alt",
         label: "My Bookings",

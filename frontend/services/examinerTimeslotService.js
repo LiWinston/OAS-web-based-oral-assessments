@@ -1,4 +1,6 @@
 import { apiClient } from './apiClient';
+import { USE_MOCKS } from './serviceFactory';
+import { examinerTimeslotServiceReal } from './examinerTimeslot.real.js';
 
 // Mock data for development - will be replaced with real API calls
 // Generate dates relative to current date for realistic testing
@@ -715,13 +717,17 @@ export const unassignExaminerFromTimeslot = async (assignmentId, slotId, examine
 };
 
 // Export all service functions
-export const examinerTimeslotService = {
-  getAvailableAssignments,
-  getExaminerSchedule,
-  getAvailableTimeslots,
-  assignExaminerToTimeslots,
-  withdrawFromTimeslot,
-  unassignExaminerFromTimeslot
-};
+// Select implementation based on env flag
+const examinerTimeslotServiceSelected = USE_MOCKS
+  ? {
+      getAvailableAssignments,
+      getExaminerSchedule,
+      getAvailableTimeslots,
+      assignExaminerToTimeslots,
+      withdrawFromTimeslot,
+      unassignExaminerFromTimeslot,
+    }
+  : examinerTimeslotServiceReal;
 
-export default examinerTimeslotService;
+export const examinerTimeslotService = examinerTimeslotServiceSelected;
+export default examinerTimeslotServiceSelected;
