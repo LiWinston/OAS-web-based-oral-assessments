@@ -54,7 +54,22 @@ public class ExaminerServiceImpl implements ExaminerService {
             }
             // 1) 确保 sys_user 存在；若不存在则创建
             SysUser user = sysUserMapper.selectById(userId);
-            if (user == null) {
+            if (user != null) {
+                if (assignmentId != null) {
+                    QueryWrapper<AssignmentParticipant> exists = new QueryWrapper<>();
+                    exists.eq("assignment_id", assignmentId).eq("user_id", user.getUserId()).last("limit 1");
+                    AssignmentParticipant found = assignmentParticipantMapper.selectOne(exists);
+                    if (found == null) {
+                        AssignmentParticipant ap = new AssignmentParticipant();
+                        ap.setAssignmentId(assignmentId);
+                        ap.setUserId(user.getUserId());
+                        ap.setRoleId(UserRole.EXAMINER.sort());
+                        ap.setIfJoin(1);
+                        assignmentParticipantMapper.insert(ap);
+                    }
+                }
+                continue;
+            } else {
                 user = new SysUser();
                 user.setUserId(userId);
                 user.setUserName(dto.getName());
