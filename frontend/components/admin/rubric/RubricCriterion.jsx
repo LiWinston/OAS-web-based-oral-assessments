@@ -12,7 +12,6 @@ import {
   Circle
 } from 'lucide-react';
 import PerformanceLevel from './PerformanceLevel';
-import CommentManager from './CommentManager';
 
 export default function RubricCriterion({
   criterion,
@@ -23,7 +22,6 @@ export default function RubricCriterion({
   onDuplicate
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
-  const [showCommentManager, setShowCommentManager] = useState(false);
 
   const handleUpdateLevel = (levelIndex, updatedLevel) => {
     const newLevels = [...criterion.levels];
@@ -48,12 +46,7 @@ export default function RubricCriterion({
     onUpdate({ ...criterion, levels: newLevels });
   };
 
-  const handleUpdateComments = (comments) => {
-    onUpdate({ ...criterion, comments });
-  };
-
-
-
+  
   const getScaleIcon = (scale) => {
     switch (scale) {
       case 'descriptive':
@@ -205,38 +198,6 @@ export default function RubricCriterion({
             </div>
           </div>
 
-          {/* Comments Section */}
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Predefined Comments
-                </span>
-                {criterion.comments.length > 0 && (
-                  <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
-                    {criterion.comments.length}
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => setShowCommentManager(!showCommentManager)}
-                className="text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
-              >
-                {showCommentManager ? 'Hide' : 'Manage'} Comments
-              </button>
-            </div>
-
-            {showCommentManager && (
-              <div className="mt-4">
-                <CommentManager
-                  comments={criterion.comments}
-                  levels={criterion.levels}
-                  onUpdate={handleUpdateComments}
-                />
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
