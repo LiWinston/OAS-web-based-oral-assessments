@@ -16,7 +16,7 @@ public class SuperAdminCourseDetailResponseDTO {
     private String semester;
     private Integer year;
     private String department;
-    private String venue;
+    private Long venueId;
     private String status;
     private Long adminId;
     private String adminName;

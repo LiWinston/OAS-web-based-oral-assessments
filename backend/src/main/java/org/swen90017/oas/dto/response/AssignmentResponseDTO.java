@@ -28,6 +28,18 @@ public class AssignmentResponseDTO {
     private Long subjectId;
 
     /**
+     * Subject code
+     */
+    @Schema(description = "Subject code", example = "SWEN90017")
+    private String subjectCode;
+
+    /**
+     * Subject name
+     */
+    @Schema(description = "Subject name", example = "Software Engineering Project Management")
+    private String subjectName;
+
+    /**
      * Assignment name
      */
     @Schema(description = "Assignment name", example = "Oral Presentation")

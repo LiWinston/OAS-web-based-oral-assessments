@@ -7,14 +7,17 @@ import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.CSVImportDTO;
+import org.swen90017.oas.dto.request.ExaminerCSVRequestDTO;
 import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.dto.response.GroupPreviewCSVResponseDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
+import org.swen90017.oas.entity.SysExaminer;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.GroupService;
+import org.swen90017.oas.service.ExaminerService;
 import org.swen90017.oas.service.StudentService;
 import org.swen90017.oas.utils.TransactionUtil;
 
@@ -32,6 +35,8 @@ public class CsvController {
     private EmailService emailService;
     @Autowired
     private GroupService groupService;
+    @Autowired
+    private ExaminerService examinerService;
 
     @Operation(summary = "Preview CSV", description = "Preview CSV content for student/group before importing")
     @PostMapping("/preview")
@@ -46,6 +51,8 @@ public class CsvController {
             return previewStudentCsv((List<StudentCSVRequestDTO>) csvData);
         } else if ("group".equalsIgnoreCase(type)) {
             return previewGroupCsv((List<GroupCSVRequestDTO>) csvData);
+        } else if ("examiner".equalsIgnoreCase(type)) {
+            return previewExaminerCsv((List<ExaminerCSVRequestDTO>) csvData);
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
@@ -64,6 +71,8 @@ public class CsvController {
             return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else if ("group".equalsIgnoreCase(dto.getType())) {
             return importGroupCsv((List<GroupCSVRequestDTO>) csvData);
+        } else if ("examiner".equalsIgnoreCase(dto.getType())) {
+            return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else {
             return Result.error(BusinessError.INVALID_CSV_TYPE);
         }
@@ -82,6 +91,14 @@ public class CsvController {
      */
     private Result<GroupPreviewCSVResponseDTO> previewGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
         GroupPreviewCSVResponseDTO previewResponse = groupService.previewGroupImport(groupDTOs);
+        return Result.success(previewResponse);
+    }
+
+    /**
+     * Preview examiner CSV import
+     */
+    private Result<PreviewCSVResponseDTO> previewExaminerCsv(List<ExaminerCSVRequestDTO> examinerDTOs) {
+        PreviewCSVResponseDTO previewResponse = examinerService.previewExaminerImport(examinerDTOs);
         return Result.success(previewResponse);
     }
 
@@ -107,5 +124,11 @@ public class CsvController {
             return invited;
         });
         return Result.success(sysStudents);
+    }
+
+    private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData, Long assignmentId) {
+        List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, assignmentId));
+        emailService.sendExaminerActivationEmail(examiners);
+        return Result.success(examiners);
     }
 }

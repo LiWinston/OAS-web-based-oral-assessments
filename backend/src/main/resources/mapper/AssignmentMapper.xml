@@ -18,4 +18,24 @@
         </if>
     </select>
 
+    <update id="updateRelease">
+        UPDATE assignment
+        SET status = #{status},
+            is_released = #{released},
+            released_at = #{releasedAt}
+        WHERE id = #{assignmentId}
+    </update>
+
+    <select id="getScheduleStatus" resultType="string">
+        SELECT status
+        FROM assignment
+        WHERE id = #{assignmentId}
+    </select>
+
+    <select id="isReleased" resultType="boolean">
+        SELECT is_released
+        FROM assignment
+        WHERE id = #{assignmentId}
+    </select>
+
 </mapper>

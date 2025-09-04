@@ -11,6 +11,9 @@ public enum BusinessError implements Error {
     CSV_WRITE_FAILED("2003", "CSV write failed"),
     USER_NOT_FOUND("2004", "User not found"),
     INVALID_CSV_TYPE("2005", "invalid CSV type"),
+    CSV_MISSING_HEADERS("2006", "CSV headers missing or invalid"),
+    CSV_HEADER_MISMATCH("2007", "CSV header does not match expected format"),
+    EXAMINER_NOT_FOUND("2008", "Examiner not found"),
     
     // Epic 4.1 Course Management (Simplified) errors
     SUBJECT_NOT_FOUND("4021", "Course not found"),
@@ -36,8 +39,32 @@ public enum BusinessError implements Error {
     ASSIGNMENT_INVALID_PERFORMANCE_POINTS("4044", "Invalid performance points"),
     ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
     ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format"),
-    ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED("4047", "Total assignment weight for subject cannot exceed 100%");
+    ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED("4047", "Total assignment weight for subject cannot exceed 100%"),
+
+    // Epic 5 Timeslot and Session Management errors
+    SESSION_CONFIG_NOT_FOUND("5001", "Session configuration not found or not configured"),
+    TIME_CONFLICT("5002", "Time conflict detected"),
+    VENUE_OVERLAP("5003", "Venue overlap detected"),
+    VENUE_NOT_FOUND("5003A", "Venue not found"),
+    VENUE_NOT_IN_ASSIGNMENT("5003B", "Venue does not belong to this assignment"),
+    ASSIGNMENT_HAS_NO_VENUE("5003C", "No venue defined for this assignment"),
+    TIME_SLOT_NOT_FOUND("5004", "Time slot not found"),
+    SCHEDULE_NOT_READY("5005", "Schedule is not ready for release"),
+    SESSION_GENERATION_FAILED("5006", "Failed to generate sessions for time slot"),
+    ASSIGNMENT_RELEASED_IMMUTABLE("5007", "Assignment is released and cannot be modified"),
+    EXCEEDS_REQUIRED_EXAMINERS("5008", "Assigned examiners exceed required count for time slot"),
+    EXAMINER_LIMIT_INVALID("5009", "Invalid examiner limit payload"),
+    INVALID_SESSION_CONFIG_EXAMINERS("5010", "Examiners per session must be at least 1"),
     
+    // Epic 6 Student Booking errors
+    SESSION_TAKEN("6001", "Session already taken"),
+    ALREADY_BOOKED("6002", "Already has an active booking"),
+    SLOT_UNSTAFFED("6003", "Time slot is not fully staffed"),
+    DEADLINE_PASSED("6004", "Booking deadline has passed"),
+    LOCKOUT_WINDOW("6005", "Booking is in lockout window"),
+    FORBIDDEN("6006", "Operation not allowed");
+    
+  
     private final String code;
     private final String message;
     

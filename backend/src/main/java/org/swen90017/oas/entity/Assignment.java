@@ -82,9 +82,20 @@ public class Assignment {
     /**
      * Assignment status
      */
+    //TODO: use enum (probably)
     @Schema(description = "Assignment status", example = "IN_PROGRESS", allowableValues = {"PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"})
     @TableField("status")
     private String status;
+
+    /**
+     * Is the assignment released to students
+     */
+    private Boolean isReleased;
+
+    /**
+     * Release date
+     */
+    private LocalDateTime releasedAt;
 
     /**
      * Rubric meta information (JSON string)

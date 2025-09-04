@@ -52,7 +52,6 @@ public class SuperAdminController {
     @Operation(summary = "List course administrators", description = "List admins with pagination, sorting and optional filters")
     public Result<ListAdminsResponseDTO> listAdmins(@RequestBody ListAdminsRequestDTO requestDTO) {
         ListAdminsResponseDTO resp = superAdminService.listAdmins(requestDTO);
-        System.out.println(resp);
         return Result.success(resp);
     }
 

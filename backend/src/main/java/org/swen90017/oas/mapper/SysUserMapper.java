@@ -22,4 +22,25 @@ public interface SysUserMapper extends BaseMapper<SysUser> {
 
     void batchInsert(@Param("list") List<SysUser> users);
 
+    @Select("SELECT u.* FROM sys_user u JOIN sys_user_role ur ON u.user_id = ur.user_id JOIN sys_role r ON ur.role_id = r.role_id WHERE r.role_key = #{roleKey}")
+    List<SysUser> selectByRoleKey(@Param("roleKey") String roleKey);
+
+    /**
+     * Check if user exists and has any of the specified roles
+     * 
+     * @param userId User ID
+     * @param roleKeys List of role keys to check
+     * @return true if user exists and has any of the specified roles, false otherwise
+     */
+    @Select("<script>" +
+            "SELECT COUNT(*) > 0 FROM sys_user u " +
+            "JOIN sys_user_role ur ON u.user_id = ur.user_id " +
+            "JOIN sys_role r ON ur.role_id = r.role_id " +
+            "WHERE u.user_id = #{userId} AND r.role_key IN " +
+            "<foreach collection='roleKeys' item='roleKey' open='(' separator=',' close=')'>" +
+            "#{roleKey}" +
+            "</foreach>" +
+            "</script>")
+    boolean existsUserWithRoles(@Param("userId") Long userId, @Param("roleKeys") List<String> roleKeys);
+
 }

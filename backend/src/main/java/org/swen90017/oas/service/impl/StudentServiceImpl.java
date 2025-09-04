@@ -67,6 +67,7 @@ public class StudentServiceImpl implements StudentService {
                 .collect(Collectors.toMap(SysStudent::getStudentNumber, s -> s));
 
         for (StudentCSVRequestDTO dto : studentDTOs) {
+            dto.setAssignmentId(assignmentIdParam != null ? String.valueOf(assignmentIdParam) : dto.getAssignmentId());
             SysStudent sysStudent = studentIdToStudent.get(dto.getStudentId());
             if (sysStudent == null) {
                 continue; // 仅对新插入的学生创建参与关系

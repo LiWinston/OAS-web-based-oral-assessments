@@ -12,6 +12,7 @@ import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.AssignmentService;
 
@@ -124,5 +125,18 @@ public class AssignmentController {
             @Parameter(description = "Subject ID") @PathVariable Long subjectId) {
         AssignmentStatusStatsResponseDTO stats = assignmentService.getAssignmentStatusStatsBySubject(subjectId);
         return ResponseEntity.ok(Result.success(stats));
+    }
+
+    /**
+     * Get assignment availability for a specific student
+     */
+    @Operation(summary = "Get assignment availability", description = "Get assignment availability information including policies and quick stats for a specific student")
+    @GetMapping("/{assignmentId}/availability")
+    @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
+    public ResponseEntity<Result<AssignmentAvailabilityResponseDTO>> getAssignmentAvailability(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Student ID") @RequestParam Long studentId) {
+        AssignmentAvailabilityResponseDTO availability = assignmentService.getAssignmentAvailability(assignmentId, studentId);
+        return ResponseEntity.ok(Result.success(availability));
     }
 }

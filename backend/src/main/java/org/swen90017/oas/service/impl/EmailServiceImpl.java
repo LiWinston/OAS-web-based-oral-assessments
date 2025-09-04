@@ -11,6 +11,7 @@ import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.entity.SysUser;
+import org.swen90017.oas.entity.SysExaminer;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,33 @@ public class EmailServiceImpl implements EmailService {
             message.setTo(s.getSisUserId() + "@student.unimelb.edu.au");
             message.setSubject("Account Activation");
             message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + s.getToken());
+            batch.add(message);
+
+            if (batch.size() >= batchSize) {
+                sendBatch(batch);
+                batch.clear();
+            }
+        }
+
+        if (!batch.isEmpty()) {
+            sendBatch(batch);
+        }
+    }
+
+    @Override
+    public void sendExaminerActivationEmail(List<SysExaminer> examiners) {
+        int batchSize = 30;
+        List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
+
+        for (SysExaminer ex : examiners) {
+            if (ex.getSisUserId() == null || ex.getToken() == null) {
+                log.warn("Skip examiner with missing sisUserId or token: {}", ex);
+                continue;
+            }
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(ex.getSisUserId() + "@unimelb.edu.au");
+            message.setSubject("Examiner Account Activation");
+            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + ex.getToken());
             batch.add(message);
 
             if (batch.size() >= batchSize) {

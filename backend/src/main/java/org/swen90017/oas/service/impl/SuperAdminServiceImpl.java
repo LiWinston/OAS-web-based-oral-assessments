@@ -439,6 +439,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
     public SuperAdminCourseListResponseDTO listCourses(SuperAdminCourseQueryRequestDTO req) {
         String normalizedSemester = normalizeSemester(req.getSemester());
+        if (req.getStatus() != null) {
+            req.setStatus(req.getStatus().toLowerCase());
+        }
         IPage<Subject> pageResult = subjectService.getCourses(
                 req.getPage(),
                 Math.min(Math.max(req.getLimit(), 1), 100),
@@ -479,7 +482,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         dto.setSemester(prettySemester(s.getSemester()));
         dto.setYear(s.getAcademicYear());
         dto.setDepartment(null);
-        dto.setVenue(null);
+        dto.setVenueId(null);
         dto.setStatus(s.getStatus() != null ? s.getStatus().toUpperCase() : (Boolean.TRUE.equals(s.getIsActive()) ? "ACTIVE" : "INACTIVE"));
         dto.setCreatedAt(s.getCreateTime());
         dto.setUpdatedAt(s.getUpdateTime());
@@ -507,7 +510,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         dto.setSemester(prettySemester(s.getSemester()));
         dto.setYear(s.getAcademicYear());
         dto.setDepartment(null);
-        dto.setVenue(null);
+        dto.setVenueId(null);
         dto.setStatus(s.getStatus() != null ? s.getStatus().toUpperCase() : (Boolean.TRUE.equals(s.getIsActive()) ? "ACTIVE" : "INACTIVE"));
         dto.setCreatedAt(s.getCreateTime());
         dto.setUpdatedAt(s.getUpdateTime());

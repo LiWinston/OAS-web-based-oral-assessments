@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.TimeSlotExaminersMapper">
+
+    <delete id="deleteOne">
+        DELETE FROM time_slot_examiners
+        WHERE slot_id = #{slotId}
+          AND examiner_id = #{examinerId}
+    </delete>
+
+    <select id="listExaminerIdsBySlot" resultType="long">
+        SELECT examiner_id
+        FROM time_slot_examiners
+        WHERE slot_id = #{slotId}
+    </select>
+
+    <!-- 查找某考官与给定时间窗冲突的 slot（用于自助报名/管理员分配校验） -->
+    <select id="findConflictedSlotsForExaminer" resultType="long">
+        SELECT ts.slot_id
+        FROM time_slot_examiners tse
+                 JOIN time_slots ts ON ts.slot_id = tse.slot_id
+        WHERE tse.examiner_id = #{examinerId}
+          AND NOT (ts.end_at &lt;= #{startAt} OR ts.start_at &gt;= #{endAt})
+    </select>
+
+    <select id="listSlotsByExaminer" resultType="org.swen90017.oas.entity.TimeSlot">
+        SELECT ts.*
+        FROM time_slot_examiners tse
+                 JOIN time_slots ts ON ts.slot_id = tse.slot_id
+        WHERE tse.examiner_id = #{examinerId}
+        <if test="assignmentId != null">
+            AND ts.assignment_id = #{assignmentId}
+        </if>
+        ORDER BY ts.start_at ASC
+    </select>
+
+    <insert id="batchInsert" parameterType="list">
+        INSERT INTO time_slot_examiners (slot_id, examiner_id, assigned_at, assigned_by)
+        VALUES
+        <foreach collection="list" item="e" separator=",">
+            (#{e.slotId}, #{e.examinerId}, #{e.assignedAt}, #{e.assignedBy})
+        </foreach>
+        ON DUPLICATE KEY UPDATE assigned_at = VALUES(assigned_at), assigned_by = VALUES(assigned_by)
+    </insert>
+
+
+</mapper>

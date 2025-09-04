@@ -13,12 +13,12 @@ public enum UserRole {
     /**
      * Examiner role
      */
-    EXAMINER("ROLE_EXAMINER", "Examiner",2L),
+    EXAMINER("ROLE_EXAMINER", "Examiner",3L),
     
     /**
      * Student role
      */
-    STUDENT("ROLE_STUDENT", "Student",3L),
+    STUDENT("ROLE_STUDENT", "Student",2L),
 
     SUPER_ADMIN("ROLE_SUPER_ADMIN", "Super Administrator",4L);
     

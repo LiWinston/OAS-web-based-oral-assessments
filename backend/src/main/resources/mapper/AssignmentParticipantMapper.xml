@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.AssignmentParticipantMapper">
+
+    <select id="listExaminerUserIdsByAssignment" resultType="long">
+        SELECT ap.user_id
+        FROM assignment_participant ap
+        WHERE ap.assignment_id = #{assignmentId}
+          AND ap.role_id = 3
+    </select>
+
+    <select id="countParticipantsByRoleAndJoin" resultType="int">
+        SELECT COUNT(1)
+        FROM assignment_participant
+        WHERE assignment_id = #{assignmentId}
+          AND role_id = #{roleId}
+          AND if_join = 1
+    </select>
+
+</mapper>
+

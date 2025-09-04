@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.SlotSessionMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO slot_sessions
+        (slot_id, session_number, start_at, end_at, status, created_at, updated_at)
+        VALUES
+        <foreach collection="list" item="s" separator=",">
+            (#{s.slotId}, #{s.sessionNumber}, #{s.startAt}, #{s.endAt}, #{s.status},
+            NOW(), NOW())
+        </foreach>
+    </insert>
+
+    <select id="findBySlotId" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT *
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+        ORDER BY session_number ASC
+    </select>
+
+    <delete id="deleteBySlotId">
+        DELETE FROM slot_sessions
+        WHERE slot_id = #{slotId}
+    </delete>
+
+    <!-- 查询该 slot 下超出给定时间范围的 sessions -->
+    <select id="findOutOfRangeBySlot" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT *
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+        <![CDATA[
+          AND (start_at < #{startAt} OR end_at > #{endAt})
+        ]]>
+        ORDER BY session_number ASC
+    </select>
+
+    <!-- 批量删除该 slot 下超出给定时间范围的 sessions -->
+    <delete id="deleteOutOfRangeBySlot">
+        DELETE FROM slot_sessions
+        WHERE slot_id = #{slotId}
+        <![CDATA[
+          AND (start_at < #{startAt} OR end_at > #{endAt})
+        ]]>
+    </delete>
+
+    <update id="book">
+        UPDATE slot_sessions
+        SET status = 'booked',
+            booked_subject_id = #{bookedSubjectId},
+            booked_subject_type = #{bookedSubjectType},
+            booked_at = NOW(),
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND status = 'available'
+    </update>
+
+    <update id="unbook">
+        UPDATE slot_sessions
+        SET status = 'available',
+            booked_subject_id = NULL,
+            booked_subject_type = NULL,
+            booked_at = NULL,
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND status = 'booked'
+    </update>
+
+    <select id="countBookedBySlot" resultType="int">
+        SELECT COUNT(1)
+        FROM slot_sessions
+        WHERE slot_id = #{slotId}
+          AND status = 'booked'
+    </select>
+
+    <select id="findAvailableSessionsByAssignment" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'available'
+        ORDER BY ts.start_at ASC, ss.session_number ASC
+    </select>
+
+    <select id="findActiveBookingsByStudent" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND ss.booked_subject_type = 'STUDENT'
+          AND ss.booked_subject_id = #{studentId}
+        ORDER BY ts.start_at ASC, ss.session_number ASC
+    </select>
+
+    <!-- 检查学生是否已经为某个assignment预定过（包括个人预定和组预定） -->
+    <select id="hasStudentBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND (
+            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+            OR
+            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+              SELECT sg.group_id 
+              FROM sys_student_group sg 
+              WHERE sg.user_id = #{studentId}
+            ))
+          )
+    </select>
+
+    <!-- 检查组是否已经为某个assignment预定过 -->
+    <select id="hasGroupBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id = #{assignmentId}
+          AND ss.status = 'booked'
+          AND ss.booked_subject_type = 'GROUP'
+          AND ss.booked_subject_id = #{groupId}
+    </select>
+
+    <!-- 批量检查学生对多个assignment的预定状态（包括个人预定和组预定） -->
+    <select id="getStudentBookedAssignmentIds" resultType="java.lang.Long">
+        SELECT DISTINCT ts.assignment_id
+        FROM slot_sessions ss
+        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
+        WHERE ts.assignment_id IN 
+        <foreach collection="assignmentIds" item="assignmentId" open="(" separator="," close=")">
+            #{assignmentId}
+        </foreach>
+          AND ss.status = 'booked'
+          AND (
+            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+            OR
+            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+              SELECT sg.group_id 
+              FROM sys_student_group sg 
+              WHERE sg.user_id = #{studentId}
+            ))
+          )
+    </select>
+
+</mapper>
