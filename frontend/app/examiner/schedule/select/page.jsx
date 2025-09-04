@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
-import { USE_MOCKS } from "../../../../services/serviceFactory";
 import { useExaminerAuth } from "../../../../hooks/useExaminerAuth";
 import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
 import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
@@ -75,7 +74,7 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled: (USE_MOCKS || isValidExaminer) && !!examinerId && currentStep === 1,
+    enabled: isValidExaminer && !!examinerId && currentStep === 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -124,7 +123,7 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled: !!selectedAssignment && (USE_MOCKS || isValidExaminer) && !!examinerId && currentStep === 2,
+    enabled: !!selectedAssignment && isValidExaminer && !!examinerId && currentStep === 2,
     refetchInterval: 30000, // 30 seconds
     staleTime: 10000, // 10 seconds
     retry: 3,
