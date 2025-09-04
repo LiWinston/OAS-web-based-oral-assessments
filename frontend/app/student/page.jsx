@@ -76,14 +76,6 @@ export default function StudentDashboard() {
               </span>
             </div>
           </div>
-          <div className="flex flex-col space-y-3">
-            <Link href="/student/assignments">
-              <Button className="bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-lg font-medium flex items-center space-x-2 shadow-lg transform hover:scale-105 transition-all duration-200 btn-magic">
-                <i className="fas fa-tasks"></i>
-                <span>View Assignments</span>
-              </Button>
-            </Link>
-          </div>
         </div>
       </div>
 
