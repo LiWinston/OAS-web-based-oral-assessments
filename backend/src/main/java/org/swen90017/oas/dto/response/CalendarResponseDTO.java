@@ -20,13 +20,20 @@ public class CalendarResponseDTO {
     public static class DateInfoDTO {
         @Schema(description = "Number of time slots on this date", example = "2")
         private Integer timeSlots;
-
-        @Schema(description = "Aggregated staffing status for the date: empty/partial/full", example = "partial")
-        private String status;
-
         @Schema(description = "Total sessions on this date", example = "6")
         private Integer sessions;
+
+        @Schema(description = "Count of fully staffed time slots on this date", example = "3")
+        private Integer fullyStaffed;
+
+        @Schema(description = "Count of partially staffed (>=50% but <100%) time slots on this date", example = "1")
+        private Integer partialStaffed;
+
+        @Schema(description = "Count of unstaffed time slots on this date", example = "2")
+        private Integer noStaffed;
     }
+
+
 }
 
 

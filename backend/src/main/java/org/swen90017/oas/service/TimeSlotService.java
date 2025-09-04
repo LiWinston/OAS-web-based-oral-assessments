@@ -99,7 +99,8 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * @param month Target month (YearMonth)
      * @return Map keyed by date string (YYYY-MM-DD) with values: timeSlots, status, sessions
      */
-    Map<String, CalendarResponseDTO.DateInfoDTO> getCalendarData(Long assignmentId, YearMonth month);
+    CalendarResponseDTO getCalendarData(Long assignmentId, YearMonth month);
+
 
     /**
      * Create a single time slot and optionally assign examiners
