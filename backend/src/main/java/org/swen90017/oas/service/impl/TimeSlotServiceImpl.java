@@ -92,7 +92,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     }
 
     @Override
-    public Map<String, CalendarResponseDTO.DateInfoDTO> getCalendarData(Long assignmentId, YearMonth month) {
+    public CalendarResponseDTO getCalendarData(Long assignmentId, YearMonth month) {
         LocalDate startDate = month.atDay(1);
         LocalDate endDate = month.atEndOfMonth();
 
@@ -100,7 +100,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
         Map<String, CalendarResponseDTO.DateInfoDTO> result = new LinkedHashMap<>();
 
-        // 初始化当月每一天（可选，当前仅填充存在 timeslot 的日期）
+        // 按天聚合，同时通过 requiredExaminers 与 currentExaminers 动态评估状态，并统计各类计数
         for (TimeSlot slot : timeSlots) {
             String dateKey = slot.getSlotDate().toString();
             CalendarResponseDTO.DateInfoDTO dateInfo = result.get(dateKey);
@@ -108,7 +108,9 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 dateInfo = new CalendarResponseDTO.DateInfoDTO();
                 dateInfo.setTimeSlots(0);
                 dateInfo.setSessions(0);
-                dateInfo.setStatus("empty");
+                dateInfo.setFullyStaffed(0);
+                dateInfo.setPartialStaffed(0);
+                dateInfo.setNoStaffed(0);
                 result.put(dateKey, dateInfo);
             }
 
@@ -116,27 +118,26 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             dateInfo.setTimeSlots(dateInfo.getTimeSlots() + 1);
             dateInfo.setSessions(dateInfo.getSessions() + (slot.getSessionCount() == null ? 0 : slot.getSessionCount()));
 
-            // 统计聚合状态：若存在 FULL 标记为 full；否则存在 PARTIAL 标记为 partial；否则 empty
-            String currentStatus = dateInfo.getStatus();
-            switch (slot.getStatus()) {
-                case FULL:
-                    dateInfo.setStatus("full");
-                    break;
-                case PARTIAL:
-                    if (!"full".equals(currentStatus)) {
-                        dateInfo.setStatus("partial");
-                    }
-                    break;
-                case EMPTY:
-                case DRAFT:
-                case CLOSED:
-                default:
-                    // 保持现状（除非之前是 empty）
-                    break;
+            // 动态状态计算：基于 requiredExaminers 与 currentExaminers
+            int required = slot.getRequiredExaminers() == null ? 0 : slot.getRequiredExaminers();
+            int current = slot.getCurrentExaminers() == null ? 0 : slot.getCurrentExaminers();
+            boolean isFull = required > 0 && current >= required;
+            boolean isHalfOrMore = required > 0 && current > 0 && current * 2 >= required; // >=50%
+            if (isFull) {
+                dateInfo.setFullyStaffed(dateInfo.getFullyStaffed() + 1);
+            } else if (isHalfOrMore) {
+                dateInfo.setPartialStaffed(dateInfo.getPartialStaffed() + 1);
+            } else if (current == 0) {
+                // 保持/设为 empty
+                dateInfo.setNoStaffed(dateInfo.getNoStaffed() + 1);
             }
         }
 
-        return result;
+
+        CalendarResponseDTO dto = new CalendarResponseDTO();
+        dto.setMonth(month.toString());
+        dto.setDates(result);
+        return dto;
     }
 
     @Override
