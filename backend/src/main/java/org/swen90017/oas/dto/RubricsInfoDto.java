@@ -1,10 +1,10 @@
 package org.swen90017.oas.dto;
 
-import io.lettuce.core.output.DoubleListOutput;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Set;
 
 @Schema(description = "Rubric criteria information")
 @Data
@@ -21,4 +21,5 @@ public class RubricsInfoDto {
     
     @Schema(description = "List of performance levels")
     List<PerformanceDto> performanceLevel;
+
 }

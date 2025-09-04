@@ -684,6 +684,8 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         dto.setAssignmentId(assignment.getId());
         dto.setAssignmentName(assignment.getName());
         dto.setCourseCode(subject != null ? subject.getSubjectCode() : "Unknown");
+
+        dto.setCourseName(subject != null ? subject.getSubjectName() : "Unknown");
         dto.setAssessmentType(assignment.getType().toUpperCase());
         dto.setSessionDurationMinutes(30); // Default value
         

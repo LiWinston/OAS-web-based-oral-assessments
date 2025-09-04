@@ -101,6 +101,7 @@ public interface TimeSlotService extends IService<TimeSlot> {
      */
     CalendarResponseDTO getCalendarData(Long assignmentId, YearMonth month);
 
+
     /**
      * Create a single time slot and optionally assign examiners
      */

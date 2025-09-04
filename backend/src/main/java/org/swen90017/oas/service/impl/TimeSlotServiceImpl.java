@@ -93,6 +93,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
     @Override
     public CalendarResponseDTO getCalendarData(Long assignmentId, YearMonth month) {
+
         LocalDate startDate = month.atDay(1);
         LocalDate endDate = month.atEndOfMonth();
 

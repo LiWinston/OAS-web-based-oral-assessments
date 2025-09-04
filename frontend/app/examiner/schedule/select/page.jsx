@@ -12,6 +12,7 @@ import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/
 import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
 import SelectionSummary from "../../../../components/examiner/schedule/SelectionSummary";
 import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
+import { toLocalDateKey } from "@/utils/dateUtils";
 
 /**
  * TimeslotSelection Component
@@ -186,8 +187,7 @@ function TimeslotSelectionContent() {
     
     const dates = new Set();
     timeslotsData.data.timeSlots.forEach(slot => {
-      const date = new Date(slot.start).toISOString().split('T')[0];
-      dates.add(date);
+      dates.add(toLocalDateKey(new Date(slot.start)));
     });
     
     return Array.from(dates);

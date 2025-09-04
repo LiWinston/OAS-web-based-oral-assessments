@@ -7,6 +7,7 @@ import { useExaminerAuth } from "../../../hooks/useExaminerAuth";
 import { useTimeslotAssignment } from "../../../hooks/useTimeslotAssignment";
 import { Button } from "../../ui/button";
 import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
+import ConfirmWithdrawDialog from "@/components/examiner/schedule/ConfirmWithdrawDialog";
 import { formatVenue } from '@/utils/formatVenue';
 import useScheduleFilterStore from "../../../store/scheduleFilterStore";
 
@@ -54,8 +55,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
 
   const [resultOpen, setResultOpen] = React.useState(false);
   const [resultProps, setResultProps] = React.useState({});
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [pendingSlot, setPendingSlot] = React.useState(null);
 
-  const handleWithdraw = async (slot) => {
+  const doWithdraw = async (slot) => {
     try {
       const res = await withdrawFromTimeslot(slot, () => {
         refetch();
@@ -86,6 +89,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
       });
       setResultOpen(true);
     }
+  };
+  const handleWithdraw = (slot) => {
+    setPendingSlot(slot);
+    setConfirmOpen(true);
   };
 
   // Get all assigned slots and filter by course if selected
@@ -158,6 +165,13 @@ export default function AssignedSlots({ showDebugSection = false }) {
     <div className="dashboard-card">
       <div className="p-6">
         <OperationResultDialog open={resultOpen} onOpenChange={setResultOpen} {...resultProps} />
+        <ConfirmWithdrawDialog
+          open={confirmOpen}
+          onOpenChange={setConfirmOpen}
+          slot={pendingSlot}
+          canWithdraw={pendingSlot ? canWithdraw(pendingSlot) : false}
+          onConfirm={doWithdraw}
+        />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">

@@ -32,6 +32,12 @@ public class StudentAssignmentResponseDTO {
     private String courseCode;
 
     /**
+     * Course name
+     */
+    @Schema(description = "Course name", example = "Software Engineering Project Management")
+    private String courseName;
+
+    /**
      * Assessment type
      */
     @Schema(description = "Assessment type", example = "GROUP", allowableValues = {"INDIVIDUAL", "GROUP", "MIXED"})

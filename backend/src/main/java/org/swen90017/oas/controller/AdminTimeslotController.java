@@ -108,6 +108,7 @@ public class AdminTimeslotController {
         CalendarResponseDTO dto = timeSlotService.getCalendarData(assignmentId, ym);
         // month 在 service 中用 YearMonth.toString() 生成为 YYYY-MM，为保持一致也覆盖一下
         dto.setMonth(month);
+
         return Result.success(dto);
     }
 

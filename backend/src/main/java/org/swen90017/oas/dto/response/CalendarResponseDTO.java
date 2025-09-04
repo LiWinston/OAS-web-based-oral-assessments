@@ -15,14 +15,11 @@ public class CalendarResponseDTO {
     @Schema(description = "Per-date calendar data keyed by YYYY-MM-DD")
     private Map<String, DateInfoDTO> dates;
 
-
-
     @Data
     @Schema(description = "Aggregated information for a specific date")
     public static class DateInfoDTO {
         @Schema(description = "Number of time slots on this date", example = "2")
         private Integer timeSlots;
-
         @Schema(description = "Total sessions on this date", example = "6")
         private Integer sessions;
 

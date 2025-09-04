@@ -1,5 +1,6 @@
 import React from 'react';
 import { formatVenue } from '@/utils/formatVenue';
+import { toLocalDateKey } from '@/utils/dateUtils';
 
 function formatTime(isoString, timezone = 'Australia/Melbourne') {
   const date = new Date(isoString);
@@ -21,10 +22,7 @@ export default function TimeslotList({
   isSlotSelected,
   selectionMessage,
 }) {
-  const slotsForDate = timeSlots.filter((slot) => {
-    const slotDate = new Date(slot.start).toISOString().split('T')[0];
-    return slotDate === selectedDate;
-  });
+  const slotsForDate = timeSlots.filter((slot) => toLocalDateKey(new Date(slot.start)) === selectedDate);
 
   if (!selectedDate) {
     return (

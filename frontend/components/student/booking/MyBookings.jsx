@@ -1,10 +1,11 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import useAuth from "@/hooks/useAuth";
 import { studentBookingServiceReal as studentBookingService } from "@/services/studentBookingReal";
 import { useNotification } from "@/hooks/useNotification";
 import { useRouter } from "next/navigation";
+import ConfirmCancelDialog from "./ConfirmCancelDialog";
 
 export default function MyBookings() {
   const { user, isAuthenticated } = useAuth();
@@ -12,6 +13,9 @@ export default function MyBookings() {
   const { showNotification } = useNotification();
   const queryClient = useQueryClient();
   const router = useRouter();
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isProcessingCancel, setIsProcessingCancel] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["studentMyBookings", studentId],
@@ -78,13 +82,35 @@ export default function MyBookings() {
 
   const onView = (assignmentId) => router.push(`/student/booking/${assignmentId}/confirmation`);
 
-  const onCancel = async (b) => {
+  const onCancelClick = (booking) => {
+    // Add all necessary booking data including policies
+    const bookingWithPolicies = {
+      ...booking,
+      bookingDeadline: booking.bookingDeadline || null,
+      lockoutEnabled: booking.lockoutEnabled !== undefined ? booking.lockoutEnabled : true,
+      lockoutWindowHours: booking.lockoutWindowHours || 24,
+      entity: booking.entity || { type: "INDIVIDUAL" }
+    };
+    setSelectedBooking(bookingWithPolicies);
+    setCancelDialogOpen(true);
+  };
+
+  const onCancelConfirm = async () => {
+    if (!selectedBooking) return;
+    
+    setIsProcessingCancel(true);
     try {
-      const res = await studentBookingService.cancelBooking(b.assignmentId, b.session?.sessionId || b.bookingId, studentId);
+      const res = await studentBookingService.cancelBooking(
+        selectedBooking.assignmentId, 
+        selectedBooking.session?.sessionId || selectedBooking.bookingId, 
+        studentId
+      );
       if (res?.success) {
-        showNotification("success", "Booking cancelled");
+        showNotification("success", "Booking cancelled successfully");
         await queryClient.invalidateQueries({ queryKey: ["studentMyBookings", studentId] });
         await queryClient.invalidateQueries({ queryKey: ["studentAssignments", studentId] });
+        setCancelDialogOpen(false);
+        setSelectedBooking(null);
       } else {
         const msg = mapErrorCodeToMessage(res?.code) || res?.message || "Failed to cancel";
         showNotification("error", msg);
@@ -92,6 +118,8 @@ export default function MyBookings() {
     } catch (e) {
       const code = e?.response?.data?.code;
       showNotification("error", mapErrorCodeToMessage(code) || "Failed to cancel booking");
+    } finally {
+      setIsProcessingCancel(false);
     }
   };
 
@@ -221,7 +249,7 @@ export default function MyBookings() {
                   View Details
                 </button>
                 {(() => { const g = isCancelDisabled(b); return (
-                  <button onClick={() => !g.disabled && onCancel(b)} disabled={g.disabled} className={`px-3 py-1.5 text-xs rounded-md ${g.disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-red-500 text-white hover:bg-red-600'}`}>
+                  <button onClick={() => !g.disabled && onCancelClick(b)} disabled={g.disabled} className={`px-3 py-1.5 text-xs rounded-md ${g.disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-red-500 text-white hover:bg-red-600'}`}>
                   Cancel Booking
                   </button>
                 )})()}
@@ -233,6 +261,18 @@ export default function MyBookings() {
           </div>
         ))}
       </div>
+
+      {/* Confirmation Cancel Dialog */}
+      <ConfirmCancelDialog
+        isOpen={cancelDialogOpen}
+        onClose={() => {
+          setCancelDialogOpen(false);
+          setSelectedBooking(null);
+        }}
+        onConfirm={onCancelConfirm}
+        booking={selectedBooking}
+        isProcessing={isProcessingCancel}
+      />
     </div>
   );
 }
