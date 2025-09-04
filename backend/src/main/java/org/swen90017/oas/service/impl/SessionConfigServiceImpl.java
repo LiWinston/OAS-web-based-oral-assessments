@@ -75,10 +75,6 @@ public class SessionConfigServiceImpl extends ServiceImpl<AssignmentSessionConfi
             throw new BusinessException(CommonError.BAD_REQUEST);
         }
 
-        if (config.getDefaultMaxSessionsPerExaminer() == null || config.getDefaultMaxSessionsPerExaminer() < 1) {
-            throw new BusinessException(CommonError.BAD_REQUEST);
-        }
-
         // Set updater information
         LoginUser currentUser = SecurityUtils.getLoginUser();
         config.setUpdatedBy(currentUser != null ? currentUser.getUserId() : null);

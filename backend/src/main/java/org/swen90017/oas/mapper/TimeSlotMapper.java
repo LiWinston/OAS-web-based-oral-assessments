@@ -18,8 +18,9 @@ public interface TimeSlotMapper extends BaseMapper<TimeSlot> {
                           @Param("endAt") LocalDateTime endAt,
                           @Param("excludeSlotId") Long excludeSlotId);
     List<TimeSlot> selectByFilters(@Param("assignmentId") Long assignmentId,
-                                   @Param("date") LocalDate date,
-                                   @Param("status") String status);
+                                   @Param("status") String status,
+                                   @Param("startAt") LocalDateTime startAt,
+                                   @Param("endAt") LocalDateTime endAt);
 
     int updateCountersAndStatus(@Param("slotId") Long slotId,
                                 @Param("currentExaminers") int currentExaminers,

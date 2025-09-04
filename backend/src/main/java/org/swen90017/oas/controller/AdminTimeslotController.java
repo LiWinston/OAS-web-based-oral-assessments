@@ -25,6 +25,8 @@ import org.swen90017.oas.service.SessionConfigService;
 import org.swen90017.oas.service.TimeSlotService;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
@@ -84,14 +86,12 @@ public class AdminTimeslotController {
      * Get time slots for an assignment
      */
     @Operation(summary = "Get time slots", description = "Retrieve time slots for a specific assignment with optional filters")
-    @GetMapping("/{assignmentId}/timeslots")
+    @PostMapping("/{assignmentId}/timeslots")
     @Log(module = "Time Slot Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<GetTimeSlotsResponseDTO>> getTimeSlots(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @Parameter(description = "Filter by date (YYYY-MM-DD)") @RequestParam(required = false) String date,
-            @Parameter(description = "Filter by status") @RequestParam(required = false) String status) {
-        java.time.LocalDate dateFilter = date != null ? java.time.LocalDate.parse(date) : null;
-        GetTimeSlotsResponseDTO response = timeSlotService.getTimeSlots(assignmentId, dateFilter, status);
+            @Valid @RequestBody TimeSlotQueryRequestDTO query) {
+        GetTimeSlotsResponseDTO response = timeSlotService.getTimeSlots(assignmentId, query);
         return ResponseEntity.ok(Result.success(response));
     }
 
@@ -124,6 +124,16 @@ public class AdminTimeslotController {
             @Valid @RequestBody BatchCreateTimeSlotsRequestDTO request) {
         BatchCreateTimeSlotsResponseDTO response = timeSlotService.batchCreateTimeSlots(assignmentId, request);
         return ResponseEntity.status(201).body(Result.success(response));
+    }
+
+    @Operation(summary = "Create single time slot", description = "Create one time slot and optionally assign examiners")
+    @PostMapping("/{assignmentId}/timeslots/create")
+    @Log(module = "Time Slot Management", businessType = BusinessType.INSERT)
+    public ResponseEntity<Result<TimeSlotDetailDTO>> createSingleTimeSlot(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody CreateSingleTimeSlotRequestDTO request) {
+        TimeSlotDetailDTO dto = timeSlotService.createSingleTimeSlot(assignmentId, request);
+        return ResponseEntity.status(201).body(Result.success(dto));
     }
 
     /**

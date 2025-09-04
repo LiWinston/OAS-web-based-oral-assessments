@@ -10,9 +10,12 @@ import org.swen90017.oas.dto.response.GetTimeSlotsResponseDTO;
 import org.swen90017.oas.dto.response.UpdateTimeSlotResponseDTO;
 import org.swen90017.oas.dto.response.TimeSlotDetailDTO;
 import org.swen90017.oas.entity.TimeSlot;
+import org.swen90017.oas.dto.request.TimeSlotQueryRequestDTO;
+import org.swen90017.oas.dto.request.CreateSingleTimeSlotRequestDTO;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -30,7 +33,18 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * @param status Optional status filter
      * @return Time slots response with list and summary
      */
-    GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, LocalDate date, String status);
+    GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, String status);
+
+    /**
+     * Get time slots with optional date, status and time range filters
+     */
+    GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, String status,
+                                         LocalDateTime startAt, LocalDateTime endAt);
+
+    /**
+     * Get time slots using a unified query DTO (service parses/validates values)
+     */
+    GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, TimeSlotQueryRequestDTO query);
 
     /**
      * Batch create time slots with automatic session generation
@@ -86,4 +100,9 @@ public interface TimeSlotService extends IService<TimeSlot> {
      * @return Map keyed by date string (YYYY-MM-DD) with values: timeSlots, status, sessions
      */
     Map<String, CalendarResponseDTO.DateInfoDTO> getCalendarData(Long assignmentId, YearMonth month);
+
+    /**
+     * Create a single time slot and optionally assign examiners
+     */
+    TimeSlotDetailDTO createSingleTimeSlot(Long assignmentId, CreateSingleTimeSlotRequestDTO request);
 }

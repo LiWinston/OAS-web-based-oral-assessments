@@ -56,7 +56,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         }
 
         // Get time slots for the assignment and date
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, date, null);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, date.atStartOfDay(), date.atTime(23, 59, 59));
         
         // Filter out understaffed slots
         timeSlots = timeSlots.stream()
@@ -233,7 +233,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     public SlotSession findActiveBookingByGroup(Long groupId, Long assignmentId) {
         // Find sessions booked by this group in this assignment
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
         
         for (TimeSlot slot : timeSlots) {
             List<SlotSession> slotSessions = slotSessionMapper.findBySlotId(slot.getSlotId());

@@ -10,7 +10,9 @@ import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.dto.request.BatchCreateTimeSlotsRequestDTO;
 import org.swen90017.oas.dto.request.DuplicateTimeSlotRequestDTO;
+import org.swen90017.oas.dto.request.TimeSlotQueryRequestDTO;
 import org.swen90017.oas.dto.request.TimeSlotRequestDTO;
+import org.swen90017.oas.dto.request.CreateSingleTimeSlotRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.SessionStatus;
@@ -49,25 +51,44 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private final VenueMapper venueMapper;
 
     @Override
-    public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, LocalDate date, String status) {
-        // Get the assignment
+    public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, String status) {
+        return getTimeSlots(assignmentId, status, null, null);
+    }
+
+    @Override
+    public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, String status,
+                                                LocalDateTime startAt, LocalDateTime endAt) {
+        // Normalize null/empty at service layer
+        // Assignment must exist
         Assignment assign = assignmentMapper.selectById(assignmentId);
         if (assign == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, date, status);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, status, startAt, endAt);
         List<TimeSlotDetailDTO> timeSlotDTOs = timeSlots.stream()
                 .map(this::convertToDetailDTO)
                 .collect(Collectors.toList());
 
-        // Calculate summary
         GetTimeSlotsResponseDTO.TimeSlotsSummaryDTO summary = calculateSummary(timeSlots);
-
         GetTimeSlotsResponseDTO response = new GetTimeSlotsResponseDTO();
         response.setTimeSlots(timeSlotDTOs);
         response.setSummary(summary);
-        
         return response;
+    }
+
+    @Override
+    public GetTimeSlotsResponseDTO getTimeSlots(Long assignmentId, TimeSlotQueryRequestDTO query) {
+        LocalDate dateFilter = null; // single-date filter removed; use dateFrom/dateTo instead
+        LocalDate start = (query != null && query.getDateFrom() != null && !query.getDateFrom().isEmpty())
+                ? LocalDate.parse(query.getDateFrom()) : null;
+        LocalDate end = (query != null && query.getDateTo() != null && !query.getDateTo().isEmpty())
+                ? LocalDate.parse(query.getDateTo()) : null;
+        String status = (query != null) ? query.getStatus() : null;
+        // 将 dateFrom/dateTo 透传到 mapper 的 startAt/endAt 参数（复用签名，但用于按 slot_date 过滤）
+
+        return getTimeSlots(assignmentId, status,
+                start != null ? start.atStartOfDay() : null,
+                end != null ? end.atTime(23,59,59):null);
     }
 
     @Override
@@ -134,12 +155,22 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             throw new BusinessException(BusinessError.ASSIGNMENT_HAS_NO_VENUE);
         }
 
+        // 2) 如果该 assignment 下已有任何 time slot，先全部删除，再用本次请求替换
+        List<TimeSlot> existing = timeSlotMapper.listByAssignment(assignmentId);
+        if (existing != null && !existing.isEmpty()) {
+            List<Long> toDeleteIds = new ArrayList<>();
+            for (TimeSlot ts : existing) {
+                toDeleteIds.add(ts.getSlotId());
+            }
+            deleteTimeSlots(assignmentId, toDeleteIds);
+        }
+
         List<TimeSlotDetailDTO> createdTimeSlots = new ArrayList<>();
         int totalSessionsGenerated = 0;
         
         for (TimeSlotRequestDTO timeSlotRequest : request.getTimeSlots()) {
             try {
-                // 2) 校验传入的 venueId 必须存在，且归属于该 assignment
+                // 3) 校验传入的 venueId 必须存在，且归属于该 assignment
                 Venue v = venueMapper.selectById(timeSlotRequest.getVenueId());
                 if (v == null) {
                     throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
@@ -148,7 +179,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                     throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
                 }
 
-                // 3) Validate venue overlap
+                // 4) Validate venue overlap
                 LocalDateTime startAt = timeSlotRequest.getDate().atTime(timeSlotRequest.getStartTime());
                 LocalDateTime endAt = timeSlotRequest.getDate().atTime(timeSlotRequest.getEndTime());
                 
@@ -383,6 +414,88 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         }
         
         return actualSessionCount;
+    }
+
+    @Override
+    @Transactional
+    public TimeSlotDetailDTO createSingleTimeSlot(Long assignmentId, CreateSingleTimeSlotRequestDTO request) {
+        ensureAssignmentNotReleased(assignmentId);
+
+        // Validate session config
+        AssignmentSessionConfig config = sessionConfigMapper.selectById(assignmentId);
+        if (config == null || !config.getIsConfigured()) {
+            throw new BusinessException(BusinessError.SESSION_CONFIG_NOT_FOUND);
+        }
+
+        // Validate venue exists and belongs to assignment
+        Venue v = venueMapper.selectById(request.getVenueId());
+        if (v == null) {
+            throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
+        }
+        if (!Objects.equals(v.getAssignmentId(), assignmentId)) {
+            throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
+        }
+
+        // Overlap check
+        LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
+        // End time: 根据 session 配置/请求的 sessionCount 由 generateSessions 负责写回 sessionCount 与生成场次；此处仅做窗口冲突使用 request 的 date+start/end(估算)
+        // 估算 endAt 使用 config 中 sessionLength+gap 近似: sessionCount * (sessionLength+gap) - gap
+        int sessionLengthMin = config.getSessionLengthMin();
+        int gapTimeMin = config.getGapTimeMin();
+        int blocks = Math.max(1, request.getSessionCount());
+        long totalWindow = (long) blocks * (sessionLengthMin + gapTimeMin) - gapTimeMin;
+        LocalDateTime endAt = startAt.plusMinutes(Math.max(totalWindow, sessionLengthMin));
+
+        int overlap = timeSlotMapper.countVenueOverlap(assignmentId, request.getVenueId(), startAt, endAt, null);
+        if (overlap > 0) {
+            throw new BusinessException(BusinessError.VENUE_OVERLAP);
+        }
+
+        // Build TimeSlotRequestDTO to reuse creator
+        TimeSlotRequestDTO tsReq = new TimeSlotRequestDTO();
+        tsReq.setDate(request.getDate());
+        tsReq.setStartTime(request.getStartTime());
+        tsReq.setEndTime(endAt.toLocalTime());
+        tsReq.setSessionCount(request.getSessionCount());
+        tsReq.setVenueId(request.getVenueId());
+
+        // Create slot
+        TimeSlot slot = createTimeSlot(assignmentId, tsReq, config);
+
+        // Override requiredExaminers if provided
+        if (request.getRequiredExaminers() != null) {
+            slot.setRequiredExaminers(request.getRequiredExaminers());
+            timeSlotMapper.updateById(slot);
+        }
+
+        // Generate sessions
+        generateSessions(slot, request.getSessionCount());
+
+        // Optionally assign examiners
+        if (request.getAssignExaminerIds() != null && !request.getAssignExaminerIds().isEmpty()) {
+            List<TimeSlotExaminer> rows = new ArrayList<>();
+            LocalDateTime now = LocalDateTime.now();
+            for (Long examinerId : new java.util.HashSet<>(request.getAssignExaminerIds())) {
+                TimeSlotExaminer e = new TimeSlotExaminer();
+                e.setSlotId(slot.getSlotId());
+                e.setExaminerId(examinerId);
+                e.setAssignedAt(now);
+                e.setAssignedBy(null);
+                rows.add(e);
+            }
+            if (!rows.isEmpty()) {
+                timeSlotExaminersMapper.batchInsert(rows);
+            }
+            // Update counters and status
+            List<Long> assignedIds = timeSlotExaminersMapper.listExaminerIdsBySlot(slot.getSlotId());
+            int currentExaminers = assignedIds == null ? 0 : assignedIds.size();
+            int booked = slot.getBookedSessions() == null ? 0 : slot.getBookedSessions();
+            timeSlotMapper.updateCountersAndStatus(slot.getSlotId(), currentExaminers, booked);
+        }
+
+        // Return detail
+        TimeSlot refreshed = timeSlotMapper.selectById(slot.getSlotId());
+        return convertToDetailDTO(refreshed);
     }
 
     /**

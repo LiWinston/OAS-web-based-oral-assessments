@@ -55,7 +55,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         Boolean isReleased = assignmentMapper.isReleased(assignmentId);
         
         // Get time slots for analysis
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
         
         // Analyze schedule readiness
         List<String> issues = new ArrayList<>();
@@ -90,7 +90,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         }
 
         // Enable booking for all time slots
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
         for (TimeSlot slot : timeSlots) {
             slot.setBookingOpen(true);
             timeSlotMapper.updateById(slot);
@@ -113,7 +113,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
     @Override
     public Boolean isReadyForRelease(Long assignmentId) {
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null);
+        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
         
         if (CollectionUtils.isEmpty(timeSlots)) {
             return false; // No time slots defined
