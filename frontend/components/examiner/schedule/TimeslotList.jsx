@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatVenue } from '@/utils/formatVenue';
 
 function formatTime(isoString, timezone = 'Australia/Melbourne') {
   const date = new Date(isoString);
@@ -100,7 +101,7 @@ export default function TimeslotList({
                     </div>
                     <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
                       <i className="fas fa-map-marker-alt mr-1"></i>
-                      {slot.venue?.building} {slot.venue?.room} - {slot.venue?.name}
+                      {formatVenue(slot.venue)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {slot.currentExaminers}/{slot.requiredExaminers} examiners assigned
@@ -140,4 +141,3 @@ export default function TimeslotList({
     </>
   );
 }
-

@@ -6,6 +6,8 @@ import { examinerTimeslotService } from "../../../services/examinerTimeslotServi
 import { useExaminerAuth } from "../../../hooks/useExaminerAuth";
 import { useTimeslotAssignment } from "../../../hooks/useTimeslotAssignment";
 import { Button } from "../../ui/button";
+import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
+import { formatVenue } from '@/utils/formatVenue';
 import useScheduleFilterStore from "../../../store/scheduleFilterStore";
 
 function formatTime(isoString, timezone = "Australia/Melbourne") {
@@ -28,6 +30,8 @@ function formatDate(isoString) {
   });
 }
 
+// centralized formatter used via import
+
 export default function AssignedSlots({ showDebugSection = false }) {
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse } = useScheduleFilterStore();
@@ -48,14 +52,39 @@ export default function AssignedSlots({ showDebugSection = false }) {
     refetchInterval: 30 * 1000, // Auto-refresh every 30 seconds
   });
 
+  const [resultOpen, setResultOpen] = React.useState(false);
+  const [resultProps, setResultProps] = React.useState({});
+
   const handleWithdraw = async (slot) => {
     try {
-      await withdrawFromTimeslot(slot.slotId, () => {
-        refetch(); // Refresh the data after successful withdrawal
+      const res = await withdrawFromTimeslot(slot, () => {
+        refetch();
       });
+      if (res?.success) {
+        const start = slot.start ? new Date(slot.start) : null;
+        const end = slot.end ? new Date(slot.end) : null;
+        const detail = start && end
+          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
+          : `Slot #${slot.slotId}`;
+        setResultProps({
+          status: 'success',
+          title: 'Withdrawn from Time Slot',
+          message: 'Your schedule has been updated.',
+          details: [detail],
+          autoDismiss: true,
+          autoDismissMs: 1300,
+        });
+        setResultOpen(true);
+      }
     } catch (error) {
-      // Error handling is done in the hook
-      console.error("Withdrawal failed:", error);
+      setResultProps({
+        status: 'error',
+        title: 'Withdraw Failed',
+        message: error?.message || 'Unable to withdraw from this timeslot.',
+        autoDismiss: false,
+        primaryActionLabel: 'Close',
+      });
+      setResultOpen(true);
     }
   };
 
@@ -128,6 +157,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
   return (
     <div className="dashboard-card">
       <div className="p-6">
+        <OperationResultDialog open={resultOpen} onOpenChange={setResultOpen} {...resultProps} />
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
@@ -218,8 +248,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                             </div>
                             <div className="flex items-center mb-1">
                               <i className="fas fa-map-marker-alt text-red-600 mr-2"></i>
-                              {slot.venue?.building} {slot.venue?.room} -{" "}
-                              {slot.venue?.name}
+                              {formatVenue(slot.venue)}
                             </div>
                           </div>
 

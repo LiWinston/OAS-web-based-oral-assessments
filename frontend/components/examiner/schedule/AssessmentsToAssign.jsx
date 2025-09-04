@@ -23,78 +23,56 @@ const AssessmentsToAssign = () => {
   });
 
   const assignments = assignmentsData?.data?.data || [];
+  const renderAssignments = React.useMemo(() => {
+    if (!selectedCourse) return assignments;
+    return assignments.filter(a => (a.courseCode || a.subjectCode) === selectedCourse);
+  }, [assignments, selectedCourse]);
+  
+  // Derive a simple lifecycle state for UX from dates
+  const getAssignmentState = (assignment) => {
+    const now = new Date();
+    const startRaw = assignment.earliestTimeslot || assignment.startDate;
+    const endRaw = assignment.latestTimeslot || assignment.endDate;
+    const start = startRaw ? new Date(startRaw) : null;
+    const end = endRaw ? new Date(endRaw) : null;
+    if (end && !isNaN(end) && end < now) return 'closed';
+    if (start && !isNaN(start) && start > now) return 'upcoming';
+    return 'open';
+  };
+
+  // No per-assignment availability probing here (single fetch UX)
   
 
   const handleSelectTimeSlots = (assignmentId) => {
     router.push(`/examiner/schedule/select?assignmentId=${assignmentId}`);
   };
 
-  const getUrgencyColor = (urgency) => {
-    switch (urgency) {
-      case 'high':
-        return 'text-red-600 dark:text-red-400';
-      case 'medium':
-        return 'text-yellow-600 dark:text-yellow-400';
-      case 'low':
-        return 'text-green-600 dark:text-green-400';
-      default:
-        return 'text-gray-600 dark:text-gray-400';
+  // No urgency styling for single-fetch basic info view
+
+  const getStatusBadge = (assignment) => {
+    const state = getAssignmentState(assignment);
+    if (state === 'open') {
+      return (
+        <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+          Open
+        </span>
+      );
     }
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'open':
-        return (
-          <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-            Open
-          </span>
-        );
-      case 'full':
-        return (
-          <span className="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-            Full
-          </span>
-        );
-      case 'deadline_passed':
-        return (
-          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
-            Deadline Passed
-          </span>
-        );
-      default:
-        return null;
+    if (state === 'upcoming') {
+      return (
+        <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+          Upcoming
+        </span>
+      );
     }
+    return (
+      <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+        Closed
+      </span>
+    );
   };
 
-  const formatDeadline = (deadline) => {
-    const date = new Date(deadline);
-    const now = new Date();
-    const diffHours = Math.ceil((date - now) / (1000 * 60 * 60));
-    
-    if (diffHours < 0) return 'Deadline passed';
-    if (diffHours < 1) return 'Less than 1h';
-    if (diffHours < 24) return `${diffHours}h remaining`;
-    if (diffHours < 48) return 'Tomorrow';
-    
-    return date.toLocaleDateString('en-AU', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getTimeUntilDeadline = (deadline) => {
-    const date = new Date(deadline);
-    const now = new Date();
-    const diffMs = date - now;
-    
-    if (diffMs < 0) return null;
-    
-    const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
-    return diffHours;
-  };
+  // No deadline/urgency chips in this view
 
   if (isLoading) {
     return (
@@ -138,7 +116,7 @@ const AssessmentsToAssign = () => {
     );
   }
 
-  if (assignments.length === 0) {
+  if (renderAssignments.length === 0) {
     return (
       <div className="dashboard-card mb-6">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -151,12 +129,32 @@ const AssessmentsToAssign = () => {
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-calendar-check text-gray-400 dark:text-gray-500 text-2xl"></i>
           </div>
-          <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
-            All Caught Up!
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            No assessments currently need examiner assignment. New assignments will appear here when they become available.
-          </p>
+          {selectedCourse ? (
+            <>
+              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+                No assignments for this course
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mb-4">
+                The selected filter "{selectedCourse}" returned no results. Try clearing the filter or choosing a different course.
+              </p>
+              <button
+                onClick={() => { const store = useScheduleFilterStore.getState(); store.setSelectedCourse(''); }}
+                className="inline-flex items-center px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                <i className="fas fa-times mr-1.5"></i>
+                Clear Filter
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+                All Caught Up!
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                No assessments currently need examiner assignment. New assignments will appear here when they become available.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
@@ -171,7 +169,7 @@ const AssessmentsToAssign = () => {
             Assessments to Assign Time Slot
           </h2>
           <span className="ml-3 px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-            {assignments.length} available
+            {renderAssignments.length} available
           </span>
         </div>
         
@@ -183,7 +181,7 @@ const AssessmentsToAssign = () => {
       </div>
       
       <div className="divide-y divide-gray-200 dark:divide-gray-700">
-        {assignments.map((assignment) => (
+        {renderAssignments.map((assignment) => (
           <div key={assignment.assignmentId} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
@@ -191,137 +189,68 @@ const AssessmentsToAssign = () => {
                   <div className="font-medium text-gray-800 dark:text-gray-200 truncate mr-3">
                     {assignment.assignmentName}
                   </div>
-                  {getStatusBadge(assignment.status)}
+                  {getStatusBadge(assignment)}
                   
-                  {/* Urgency indicator */}
-                  {assignment.urgency === 'high' && (
-                    <div className="ml-2 flex items-center">
-                      <i className="fas fa-exclamation-circle text-red-500 text-sm mr-1"></i>
-                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">Urgent</span>
-                    </div>
-                  )}
+                  {/* No urgency indicator in basic info view */}
                   
-                  {/* Show if deadline is very soon */}
-                  {getTimeUntilDeadline(assignment.signupDeadline) !== null && getTimeUntilDeadline(assignment.signupDeadline) <= 6 && (
-                    <div className="ml-2 flex items-center animate-pulse">
-                      <i className="fas fa-clock text-orange-500 text-sm mr-1"></i>
-                      <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">Deadline Soon</span>
-                    </div>
-                  )}
+                  {/* No deadline urgency hint in basic info view */}
                 </div>
                 
                 <div className="flex flex-wrap items-center text-sm text-gray-600 dark:text-gray-400 gap-4">
                   <span className="flex items-center">
                     <i className="fas fa-graduation-cap mr-1.5"></i>
-                    {assignment.courseCode}
+                    {assignment.courseCode || assignment.subjectCode}
+                    { (assignment.courseName || assignment.subjectName) && (
+                      <span className="ml-2 text-gray-500 dark:text-gray-400">{assignment.courseName || assignment.subjectName}</span>
+                    )}
                   </span>
                   
                   <span className="flex items-center">
-                    <i className={`fas ${assignment.assessmentType === 'GROUP' ? 'fa-users' : 'fa-user'} mr-1.5`}></i>
-                    {assignment.assessmentType === 'GROUP' ? 'Group Assessment' : 'Individual Assessment'}
+                    <i className={`fas ${((assignment.assessmentType || assignment.type || '').toString().toLowerCase() === 'group') ? 'fa-users' : 'fa-user'} mr-1.5`}></i>
+                    {((assignment.assessmentType || assignment.type || '')).toString().toUpperCase() || 'ASSESSMENT'}
                   </span>
-                  
-                  <span className="flex items-center">
-                    <i className="fas fa-clock mr-1.5"></i>
-                    {assignment.sessionDurationMinutes}min sessions
-                  </span>
-                  
                   <span className="flex items-center">
                     <i className="fas fa-calendar-alt mr-1.5"></i>
-                    {new Date(assignment.earliestTimeslot).toLocaleDateString('en-AU', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })} - {new Date(assignment.latestTimeslot).toLocaleDateString('en-AU', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
+                    {(() => {
+                      const start = assignment.earliestTimeslot || assignment.startDate;
+                      const end = assignment.latestTimeslot || assignment.endDate;
+                      const fmt = (d) => d ? new Date(d).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }) : 'TBA';
+                      return `${fmt(start)} - ${fmt(end)}`;
+                    })()}
                   </span>
-                  
-                  <span className="flex items-center">
-                    <i className="fas fa-user-friends mr-1.5"></i>
-                    {assignment.requiredExaminers} examiner{assignment.requiredExaminers > 1 ? 's' : ''} required
-                  </span>
-                </div>
-                
-                {/* Assignment details and capacity */}
-                <div className="mt-3 flex flex-wrap items-center gap-4 text-xs">
-                  <div className="flex items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Available slots:</span>
-                    <span className="ml-1 font-medium text-blue-600 dark:text-blue-400">
-                      {assignment.availableTimeslots}
+                  {assignment.status && (
+                    <span className="flex items-center">
+                      <i className="fas fa-info-circle mr-1.5"></i>
+                      Status: {(assignment.status || '').toString().toUpperCase()}
                     </span>
-                  </div>
-                  
-                  <div className="flex items-center">
-                    <span className="text-gray-600 dark:text-gray-400">Your capacity:</span>
-                    <span className="ml-1 font-medium text-green-600 dark:text-green-400">
-                      {assignment.examinerInfo.remainingCapacity}/{assignment.examinerInfo.maxSessions} remaining
-                    </span>
-                  </div>
-                  
-                  {assignment.signupDeadline && (
-                    <div className="flex items-center">
-                      <i className="fas fa-calendar-times text-gray-400 mr-1"></i>
-                      <span className="text-gray-600 dark:text-gray-400">Signup by:</span>
-                      <span className={`ml-1 font-medium ${getUrgencyColor(assignment.urgency)}`}>
-                        {formatDeadline(assignment.signupDeadline)}
-                      </span>
-                    </div>
                   )}
                 </div>
                 
-                {/* Progress bar for capacity */}
-                <div className="mt-3">
-                  <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mb-1">
-                    <span>Session Allocation</span>
-                    <span>{assignment.examinerInfo.currentAssignedSessions}/{assignment.examinerInfo.maxSessions}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
-                      className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${(assignment.examinerInfo.currentAssignedSessions / assignment.examinerInfo.maxSessions) * 100}%` 
-                      }}
-                    ></div>
-                  </div>
-                </div>
+                {/* No capacity/available slots UI here; next step will check availability */}
               </div>
               
-              {/* Action button */}
+              {/* Action button (single-fetch list; availability checked in next step) */}
               <div className="ml-4 flex-shrink-0">
-                {assignment.status === 'open' ? (
-                  assignment.examinerInfo.remainingCapacity === 0 ? (
-                    <div className="px-3 py-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded-lg text-sm flex items-center">
-                      <i className="fas fa-exclamation-triangle mr-1.5"></i>
-                      At Capacity
-                    </div>
-                  ) : (
+                {(() => {
+                  const state = getAssignmentState(assignment);
+                  if (state === 'closed') {
+                    return (
+                      <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm flex items-center">
+                        <i className="fas fa-ban mr-1.5"></i>
+                        Closed
+                      </div>
+                    );
+                  }
+                  return (
                     <button
                       onClick={() => handleSelectTimeSlots(assignment.assignmentId)}
-                      className={`px-3 py-2 text-white rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm ${
-                        assignment.urgency === 'high' 
-                          ? 'bg-red-600 hover:bg-red-700 animate-pulse' 
-                          : 'bg-blue-600 hover:bg-blue-700'
-                      }`}
+                      className="px-3 py-2 text-white rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm bg-blue-600 hover:bg-blue-700"
                     >
                       <i className="fas fa-plus mr-1.5"></i>
                       Select Time Slots
-                      {assignment.urgency === 'high' && (
-                        <i className="fas fa-exclamation-circle ml-1.5 text-xs"></i>
-                      )}
                     </button>
-                  )
-                ) : assignment.status === 'full' ? (
-                  <div className="px-3 py-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-lg text-sm flex items-center">
-                    <i className="fas fa-check-circle mr-1.5"></i>
-                    Fully Staffed
-                  </div>
-                ) : (
-                  <div className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm flex items-center">
-                    <i className="fas fa-clock mr-1.5"></i>
-                    Deadline Passed
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>
