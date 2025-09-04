@@ -300,10 +300,21 @@ export const courseAdminTimeslotService = {
 
   async getTimeSlots(assignmentId, filters = {}) {
     const url = `${base(assignmentId)}/timeslots`;
-    // Backend currently serves full list; date/status query causes 4xx. Fetch all, then filter client-side.
+    // New backend: POST with filters { status, dateFrom, dateTo }
+    const payload = {};
+    if (filters && typeof filters === 'object') {
+      if (filters.status) payload.status = filters.status;
+      if (filters.date) {
+        payload.dateFrom = filters.date;
+        payload.dateTo = filters.date;
+      } else {
+        if (filters.dateFrom) payload.dateFrom = filters.dateFrom;
+        if (filters.dateTo) payload.dateTo = filters.dateTo;
+      }
+    }
     // eslint-disable-next-line no-console
-    console.log('[courseAdminTimeslotService] GET', url, { note: 'fetch-all; filter client-side', filters });
-    const resp = await callApiIfEnabled(() => apiClient.get(url));
+    console.log('[courseAdminTimeslotService] POST', url, { payload });
+    const resp = await callApiIfEnabled(() => apiClient.post(url, payload));
 
     if (!USE_MOCKS && resp) {
       // eslint-disable-next-line no-console
@@ -313,7 +324,7 @@ export const courseAdminTimeslotService = {
       });
       const raw = extractData(resp);
       const arr = Array.isArray(raw?.timeSlots) ? raw.timeSlots : Array.isArray(raw) ? raw : [];
-      let normalized = arr.map((slot) => withStatus({
+      const normalized = arr.map((slot) => withStatus({
         id: slot.id,
         date: slot.date,
         startTime: slot.startTime,
@@ -325,9 +336,6 @@ export const courseAdminTimeslotService = {
         status: slot.status,
         assignedExaminers: slot.assignedExaminers || []
       }));
-      // Apply client-side filters to match hook expectations
-      if (filters.date) normalized = normalized.filter(s => s.date === filters.date);
-      if (filters.status) normalized = normalized.filter(s => s.status === filters.status);
       return success(normalized, 'Time slots (api)');
     }
 
@@ -335,6 +343,8 @@ export const courseAdminTimeslotService = {
     let res = [...mockTimeSlots];
     if (filters.date) res = res.filter((s) => s.date === filters.date);
     if (filters.status) res = res.filter((s) => s.status === filters.status);
+    if (filters.dateFrom) res = res.filter((s) => s.date >= filters.dateFrom);
+    if (filters.dateTo) res = res.filter((s) => s.date <= filters.dateTo);
     return success(res.map(withStatus), 'Time slots (mock)');
   },
 
@@ -347,7 +357,15 @@ export const courseAdminTimeslotService = {
       startTime: body.startTime && String(body.startTime).includes(' ') ? to24Hour(body.startTime) : body.startTime,
       endTime: body.endTime && String(body.endTime).includes(' ') ? to24Hour(body.endTime) : body.endTime,
       sessionCount: body.sessionCount,
-      venueId: body.venueId
+      venueId: body.venueId,
+      // Optional: allow backend to accept requiredExaminers if supported
+      requiredExaminers: body.requiredExaminers,
+      // Backend field: assignExaminerIds only
+      assignExaminerIds: Array.isArray(body.assignExaminerIds)
+        ? body.assignExaminerIds
+        : Array.isArray(body.assignedExaminerIds)
+          ? body.assignedExaminerIds
+          : undefined
     };
     const resp = await callApiIfEnabled(() => apiClient.put(url, req));
 
@@ -452,6 +470,80 @@ export const courseAdminTimeslotService = {
     return success(dup, 'Time slot duplicated (mock)');
   },
 
+  // Create single time slot via new endpoint
+  async createTimeSlot(assignmentId, body) {
+    const url = `${base(assignmentId)}/timeslots/create`;
+    const req = {
+      date: body.date,
+      startTime: body.startTime && String(body.startTime).includes(' ') ? to24Hour(body.startTime) : body.startTime,
+      endTime: body.endTime && String(body.endTime).includes(' ') ? to24Hour(body.endTime) : body.endTime,
+      sessionCount: body.sessionCount,
+      venueId: body.venueId,
+      requiredExaminers: body.requiredExaminers,
+      assignExaminerIds: Array.isArray(body.assignExaminerIds)
+        ? body.assignExaminerIds
+        : Array.isArray(body.assignedExaminerIds)
+          ? body.assignedExaminerIds
+          : undefined
+    };
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] POST', url, { body: req });
+    const resp = await callApiIfEnabled(() => apiClient.post(url, req));
+
+    if (!USE_MOCKS && resp) {
+      const slot = extractData(resp);
+      const normalized = withStatus({
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        venue: slot.venueName || slot.venue,
+        venueId: slot.venueId,
+        requiredExaminers: slot.requiredExaminers,
+        sessionCount: slot.sessionCount,
+        status: slot.status,
+        assignedExaminers: slot.assignedExaminers || []
+      });
+      return success(normalized, 'Time slot created (api)');
+    }
+
+    // Mock create
+    await delay();
+    const created = withStatus({
+      id: generateId(),
+      date: body.date,
+      startTime: body.startTime,
+      endTime: body.endTime,
+      venue: body.venue,
+      venueId: body.venueId,
+      requiredExaminers: body.requiredExaminers,
+      sessionCount: body.sessionCount,
+      assignedExaminers: []
+    });
+    mockTimeSlots.push(created);
+    return success(created, 'Time slot created (mock)');
+  },
+
+  async updateTimeSlotExaminers(assignmentId, timeSlotId, examinerIds = []) {
+    const url = `${base(assignmentId)}/timeslots/${timeSlotId}/examiners`;
+    // eslint-disable-next-line no-console
+    console.log('[courseAdminTimeslotService] PUT', url, { examinerIds });
+    const resp = await callApiIfEnabled(() => apiClient.put(url, { examinerIds }));
+
+    if (!USE_MOCKS && resp) {
+      return success({ updated: examinerIds.length }, 'Examiners updated (api)');
+    }
+
+    await delay();
+    // Mock: update assigned examiners on mockTimeSlots
+    const idx = mockTimeSlots.findIndex(s => s.id === timeSlotId);
+    if (idx !== -1) {
+      const assignedExaminers = mockExaminers.filter(ex => examinerIds.includes(ex.id)).map(ex => ({ id: ex.id, name: ex.name, email: ex.email }));
+      mockTimeSlots[idx] = withStatus({ ...mockTimeSlots[idx], assignedExaminers });
+    }
+    return success({ updated: examinerIds.length }, 'Examiners updated (mock)');
+  },
+
   // 3) Examiner Management
   async getExaminers(assignmentId) {
     const url = `${base(assignmentId)}/examiners`;
@@ -508,35 +600,20 @@ export const courseAdminTimeslotService = {
 
   // 4) Schedule Management
   async getScheduleStatus(assignmentId) {
-    await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/schedule/status`));
-
-    await delay();
-    const totalSlots = mockTimeSlots.length;
-    const fullyStaffedSlots = mockTimeSlots.filter((s) => s.status === 'full').length;
-    const partiallyStaffedSlots = mockTimeSlots.filter((s) => s.status === 'partial').length;
-    const unstaffedSlots = mockTimeSlots.filter((s) => s.status === 'empty').length;
-    const canRelease = unstaffedSlots === 0; // simple mock rule
-    return {
-      success: true,
-      data: { totalSlots, fullyStaffedSlots, partiallyStaffedSlots, unstaffedSlots, canRelease, issues: canRelease ? [] : ['Some time slots are not fully staffed'] },
-      message: 'Schedule status (mock)',
-    };
+    const response = await callApiIfEnabled(() => apiClient.get(`${base(assignmentId)}/schedule/status`));
+    return response;
   },
 
   async releaseSchedule(assignmentId, payload = {}) {
-    await callApiIfEnabled(() => apiClient.post(`${base(assignmentId)}/schedule/release`, payload));
-
-    await delay();
-    // validate using current mock view
-    const status = await this.getScheduleStatus(assignmentId);
-    if (!status.data.canRelease) {
-      return { success: true, data: { releasedAt: null, notifiedStudents: 0, totalTimeSlots: mockTimeSlots.length }, message: 'Schedule not released (mock): validation failed' };
-    }
-    return {
-      success: true,
-      data: { releasedAt: new Date().toISOString(), notifiedStudents: 25, totalTimeSlots: mockTimeSlots.length },
-      message: 'Schedule released (mock)',
-    };
+        payload = {
+      "notifyStudents": true,
+      "notifyExaminers": true,
+      "releaseMessage": "Assessment schedule is now available for booking."
+      }
+    const response = await callApiIfEnabled(() => apiClient.post(`${base(assignmentId)}/schedule/release`, payload));
+    console.log("response", response);
+    
+    return response;
   },
 };
 

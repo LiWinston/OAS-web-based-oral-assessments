@@ -11,18 +11,11 @@ import StatusPill from '@/components/admin/schedule/StatusPill.jsx';
 
 export default function TimeSlotCard({ 
   timeSlot, 
-  isSelected = false, 
-  onSelect, 
   onEdit, 
   onDuplicate, 
-  onDelete, 
-  onNotify 
+  onDelete
 }) {
   
-  const handleSelect = () => {
-    onSelect?.(timeSlot.id);
-  };
-
   const handleEdit = (e) => {
     e.stopPropagation();
     onEdit?.(timeSlot);
@@ -30,7 +23,7 @@ export default function TimeSlotCard({
 
   const handleDuplicate = (e) => {
     e.stopPropagation();
-    onDuplicate?.(timeSlot.id);
+    onDuplicate?.(timeSlot);
   };
 
   const handleDelete = (e) => {
@@ -38,24 +31,10 @@ export default function TimeSlotCard({
     onDelete?.(timeSlot.id);
   };
 
-  const handleNotify = (e) => {
-    e.stopPropagation();
-    onNotify?.(timeSlot.id);
-  };
-
   return (
     <div className="time-slot-item">
       <div className="flex justify-between items-start mb-3">
         <div className="flex items-center">
-          <div className="mr-3">
-            <input
-              type="checkbox"
-              checked={isSelected}
-              onChange={handleSelect}
-              className="rounded text-blue-600"
-              aria-label="Select time slot"
-            />
-          </div>
           <div>
             <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">
               {to12Hour(timeSlot.startTime)} - {to12Hour(timeSlot.endTime)}
@@ -98,13 +77,6 @@ export default function TimeSlotCard({
               onClick={handleDelete}
             >
               <i className="fas fa-trash-alt" />
-            </button>
-            <button 
-              className="action-btn text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 dark:text-purple-400 dark:hover:text-purple-300 dark:bg-purple-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" 
-              title="Notify Examiners" 
-              onClick={handleNotify}
-            >
-              <i className="fas fa-envelope" />
             </button>
           </div>
         </div>

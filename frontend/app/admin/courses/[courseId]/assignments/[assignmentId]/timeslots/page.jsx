@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import CalendarMonth from '@/components/admin/schedule/CalendarMonth.jsx';
 import TimeSlotCard from '@/components/admin/schedule/TimeSlotCard.jsx';
-import BulkActionsBar from '@/components/admin/schedule/BulkActionsBar.jsx';
 import AddTimeSlotModal from '@/components/admin/schedule/AddTimeSlotModal.jsx';
 import { useTimeSlots } from '@/hooks/useTimeSlots.js';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
@@ -12,6 +12,8 @@ import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 import { to24Hour } from '@/lib/timeMath.js';
 import { venueService } from '@/services/venueService.js';
+import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
+import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 
 /**
  * AssignmentTimeSlotsPage - Refactored timeslot management
@@ -34,11 +36,12 @@ const MOCK_EXAMINERS = [
 export default function AssignmentTimeSlotsPage() {
   const params = useParams();
   const { courseId, assignmentId } = params;
+  const queryClient = useQueryClient();
   
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTimeSlots, setSelectedTimeSlots] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingTimeSlot, setEditingTimeSlot] = useState(null);
+  const [modalMode, setModalMode] = useState('add');
 
   // Hooks for server state (replace in-memory arrays per Section 9.2)
   const { data: sessionConfig } = useSessionConfig(assignmentId);
@@ -47,14 +50,18 @@ export default function AssignmentTimeSlotsPage() {
     isLoading: isLoadingSlots,
     createBatch,
     updateSlot,
+    updateSlotAsync,
     deleteSlots,
+    deleteSlotsAsync,
     duplicateSlot,
     isUpdating,
     isDeleting,
-    isDuplicating
+    isDuplicating,
+    refetch
   } = useTimeSlots(assignmentId, selectedDate ? { date: selectedDate } : {});
 
   const { release, canRelease } = useScheduleRelease(assignmentId);
+  const { data: availableExaminers = [] } = useExaminerLimits(assignmentId);
 
   // Filter slots for selected date
   const timeSlotsForSelectedDate = selectedDate 
@@ -62,33 +69,17 @@ export default function AssignmentTimeSlotsPage() {
     : [];
 
   // Selection handlers
-  const toggleTimeSlotSelection = (id) => {
-    setSelectedTimeSlots(prev => 
-      prev.includes(id) 
-        ? prev.filter(x => x !== id) 
-        : [...prev, id]
-    );
-  };
-
-  const selectAllTimeSlotsForDate = () => {
-    if (!selectedDate) return;
-    const dateSlotIds = timeSlotsForSelectedDate.map(s => s.id);
-    const allSelected = dateSlotIds.every(id => selectedTimeSlots.includes(id));
-    
-    setSelectedTimeSlots(prev => 
-      allSelected 
-        ? prev.filter(id => !dateSlotIds.includes(id))
-        : [...new Set([...prev, ...dateSlotIds])]
-    );
-  };
+  // Selection features removed per request
 
   // Modal handlers
-  const openAddModal = () => {
-    setEditingTimeSlot(null);
+  const openAddModal = (prefillDate = null) => {
+    setModalMode('add');
+    setEditingTimeSlot(prefillDate ? { date: prefillDate } : null);
     setShowModal(true);
   };
 
   const openEditModal = (timeSlot) => {
+    setModalMode('edit');
     setEditingTimeSlot(timeSlot);
     setShowModal(true);
   };
@@ -131,13 +122,22 @@ export default function AssignmentTimeSlotsPage() {
       venue,
       venueId,
       requiredExaminers: timeSlotData.requiredExaminers,
-      assignedExaminers: timeSlotData.assignedExaminers || []
+      assignedExaminers: timeSlotData.assignedExaminers || [],
+      assignExaminerIds: timeSlotData.assignExaminerIds || timeSlotData.assignedExaminerIds || []
     };
 
-    if (editingTimeSlot) {
-      updateSlot({ timeSlotId: editingTimeSlot.id, data: normalized });
+    if (modalMode === 'edit' && editingTimeSlot?.id) {
+      await updateSlotAsync({ timeSlotId: editingTimeSlot.id, data: normalized });
+      refetch();
+      // also refresh calendar legend dots
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
     } else {
-      createBatch([normalized]);
+      await courseAdminTimeslotService.createTimeSlot(assignmentId, normalized);
+      refetch();
+      // also refresh calendar legend dots
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      // refresh schedule status so release button updates promptly
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
     closeModal();
   };
@@ -145,13 +145,22 @@ export default function AssignmentTimeSlotsPage() {
   const handleDeleteTimeSlot = async (id) => {
     const confirmed = await confirm('Delete this time slot?');
     if (confirmed) {
-      deleteSlots([id]);
-      setSelectedTimeSlots(prev => prev.filter(sid => sid !== id));
+      await deleteSlotsAsync([id]);
+      await refetch();
+      // refresh calendar legend dots as counts changed
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      // refresh schedule status so release button updates promptly
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
   };
 
-  const handleDuplicateTimeSlot = (id) => {
-    duplicateSlot({ timeSlotId: id });
+  const handleDuplicateTimeSlot = (slot) => {
+    // Open add modal prefilled with the selected slot's data (no API call until submit)
+    openAddModal(slot.date);
+    // Pre-fill all fields by passing slot as initialData
+    setEditingTimeSlot({ ...slot, id: undefined });
+    setShowModal(true);
+    setModalMode('add');
   };
 
   const handleNotifyExaminers = async () => {
@@ -208,13 +217,6 @@ export default function AssignmentTimeSlotsPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400">Manage assessment time slots and examiner assignments for Assignment {assignmentId}</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button 
-            className="add-time-slot-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2" 
-            onClick={openAddModal}
-          >
-            <span className="text-lg">+</span>
-            <span>Add New Time Slot</span>
-          </button>
           <button 
             className={`px-4 py-2 rounded-lg text-sm font-medium ${
               canRelease 
@@ -279,13 +281,15 @@ export default function AssignmentTimeSlotsPage() {
               <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2" />
               {selectedDate ? `Time Slots - ${selectedDate}` : 'Time Slots - Select a date'}
             </h2>
-            {selectedDate && timeSlotsForSelectedDate.length > 0 && (
-              <button 
-                onClick={selectAllTimeSlotsForDate} 
-                className="px-3 py-1 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                {timeSlotsForSelectedDate.every(s => selectedTimeSlots.includes(s.id)) ? 'Deselect All' : 'Select All'}
-              </button>
+            {selectedDate && (
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => openAddModal(selectedDate)} 
+                  className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+                >
+                  <i className="fas fa-plus mr-1" /> Add Time Slot
+                </button>
+              </div>
             )}
           </div>
 
@@ -314,7 +318,7 @@ export default function AssignmentTimeSlotsPage() {
               </div>
               <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Time Slots</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no time slots scheduled for this date yet.</p>
-              <button onClick={openAddModal} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
+              <button onClick={() => openAddModal(selectedDate)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
                 <i className="fas fa-plus mr-2" /> Add Time Slot
               </button>
             </div>
@@ -323,26 +327,14 @@ export default function AssignmentTimeSlotsPage() {
           {/* Time Slots Content */}
           {!isLoadingSlots && selectedDate && timeSlotsForSelectedDate.length > 0 && (
             <div className="space-y-4">
-              {/* Bulk Actions Bar */}
-              <BulkActionsBar
-                selectedCount={selectedTimeSlots.length}
-                onNotifyExaminers={handleBulkNotify}
-                onDuplicateSelected={handleBulkDuplicate}
-                onDeleteSelected={handleBulkDelete}
-                isProcessing={isDeleting}
-              />
-
               {/* Time Slot Cards */}
               {timeSlotsForSelectedDate.map((timeSlot) => (
                 <TimeSlotCard
                   key={timeSlot.id}
                   timeSlot={timeSlot}
-                  isSelected={selectedTimeSlots.includes(timeSlot.id)}
-                  onSelect={toggleTimeSlotSelection}
                   onEdit={openEditModal}
                   onDuplicate={handleDuplicateTimeSlot}
                   onDelete={handleDeleteTimeSlot}
-                  onNotify={handleNotifyExaminers}
                 />
               ))}
             </div>
@@ -352,10 +344,11 @@ export default function AssignmentTimeSlotsPage() {
 
       {/* Add/Edit Modal with injected session config */}
       <AddTimeSlotModal
+        assignmentId={assignmentId}
         isOpen={showModal}
-        mode={editingTimeSlot ? 'edit' : 'add'}
+        mode={modalMode}
         initialData={editingTimeSlot}
-        availableExaminers={MOCK_EXAMINERS}
+        availableExaminers={availableExaminers}
         sessionConfig={sessionConfig}
         onCancel={closeModal}
         onSave={handleModalSave}

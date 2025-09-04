@@ -65,7 +65,10 @@ export function mapTimeSlotToApi(uiTimeSlot) {
     venueId: uiTimeSlot.venueId,
     requiredExaminers: uiTimeSlot.requiredExaminers,
     sessionCount: uiTimeSlot.sessionCount,
-    assignedExaminers: uiTimeSlot.assignedExaminers || []
+    assignedExaminers: uiTimeSlot.assignedExaminers || [],
+    // Include examiner IDs for backend update/create endpoints
+    // Backend expects `assignExaminerIds` only
+    assignExaminerIds: uiTimeSlot.assignExaminerIds || uiTimeSlot.assignedExaminerIds || []
   };
 }
 

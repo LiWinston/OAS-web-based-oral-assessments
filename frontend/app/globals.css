@@ -1364,6 +1364,9 @@
   .oas-schedule .calendar-day .date {
     font-size: 0.875rem;
     font-weight: 500;
+    position: absolute;
+    top: 0.35rem;
+    left: 0.35rem;
   }
 
   .oas-schedule .calendar-day .day-status {
@@ -1508,6 +1511,7 @@
 
   .oas-schedule .calendar-day {
     position: relative;
+    padding-top: 1.4rem; /* leave space for date in top-left */
   }
 
   .oas-schedule .calendar-day.border-2 {

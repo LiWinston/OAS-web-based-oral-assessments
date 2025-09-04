@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { showError } from '@/lib/notifications.js';
+import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
+import { calculateEndTimeWithConfig, to24Hour } from '@/lib/timeMath.js';
+import { venueService } from '@/services/venueService.js';
 
 /**
  * AddTimeSlotModal
@@ -22,6 +25,7 @@ import { showError } from '@/lib/notifications.js';
  * @typedef {import('@/types/timeslot.js').SessionConfig} SessionConfig
  */
 export default function AddTimeSlotModal({
+  assignmentId,
   isOpen,
   mode = 'add',
   initialData,
@@ -31,74 +35,64 @@ export default function AddTimeSlotModal({
   onSave,
 }) {
   const [date, setDate] = useState('');
-  const [startHour, setStartHour] = useState('9');
-  const [startMinute, setStartMinute] = useState('00');
-  const [ampm, setAmpm] = useState('AM');
+  const [startTime, setStartTime] = useState('09:00'); // 24h HH:mm
   const [sessions, setSessions] = useState(3);
-  const [venue, setVenue] = useState('');
+  const [venueId, setVenueId] = useState(null);
+  const [venueName, setVenueName] = useState('');
+  const [venueItems, setVenueItems] = useState([]);
   const [requiredExaminers, setRequiredExaminers] = useState(2);
   const [assignedExaminerIds, setAssignedExaminerIds] = useState([]);
 
   // Initialize from initialData when opened
   useEffect(() => {
     if (!isOpen) return;
-    if (initialData) {
+    // Load venue list for this assignment so dropdown includes newly created venues
+    (async () => {
+      if (assignmentId) {
+        try {
+          const res = await venueService.list(assignmentId, '');
+          setVenueItems(res?.data || []);
+        } catch (e) {
+          setVenueItems([]);
+        }
+      }
+    })();
+    if (mode === 'edit' && initialData) {
       setDate(initialData.date || '');
       if (initialData.startTime) {
-        const parts = String(initialData.startTime).split(' ');
-        const [h, m] = parts[0].split(':');
-        setStartHour(h);
-        setStartMinute(m);
-        setAmpm(parts[1] || 'AM');
+        const t = String(initialData.startTime);
+        // Accept HH:mm or HH:mm:ss
+        setStartTime(t.length >= 5 ? t.slice(0,5) : '09:00');
       } else {
-        setStartHour('9');
-        setStartMinute('00');
-        setAmpm('AM');
+        setStartTime('09:00');
       }
-      setSessions(Number(initialData.sessions || 3));
-      setVenue(initialData.venue || '');
+      setSessions(Number(initialData.sessionCount || initialData.sessions || 3));
+      setVenueName(initialData.venue || initialData.venueName || '');
+      setVenueId(initialData.venueId || null);
       setRequiredExaminers(Number(initialData.requiredExaminers || 2));
       // Map assigned examiners into ids
       const ids = (initialData.assignedExaminers || []).map((ex) => ex.id).filter(Boolean);
       setAssignedExaminerIds(ids);
     } else {
-      // defaults for add
+      // defaults for add (prefill all fields from initialData when provided)
       const today = new Date();
-      setDate(today.toISOString().slice(0, 10));
-      setStartHour('9');
-      setStartMinute('00');
-      setAmpm('AM');
-      setSessions(3);
-      setVenue('');
-      setRequiredExaminers(2);
-      // preselect first two examiners if available
-      setAssignedExaminerIds(availableExaminers.slice(0, 2).map((e) => e.id));
+      setDate(initialData?.date || today.toISOString().slice(0, 10));
+      const st = initialData?.startTime ? String(initialData.startTime) : '09:00';
+      setStartTime(st.length >= 5 ? st.slice(0,5) : '09:00');
+      setSessions(Number(initialData?.sessionCount || initialData?.sessions || 3));
+      setVenueId(initialData?.venueId || null);
+      setVenueName(initialData?.venue || initialData?.venueName || '');
+      setRequiredExaminers(Number(initialData?.requiredExaminers || 2));
+      // Do not preselect examiners in add mode
+      setAssignedExaminerIds([]);
     }
-  }, [isOpen, initialData, availableExaminers]);
+  }, [isOpen, initialData, availableExaminers, mode, assignmentId]);
 
-  const endTime = useMemo(() => {
-    if (!startHour || !startMinute || !sessions || !sessionConfig) return 'N/A';
-    let hour24 = parseInt(startHour, 10);
-    const minute = parseInt(startMinute, 10);
-    if (ampm === 'PM' && hour24 < 12) hour24 += 12;
-    if (ampm === 'AM' && hour24 === 12) hour24 = 0;
-
-    // Use injected session config instead of hard-coded values (per Section 15)
-    const sessionLength = sessionConfig.sessionLength || 30; // minutes
-    const gapTime = sessionConfig.gapTime || 5; // minutes
-    const totalMinutes = sessions * sessionLength + (sessions - 1) * gapTime;
-
-    let endHour = hour24 + Math.floor((minute + totalMinutes) / 60);
-    let endMinute = (minute + totalMinutes) % 60;
-
-    let endPeriod = 'AM';
-    if (endHour >= 12) {
-      endPeriod = 'PM';
-      if (endHour > 12) endHour -= 12;
-    }
-    if (endHour === 0) endHour = 12;
-    return `${endHour}:${String(endMinute).padStart(2, '0')} ${endPeriod}`;
-  }, [startHour, startMinute, ampm, sessions, sessionConfig]);
+  const endTime24h = useMemo(() => {
+    if (!startTime || !sessions || !sessionConfig) return '';
+    const end12 = calculateEndTimeWithConfig(startTime, Number(sessions), sessionConfig);
+    return to24Hour(end12);
+  }, [startTime, sessions, sessionConfig]);
 
   const assignedExaminers = useMemo(
     () => availableExaminers.filter((e) => assignedExaminerIds.includes(e.id)),
@@ -120,21 +114,24 @@ export default function AddTimeSlotModal({
   };
 
   const handleSave = () => {
-    if (!date || !venue) {
+    if (!date || !venueName) {
       showError('Please fill in all required fields');
       return;
     }
     
-    const startTime = `${startHour}:${startMinute} ${ampm}`;
+    const start = startTime;
     const result = {
       id: initialData?.id ?? undefined,
       date,
-      startTime,
-      endTime,
-      venue,
-      sessions: Number(sessions),
+      startTime: start,
+      endTime: endTime24h,
+      venue: venueName,
+      venueId: venueId || undefined,
+      sessionCount: Number(sessions),
+      sessions: Number(sessions), // for compatibility with existing handler
       requiredExaminers: Number(requiredExaminers),
       assignedExaminers: assignedExaminers,
+      assignedExaminerIds: assignedExaminerIds,
       status: assignedExaminers.length === 0 ? 'empty' : (assignedExaminers.length < Number(requiredExaminers) ? 'partial' : 'full'),
     };
     
@@ -189,54 +186,13 @@ export default function AddTimeSlotModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Start Time <span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center">
-                <select
-                  aria-label="Start hour"
-                  className="time-part"
-                  value={startHour}
-                  onChange={(e) => setStartHour(e.target.value)}
-                >
-                  {Array.from({ length: 12 }).map((_, idx) => {
-                    const val = String(idx + 1);
-                    return (
-                      <option key={val} value={val}>
-                        {val}
-                      </option>
-                    );
-                  })}
-                </select>
-                <span className="time-separator">:</span>
-                <select
-                  aria-label="Start minute"
-                  className="time-part"
-                  value={startMinute}
-                  onChange={(e) => setStartMinute(e.target.value)}
-                >
-                  {['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'].map((m) => (
-                    <option key={m} value={m}>
-                      {m}
-                    </option>
-                  ))}
-                </select>
-                <div className="am-pm-toggle ml-2">
-                  <button
-                    type="button"
-                    className={`am-pm-btn ${ampm === 'AM' ? 'selected' : ''}`}
-                    onClick={() => setAmpm('AM')}
-                    aria-pressed={ampm === 'AM'}
-                  >
-                    AM
-                  </button>
-                  <button
-                    type="button"
-                    className={`am-pm-btn ${ampm === 'PM' ? 'selected' : ''}`}
-                    onClick={() => setAmpm('PM')}
-                    aria-pressed={ampm === 'PM'}
-                  >
-                    PM
-                  </button>
-                </div>
-              </div>
+              <input
+                type="time"
+                step={300}
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
             </div>
 
             <div>
@@ -275,9 +231,7 @@ export default function AddTimeSlotModal({
           {/* End time */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Time (calculated)</label>
-            <div className="w-full py-2 px-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-300 dark:border-gray-600">
-              {endTime}
-            </div>
+            <input type="time" readOnly value={endTime24h} className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3" />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Based on {sessionConfig?.sessionLength || 30}-minute sessions with {sessionConfig?.gapTime || 5}-minute gaps
             </p>
@@ -285,16 +239,19 @@ export default function AddTimeSlotModal({
 
           {/* Venue */}
           <div>
-            <label htmlFor="venue" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Venue <span className="text-red-500">*</span>
             </label>
-            <input
-              id="venue"
-              type="text"
-              placeholder="e.g. Engineering Building, Room 405"
-              value={venue}
-              onChange={(e) => setVenue(e.target.value)}
-              className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            <VenueSelect
+              assignmentId={assignmentId}
+              value={venueId}
+              selectedName={venueName}
+              items={venueItems}
+              onChange={(venue) => {
+                setVenueId(venue?.id || null);
+                setVenueName(venue?.name || '');
+              }}
+              placeholder="Search or add venue"
             />
           </div>
 
@@ -366,7 +323,6 @@ export default function AddTimeSlotModal({
                     >
                       <i className="fas fa-trash" />
                     </button>
-                    <img src={ex.avatar || '/api/placeholder/24/24'} alt="Examiner" className="w-6 h-6 rounded-full mr-2" />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{ex.name}</span>
                   </div>
                   <div

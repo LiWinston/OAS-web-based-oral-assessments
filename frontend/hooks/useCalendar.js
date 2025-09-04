@@ -47,19 +47,28 @@ export function useCalendar(assignmentId, month, options = {}) {
   });
 
   // Helper functions for calendar data
+  const normalizeStatus = (status) => {
+    if (!status) return null;
+    const s = String(status);
+    if (s === 'full' || s === 'fullyStaffed' || s === 'fully_staffed') return 'full';
+    if (s === 'partial' || s === 'partialStaffed' || s === 'partiallyStaffed' || s === 'partial_staffed') return 'partial';
+    if (s === 'empty' || s === 'noStaffed' || s === 'unstaffed' || s === 'no_staffed' || s === 'none') return 'empty';
+    return s;
+  };
+
   const getStatusForDate = (date) => {
     const day = calendarQuery.data?.[date];
-    return day?.status || null;
+    return normalizeStatus(day?.status) || null;
   };
 
   const getSlotCountForDate = (date) => {
     const day = calendarQuery.data?.[date];
-    return day?.timeSlots ?? 0;
+    return (day?.timeSlots ?? day?.slotCount ?? 0);
   };
 
   const getSessionCountForDate = (date) => {
     const day = calendarQuery.data?.[date];
-    return day?.sessions ?? 0;
+    return (day?.sessions ?? day?.totalSessions ?? 0);
   };
 
   const getDatesWithSlots = () => {
@@ -105,7 +114,7 @@ export function useCalendar(assignmentId, month, options = {}) {
       stats.totalSlots += (dayData.timeSlots ?? 0);
       stats.totalSessions += (dayData.sessions ?? 0);
 
-      switch (dayData.status) {
+      switch (normalizeStatus(dayData.status)) {
         case 'full':
           stats.fullyStaffedDays++;
           break;

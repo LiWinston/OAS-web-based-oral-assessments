@@ -89,6 +89,8 @@ export function useExaminerLimits(assignmentId, options = {}) {
     },
     onSuccess: (data, variables) => {
       showSuccess('Examiner limits updated successfully');
+      // Updating limits may change release readiness
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     },
     onError: (error, variables, context) => {
       // Rollback to the previous value
@@ -105,6 +107,7 @@ export function useExaminerLimits(assignmentId, options = {}) {
       queryClient.invalidateQueries({
         queryKey: examinerLimitsKeys.examiners(assignmentId)
       });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
   });
 

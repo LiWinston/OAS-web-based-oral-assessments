@@ -3,10 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useVenues } from '@/hooks/useVenues.js';
 
-export default function VenueSelect({ assignmentId, value = null, selectedName = '', onChange, placeholder = 'Select a venue' }) {
+export default function VenueSelect({ assignmentId, value = null, selectedName = '', onChange, placeholder = 'Select a venue', items = null }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { data: venues, isLoading, create, isCreating } = useVenues(assignmentId, '');
+  // Always fetch fresh list on mount/open to include newly created venues
+  const { data: venuesQueryData, isLoading: isLoadingQuery, create, isCreating, refetch } = useVenues(assignmentId, '', { staleTime: 0, refetchOnMount: true });
+  const venues = items ?? venuesQueryData;
+  const isLoading = items ? false : isLoadingQuery;
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -17,6 +20,15 @@ export default function VenueSelect({ assignmentId, value = null, selectedName =
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
+
+  // Refetch when dropdown opens to ensure latest venues
+  useEffect(() => {
+    if (open) {
+      // eslint-disable-next-line no-console
+      console.log('[VenueSelect] opened; refetching venues');
+      refetch?.();
+    }
+  }, [open, refetch]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

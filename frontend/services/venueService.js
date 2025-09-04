@@ -18,6 +18,8 @@ export const venueService = {
 
     if (!USE_MOCKS && assignmentId) {
       try {
+        // eslint-disable-next-line no-console
+        console.log('[venueService] GET /api/assignments/{id}/venues', { assignmentId, query, USE_MOCKS });
         const resp = await apiClient.get(`/api/assignments/${assignmentId}/venues`);
         const data = resp?.data?.data || [];
         // Map backend Venue { id, roomName, assignmentId } → UI { id, name }
@@ -33,14 +35,15 @@ export const venueService = {
           status: e?.response?.status,
           data: e?.response?.data
         });
-        // fall through to mock to keep UI usable
+        // Do not fall back to mock silently; return empty to avoid confusion
+        return { success: true, data: [] };
       }
     }
 
     await delay();
-    // Console log for mock list call
+    // Console log for mock list call (only when mocks explicitly enabled)
     // eslint-disable-next-line no-console
-    console.log('[venueService] Mock API GET /venues', { assignmentId, query, total: mockVenues.length });
+    console.log('[venueService] Mock API GET /venues (mocks enabled)', { assignmentId, query, total: mockVenues.length });
     if (!query) return { success: true, data: [...mockVenues] };
     const q = query.toLowerCase();
     const filtered = mockVenues.filter(v => v.name.toLowerCase().includes(q));

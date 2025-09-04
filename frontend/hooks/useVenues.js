@@ -10,7 +10,7 @@ export const venueKeys = {
   list: (assignmentId, query = '') => ['venues', assignmentId, { query }]
 };
 
-export function useVenues(assignmentId, query = '') {
+export function useVenues(assignmentId, query = '', options = {}) {
   const queryClient = useQueryClient();
 
   const venuesQuery = useQuery({
@@ -21,7 +21,8 @@ export function useVenues(assignmentId, query = '') {
       return res.data || [];
     },
     enabled: !!assignmentId,
-    staleTime: 5 * 60 * 1000
+    staleTime: 5 * 60 * 1000,
+    ...options
   });
 
   const createVenue = useMutation({

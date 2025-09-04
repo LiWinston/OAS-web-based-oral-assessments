@@ -59,6 +59,9 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
       queryClient.invalidateQueries({
         queryKey: timeSlotsKeys.assignment(assignmentId)
       });
+      // Invalidate calendar dots and schedule status
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
       showSuccess(`${data.length} time slots created successfully`);
     },
     onError: (error) => {
@@ -107,6 +110,9 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
     },
     onSuccess: (updatedSlot, variables) => {
       showSuccess('Time slot updated successfully');
+      // Times changed may affect calendar dots and release readiness
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     },
     onError: (error, variables, context) => {
       // Rollback optimistic updates
@@ -121,9 +127,9 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
       showError(`Failed to update time slot: ${error.message}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: timeSlotsKeys.assignment(assignmentId)
-      });
+      queryClient.invalidateQueries({ queryKey: timeSlotsKeys.assignment(assignmentId) });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
   });
 
@@ -165,6 +171,8 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
     onSuccess: (result, timeSlotIds) => {
       const count = result.deletedCount || timeSlotIds.length;
       showSuccess(`${count} time slot${count > 1 ? 's' : ''} deleted successfully`);
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     },
     onError: (error, variables, context) => {
       // Rollback optimistic updates
@@ -179,9 +187,9 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
       showError(`Failed to delete time slots: ${error.message}`);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: timeSlotsKeys.assignment(assignmentId)
-      });
+      queryClient.invalidateQueries({ queryKey: timeSlotsKeys.assignment(assignmentId) });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
   });
 
@@ -195,9 +203,9 @@ export function useTimeSlots(assignmentId, filters = {}, options = {}) {
       return mapTimeSlotFromApi(response.data);
     },
     onSuccess: (duplicatedSlot) => {
-      queryClient.invalidateQueries({
-        queryKey: timeSlotsKeys.assignment(assignmentId)
-      });
+      queryClient.invalidateQueries({ queryKey: timeSlotsKeys.assignment(assignmentId) });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
       showSuccess('Time slot duplicated successfully');
     },
     onError: (error) => {

@@ -32,9 +32,6 @@ export function useScheduleRelease(assignmentId, options = {}) {
     queryKey: scheduleReleaseKeys.status(assignmentId),
     queryFn: async () => {
       const response = await courseAdminTimeslotService.getScheduleStatus(assignmentId);
-      if (!response.success) {
-        throw new Error(response.message);
-      }
       return response.data;
     },
     enabled: !!assignmentId,
@@ -46,17 +43,20 @@ export function useScheduleRelease(assignmentId, options = {}) {
   const releaseSchedule = useMutation({
     mutationFn: async (payload = {}) => {
       // Pre-validate before attempting release
-      const statusResponse = await courseAdminTimeslotService.getScheduleStatus(assignmentId);
-      if (!statusResponse.success) {
-        throw new Error(statusResponse.message);
-      }
+      // const statusResponse = await courseAdminTimeslotService.getScheduleStatus(assignmentId);
+      // if (!statusResponse.success) {
+      //   throw new Error(statusResponse.message);
+      // }
 
-      if (!statusResponse.data.canRelease) {
-        throw new Error('Schedule cannot be released: ' + (statusResponse.data.issues?.join(', ') || 'Unknown validation issues'));
-      }
+      // if (!statusResponse.data.canRelease) {
+      //   throw new Error('Schedule cannot be released: ' + (statusResponse.data.issues?.join(', ') || 'Unknown validation issues'));
+      // }
 
       const response = await courseAdminTimeslotService.releaseSchedule(assignmentId, payload);
-      if (!response.success) {
+      
+      console.log("response", response);
+      
+      if (!response.data?.success) {
         throw new Error(response.message);
       }
       return response.data;
@@ -93,29 +93,29 @@ export function useScheduleRelease(assignmentId, options = {}) {
 
   // Helper functions
   const canRelease = () => {
-    return scheduleStatusQuery.data?.canRelease || false;
+    return scheduleStatusQuery.data?.data?.readyForRelease || false;
   };
 
   const getValidationIssues = () => {
     return scheduleStatusQuery.data?.issues || [];
   };
 
-  const getStatusSummary = () => {
-    const data = scheduleStatusQuery.data;
-    if (!data) return null;
+  // const getStatusSummary = () => {
+  //   const data = scheduleStatusQuery.data;
+  //   if (!data) return null;
 
-    return {
-      totalSlots: data.totalSlots || 0,
-      fullyStaffed: data.fullyStaffedSlots || 0,
-      partiallyStaffed: data.partiallyStaffedSlots || 0,
-      unstaffed: data.unstaffedSlots || 0,
-      completionRate: data.totalSlots > 0 ? 
-        ((data.fullyStaffedSlots || 0) / data.totalSlots * 100).toFixed(1) : 
-        '0.0',
-      canRelease: data.canRelease || false,
-      issues: data.issues || []
-    };
-  };
+  //   return {
+  //     totalSlots: data.summary.totalSlots || 0,
+  //     fullyStaffed: data.fullyStaffedSlots || 0,
+  //     partiallyStaffed: data.partiallyStaffedSlots || 0,
+  //     unstaffed: data.unstaffedSlots || 0,
+  //     completionRate: data.totalSlots > 0 ? 
+  //       ((data.fullyStaffedSlots || 0) / data.totalSlots * 100).toFixed(1) : 
+  //       '0.0',
+  //     canRelease: data.canRelease || false,
+  //     issues: data.issues || []
+  //   };
+  // };
 
   const hasUnstaffedSlots = () => {
     return (scheduleStatusQuery.data?.unstaffedSlots || 0) > 0;
@@ -152,7 +152,7 @@ export function useScheduleRelease(assignmentId, options = {}) {
     // Helper functions and computed properties
     canRelease: canRelease(),
     validationIssues: getValidationIssues(),
-    statusSummary: getStatusSummary(),
+    // statusSummary: getStatusSummary(),
     hasUnstaffedSlots: hasUnstaffedSlots(),
     hasPartiallyStaffedSlots: hasPartiallyStaffedSlots(),
     staffingStatus: getStaffingStatus()

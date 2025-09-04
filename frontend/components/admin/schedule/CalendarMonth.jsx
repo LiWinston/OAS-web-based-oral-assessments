@@ -127,8 +127,13 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
       {/* Calendar days */}
       <div className="calendar-container">
         {calendarDays.map((dayInfo, index) => {
-          const status = dayInfo.isCurrentMonth ? getStatusForDate(dayInfo.date) : null;
+          const rawStatus = dayInfo.isCurrentMonth ? getStatusForDate(dayInfo.date) : null;
+          const status = rawStatus || 'empty';
           const count = dayInfo.isCurrentMonth ? getSlotCountForDate(dayInfo.date) : 0;
+          const dayData = dayInfo.isCurrentMonth ? (calendarData?.[dayInfo.date] || {}) : {};
+          const fullyCount = Number(dayData.fullyStaffed || 0);
+          const partialCount = Number(dayData.partialStaffed || 0);
+          const noneCount = Number(dayData.noStaffed || 0);
           const isSelected = selectedDate === dayInfo.date;
           
           return (
@@ -150,21 +155,26 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
               aria-label={dayInfo.isCurrentMonth ? `Select ${dayInfo.date}` : undefined}
             >
               <span className="date">{dayInfo.day}</span>
-              {status && count > 0 && (
-                <div className="day-status">
-                  <span className="slot-count">{count}</span>
-                  <div className={`status-indicator ${
-                    status === 'full' 
-                      ? 'status-full' 
-                      : status === 'partial' 
-                        ? 'status-partial' 
-                        : 'status-empty'
-                  }`} />
-                </div>
-              )}
-              {dayInfo.isToday && (
-                <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2">
-                  <div className="w-1 h-1 bg-blue-500 rounded-full"></div>
+              {(fullyCount + partialCount + noneCount) > 0 && (
+                <div className="day-status flex flex-col items-start gap-1">
+                  {fullyCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="legend-dot bg-green-500" />
+                      <span className="slot-count text-xs text-gray-700 dark:text-gray-300">{fullyCount}</span>
+                    </div>
+                  )}
+                  {partialCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="legend-dot bg-yellow-500" />
+                      <span className="slot-count text-xs text-gray-700 dark:text-gray-300">{partialCount}</span>
+                    </div>
+                  )}
+                  {noneCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <div className="legend-dot bg-red-500" />
+                      <span className="slot-count text-xs text-gray-700 dark:text-gray-300">{noneCount}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -172,7 +182,7 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
         })}
       </div>
       
-      {/* Legend */}
+      {/* Legend (always show 3 kinds for helper) */}
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Legend</div>
         <div className="grid grid-cols-2 gap-2 text-xs">
@@ -187,10 +197,6 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
           <div className="legend-item">
             <div className="legend-dot bg-red-500"></div>
             <span className="text-gray-600 dark:text-gray-400">Unstaffed</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-dot bg-blue-500"></div>
-            <span className="text-gray-600 dark:text-gray-400">Today</span>
           </div>
         </div>
       </div>
