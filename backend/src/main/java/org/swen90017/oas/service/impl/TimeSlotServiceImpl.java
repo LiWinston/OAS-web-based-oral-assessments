@@ -256,6 +256,9 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         existingSlot.setVenueId(request.getVenueId());
         existingSlot.setSessionCount(request.getSessionCount());
         existingSlot.setUpdatedAt(LocalDateTime.now());
+        if (request.getRequiredExaminers() != null && request.getRequiredExaminers() >= 0) {
+            existingSlot.setRequiredExaminers(request.getRequiredExaminers());
+        }
         
         timeSlotMapper.updateById(existingSlot);
 
@@ -272,8 +275,47 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         // 按请求的 sessionCount 重新生成 sessions
         generateSessions(existingSlot, request.getSessionCount());
 
+        // 若提供 assignExaminerIds，则进行替换式分配（先清空后重建）
+        if (request.getAssignExaminerIds() != null) {
+            // 清空原有分配
+            timeSlotExaminersMapper.delete(
+                new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<TimeSlotExaminer>()
+                    .eq("slot_id", timeSlotId));
+
+            if (!request.getAssignExaminerIds().isEmpty()) {
+                // 不得超出 requiredExaminers 限制
+                Integer required = existingSlot.getRequiredExaminers();
+                if (required != null && required > 0 && request.getAssignExaminerIds().size() > required) {
+                    throw new BusinessException(BusinessError.EXCEEDS_REQUIRED_EXAMINERS);
+                }
+
+                java.util.Set<Long> unique = new java.util.HashSet<>(request.getAssignExaminerIds());
+                java.util.List<TimeSlotExaminer> rows = new java.util.ArrayList<>();
+                LocalDateTime now = LocalDateTime.now();
+                for (Long examinerId : unique) {
+                    TimeSlotExaminer e = new TimeSlotExaminer();
+                    e.setSlotId(timeSlotId);
+                    e.setExaminerId(examinerId);
+                    e.setAssignedAt(now);
+                    e.setAssignedBy(null);
+                    rows.add(e);
+                }
+                if (!rows.isEmpty()) {
+                    timeSlotExaminersMapper.batchInsert(rows);
+                }
+            }
+        }
+
+        // 统一在最后根据最新数据更新计数与状态（避免上面分支未覆盖的情况，如仅修改 requiredExaminers）
+        java.util.List<Long> assignedIds = timeSlotExaminersMapper.listExaminerIdsBySlot(timeSlotId);
+        int currentExaminers = assignedIds == null ? 0 : assignedIds.size();
+        int booked = slotSessionMapper.countBookedBySlot(timeSlotId);
+        timeSlotMapper.updateCountersAndStatus(timeSlotId, currentExaminers, booked);
+
         UpdateTimeSlotResponseDTO response = new UpdateTimeSlotResponseDTO();
-        response.setTimeSlot(convertToDetailDTO(existingSlot));
+        // 返回最新数据，避免使用内存旧对象导致的 status 等字段不一致
+        TimeSlot latest = timeSlotMapper.selectById(timeSlotId);
+        response.setTimeSlot(convertToDetailDTO(latest));
         response.setDeletedSessions(deleted);
         response.setDeletedCount(deleted.size());
         return response;

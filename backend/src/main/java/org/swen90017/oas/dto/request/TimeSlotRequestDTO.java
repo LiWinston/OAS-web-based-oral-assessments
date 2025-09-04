@@ -7,6 +7,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.List;
 
 @Data
 @Schema(description = "Time slot request DTO")
@@ -32,4 +33,10 @@ public class TimeSlotRequestDTO {
     @Schema(description = "Venue ID", example = "31")
     @NotNull(message = "VenueId cannot be null")
     private Long venueId;
+
+    @Schema(description = "Required number of examiners (optional)", example = "2")
+    private Integer requiredExaminers;
+
+    @Schema(description = "Examiner IDs to assign to this time slot (optional)")
+    private List<Long> assignExaminerIds;
 }
