@@ -8,6 +8,8 @@ import useScheduleFilterStore from '@/store/scheduleFilterStore';
 import { Button } from '@/components/ui/button';
 import OperationResultDialog from '@/components/examiner/schedule/OperationResultDialog';
 import { formatVenue } from '@/utils/formatVenue';
+import ConfirmWithdrawDialog from '@/components/examiner/schedule/ConfirmWithdrawDialog';
+import { toLocalDateKey } from '@/utils/dateUtils';
 
 export default function DaySchedule() {
   const { examinerId, isValidExaminer } = useExaminerAuth();
@@ -15,7 +17,9 @@ export default function DaySchedule() {
   const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [dialogProps, setDialogProps] = React.useState({});
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [pendingSlot, setPendingSlot] = React.useState(null);
+  const todayStr = toLocalDateKey(new Date());
 
   const { data, isLoading, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ['examinerDay', examinerId, todayStr],
@@ -36,6 +40,8 @@ export default function DaySchedule() {
 
   const slots = useMemo(() => {
     let f = slotsRaw;
+    // Ensure only today's slots are shown (guard if backend returns extra)
+    f = f.filter(s => toLocalDateKey(new Date(s.start)) === todayStr);
     if (selectedCourse) f = f.filter(s => s.courseCode === selectedCourse);
     if (assessmentType && assessmentType !== 'ALL') f = f.filter(s => s.assessmentType === assessmentType);
     if (searchText && searchText.trim()) {
@@ -53,7 +59,7 @@ export default function DaySchedule() {
     const m = Math.floor(diff/60), s = diff%60; return `${m}m ${s}s ago`;
   }, [dataUpdatedAt]);
 
-  const handleWithdraw = async (slot) => {
+  const doWithdraw = async (slot) => {
     try {
       const res = await withdrawFromTimeslot(slot, () => { refetch(); });
       if (res?.success) {
@@ -70,6 +76,7 @@ export default function DaySchedule() {
       setDialogOpen(true);
     }
   };
+  const handleWithdraw = (slot) => { setPendingSlot(slot); setConfirmOpen(true); };
 
   if (isLoading) {
     return (
@@ -110,24 +117,23 @@ export default function DaySchedule() {
           <div className="text-sm text-gray-600 dark:text-gray-400">No sessions scheduled for today</div>
         </div>
       ) : (
-        <div className="space-y-3">
-          {slots.map(slot => {
-            const isPast = new Date(slot.start) <= new Date();
-            const isUpcoming = new Date(slot.start) > new Date();
-            
-            return (
-              <div key={slot.slotId} className={`p-4 border rounded-lg dark:border-gray-700 ${isPast ? 'opacity-75 bg-gray-50 dark:bg-gray-800/50' : ''}`}>
+        <div className="space-y-6">
+          {/* Upcoming Slots */}
+          {slots.filter(s => new Date(s.start) > new Date()).length > 0 && (
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
+              <i className="fas fa-arrow-right text-green-600 mr-2"></i>
+              Upcoming Slots ({slots.filter(s => new Date(s.start) > new Date()).length})
+            </h3>
+          )}
+          {slots.filter(s => new Date(s.start) > new Date()).map(slot => (
+              <div key={slot.slotId} className={`p-4 border rounded-lg dark:border-gray-700`}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="font-medium text-gray-800 dark:text-gray-200">{slot.assignmentName}</div>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        isPast 
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400' 
-                          : 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200'
-                      }`}>
-                        <i className={`fas ${isPast ? 'fa-check-circle' : 'fa-check'} mr-1`}></i>
-                        {isPast ? 'Completed' : 'Assigned'}
+                      <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                        <i className="fas fa-check mr-1"></i>
+                        Assigned
                       </span>
                     </div>
                     
@@ -161,7 +167,7 @@ export default function DaySchedule() {
                     )}
                   </div>
 
-                  {isUpcoming && (
+                  {true && (
                     <Button
                       size="sm"
                       variant={canWithdraw(slot) ? "destructive" : "outline"}
@@ -184,10 +190,47 @@ export default function DaySchedule() {
                   )}
                 </div>
               </div>
-            );
-          })}
+          ))}
+
+          {/* Past Slots */}
+          {slots.filter(s => new Date(s.start) <= new Date()).length > 0 && (
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
+              <i className="fas fa-history text-gray-600 mr-2"></i>
+              Past Slots ({slots.filter(s => new Date(s.start) <= new Date()).length})
+            </h3>
+          )}
+          {slots.filter(s => new Date(s.start) <= new Date()).map(slot => (
+            <div key={slot.slotId} className={`p-4 border rounded-lg dark:border-gray-700 opacity-75 bg-gray-50 dark:bg-gray-800/50`}>
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="font-medium text-gray-800 dark:text-gray-200">{slot.assignmentName}</div>
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+                      <i className="fas fa-check-circle mr-1"></i>
+                      Completed
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <div className="flex items-center mb-1">
+                      <i className="fas fa-book mr-2"></i>
+                      <strong>{slot.courseCode}</strong> - {slot.courseName}
+                    </div>
+                    <div className="flex items-center mb-1">
+                      <i className="fas fa-map-marker-alt mr-2"></i>
+                      {formatVenue(slot.venue)}
+                    </div>
+                    <div className="flex items-center">
+                      <i className="fas fa-clock mr-2"></i>
+                      {new Date(slot.start).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})} – {new Date(slot.end).toLocaleTimeString('en-AU',{hour:'numeric',minute:'2-digit'})}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+      <ConfirmWithdrawDialog open={confirmOpen} onOpenChange={setConfirmOpen} slot={pendingSlot} canWithdraw={pendingSlot ? canWithdraw(pendingSlot) : false} onConfirm={doWithdraw} />
     </div>
   );
 }

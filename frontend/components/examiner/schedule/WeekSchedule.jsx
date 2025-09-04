@@ -7,7 +7,9 @@ import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 import { Button } from '@/components/ui/button';
 import OperationResultDialog from '@/components/examiner/schedule/OperationResultDialog';
+import ConfirmWithdrawDialog from '@/components/examiner/schedule/ConfirmWithdrawDialog';
 import { formatVenue } from '@/utils/formatVenue';
+import { toLocalDateKey } from '@/utils/dateUtils';
 
 function startOfWeek(date) {
   const d = new Date(date);
@@ -23,6 +25,8 @@ export default function WeekSchedule() {
   const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProps, setDialogProps] = useState({});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingSlot, setPendingSlot] = useState(null);
   const [anchor, setAnchor] = useState(new Date());
 
   const weekStart = startOfWeek(anchor);
@@ -31,8 +35,8 @@ export default function WeekSchedule() {
   const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['examinerWeek', examinerId, weekStart.toDateString()],
     queryFn: () => examinerTimeslotService.getExaminerSchedule(examinerId, {
-      dateFrom: weekStart.toISOString().split('T')[0],
-      dateTo: weekEnd.toISOString().split('T')[0]
+      dateFrom: toLocalDateKey(weekStart),
+      dateTo: toLocalDateKey(weekEnd)
     }),
     enabled: isValidExaminer,
     refetchInterval: 2 * 60 * 1000, // Reduced to 2 minutes from 30 seconds
@@ -61,8 +65,8 @@ export default function WeekSchedule() {
 
   const days = [...Array(7)].map((_, i) => {
     const d = new Date(weekStart); d.setDate(weekStart.getDate() + i);
-    const key = d.toISOString().split('T')[0];
-    const list = slots.filter(s => new Date(s.start).toISOString().split('T')[0] === key);
+    const key = toLocalDateKey(d);
+    const list = slots.filter(s => toLocalDateKey(new Date(s.start)) === key);
     return { date: d, key, list };
   });
 
@@ -78,7 +82,7 @@ export default function WeekSchedule() {
     const d = new Date(anchor); d.setDate(d.getDate() + delta*7); setAnchor(d);
   };
 
-  const handleWithdraw = async (slot) => {
+  const doWithdraw = async (slot) => {
     try {
       const res = await withdrawFromTimeslot(slot, () => { refetch(); });
       if (res?.success) {
@@ -95,6 +99,7 @@ export default function WeekSchedule() {
       setDialogOpen(true);
     }
   };
+  const handleWithdraw = (slot) => { setPendingSlot(slot); setConfirmOpen(true); };
 
   if (isLoading) {
     return (
@@ -119,6 +124,7 @@ export default function WeekSchedule() {
   return (
     <div className="dashboard-card p-4">
       <OperationResultDialog open={dialogOpen} onOpenChange={setDialogOpen} {...dialogProps} />
+      <ConfirmWithdrawDialog open={confirmOpen} onOpenChange={setConfirmOpen} slot={pendingSlot} canWithdraw={pendingSlot ? canWithdraw(pendingSlot) : false} onConfirm={doWithdraw} />
       <div className="flex items-center justify-between mb-4">
         <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
           <i className="fas fa-calendar-week text-blue-600 dark:text-blue-400 mr-2"></i>
@@ -147,7 +153,10 @@ export default function WeekSchedule() {
             ) : (
               <div className="space-y-2">
                 {list.map(slot => (
-                  <div key={slot.slotId} className="p-2 rounded border dark:border-gray-700">
+                  <div
+                    key={slot.slotId}
+                    className={`p-2 rounded border dark:border-gray-700 ${new Date(slot.start) <= new Date() ? 'opacity-75 bg-gray-50 dark:bg-gray-800/50' : ''}`}
+                  >
                     <div className="flex justify-between items-start mb-1">
                       <div className="text-sm font-medium text-gray-800 dark:text-gray-200">{slot.courseCode} — {slot.assignmentName}</div>
                       {new Date(slot.start) > new Date() && (

@@ -1,4 +1,5 @@
 import React from 'react';
+import { toLocalDateKey } from '@/utils/dateUtils';
 
 export default function TimeslotSelectionCalendar({
   currentMonth,
@@ -25,7 +26,7 @@ export default function TimeslotSelectionCalendar({
         date: prevMonth.getDate() - i,
         isCurrentMonth: false,
         fullDate: d,
-        dateString: d.toISOString().split('T')[0],
+        dateString: toLocalDateKey(d),
       });
     }
 
@@ -36,7 +37,7 @@ export default function TimeslotSelectionCalendar({
         date: day,
         isCurrentMonth: true,
         fullDate: d,
-        dateString: d.toISOString().split('T')[0],
+        dateString: toLocalDateKey(d),
       });
     }
 
@@ -48,7 +49,7 @@ export default function TimeslotSelectionCalendar({
         date: day,
         isCurrentMonth: false,
         fullDate: d,
-        dateString: d.toISOString().split('T')[0],
+        dateString: toLocalDateKey(d),
       });
     }
 
@@ -56,7 +57,7 @@ export default function TimeslotSelectionCalendar({
   };
 
   const days = getDaysInMonth();
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = toLocalDateKey(new Date());
   const availSet = new Set(availableDates);
 
   return (
@@ -119,4 +120,3 @@ export default function TimeslotSelectionCalendar({
     </div>
   );
 }
-

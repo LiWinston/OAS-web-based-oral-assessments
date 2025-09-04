@@ -8,6 +8,7 @@ import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
 import { formatVenue } from '@/utils/formatVenue';
+import { toLocalDateKey } from '@/utils/dateUtils';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const ExaminerCalendar = () => {
@@ -30,8 +31,8 @@ const ExaminerCalendar = () => {
       const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
       const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
       return examinerTimeslotService.getExaminerSchedule(examinerId, {
-        dateFrom: monthStart.toISOString().split('T')[0],
-        dateTo: monthEnd.toISOString().split('T')[0]
+        dateFrom: toLocalDateKey(monthStart),
+        dateTo: toLocalDateKey(monthEnd)
       });
     },
     enabled: isValidExaminer,
@@ -122,11 +123,8 @@ const ExaminerCalendar = () => {
   };
 
   const getEventsForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0];
-    return scheduleSlots.filter(slot => {
-      const slotDate = new Date(slot.start).toISOString().split('T')[0];
-      return slotDate === dateStr;
-    });
+    const dateStr = toLocalDateKey(date);
+    return scheduleSlots.filter(slot => toLocalDateKey(new Date(slot.start)) === dateStr);
   };
 
   const isToday = (date) => {
