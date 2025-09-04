@@ -382,7 +382,7 @@ export function EditAssignmentModal({
                       value={formData.startDate}
                       onChange={(e) => handleInputChange('startDate', e.target.value)}
                       className={`
-                        w-full rounded-lg pl-10 pr-4 py-2.5 text-sm
+                        w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                         bg-white dark:bg-gray-700 
                         border ${validationErrors.startDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
@@ -408,7 +408,7 @@ export function EditAssignmentModal({
                       value={formData.endDate}
                       onChange={(e) => handleInputChange('endDate', e.target.value)}
                       className={`
-                        w-full rounded-lg pl-10 pr-4 py-2.5 text-sm
+                        w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                         bg-white dark:bg-gray-700 
                         border ${validationErrors.endDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
