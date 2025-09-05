@@ -1,6 +1,8 @@
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '../../ui/button';
 import { useNotification } from '../../../hooks/useNotification';
 import { assignmentService } from '../../../services/assignmentService';
@@ -62,6 +64,7 @@ export function AssignmentCreationModal({
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [createdAssignment, setCreatedAssignment] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [csvUploadStatus, setCsvUploadStatus] = useState({
     student: { uploading: false, error: null },
@@ -70,6 +73,7 @@ export function AssignmentCreationModal({
   const [courseWeightTotal, setCourseWeightTotal] = useState({ loading: false, value: null, error: null });
   const fileInputRef = useRef(null);
   const { showNotification } = useNotification();
+  const router = useRouter();
 
   // Reset form when modal opens
   useEffect(() => {
@@ -399,6 +403,8 @@ export function AssignmentCreationModal({
       const result = await createAssignment(formData, isDraft);
 
       if (result.success) {
+        // Store created assignment for post-creation quick navigation
+        setCreatedAssignment(result.data);
         // If not draft, upload CSV data using assignment ID from creation result
         if (!isDraft) {
           const assignmentId = result.data.id;
@@ -1304,6 +1310,13 @@ export function AssignmentCreationModal({
                 <div className="space-y-3">
                   <button
                     type="button"
+                    onClick={() => {
+                      if (createdAssignment?.id) {
+                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`);
+                      } else {
+                        showNotification('info', 'Create the assignment first to configure the rubric');
+                      }
+                    }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-400 hover:shadow-md transition-all duration-200 group"
                   >
                     <div className="flex items-center">
@@ -1320,6 +1333,13 @@ export function AssignmentCreationModal({
 
                   <button
                     type="button"
+                    onClick={() => {
+                      if (createdAssignment?.id) {
+                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`);
+                      } else {
+                        showNotification('info', 'Create the assignment first to set up time slots');
+                      }
+                    }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cyan-400 hover:shadow-md transition-all duration-200 group"
                   >
                     <div className="flex items-center">
@@ -1336,6 +1356,13 @@ export function AssignmentCreationModal({
 
                   <button
                     type="button"
+                    onClick={() => {
+                      if (createdAssignment?.id) {
+                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/schedule`);
+                      } else {
+                        showNotification('info', 'Create the assignment first to manage examiner assignments');
+                      }
+                    }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-lime-400 hover:shadow-md transition-all duration-200 group"
                   >
                     <div className="flex items-center">
@@ -1365,7 +1392,7 @@ export function AssignmentCreationModal({
                   Assignment Created!
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Upload completed, ready for assignment creation
+                  Next: Configure your rubric and schedule sessions
                 </p>
                 <div className="mt-4">
                   <div className="inline-flex items-center justify-center space-x-1">
@@ -1380,6 +1407,24 @@ export function AssignmentCreationModal({
                     ))}
                   </div>
                 </div>
+                {createdAssignment?.id && (
+                  <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Go to Rubric
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`)}
+                      className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors"
+                    >
+                      Set Up Time Slots
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}
