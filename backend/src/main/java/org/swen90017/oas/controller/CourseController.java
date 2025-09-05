@@ -19,8 +19,11 @@ import org.swen90017.oas.dto.response.CourseResponseDTO;
 import org.swen90017.oas.dto.response.CourseStatsResponseDTO;
 import org.swen90017.oas.entity.Subject;
 import org.swen90017.oas.enums.BusinessType;
+import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.SubjectService;
+import org.swen90017.oas.utils.SecurityUtils;
+import org.swen90017.oas.entity.LoginUser;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -73,6 +76,45 @@ public class CourseController {
             result.getSize()
         );
         
+        return Result.success(response);
+    }
+
+    /**
+     * List courses with pagination and filters (GET method for simple queries)
+     */
+    @Operation(summary = "List courses (GET)", description = "Retrieve courses the current course admin can read with optional pagination and filters")
+    @GetMapping
+    @Log(module = "Course Management", businessType = BusinessType.QUERY)
+    public Result<CourseListResponseDTO> listCoursesGet(
+            @Parameter(description = "Query parameters for course search") CourseQueryRequestDTO queryDTO) {
+
+        // Enforce visibility: non-super-admins can only see their own courses
+        String role = SecurityUtils.getUserRole();
+        if (!UserRole.SUPER_ADMIN.code().equals(role)) {
+            LoginUser currentUser = SecurityUtils.getLoginUser();
+            if (currentUser != null) {
+                queryDTO.setAdminUserId(currentUser.getUserId());
+            }
+        }
+
+        IPage<Subject> result = subjectService.getCourses(
+            queryDTO.getPageNum(),
+            queryDTO.getPageSize(),
+            queryDTO.getYear(),
+            queryDTO.getSemester(),
+            queryDTO.getCourseCode(),
+            queryDTO.getAdminUserId(),
+            queryDTO.getStatus(),
+            queryDTO.getIsActive()
+        );
+
+        List<CourseResponseDTO> courseDTOs = convertToDTOsWithDualPath(result.getRecords());
+        CourseListResponseDTO response = new CourseListResponseDTO(
+            courseDTOs,
+            result.getTotal(),
+            result.getCurrent(),
+            result.getSize()
+        );
         return Result.success(response);
     }
 
