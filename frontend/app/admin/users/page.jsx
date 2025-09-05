@@ -113,6 +113,10 @@ function AdminUsersContent() {
           setTimeout(() => setHighlightId(null), 2500);
         }
         queryClient.invalidateQueries({ queryKey: ["assignmentUsers", courseId, assignmentId] });
+        // Schedule a follow-up refetch to capture backend-side updates
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ["assignmentUsers", courseId, assignmentId] });
+        }, 3000);
         // auto-hide banner after a bit
         setTimeout(() => setLastAdd(null), 4000);
       } else {

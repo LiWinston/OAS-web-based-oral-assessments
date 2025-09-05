@@ -76,18 +76,23 @@ export default function RubricPreview({ rubric, assignment, course }) {
             </div>
           </div>
           
-          {/* Weight Validation */}
-          {totalWeight !== 100 && (
+          {/* Weight Validation (basis-aware) */}
+          {(() => {
+            const basis = rubric.weightBasis || 'percentage';
+            const expected = basis === 'percentage' ? 100 : (rubric.totalPoints || 0);
+            const label = basis === 'percentage' ? '%' : ' pts';
+            return totalWeight !== expected ? (
             <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                ⚠️ Total weight is {totalWeight}% (should be 100%)
+                ⚠️ Total {basis} is {totalWeight}{label} (should be {expected}{label})
               </p>
             </div>
-          )}
+            ) : null;
+          })()}
         </div>
 
         {/* Preview Content */}
-        <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
           {!rubric.criteria || rubric.criteria.length === 0 ? (
             <div className="text-center py-12">
               <Award className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
@@ -112,7 +117,7 @@ export default function RubricPreview({ rubric, assignment, course }) {
                         {criterion.title}
                       </h5>
                       <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs font-medium">
-                        {criterion.weight}%
+                        {criterion.weight}{(rubric.weightBasis||'percentage') === 'percentage' ? '%' : ' pts'}
                       </span>
                       <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                         {getScaleIcon(criterion.markingScale)}

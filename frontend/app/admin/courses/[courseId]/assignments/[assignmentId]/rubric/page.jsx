@@ -44,6 +44,7 @@ export default function RubricConfigurationPage() {
     name: "",
     description: "",
     totalPoints: 100,
+    weightBasis: "percentage", // 'percentage' | 'points'
     criteria: [],
   });
 
@@ -123,7 +124,7 @@ export default function RubricConfigurationPage() {
           totalPoints: rubricMetaInfo.totalPoints || 100,
           criteria: rubricInfoArray.map((criterion, index) => ({
             id: `criterion_${index}`,
-            title: `Criteria${index + 1}`,
+            title: `Criterion ${index + 1}`,
             description: criterion.description,
             weight: criterion.weight,
             markingScale: criterion.scaleType || "descriptive",
@@ -179,14 +180,14 @@ export default function RubricConfigurationPage() {
     return () => clearTimeout(welcomeTimer);
   }, [fetchData]);
 
-  // 生成criteria自动命名
+  // 生成criterion自动命名
   const generateCriteriaTitle = (existingCriteria, isNew = true) => {
     if (isNew) {
       const nextNumber = existingCriteria.length + 1;
-      return `Criteria${nextNumber}`;
+      return `Criterion ${nextNumber}`;
     } else {
       // For duplicates
-      return `Criteria${existingCriteria.length} (Copy)`;
+      return `Criterion ${existingCriteria.length} (Copy)`;
     }
   };
 
@@ -242,12 +243,15 @@ export default function RubricConfigurationPage() {
   });
 
   // Handlers
+  const [lastAddedId, setLastAddedId] = useState(null);
+
   const handleAddCriterion = () => {
     const newCriterion = createDefaultCriterion();
     setRubric({
       ...rubric,
       criteria: [...(rubric.criteria || []), newCriterion],
     });
+    setLastAddedId(newCriterion.id);
     setHasChanges(true);
     showNotification("success", "New criterion has been added to the rubric");
   };
@@ -366,6 +370,14 @@ export default function RubricConfigurationPage() {
     // Validate no score range overlap
     if (hasScoreRangeOverlap()) {
       showNotification("error", "Cannot save: Score ranges cannot overlap within criteria");
+      return;
+    }
+
+    // Validate criterion weights based on basis
+    const total = (rubric.criteria || []).reduce((sum, c) => sum + (c.weight || 0), 0);
+    const expected = rubric.weightBasis === 'percentage' ? 100 : (rubric.totalPoints || 0);
+    if (total !== expected) {
+      showNotification("error", `Total ${rubric.weightBasis === 'percentage' ? 'weight' : 'points'} is ${total} (must equal ${expected})`);
       return;
     }
 
@@ -536,15 +548,21 @@ export default function RubricConfigurationPage() {
             
             {/* Save button with validation status */}
             <div className="relative">
+              {(() => {
+                const total = (rubric.criteria || []).reduce((s,c)=> s + (c.weight||0), 0);
+                const expected = rubric.weightBasis === 'percentage' ? 100 : (rubric.totalPoints || 0);
+                const weightOk = total === expected;
+                const disabled = isSaving || hasScoreRangeOverlap() || !weightOk;
+                return (
               <button
                 onClick={handleSaveRubric}
-                disabled={isSaving || hasScoreRangeOverlap()}
+                disabled={disabled}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
-                  !isSaving && !hasScoreRangeOverlap()
+                  !isSaving && !hasScoreRangeOverlap() && weightOk
                     ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
                 }`}
-                title={hasScoreRangeOverlap() ? "Cannot save: Score ranges overlap" : ""}
+                title={hasScoreRangeOverlap() ? "Cannot save: Score ranges overlap" : (!weightOk ? "Cannot save: Total weight/points mismatch" : "")}
               >
                 {isSaving ? (
                   <>
@@ -555,12 +573,13 @@ export default function RubricConfigurationPage() {
                   <>
                     <Save className="w-5 h-5" />
                     Save Rubric
-                    {hasScoreRangeOverlap() && (
+                    {(hasScoreRangeOverlap() || !weightOk) && (
                       <AlertCircle className="w-4 h-4 text-red-500" />
                     )}
                   </>
                 )}
               </button>
+                );})()}
               
               {/* Error tooltip when hovering over disabled button */}
               {hasScoreRangeOverlap() && (
@@ -703,6 +722,27 @@ export default function RubricConfigurationPage() {
                     max={1000}
                   />
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Weighting Basis
+                  </label>
+                  <select
+                    value={rubric.weightBasis}
+                    onChange={(e) => {
+                      const basis = e.target.value;
+                      setRubric({ ...rubric, weightBasis: basis });
+                      setHasChanges(true);
+                    }}
+                    className="form-control w-full max-w-xs"
+                  >
+                    <option value="percentage">Percentage (sum = 100%)</option>
+                    <option value="points">Points (sum = Total Points)</option>
+                  </select>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Choose how to allocate criterion weights: as percentages or absolute points.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -723,39 +763,40 @@ export default function RubricConfigurationPage() {
               </button>
             </div>
 
-            {/* Weight Validation Alert */}
+            {/* Weight Validation Alert (basis-aware) */}
             {rubric.criteria && rubric.criteria.length > 0 && (
               <div
                 className={`p-4 rounded-lg flex items-center gap-3 ${
-                  rubric.criteria.reduce(
-                    (sum, c) => sum + (c.weight || 0),
-                    0
-                  ) === 100
+                  (() => {
+                    const total = rubric.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+                    const expected = rubric.weightBasis === 'percentage' ? 100 : (rubric.totalPoints || 0);
+                    return total === expected;
+                  })()
                     ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200"
                     : "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
                 }`}
               >
-                {rubric.criteria.reduce(
-                  (sum, c) => sum + (c.weight || 0),
-                  0
-                ) === 100 ? (
+                {(() => {
+                  const total = rubric.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+                  const expected = rubric.weightBasis === 'percentage' ? 100 : (rubric.totalPoints || 0);
+                  const label = rubric.weightBasis === 'percentage' ? '%' : ' pts';
+                  const ok = total === expected;
+                  return ok ? (
                   <>
                     <CheckCircle className="w-5 h-5" />
-                    <span>Total weight: 100% ✓</span>
+                    <span>
+                      Total {rubric.weightBasis}: {expected}{label} ✓
+                    </span>
                   </>
-                ) : (
+                  ) : (
                   <>
                     <AlertCircle className="w-5 h-5" />
                     <span>
-                      Total weight:{" "}
-                      {rubric.criteria.reduce(
-                        (sum, c) => sum + (c.weight || 0),
-                        0
-                      )}
-                      % (must equal 100%)
+                      Total {rubric.weightBasis}: {total}{label} (must equal {expected}{label})
                     </span>
                   </>
-                )}
+                  );
+                })()}
               </div>
             )}
 
@@ -767,6 +808,8 @@ export default function RubricConfigurationPage() {
                   criterion={criterion}
                   index={index}
                   totalCriteria={rubric.criteria ? rubric.criteria.length : 0}
+                  weightBasis={rubric.weightBasis}
+                  highlight={lastAddedId === criterion.id}
                   onUpdate={(updated) => handleUpdateCriterion(index, updated)}
                   onDelete={() => handleDeleteCriterion(index)}
                   onDuplicate={() => handleDuplicateCriterion(index)}

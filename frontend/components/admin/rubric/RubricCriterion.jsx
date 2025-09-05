@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -17,11 +17,28 @@ export default function RubricCriterion({
   criterion,
   index,
   totalCriteria,
+  weightBasis = 'percentage',
+  highlight = false,
   onUpdate,
   onDelete,
   onDuplicate
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [justAdded, setJustAdded] = useState(highlight);
+
+  // Auto-highlight and scroll into view when added
+  const containerId = `criterion-${criterion.id}`;
+  useEffect(() => {
+    if (highlight) {
+      setTimeout(() => {
+        const el = document.getElementById(containerId);
+        if (el && el.scrollIntoView) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        setTimeout(() => setJustAdded(false), 1500);
+      }, 0);
+    }
+  }, [highlight]);
 
   const handleUpdateLevel = (levelIndex, updatedLevel) => {
     const newLevels = [...criterion.levels];
@@ -53,8 +70,6 @@ export default function RubricCriterion({
         return <Star className="w-4 h-4" />;
       case 'letter':
         return <span className="text-sm font-bold">A</span>;
-      case 'numeric':
-        return <span className="text-sm font-bold">#</span>;
       default:
         return <Circle className="w-4 h-4" />;
     }
@@ -64,8 +79,11 @@ export default function RubricCriterion({
 
   return (
     <div
+      id={containerId}
       className={`dashboard-card transition-all duration-300 hover:shadow-lg transform hover:-translate-y-1 ${
         isExpanded ? 'overflow-visible' : 'overflow-hidden'
+      } ${
+        justAdded ? 'ring-2 ring-amber-400' : ''
       }`}
     >
       {/* Header */}
@@ -76,13 +94,12 @@ export default function RubricCriterion({
               {criterion.title}
             </h4>
             <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm font-medium">
-              {criterion.weight}%
+              {criterion.weight}{weightBasis === 'percentage' ? '%' : ' pts'}
             </span>
             <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
-              {getScaleIcon(criterion.markingScale)}
+              {getScaleIcon(criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive'))}
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {criterion.markingScale === 'descriptive' ? 'Descriptive' : 
-                 criterion.markingScale === 'letter' ? 'Letter Grade' : 'Numeric'}
+                {(criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive')) === 'descriptive' ? 'Descriptive' : 'Letter Grade'}
               </span>
             </div>
           </div>
@@ -139,7 +156,7 @@ export default function RubricCriterion({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Weight (%)
+                  {weightBasis === 'percentage' ? 'Weight (%)' : 'Points'}
                 </label>
                 <input
                   type="number"
@@ -147,22 +164,26 @@ export default function RubricCriterion({
                   onChange={(e) => onUpdate({ ...criterion, weight: parseInt(e.target.value) || 0 })}
                   className="form-control"
                   min={0}
-                  max={100}
                 />
+                {weightBasis === 'points' && (
+                  <p className="text-xs text-gray-500 mt-1">Assign absolute points for this criterion. Total must equal rubric Total Points.</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Scale Type
                 </label>
                 <select
-                  value={criterion.markingScale || 'descriptive'}
+                  value={criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive')}
                   onChange={(e) => onUpdate({ ...criterion, markingScale: e.target.value })}
                   className="form-control"
                 >
                   <option value="descriptive">Descriptive</option>
                   <option value="letter">Letter Grade</option>
-                  <option value="numeric">Numeric</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  Descriptive: labels only. Letter Grade: A–F mapping. Points ranges still define thresholds used in marking.
+                </p>
               </div>
             </div>
           </div>
@@ -196,6 +217,23 @@ export default function RubricCriterion({
                 />
               ))}
             </div>
+            {/* Gap coverage warning */}
+            {(() => {
+              const levels = criterion.levels || [];
+              if (levels.length < 1) return null;
+              const sorted = [...levels].sort((a,b) => (a.minPoints||0) - (b.minPoints||0));
+              let hasGap = false;
+              for (let i=1;i<sorted.length;i++) {
+                const prev = sorted[i-1];
+                const curr = sorted[i];
+                if ((prev.maxPoints||0) + 1 < (curr.minPoints||0)) { hasGap = true; break; }
+              }
+              return hasGap ? (
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-700 dark:text-amber-300">
+                  Level ranges have gaps. Adjust min/max to ensure continuous coverage.
+                </div>
+              ) : null;
+            })()}
           </div>
 
         </div>
