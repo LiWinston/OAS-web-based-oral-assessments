@@ -62,7 +62,10 @@ public enum BusinessError implements Error {
     SLOT_UNSTAFFED("6003", "Time slot is not fully staffed"),
     DEADLINE_PASSED("6004", "Booking deadline has passed"),
     LOCKOUT_WINDOW("6005", "Booking is in lockout window"),
-    FORBIDDEN("6006", "Operation not allowed");
+    FORBIDDEN("6006", "Operation not allowed"),
+
+    // User Management (Assignment Members)
+    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment");
     
   
     private final String code;
