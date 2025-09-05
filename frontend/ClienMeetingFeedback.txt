@@ -1,0 +1,239 @@
+Oral Assessment System – Refinement Plan Based on Client Feedback
+
+Below is a comprehensive list of all issues, gaps, and inconsistencies identified from the client meeting transcript (cross-referenced with the PRD and user flow documents). Each issue is matched to the relevant user flow or system component, with an explanation of what needs refinement and recommended next steps. Urgent or blocking items are highlighted.
+
+Course Admin & Assignment Setup
+
+End Date Validation (Assignment Creation – Course Admin Flow): The system currently allows an invalid date range – e.g. an end date before the start date – without error. In the demo, the client set the end date earlier than the start and “it does not” throw an error, even though “it should”. Fix: Implement front-end and back-end validation to ensure the assignment end date is after the start date. Disable the Next/Create button and show an error message if the dates are inverted. Urgency: High – this is a basic data integrity bug.
+
+Assignment Weight (%) Confirmation (Assignment Creation – Course Admin Flow): The client encountered a warning about “Total assignment grade cannot exceed…” when adjusting the weight from 25% to 15%, and found the UI message unclear. This refers to ensuring all course assignment weights sum to 100%. Fix: Ensure that the warning message is clear (e.g. “Total weight of all assignments exceeds 100%”) and perhaps provide a visual indicator of current total. After adjustment, confirm the warning disappears. This improves clarity but is a minor fix.
+
+Post-Creation Guidance (After Creating Assignment – Course Admin Flow): Once an assignment is created, it shows as “Pending” with no obvious next step. The client said the UI is “not very obvious what I should do next” – she had to find small icons to configure the rubric and time slots. Fix: Improve the UI cues after assignment creation. For example, display a notice or automatic prompt: “Assignment created. Next: Define a Rubric and Schedule.” Highlight the rubric and schedule buttons (or redirect the user into a setup wizard). Next Step: Add textual cues or even open the Rubric configuration screen automatically for a new assignment. Urgency: Medium – it confused the client, though not blocking functionality.
+
+Dashboard Placeholders (Landing Page – Course Admin): The course dashboard is currently not functional and contains confusing placeholder data. The client saw a dummy entry (“structured final oral… fake rubric, that doesn’t work”) and was told to ignore it. Fix: Remove or replace placeholder text with real data. If certain dashboard features (e.g. summary stats) aren’t ready, it’s better to hide them than show incorrect info. Next Step: Focus on core flows first; a basic welcome or list of courses is fine until real dashboard widgets are implemented. Urgency: Low – cosmetic, but important for perception.
+
+Super Admin Course Info (Displayed to Course Admin via Super Admin – Super Admin Flow): In the Super Admin “All Courses” view, the client expects to see the number of assignments and students for each course. She confirmed that “the number [of assignments] should appear” and “the number of students also should appear” for each course. Currently, it seems these are not shown. Fix: Update the course list UI to include assignment count and student count per course (as read-only info for Super Admins). This aligns with the client’s expectation of quick stats.
+
+CSV Data Import (Students & Examiners)
+
+Examiner CSV Upload Not Working (Assignment Setup – Course Admin Flow): The client attempted to upload examiners via CSV and was told “this CSV upload doesn’t actually work” yet. Only student CSV import was functional (“The student one works, and the examiner [doesn’t] because there is a format issue”). This is a critical gap – admins must be able to import examiner data per assignment. Fix: Complete the implementation of examiner CSV import. Ensure the backend can create new examiner-user accounts or map to existing accounts. In the demo, the team had to manually add examiners in the database as a workaround. Next Steps: Align the CSV format with what the system expects (email, name, department, etc.) and handle cases where examiners already exist in the system (perhaps skip or flag duplicates). Provide a success/failure feedback on upload.
+
+Strict CSV Format & Error Handling (CSV Import – Course Admin Flow): The system requires a very strict CSV format (the client’s file “has more information than it should” and wasn’t accepted). The client was willing to adjust to the expected format, but the system should be more user-friendly here. Fix: Publish or link to a sample CSV template so admins know the required columns. Additionally, if extra columns are present, the import could ignore them (or at least error out with a clear message). Next Step: Improve the error messages on CSV upload – e.g. “Column X is unrecognized” or “Columns missing: ...”. This aligns with the PRD’s requirement to validate CSV format and content with clear error messages.
+
+“Next” Button Enabled Without CSV (Examiner Import Step – Course Admin Flow): Currently the wizard allows proceeding without uploading examiner data. The client explicitly said the system “should not accept the Next” if no examiner file is provided. Fix: Make the examiner CSV step mandatory (unless we allow skipping because they might add examiners manually later – but the client expects a file or reuse). If the admin tries to continue without providing examiner info, disable the Next button and/or show a warning “Please add examiner data or choose to skip assigning examiners for now.” However, since examiners are required for scheduling, skipping should probably not be allowed. Urgency: High – this prevented the client from proceeding logically and is tied to the core scheduling setup.
+
+Reusing Previous Examiner Lists (Examiner Import – Course Admin Flow): The client mentioned a potential feature: selecting a previously uploaded examiner list (from another assignment) instead of uploading a new CSV every time. This was discussed in an earlier meeting. Plan: This is a new feature (nice-to-have). We could implement a dropdown on the examiner upload step that allows the admin to pick an existing examiner roster from another assignment as a template. If this is too complex for now, document it as future enhancement. For now, focus on getting the basic CSV import working, but keep this suggestion noted for future refinements.
+
+Rubric Builder & Assessment Configuration
+
+Percentage vs Points for Criteria (Rubric Setup – Course Admin Flow): The client wants the ability to define rubric criteria weights by absolute marks, not just percentages. In the UI, she saw fields for weight (%) and a total points field, but said “it’s good to have a mark, not only percentage” and possibly toggle between them. Refinement: Allow criteria weighting by points. For example, if total points = 15, a criterion can be 3 points (instead of calculating it as 20%). The PRD already implies a total points system (each criterion has weight and performance level ranges) – we should make the UI support entering either a percentage or point value for each criterion. Next Step: One approach is to let the admin choose a rubric basis: total points or percentage. If percentage, enforce sum=100%. If total points, calculate percentages behind the scenes. The field label “Points” was confusing; she suggested renaming it to “Total Points” to clarify it’s the overall assignment points.
+
+Criterion vs Criteria Labeling (Rubric Setup – Course Admin Flow): Minor UX – the UI said “criteria 1” when it was a single criterion. The client corrected the terminology (“criterion” vs “criteria”). Fix: Review the rubric builder text for pluralization. Use “Add Criterion” (singular) for button labels, and if listing individually use “Criterion 1, Criterion 2, …”. This is a small copy fix that adds polish.
+
+Adding Criteria – Visibility (Rubric Setup – Course Admin Flow): When the client added a new criterion, it wasn’t obvious that it appeared. She had to scroll down and said “it wasn’t clear that this new thing [criterion] added here”. Fix: After clicking “Add Criterion,” automatically scroll the criteria list to bring the new blank criterion into view, and perhaps highlight it (e.g. a brief yellow flash or “New!” tag). This ensures the admin knows an item was added. Also, if the list is long, consider a floating “Add Criterion” button that’s always visible.
+
+Performance Level Count Adjustment (Rubric Setup – Course Admin Flow): The rubric defaulted to 5 performance levels (Outstanding, Very Good, etc.). The client wanted only 3, so she deleted two levels. However, the UI did not adjust the level descriptors or point ranges after deletion – she noted “these things don’t change automatically”. For example, it still showed ranges like 90-100 for “Outstanding” even if the levels needed re-scaling. Fix: When levels are removed or added, at minimum alert the admin to adjust the point ranges. Automatically re-scaling might be complex (and the PRD says non-overlapping ranges are enforced, but not that it auto-distributes). The client expected at least a warning if the total range coverage is off. Next Step: Implement a check: performance level ranges should cover the full spectrum (e.g. 0 to total points) without gaps. If a level is deleted, temporarily allow the sum to be <100% (or ranges not covering 0-total), but flag it: e.g. “Levels do not cover 100% – please adjust ranges”. Alternatively, we could auto-expand the lowest level’s range to 0 or highest to max to cover the gap, but explicit confirmation is better. This ensures consistency and addresses the client’s concern that the system should “highlight it, that it is not summing up to 100 anymore”.
+
+Criteria Weight Sum Validation (Rubric Setup – Course Admin Flow): Similarly, if the admin removes a criterion, the total of criterion weights might drop below 100%. In the meeting, when one criterion was removed, the client pointed out the remaining weights should sum to 100 and the system should indicate if they don’t. Fix: Enforce that criterion weight percentages sum to 100%. Already, the UI likely prevents clicking “Save” if not 100%, but it may not be checking after a deletion. Add a real-time sum display or warning. For example, if total ≠ 100%, show a red text: “Current total: 50% (must equal 100%).” This feedback will prompt admins to adjust remaining criterion weights.
+
+“Numeric” vs “Descriptive” Rubric Scale (Rubric Setup – Course Admin/Examiner Marking): The client was confused by the option for Numeric vs Descriptive in the rubric (marking scale). She asked what the difference was, and the team’s answer was not clear (“It only should allow letter in descriptive, yeah”). Fix: Clarify this in the UI. Possibly add help text: “Numeric scale: you will assign points within a range for each level. Descriptive: levels have no numeric score, just labels (e.g. High/Med/Low).” If currently both modes behave similarly, decide if we truly need a “descriptive only” mode. Since consistency in scoring was a goal, we might simplify by keeping numeric scales for MVP (every level has point ranges). If descriptive is not fully implemented, hide that option for now to avoid confusion.
+
+Rubric Preview Scroll (Rubric Setup – Course Admin Flow): In the rubric preview panel, the client could not scroll to see all levels. She said it shows up to Level 3 and “doesn’t go further”. This is a UI bug. Fix: Make the preview panel scrollable or dynamically sized. If the preview is in a modal or side pane, ensure it expands or scrolls so all performance levels and criteria are visible. We should test this on common screen resolutions to confirm it’s fixed (the issue might have been due to screen sharing resolution, but we should handle smaller screens gracefully).
+
+Scheduling & Time Slot Management (Course Admin)
+
+This was the area of greatest feedback, including a fundamental workflow change. The client’s expectations differ from the current design in how examiners and sessions are managed. Below are the issues and required refinements:
+
+Examiner Data Requirement Before Scheduling (Schedule Wizard Step 2/3 – Course Admin Flow): As noted earlier, proceeding to schedule without examiners is problematic. The client explicitly said the system “should not accept [going forward] if… [no examiner file], Next should be disabled”. Right now, it’s possible to create time slots with zero examiners in the system, leading to slots that students shouldn’t see. Fix: Integrate the examiner import with the schedule creation flow. If no examiners are present for the assignment, the admin must add at least one (via CSV or future manual add feature) before they can finalize the schedule. This ties in with fixing the CSV upload. Alternatively, allow the admin to proceed but show a big warning: “No examiners have been added; students will not be able to book these slots until examiners are assigned.” The client seems to prefer making it mandatory, which is safer.
+
+Time Slot Overlap Conflict Checking (Schedule Wizard Step 2 – Course Admin Flow): The PRD specifies that overlapping slots in the same venue should be detected and warned. The client attempted to create a duplicate time slot on the same day/time and said “it shouldn’t…” be allowed – presumably expecting a conflict error. Instead, the system quietly adjusted the time for the new slot (she noticed the default start time reset to 9:00 AM for the next slot). Fix: Implement proper conflict detection for overlapping time slots. If the user tries to create a slot that overlaps an existing one in the same venue, show an error or prevent it. If overlapping is only allowed with different venues (for parallel sessions), then it should be fine as separate slots (the system should allow same time if venue differs, which it currently does). In summary: enforce no two slots share the exact same time and venue. The alternative (allowed overlap in same venue) isn’t logical. Next Step: Test scenario – create two slots with same date/time but different venues (should succeed, marking parallel slots), then same date/time same venue (should error). Currently it sounds like the UI might not be doing this check.
+
+Examiner Assignment: Per Session vs Per Time Slot (Major Change, Schedule Wizard Step 3 & Examiner Self-Assign – Course Admin & Examiner Flows): In the current design, a “time slot” can contain multiple back-to-back sessions (e.g. a 1-hour slot with four 15-min sessions) and examiners assign themselves to the whole slot. The client strongly opposed this approach. She expects examiner allocation at the individual session level. For example, if a Monday 10:00-11:00 slot has 3 sessions, she wants to assign different examiners to session 1 vs session 2, etc. “It shouldn’t be like that… It should be based on session, not a time slot”. This is a fundamental workflow difference. Refinement Plan: We will rework how examiners are assigned to sessions:
+
+In the admin’s Schedule view (after creating slots), each session should be treated as a unit for assignment. The client wants to see each session listed individually (even if they were created in bulk).
+
+The examiner self-service interface should list sessions (with their specific start/end times) rather than aggregate slots, or at least allow expanding a slot to choose specific sessions. The client said a drop-down of sessions under a slot “doesn’t look very nice” and she’d prefer a straightforward list.
+
+We likely need to change the data model: instead of examiners belonging to a slot (covering all its sessions), examiners should belong to individual session instances. This aligns better with the idea that each session = one examiner team and one student group.
+
+Next Steps:
+
+UI Changes (Admin): In the Time Slot Management interface, display sessions as separate line items. For example, if a slot “Monday 10:00-11:00 (3 sessions)” was created, show it expanded into “10:00-10:15 Session 1 – [Assign Examiner]”, “10:20-10:35 Session 2 – [Assign Examiner]”, etc. The client literally described this: “show each of them… 9:00–9:15 session 1, 9:20–9:35 session 2… and then we can assign examiners to [each]”.
+
+UI Changes (Examiner): On the examiner’s “Select Time Slots” page, list each available session with its time and venue. We might group by date or slot for clarity, but each session should have its own checkbox or selection control. This way, an examiner could sign up for session 1 but not session 2 in the same hour block, if they only have capacity for one, for example.
+
+Backend Changes: Modify the scheduling data structure so that examiners can be linked to a specific session (likely we already have a concept of sessions internally since students book sessions). We may need to decouple examiner assignment from the slot-level to session-level. The PRD did indicate each session might be a unit; we initially grouped them for convenience, but now we’ll treat them individually.
+
+Validation: The rule remains that students only see sessions that have the required number of examiners assigned. This means before releasing a schedule, every session must either be fully staffed or removed. The client agreed with that rule: “cannot release any sessions that are not [assigned to a marker]”. We must ensure our release-check now iterates over sessions (not slots) to enforce this.
+
+Impact: This is a high-impact change touching UI and data model. It’s the top priority because the client said not following this would break the system’s usefulness. She literally said “it shouldn’t be like that” and “now you need to change it a little bit”. We will treat this as a blocker issue – the project’s scheduling workflow needs to satisfy this expectation.
+
+Examiner Session Limits & Distribution (Schedule Wizard Step 3 – Course Admin Flow): In the demo, after creating 3 sessions in a slot, the admin had to set examiner session limits. The client was initially confused (“I have to add more examiners?”) because with only one examiner added, the system required their max sessions to cover all 3 sessions. The team explained the rule: total capacity across examiners ≥ total sessions. This rule is fine (and in PRD). Improvement: Provide the admin a clearer summary at that step. E.g., “You have 3 sessions and currently 1 examiner – adjust examiner max assignments so that sum of all examiners’ max >= 3” (the UI did show a warning for insufficient capacity, but ensure it’s prominent). If multiple examiners are listed, maybe suggest an even distribution by default. This step is closely tied to examiner assignment changes: once examiners are per-session, the concept of “max sessions per examiner” still applies, but we’ll enforce it in the examiner UI as well. Just make sure the admin’s configured limits flow through correctly.
+
+Releasing Schedule & Status Indication (Time Slot Management – Course Admin Flow): After completing the schedule setup, the admin must “Release Schedule” for students. The client did this and it worked, but a small issue: prior to release, the assignment status was “Pending” and even after adding rubric/time slots, it wasn’t obvious that it became ready. We should mark the assignment as “Scheduled (Not Released)” vs “Open for Booking” etc., to reflect its state. Also, once released, the admin dashboard could indicate “X slots, Y examiners assigned, Z slots still unstaffed” to prompt any final actions. This is more of a status display enhancement for clarity.
+
+Broken Dropdown in Calendar View (Time Slot Management – Course Admin Flow): In the calendar/list view of time slots, the client noticed a UI element not working: “That drop-down button doesn’t work, that needs to be refined as well” according to the team. It’s likely the expand/collapse arrow for each date or slot. Fix: Repair this interaction. It might be intended to show session details or examiner names. After implementing session-level assignment, this dropdown might become obsolete (if we always show sessions). If it’s meant for collapsing a date section or filtering, ensure it functions. Mark this for a quick UI fix once the bigger changes are in place.
+
+Navigation: Editing Existing Schedules (Courses/Assignments list – Course Admin Flow): The client tried to click an existing assignment (“Assignment 1”) expecting to go to its schedule or settings, but it seemingly reopened the 3-step wizard from scratch. Ian noted this “should… direct you to the [calendar view] page, but that needs to be refined”. Fix: Adjust the onClick behavior for assignments:
+
+If an assignment is incomplete (pending configuration), clicking it could reopen the wizard to let the admin continue setup (pre-fill previous steps).
+
+If an assignment is configured (rubric and slots exist) but not yet released, clicking it should probably go to the Time Slot Management view (with calendar and list of sessions).
+
+If an assignment is released or ongoing, clicking it might go to a summary or monitoring view (in future).
+
+For now, implementing the first two distinctions will reduce confusion. The client was clearly surprised to be taken to the wizard again. We might instead show the calendar interface with an “Edit Schedule” button if they want to modify slots (as outlined in Flow A1: Edit Existing Schedule). Use the flows as a guide: Alternative Flow A1 suggests a way to load existing config into the wizard for editing – maybe provide an explicit “Edit Schedule” action, rather than making the user click the assignment name and not know what will happen.
+
+Concurrent Sessions & Venues (Schedule Creation – Course Admin Flow): The client’s scheduling scenarios involve parallel sessions in different venues (or Zoom links) at the same time. The system is meant to handle this (the PRD mentions parallel slots by different venues). The client gave an example: two sessions at 10am in different places, each with its own examiner team and capacity. Our system can do this by creating two slots with the same time but different venue names (we should verify this works smoothly). Action: Test and ensure that creating parallel slots (same start/end, different venue) is user-friendly. The calendar should show them side by side or clearly labeled. The client managed by creating “two separate times [entries] because the venues are different” – which is correct. So mainly we need to verify no unexpected behavior (e.g. overlapping examiner assignment rules should treat them separately, which they should since venue differs). We may also consider a UI improvement: when adding a time slot, if the admin enters a date/time that overlaps an existing one, perhaps prompt “Do you want to create a parallel session in a different venue at the same time?” to reinforce that concept.
+
+Session Capacity (Multiple Student Groups per Session) (Schedule Creation – Course Admin Flow and Student Booking Flow): This is another critical change tied to how we define “session.” The client sometimes runs a single “session” that contains multiple student presentations (especially for group presentations in a block). For example, she described a 2-hour session in which 4 groups present (sequentially). In our current model, we would represent that as 4 separate 30-min sessions. But the client often calls the whole 2-hour block a “session” and expects to allow multiple groups to sign up into it. Essentially, she wants to configure the capacity of a session in terms of how many student groups can occupy it. Our system initially assumed capacity = 1 group per session. The client says “It should be editable… maybe one session for one group, maybe one session for four groups”. Refinement: We will introduce a “students per session capacity” setting:
+
+When defining a time slot (or session), allow the admin to specify how many groups/individuals that session can accommodate. For traditional individual or group orals, this is 1. But for a presentation seminar-style session, it could be >1.
+
+The system should then allow that many distinct student group bookings into the same session time. For instance, a session 10:00-12:00 with capacity 4 means four different groups can book that same 2-hour slot (they would present one after another within it, managed offline or by the examiners).
+
+We must adjust the student booking logic to consider a session “full” only when the number of bookings reaches the capacity. This ties in with showing the “number of spots left” to students.
+
+The client and team realized our implementation didn’t cover this: “what we have done so far is that one session can only be assigned by one group of students… It should be like that [flexible]”. Next Steps:
+
+Add a “Capacity” field for sessions in the UI (during slot creation, Step 2). The PRD actually hints at this: “specify how many student groups or sessions can be accommodated in that slot”, though we interpreted it as sequential sessions. Now it will explicitly mean concurrent capacity per session block.
+
+In the data model, a session can have N student booking slots instead of 1. This could be implemented by creating child session records or a field capacity and tracking bookings count.
+
+Update student-facing interfaces to display available capacity: e.g. “Session 10:00–12:00 (4 groups, 2/4 filled)” for a student choosing a slot. The client’s Doodle example showed “3 seats available” for a session – we should mimic that phrasing (perhaps “3 spots available”).
+
+Ensure examiner assignment is aware of this: If a session has 4 groups in one block, typically the same examiners cover all 4 (since it’s one long block). Our revised model (examiners per session) can handle that by just assigning the same examiner to that one 2-hour session. No change needed there, except to clarify that an examiner covers all groups in that session.
+
+Edge case: If the admin wants different examiners for sub-groups in the same time block, that really means those sub-groups should be separate session entries (or separate venues). The client’s expectation is that different examiners would be in different rooms. She stated: “sessions are concurrent… in different venues. …each venue has capacity for three teams”. So we likely don’t need to support multiple examiner teams within one session time+venue; instead, the admin would create multiple sessions (one per venue). We’ll clarify in documentation that “capacity” refers to student groups, not splitting examiner teams.
+
+Urgency: High. The lack of this flexibility would force the client to artificially break up sessions or misuse the system. She specifically noted this as “the whole point of the system” – to handle scenarios of both single-group and multi-group sessions automatically.
+
+Group Booking Mechanism (Student Booking – Student Flow): Related to capacity, ensure the booking logic for group assessments works as intended. The client expects that if it’s a group assignment, when one student selects a slot, their entire group is committed to that slot. Also, the system should prevent two members of the same group booking separate slots. We need to double-check this logic against the PRD:
+
+PRD indicates for group assessments, one member books for the group. We should make sure the UI messaging reflects that (e.g. “If you are booking for a group, only one member needs to book. All group members will receive the same slot.”).
+
+After a booking, the remaining capacity of that session should decrement by 1 (for one group booked).
+
+If capacity=1 (default case), the slot simply becomes “Full” after one group/individual books it.
+
+The client did not report a bug here (likely because we didn’t fully demo student booking), so this is preventative: let’s test group bookings thoroughly once capacity is implemented.
+
+Examiner Self-Assignment & Assessment Execution
+
+Examiner View – List Sessions, Not Slots (Examiner Time Slot Assignment – Examiner Flow): As discussed, once we shift examiners to sign up per session, the examiner interface must reflect that. The client wants examiners to see each session option. She even role-played that examiners should be able to choose specific 15-min slots rather than an entire block. Refinement: Modify the Examiner dashboard and “Select Time Slots” page to list all available sessions (date, start-end, venue). We might group by date for usability, but each session is a selectable item. If there are many, consider a filter by date or venue. The PRD examiner flow anticipated this change: it mentioned a calendar and list of time slots, and blocking overlaps. We will ensure overlapping session selections are prevented (the UI should disable any session that overlaps in time with one already selected, as currently planned).
+
+UI Indicators for Examiner Needs: In the meeting, Ian mentioned a legend for staffed vs unstaffed slots (e.g. red/yellow/green dots). With session-level assignments, a slot might be partially staffed if some sessions have examiners and others don’t. We can simplify this: treat each session independently for status (staffed or not). Or show “Slot X – 2 of 3 sessions assigned” as an aggregate. The client seemed less concerned with the color coding and more with the core ability to assign individually. For now, focus on making available sessions clear to examiners (perhaps just don’t list sessions that already have the required examiners filled, unless we allow examiners to see them as “Full”).
+
+Examiner Capacity Enforcement: The system already ensures an examiner cannot exceed their max number of sessions (set by the admin). We must maintain this with the new model. That means as an examiner selects sessions, if they reach their limit, further selections should be blocked (“Reached max sessions” message). The client did not raise an issue here, so presumably this was either not tested or is already handled in the prototype. We should test it after refactoring the selection logic.
+
+Withdraw Examiner from Session: Not directly discussed, but examiner self-service should allow them to drop a session if no student is booked yet (as per our MVP spec). The client didn’t mention it, but since we have it in flow (examiners can withdraw until a student is booked), ensure this still works. With session-based assignments, the same rule applies per session. This is not a client-raised gap, but part of completeness.
+
+Notification: “Deadline Approaching” (Examiner side): The client noticed a notification on the examiner dashboard (“Deadline approaching, new examiner”) and asked about it. The team confirmed “This is not yet done” (placeholder). Action: Either implement this notification or remove the placeholder to avoid confusion. If implementing: when a signup deadline for examiners is set (the PRD mentioned an optional deadline), the system should show a warning as it approaches. For MVP, we can hide this since examiner signup deadlines might not be fully implemented. The key is not to show non-functional elements to the client.
+
+Examiner Assessment (Marking Interface): The meeting focused on scheduling, and we did not get specific feedback on the marking UI. However, a few minor points from rubric setup carry over:
+
+The confusion about numeric vs descriptive scales might affect examiners entering scores. If the marking interface shows points or just levels depending on that choice, ensure it’s consistent with what admins configured.
+
+The client did mention wanting to sometimes just give a mark instead of percentage for criteria – our marking UI should allow examiners to input actual points earned if a criterion has a numeric range. This is already in the design (examiners can enter a point within the selected level’s range).
+
+No bugs were reported here, but we should test the full examiner workflow once scheduling is fixed: an examiner logs in, sees their assigned sessions (or picks some), then enters marks and saves/submits. Make sure things like saving drafts, submitting, and the rubric comment features align with requirements. (No client feedback now, but any issues found should be addressed proactively.)
+
+Student Booking & Exam Session Management
+
+(Note: The client did not explicitly walk through the student booking flow in the meeting, but she gave several expectations about how it should work with multiple venues and group sessions. The following refinements ensure the student side aligns with those expectations and the PRD.)
+
+Show Only Fully Staffed Sessions: The system must continue to hide sessions that don’t have the required examiner coverage. The client affirmed that schedule is only released to students after all sessions are staffed or unneeded ones removed. Action: Ensure the “Release Schedule” function already does this (it likely does, as per design). After implementing per-session examiners, double-check that only sessions with examiner count == required are exposed via the student API. Any session with missing examiners should be marked unavailable. This is per original spec (students see only validated slots), so likely already handled; just verify in the new model.
+
+Slot Capacity Indication to Students: With the new “capacity” feature, the student booking interface should reflect how many spots are available in a session. For example, “3 groups can sign in” for a session was shown in the client’s manual setup. We should replicate this: show an “Available seats” count for each session. The PRD suggests listing slots as “Open – X spots left” or “Full”. Action: Modify the student UI list of time slots to include capacity info. E.g., a session card could say “Capacity: 0/3 filled” or a simpler tag “(3 slots available)”. As students book, this count should decrement in real-time or on refresh. This will address the client’s note that such info is important.
+
+Concurrent Sessions Visibility: If there are parallel sessions at the same time (different venues), students should see them as distinct choices. The client gave an example: two “10:00 AM” sessions in different venues, each taking 4 groups. The UI should not confuse these. Action: Ensure the venue or a session identifier is shown to students. For example, display “10:00 – 12:00 in Room A (4 spots)” and “10:00 – 12:00 in Room B (4 spots)”. In a calendar view, if using one, parallel sessions might be shown side-by-side or with labels. Since our current student interface likely lists slots by time, appending the venue name is the simplest fix to differentiate parallel offerings.
+
+Group Booking Process: As mentioned, one member books for the group. We should make sure:
+
+If a student in a group has booked a slot, other members see that and cannot double-book. Possibly show the booking as “Your group is scheduled for ...” on their dashboard.
+
+If an individual (for individual assignments) books, obviously it’s just them.
+
+The client specifically said the system should handle group booking automatically (assign all group members to the slot once one registers). This is implemented in our design (and should be tested). Next Step: Simulate a group assignment scenario: have one student book a time – verify that the backend creates booking records for their whole group and that the UI prevents anyone else in that group from booking another. Also verify that the capacity of that session is reduced by one (one group took one spot).
+
+Student View of Booking: After booking, students should see confirmation details (date, time, venue) in their dashboard, and receive a confirmation email (as per PRD). No direct client comment on this, but since we have email sending in place (the invitation email worked), ensure booking confirmation emails are also functioning and are well-formatted. The client’s concern about spamminess could apply here too – make sure the from address and branding are appropriate (this is more of a polishing step).
+
+Rescheduling & Cancellation: The PRD allows admins to enable self-rescheduling for students within a deadline. The client didn’t discuss this, but if we promised it and it’s not done, either implement it or clarify it’s not in MVP. It’s secondary; focus on primary booking first. If not implemented, hide any UI that implies students can change their slot so as not to mislead.
+
+Edge Case – Mixed Individual/Group Assignments: The assignment the client created was “mixed”, though we didn’t dive into that in the meeting. For mixed assignments (part group, part individual), booking logic is more complex. Likely out of MVP scope to fully automate; probably handled by having two sets of slots or treating everything as group for scheduling. Since not raised, we won’t tackle it now, but keep it on the radar.
+
+Super Admin & User Management
+
+All Courses View – Assignment/Student Counts: (Reiterating from above in context of Super Admin) The Super Admin dashboard should list how many assignments each course has and possibly how many students are in each course. The client expects those numbers. Implement: in the “Courses” table for Super Admin, add columns or info for “# Assignments” and “# Students”. The data is available after imports (for students) and as assignments are created. This is a straightforward display change.
+
+Invite Course Admin – UI Feedback: When the Super Admin invites a new Course Admin (by entering name, email, dept, etc.), the client clicked “Send Invitation” and nothing seemed to happen. In reality, the email was sent, as the team confirmed receiving it, but the lack of feedback led her to click multiple times or doubt it worked. Fix: After clicking invite, show a success message (“Invitation sent to [email].”). Also, ideally, list the invited user in the UI (perhaps with a status “Pending activation”). The PRD mentions Super Admin can approve Course Admins, but here it’s an invite flow. We should also disable or grey out the “Send” button after one click to prevent duplicates. Urgency: Medium – it doesn’t break functionality, but it confused the client and could lead to duplicate emails.
+
+Invitation Email Content: The email that was received looked somewhat generic and “spammy” according to those who saw it. We should refine the template:
+
+Include the university or program name so it’s clearly an official email (so it’s not flagged as spam and the user trusts it).
+
+Make sure the link is clearly shown as coming from our system (maybe a recognizable URL).
+
+Perhaps add a note like “You have been invited to OAS as a Course Administrator for [Course]. Click to set up your account.”
+
+Since the client mentioned surprise it wasn’t in spam, it’s a hint to improve the content. Next Step: Work with the sponsor to get proper branding or at least add a subject line “[University Name] Oral Assessment System Invitation”.
+
+Invite Link Onboarding: Geela shared that clicking the invite link led to a “Welcome to Course Administrator” setup page, which worked fine. She was able to set a password, etc. This part seems okay. Just ensure that once they complete onboarding, they indeed have access to their course (the invited user should be linked to the new course or given a blank course list if they’re to create one – depending on how we handle Course Admin creation).
+
+Single Login Session: A technical issue was discovered: when Ian logged in as the same account that Hasti was using, it caused her to be logged out (token revoked). This indicates our authentication might only allow one active session per user. The client said “it shouldn’t be like this” when multiple people inadvertently used the same login. While in normal use this is rare (two people shouldn’t share an account), it could happen if, say, a user logs in on two devices. Fix (optional): Allow multiple concurrent sessions per user by not invalidating the old token on new login. Alternatively, keep as is (for security, some systems invalidate old sessions), but then we need to handle it more gracefully. At minimum, if a session is logged out due to another login, show a message like “You have been logged out because your account was signed in from another device.” Currently, it just booted her with no explanation. Next Step: Discuss with the team if we want to support multi-session. If yes, adjust the backend token strategy (e.g., issue multiple tokens). If no, implement the notification as described so the user isn’t confused.
+
+System Emails & Notifications: Beyond invites, ensure other emails are wired up: booking confirmations to students, cancellation notices, etc., as per PRD notifications. The client didn’t explicitly check these, but they will expect them to work in practice. Also, the UI could show some notifications (like the examiner deadline one). Since some notification infrastructure exists, do a pass to make sure the key ones are active:
+
+On booking a slot, send email to student (and maybe CC examiner? PRD says confirmation to student and reminders to both).
+
+Reminder emails before the exam date to examiners and students.
+
+Any result released notification (if implemented).
+
+If any of these are not done and are out of scope for now, communicate that, but these are important for full system adoption.
+
+General Stability for Next Demo: Finally, some general notes the client indirectly touched:
+
+The app should be tested with realistic data: multiple courses, assignments, lots of students, etc., to ensure no performance issues or crashes.
+
+The client used a workaround (Doodle) historically; we want to make sure OAS can fully replace that. So replicating those complex scenarios (multiple parallel sessions, many groups) in our QA testing is key before the next showcase.
+
+Pay attention to terminology consistency: e.g., the client used “marker” interchangeably with “examiner” in speech. We might consider if the UI should say “Examiner” or a more generic term. She seemed to understand Examiner, so it’s fine, just noting.
+
+UX improvement: the client had to manually refresh or navigate oddly at times (she got signed out, had to log back in, etc.). After all fixes, we should run through a full flow as if a user, to iron out any remaining rough edges (like having to refresh to see changes, etc.). For instance, after sending an invite, ideally the new Course Admin appears in the list without manual refresh.
+
+Urgent & High-Priority Issues
+
+From the above, the critical blocking issues to resolve immediately are:
+
+Examiner Assignment per Session (Slot vs Session issue) – This is a show-stopper if not addressed, as it fundamentally misaligns with the client’s scheduling process. We must refactor the scheduling model so examiners can be assigned on a per-session basis and update the UI accordingly. This is top priority.
+
+Session Capacity for Multiple Groups – Equally important, the system must handle sessions that accommodate more than one student group. Without this, the client’s group scheduling scenarios can’t be represented. Implementing the capacity setting goes hand-in-hand with the above refactor.
+
+CSV Import for Examiners – Currently broken, this prevents the admin from adding examiners (a core data requirement). Fixing this (and making the step mandatory or at least properly handled) is critical for the system to be usable.
+
+Validation & Blocking Bugs – Specifically:
+
+Date order validation in assignment setup.
+
+The broken UI elements like the schedule dropdown.
+
+Navigation flow for editing schedule.
+
+These directly affected the client’s ability to test and trust the system, so they need to be resolved before the next demo.
+
+User Feedback & Guidance – Lack of feedback (as with the invite email send) or unclear UI (post-assignment steps, rubric anomalies) caused confusion. While not “blockers,” addressing them is high priority to improve the client’s confidence. Particularly, the invite feedback and post-assignment prompts should be fixed by the next iteration.
+
+By tackling the above issues, we align the system with the client’s requirements and expectations. The plan is to implement the changes, then conduct an end-to-end scenario test: create an assignment (mixed), import examiners, set up slots with various configurations (parallel, multi-group, single-group), have examiners self-assign to sessions, and have students book slots as individuals or groups. We will verify each refined element – from validation messages to capacity counting to email notifications – during this dry run.
+
+Each issue listed has been linked to specific dialogue from the client, indicating its source. This ensures we directly address the client’s points. The urgent issues have been highlighted and will be prioritized in development sprints. Less critical enhancements (like UI copy changes and future nice-to-haves) are noted for later action or further discussion.
+
+By following this refinement plan, the OAS will more precisely meet the client’s needs and provide a smoother, clearer experience for all user roles. We will also reduce the likelihood of surprises in the next client review, since all major gaps identified have corresponding fixes or improvements in progress.
+
+Sources:
+
+Client Meeting Transcript (Sept 5, 2025) – highlighted feedback on functionality and UX, etc.
+
+OAS Product Requirements Document – reference for intended behaviors (e.g. CSV validation, scheduling rules).
+
+User Flow Specs (Course Admin, Examiner, Student) – used to align the refinements with originally planned flows (e.g. Edit Schedule flow, examiner overlap prevention).
