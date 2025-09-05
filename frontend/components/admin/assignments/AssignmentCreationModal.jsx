@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../ui/button';
 import { useNotification } from '../../../hooks/useNotification';
+import { assignmentService } from '../../../services/assignmentService';
 
 export function AssignmentCreationModal({ 
   isOpen, 
@@ -66,6 +67,7 @@ export function AssignmentCreationModal({
     student: { uploading: false, error: null },
     examiner: { uploading: false, error: null }
   });
+  const [courseWeightTotal, setCourseWeightTotal] = useState({ loading: false, value: null, error: null });
   const fileInputRef = useRef(null);
   const { showNotification } = useNotification();
 
@@ -88,6 +90,22 @@ export function AssignmentCreationModal({
       });
       setValidationErrors({});
       setShowSuccess(false);
+      // Fetch course stats for weight total
+      (async () => {
+        try {
+          setCourseWeightTotal({ loading: true, value: null, error: null });
+          const res = await assignmentService.getAssignmentStats(courseId);
+          if (res?.success && res?.data) {
+            // Support both shapes: {data: { totalWeight }} or direct values
+            const total = res.data.totalWeight ?? res.data.total_weight ?? res.data.total ?? 0;
+            setCourseWeightTotal({ loading: false, value: total, error: null });
+          } else {
+            setCourseWeightTotal({ loading: false, value: null, error: res?.message || 'Failed to load course stats' });
+          }
+        } catch (e) {
+          setCourseWeightTotal({ loading: false, value: null, error: 'Failed to load course stats' });
+        }
+      })();
     }
   }, [isOpen, courseId]);
 
@@ -147,7 +165,13 @@ export function AssignmentCreationModal({
         }
         break;
       case 2:
-        // CSV is optional
+        // Require both CSV previews to be successful
+        if (!csvData.student.previewData) {
+          errors.studentCsv = 'Please upload and validate the Student CSV before continuing';
+        }
+        if (!csvData.examiner.previewData) {
+          errors.examinerCsv = 'Please upload and validate the Examiner CSV before continuing';
+        }
         break;
       case 3:
         // Final validation done on submit
@@ -156,6 +180,21 @@ export function AssignmentCreationModal({
 
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
+  };
+
+  // Quick readiness checks for disabling Next button
+  const isStep1Ready = () => {
+    if (!formData.name?.trim()) return false;
+    if (!formData.startDate || !formData.endDate) return false;
+    if (new Date(formData.startDate) > new Date(formData.endDate)) return false;
+    if (formData.weight === '' || formData.weight == null) return false;
+    const w = Number(formData.weight);
+    if (Number.isNaN(w)) return false;
+    return w >= 0 && w <= 100;
+  };
+
+  const isStep2Ready = () => {
+    return Boolean(csvData.student.previewData) && Boolean(csvData.examiner.previewData);
   };
 
   // Handle input changes
@@ -349,10 +388,9 @@ export function AssignmentCreationModal({
 
   // Handle form submission
   const handleSubmit = async (isDraft = false) => {
-    if (!validateStep(1)) {
-      setStep(1);
-      return;
-    }
+    // Step validations
+    if (!validateStep(1)) { setStep(1); return; }
+    if (!validateStep(2)) { setStep(2); return; }
 
     setIsSubmitting(true);
 
@@ -434,6 +472,14 @@ export function AssignmentCreationModal({
           activeText: 'text-teal-800 dark:text-teal-200'
         };
     }
+  };
+
+  // Normalize preview summary counts to support different backend shapes
+  const getCounts = (summary) => {
+    const total = summary?.totalCount ?? summary?.totalRecords ?? summary?.total ?? (Array.isArray(summary?.preview) ? summary.preview.length : 0) ?? 0;
+    const newCount = summary?.newCount ?? summary?.created ?? 0;
+    const existingCount = summary?.existingCount ?? summary?.existing ?? summary?.duplicates ?? 0;
+    return { total, newCount, existingCount };
   };
 
   if (!isOpen) return null;
@@ -685,6 +731,7 @@ export function AssignmentCreationModal({
                         type="datetime-local"
                         value={formData.endDate}
                         onChange={(e) => handleInputChange('endDate', e.target.value)}
+                        min={formData.startDate || undefined}
                         className={`
                           w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                           bg-white dark:bg-gray-700 
@@ -740,6 +787,29 @@ export function AssignmentCreationModal({
                         {validationErrors.weight}
                       </p>
                     )}
+                    {!validationErrors.weight && (
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Total weight across all assignments for a course must not exceed 100%.
+                      </p>
+                    )}
+                    {/* Course total weight indicator */}
+                    <div className="mt-1 text-xs">
+                      {courseWeightTotal.loading ? (
+                        <span className="text-gray-500 dark:text-gray-400">Calculating current course total…</span>
+                      ) : courseWeightTotal.error ? null : (
+                        (() => {
+                          const base = Number(courseWeightTotal.value || 0);
+                          const curr = Number(formData.weight || 0);
+                          const projected = base + curr;
+                          const over = projected > 100;
+                          return (
+                            <span className={over ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}>
+                              Current course total (excluding this): {base}% · Projected total: {projected}%{over ? ' — exceeds 100%' : ''}
+                            </span>
+                          );
+                        })()
+                      )}
+                    </div>
                     <div className="mt-2">
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div 
@@ -768,9 +838,22 @@ export function AssignmentCreationModal({
                   </h4>
                 </div>
 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Upload a CSV file with student information. This step is optional for initial setup. The CSV data will be uploaded after the assignment is created.
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Upload a CSV file with student information. This step is required. The CSV data will be uploaded right after the assignment is created.
                 </p>
+                <div className="mb-4 text-xs">
+                  <a href="/csv-templates/student_template.csv" download className="text-blue-600 dark:text-blue-400 hover:underline mr-3">
+                    <i className="fas fa-download mr-1"></i>Download Student CSV template
+                  </a>
+                </div>
+                {validationErrors.studentCsv && (
+                  <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      <i className="fas fa-exclamation-triangle mr-2"></i>
+                      {validationErrors.studentCsv}
+                    </p>
+                  </div>
+                )}
 
 {!csvData.student.previewData ? (
                   !csvData.student.file ? (
@@ -889,34 +972,32 @@ export function AssignmentCreationModal({
                           Upload Successful
                         </span>
                       </div>
-                      <div className="text-sm text-green-600 dark:text-green-400">
-                        <span className="mr-3">Total: {csvData.student.previewData?.totalCount || 0}</span>
-                        <span className="mr-3 text-blue-600">New: {csvData.student.previewData?.newCount || 0}</span>
-                        <span className="text-orange-600">Existing: {csvData.student.previewData?.existingCount || 0}</span>
-                      </div>
+                      {(() => { const c = getCounts(csvData.student.previewData); return (
+                        <div className="text-sm text-green-600 dark:text-green-400">
+                          <span className="mr-3">Total: {c.total}</span>
+                          {c.newCount ? <span className="mr-3 text-blue-600">New: {c.newCount}</span> : null}
+                          {c.existingCount ? <span className="text-orange-600">Existing: {c.existingCount}</span> : null}
+                        </div>
+                      ); })()}
                     </div>
 
                     {/* Statistics Summary */}
-                    <div className="grid grid-cols-3 gap-3 mb-3">
-                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                          {csvData.student.previewData?.newCount || 0}
+                    {(() => { const c = getCounts(csvData.student.previewData); return (
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{c.newCount}</div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400">New Students</div>
                         </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">New Students</div>
-                      </div>
-                      <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                          {csvData.student.previewData?.existingCount || 0}
+                        <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{c.existingCount}</div>
+                          <div className="text-xs text-orange-600 dark:text-orange-400">Existing Students</div>
                         </div>
-                        <div className="text-xs text-orange-600 dark:text-orange-400">Existing Students</div>
-                      </div>
-                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                          {csvData.student.previewData?.totalCount || 0}
+                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-green-600 dark:text-green-400">{c.total}</div>
+                          <div className="text-xs text-green-600 dark:text-green-400">Total</div>
                         </div>
-                        <div className="text-xs text-green-600 dark:text-green-400">Total</div>
                       </div>
-                    </div>
+                    ); })()}
                     
                     <button
                       type="button"
@@ -956,9 +1037,22 @@ export function AssignmentCreationModal({
                   </h4>
                 </div>
                 
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Upload a CSV file with examiner information. This step is optional for initial setup. The CSV data will be uploaded after the assignment is created.
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Upload a CSV file with examiner information. This step is required. The CSV data will be uploaded right after the assignment is created.
                 </p>
+                <div className="mb-4 text-xs">
+                  <a href="/csv-templates/examiner_template.csv" download className="text-blue-600 dark:text-blue-400 hover:underline mr-3">
+                    <i className="fas fa-download mr-1"></i>Download Examiner CSV template
+                  </a>
+                </div>
+                {validationErrors.examinerCsv && (
+                  <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      <i className="fas fa-exclamation-triangle mr-2"></i>
+                      {validationErrors.examinerCsv}
+                    </p>
+                  </div>
+                )}
 
 {!csvData.examiner.previewData ? (
                   !csvData.examiner.file ? (
@@ -1077,34 +1171,32 @@ export function AssignmentCreationModal({
                           Upload Successful
                         </span>
                       </div>
-                      <div className="text-sm text-green-600 dark:text-green-400">
-                        <span className="mr-3">Total: {csvData.examiner.previewData?.totalCount || 0}</span>
-                        <span className="mr-3 text-blue-600">New: {csvData.examiner.previewData?.newCount || 0}</span>
-                        <span className="text-orange-600">Existing: {csvData.examiner.previewData?.existingCount || 0}</span>
-                      </div>
+                      {(() => { const c = getCounts(csvData.examiner.previewData); return (
+                        <div className="text-sm text-green-600 dark:text-green-400">
+                          <span className="mr-3">Total: {c.total}</span>
+                          {c.newCount ? <span className="mr-3 text-blue-600">New: {c.newCount}</span> : null}
+                          {c.existingCount ? <span className="text-orange-600">Existing: {c.existingCount}</span> : null}
+                        </div>
+                      ); })()}
                     </div>
 
                     {/* Statistics Summary for Examiners */}
-                    <div className="grid grid-cols-3 gap-3 mb-3">
-                      <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                          {csvData.examiner.previewData?.newCount || 0}
+                    {(() => { const c = getCounts(csvData.examiner.previewData); return (
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{c.newCount}</div>
+                          <div className="text-xs text-blue-600 dark:text-blue-400">New Examiners</div>
                         </div>
-                        <div className="text-xs text-blue-600 dark:text-blue-400">New Examiners</div>
-                      </div>
-                      <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
-                          {csvData.examiner.previewData?.existingCount || 0}
+                        <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{c.existingCount}</div>
+                          <div className="text-xs text-orange-600 dark:text-orange-400">Existing Examiners</div>
                         </div>
-                        <div className="text-xs text-orange-600 dark:text-orange-400">Existing Examiners</div>
-                      </div>
-                      <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
-                        <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                          {csvData.examiner.previewData?.totalCount || 0}
+                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                          <div className="text-xl font-bold text-green-600 dark:text-green-400">{c.total}</div>
+                          <div className="text-xs text-green-600 dark:text-green-400">Total</div>
                         </div>
-                        <div className="text-xs text-green-600 dark:text-green-400">Total</div>
                       </div>
-                    </div>
+                    ); })()}
                     
                     <button
                       type="button"
@@ -1325,7 +1417,7 @@ export function AssignmentCreationModal({
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={isSubmitting}
+                disabled={isSubmitting || (step === 1 && !isStep1Ready()) || (step === 2 && !isStep2Ready())}
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
               >
                 Next
