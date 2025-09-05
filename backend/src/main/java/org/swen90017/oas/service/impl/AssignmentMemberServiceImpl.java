@@ -147,6 +147,9 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
             user.setUserName(StringUtils.isNotBlank(request.getFullName()) ? request.getFullName() : localPart(request.getEmail()));
             user.setStatus(org.swen90017.oas.enums.UserStatus.INACTIVE.code());
             user.setRegistrationStatus(org.swen90017.oas.enums.RegistrationStatus.Pending.code());
+            user.setInvitedAt(new java.util.Date());
+            // Align with CSV import default password
+            user.setPassword("123456");
             sysUserMapper.insert(user);
             created = true;
         }
@@ -178,6 +181,7 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 SysExaminer ex = new SysExaminer();
                 ex.setUserId(user.getUserId());
                 ex.setToken(generateToken());
+                ex.setSisUserId(localPart(request.getEmail()));
                 examinerMapper.insert(ex);
                 emailService.sendExaminerActivationEmail(Collections.singletonList(ex));
                 inviteSent = true;
@@ -187,6 +191,9 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 st.setUserId(user.getUserId());
                 st.setToken(generateToken());
                 st.setSisUserId(localPart(request.getEmail()));
+                if (StringUtils.isNotBlank(request.getStudentId())) {
+                    st.setStudentNumber(request.getStudentId());
+                }
                 // direct insert via mapper
                 sysStudentMapper.insert(st);
                 emailService.sendActivationEmail(Collections.singletonList(st));
