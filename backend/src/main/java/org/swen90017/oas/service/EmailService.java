@@ -8,7 +8,7 @@ import org.swen90017.oas.entity.SysExaminer;
 import java.util.List;
 
 public interface EmailService {
-    void sendActivationEmail(List<SysStudent> sysStudent);
+    void sendActivationEmail(List<SysStudent> sysStudent, String reason);
 
     void sendExaminerActivationEmail(List<SysExaminer> examiners);
 

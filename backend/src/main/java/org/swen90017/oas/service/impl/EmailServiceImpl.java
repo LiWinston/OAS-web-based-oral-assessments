@@ -22,7 +22,7 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    public void sendActivationEmail(List<SysStudent> sysStudents) {
+    public void sendActivationEmail(List<SysStudent> sysStudents, String reason) {
         int batchSize = 30;
         List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
 
@@ -35,7 +35,11 @@ public class EmailServiceImpl implements EmailService {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(s.getSisUserId() + "@student.unimelb.edu.au");
             message.setSubject("Account Activation");
-            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + s.getToken());
+            String reasonText = (reason == null || reason.trim().isEmpty()) ? "You have been invited to join an assessment." : reason.trim();
+            message.setText(
+                    "Reason: " + reasonText + "\n" +
+                    "Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + s.getToken()
+            );
             batch.add(message);
 
             if (batch.size() >= batchSize) {
