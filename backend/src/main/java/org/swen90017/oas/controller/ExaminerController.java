@@ -15,6 +15,7 @@ import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.ExaminerSelfService;
+import org.swen90017.oas.service.SessionService;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -25,6 +26,8 @@ public class ExaminerController {
 
     @Autowired
     private ExaminerSelfService examinerSelfService;
+    @Autowired
+    private SessionService sessionService;
 
     @Operation(summary = "List assignments available to examiner")
     @GetMapping("/api/examiners/{examinerId}/assignments")
@@ -74,6 +77,26 @@ public class ExaminerController {
             @RequestParam("examinerId") Long examinerId) {
         ExaminerUnassignResponseDTO response = examinerSelfService.unassign(assignmentId, slotId, examinerId);
         return Result.success(response);
+    }
+
+    @Operation(summary = "Claim a session by examiner")
+    @PostMapping("/api/examiners/{examinerId}/sessions/{sessionId}/claim")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.UPDATE)
+    public Result<Boolean> claimSession(
+            @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
+            @Parameter(description = "Session ID") @PathVariable Long sessionId) {
+        Boolean ok = sessionService.assignExaminer(sessionId, examinerId, examinerId);
+        return Result.success(ok);
+    }
+
+    @Operation(summary = "Unclaim a session by examiner")
+    @DeleteMapping("/api/examiners/{examinerId}/sessions/{sessionId}/claim")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.DELETE)
+    public Result<Boolean> unclaimSession(
+            @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
+            @Parameter(description = "Session ID") @PathVariable Long sessionId) {
+        Boolean ok = sessionService.unassignExaminer(sessionId, examinerId);
+        return Result.success(ok);
     }
 }
 

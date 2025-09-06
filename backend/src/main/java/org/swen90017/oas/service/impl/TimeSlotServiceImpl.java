@@ -45,6 +45,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
     private final SlotSessionMapper slotSessionMapper;
     private final AssignmentSessionConfigMapper sessionConfigMapper;
     private final TimeSlotExaminersMapper timeSlotExaminersMapper;
+    private final org.swen90017.oas.mapper.SessionExaminerMapper sessionExaminerMapper;
     private final AssignmentMapper assignmentMapper;
     private final SysUserMapper sysUserMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
@@ -112,6 +113,9 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 dateInfo.setFullyStaffed(0);
                 dateInfo.setPartialStaffed(0);
                 dateInfo.setNoStaffed(0);
+                dateInfo.setBookableSessions(0);
+                dateInfo.setFullSessions(0);
+                dateInfo.setUnstaffedSessions(0);
                 result.put(dateKey, dateInfo);
             }
 
@@ -134,6 +138,45 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             }
         }
 
+        // 追加：会话级聚合（不依赖 timeslot）。按月份时间窗查询会话，统计可订/已满/未配员
+        LocalDateTime rangeStart = startDate.atStartOfDay();
+        LocalDateTime rangeEnd = endDate.atTime(23,59,59);
+        List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, rangeStart, rangeEnd);
+        for (SlotSession s : sessions) {
+            String key = s.getStartAt().toLocalDate().toString();
+            CalendarResponseDTO.DateInfoDTO dateInfo = result.get(key);
+            if (dateInfo == null) {
+                dateInfo = new CalendarResponseDTO.DateInfoDTO();
+                dateInfo.setTimeSlots(0);
+                dateInfo.setSessions(0);
+                dateInfo.setFullyStaffed(0);
+                dateInfo.setPartialStaffed(0);
+                dateInfo.setNoStaffed(0);
+                dateInfo.setBookableSessions(0);
+                dateInfo.setFullSessions(0);
+                dateInfo.setUnstaffedSessions(0);
+                result.put(key, dateInfo);
+            }
+            // 计算会话级三态
+            boolean published = s.getIsPublishedToStudent() == null ? true : s.getIsPublishedToStudent();
+            List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+            boolean staffed = examiners != null && !examiners.isEmpty();
+            boolean full;
+            if (s.getCapacityGroups() != null && s.getCapacityGroups() > 0) {
+                int enrolled = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
+                full = enrolled >= s.getCapacityGroups();
+            } else {
+                full = s.getStatus() == org.swen90017.oas.enums.SessionStatus.BOOKED || s.getStatus() == org.swen90017.oas.enums.SessionStatus.BLOCKED;
+            }
+            boolean available = published && staffed && !full && s.getStatus() == org.swen90017.oas.enums.SessionStatus.AVAILABLE;
+            if (!staffed) {
+                dateInfo.setUnstaffedSessions(dateInfo.getUnstaffedSessions() + 1);
+            } else if (full) {
+                dateInfo.setFullSessions(dateInfo.getFullSessions() + 1);
+            } else if (available) {
+                dateInfo.setBookableSessions(dateInfo.getBookableSessions() + 1);
+            }
+        }
 
         CalendarResponseDTO dto = new CalendarResponseDTO();
         dto.setMonth(month.toString());

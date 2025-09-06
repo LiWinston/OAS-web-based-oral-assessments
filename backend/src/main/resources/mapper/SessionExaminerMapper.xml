@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.SessionExaminerMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO session_examiners (session_id, examiner_id, assigned_at, assigned_by)
+        VALUES
+        <foreach collection="list" item="e" separator=",">
+            (#{e.sessionId}, #{e.examinerId}, #{e.assignedAt}, #{e.assignedBy})
+        </foreach>
+        ON DUPLICATE KEY UPDATE assigned_at = VALUES(assigned_at), assigned_by = VALUES(assigned_by)
+    </insert>
+
+    <select id="listExaminerIdsBySession" resultType="long">
+        SELECT examiner_id
+        FROM session_examiners
+        WHERE session_id = #{sessionId}
+    </select>
+
+    <delete id="deleteOne">
+        DELETE FROM session_examiners
+        WHERE session_id = #{sessionId}
+          AND examiner_id = #{examinerId}
+    </delete>
+
+    <!-- 查找某考官与给定时间窗冲突的 session（会话级冲突校验） -->
+    <select id="findConflictedSessionsForExaminer" resultType="long">
+        SELECT ss.session_id
+        FROM session_examiners se
+                 JOIN slot_sessions ss ON ss.session_id = se.session_id
+        WHERE se.examiner_id = #{examinerId}
+          AND NOT (ss.end_at &lt;= #{startAt} OR ss.start_at &gt;= #{endAt})
+    </select>
+
+</mapper>
+
+

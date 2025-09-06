@@ -4,11 +4,11 @@
 
     <insert id="batchInsert">
         INSERT INTO slot_sessions
-        (slot_id, session_number, start_at, end_at, status, created_at, updated_at)
+        (assignment_id, slot_id, session_number, start_at, end_at, status, venue_id, capacity_groups, enrolled_groups, assign_mode, is_published_to_examiner, is_published_to_student, is_staffed, created_at, updated_at)
         VALUES
         <foreach collection="list" item="s" separator=",">
-            (#{s.slotId}, #{s.sessionNumber}, #{s.startAt}, #{s.endAt}, #{s.status},
-            NOW(), NOW())
+            (#{s.assignmentId}, #{s.slotId}, #{s.sessionNumber}, #{s.startAt}, #{s.endAt}, #{s.status},
+            #{s.venueId}, #{s.capacityGroups}, #{s.enrolledGroups}, #{s.assignMode}, #{s.isPublishedToExaminer}, #{s.isPublishedToStudent}, #{s.isStaffed}, NOW(), NOW())
         </foreach>
     </insert>
 
@@ -17,6 +17,15 @@
         FROM slot_sessions
         WHERE slot_id = #{slotId}
         ORDER BY session_number ASC
+    </select>
+    <!-- 按 assignment + 时间范围列出 sessions -->
+    <select id="listSessionsByAssignmentAndRange" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        WHERE ss.assignment_id = #{assignmentId}
+          <if test="startAt != null">AND ss.start_at &gt;= #{startAt}</if>
+          <if test="endAt != null">AND ss.end_at &lt;= #{endAt}</if>
+        ORDER BY ss.start_at ASC, ss.session_number ASC
     </select>
 
     <delete id="deleteBySlotId">
@@ -76,10 +85,29 @@
     <select id="findAvailableSessionsByAssignment" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT ss.*
         FROM slot_sessions ss
-        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
-        WHERE ts.assignment_id = #{assignmentId}
+        WHERE ss.assignment_id = #{assignmentId}
           AND ss.status = 'available'
-        ORDER BY ts.start_at ASC, ss.session_number ASC
+        ORDER BY ss.start_at ASC, ss.session_number ASC
+    </select>
+
+    <!-- 按 assignment 列出所有 sessions（兼容：通过 time_slots 关联） -->
+    <select id="listSessionsByAssignment" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM slot_sessions ss
+        WHERE ss.assignment_id = #{assignmentId}
+        ORDER BY ss.start_at ASC, ss.session_number ASC
+    </select>
+
+    <!-- 统计对学生发布但未配员的会话数：is_published_to_student=1 且 session_examiners 无记录 -->
+    <select id="countUnstaffedPublishedSessions" resultType="int">
+        SELECT COUNT(1)
+        FROM slot_sessions ss
+        LEFT JOIN (
+          SELECT session_id, COUNT(*) AS c FROM session_examiners GROUP BY session_id
+        ) se ON se.session_id = ss.session_id
+        WHERE ss.assignment_id = #{assignmentId}
+          AND ss.is_published_to_student = 1
+          AND (se.c IS NULL OR se.c = 0)
     </select>
 
     <select id="findActiveBookingsByStudent" resultType="org.swen90017.oas.entity.SlotSession">

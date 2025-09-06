@@ -29,6 +29,23 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     
     List<SlotSession> findAvailableSessionsByAssignment(@Param("assignmentId") Long assignmentId);
     
+    /**
+     * 按 assignment 列出所有 sessions（兼容阶段：通过 time_slots 关联）
+     */
+    List<SlotSession> listSessionsByAssignment(@Param("assignmentId") Long assignmentId);
+    
+    /**
+     * 统计某作业下标记对学生发布但未配员的会话数（会话级发布校验）
+     */
+    int countUnstaffedPublishedSessions(@Param("assignmentId") Long assignmentId);
+
+    /**
+     * 按日期范围查询 assignment 下 sessions（用于日历/学生视图）
+     */
+    List<SlotSession> listSessionsByAssignmentAndRange(@Param("assignmentId") Long assignmentId,
+                                                       @Param("startAt") java.time.LocalDateTime startAt,
+                                                       @Param("endAt") java.time.LocalDateTime endAt);
+    
     List<SlotSession> findActiveBookingsByStudent(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
     
     /**
