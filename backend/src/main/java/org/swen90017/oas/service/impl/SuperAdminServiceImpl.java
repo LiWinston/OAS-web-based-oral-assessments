@@ -252,13 +252,13 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
             email = dto.getEmail();
         } else if (dto.getSisUserId() != null && !dto.getSisUserId().isEmpty()) {
-            email = dto.getSisLoginId() + "@unimelb.edu.au";
+            email = dto.getSisLoginId() + "@gmail.com";
         } else {
             throw new BusinessException("Email and login id cannot be both null", CommonError.BAD_REQUEST.getCode());
         }
         // Validate email domain
-        if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
-            throw new BusinessException("Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
+        if (email == null || !email.toLowerCase().endsWith("@gmail.com") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")) {
+            throw new BusinessException("Invalid email domain (must be @gmail.com or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
         }
 
         // Check email uniqueness

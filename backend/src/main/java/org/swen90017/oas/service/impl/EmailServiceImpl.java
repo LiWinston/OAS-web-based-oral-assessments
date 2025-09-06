@@ -125,7 +125,7 @@ public class EmailServiceImpl implements EmailService {
                 continue;
             }
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(ex.getSisUserId() + "@unimelb.edu.au");
+            message.setTo(ex.getSisUserId() + "@gmail.com");
             message.setSubject("Examiner Account Activation");
             message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + ex.getToken());
             batch.add(message);
@@ -149,7 +149,7 @@ public class EmailServiceImpl implements EmailService {
             // Prefer SIS Login ID if provided (admin CSV flow), fallback to email
             String to = null;
             if (a.getSisLoginId() != null && !a.getSisLoginId().isEmpty()) {
-                to = a.getSisLoginId() + "@unimelb.edu.au";
+                to = a.getSisLoginId() + "@gmail.com";
             } else if (a.getEmail() != null && !a.getEmail().isEmpty()) {
                 to = a.getEmail();
             }
