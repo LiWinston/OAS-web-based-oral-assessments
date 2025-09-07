@@ -1,0 +1,542 @@
+{
+  "info": {
+    "name": "Course Admin Timeslots & Schedule API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "course-admin-tests-001"
+  },
+  "item": [
+    {
+      "name": "1. 获取作业会话配置",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/session-config",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "session-config"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应包含 sessionLength\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"sessionLength\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 更新作业会话配置",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/session-config",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "session-config"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionLength\": 30,\n  \"gapTime\": 5,\n  \"examinersPerSession\": 2\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回更新后的参数\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"sessionLength\", 30);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 获取时段列表",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"应返回 timeSlots\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"timeSlots\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 批量创建时段",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots/batch",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "batch"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"timeSlots\": [\n    {\n      \"date\": \"2025-04-15\",\n      \"startTime\": \"09:00\",\n      \"endTime\": \"10:30\",\n      \"sessionCount\": 3,\n      \"venue\": \"Engineering Building, Room 405\"\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"应返回 timeSlotsCreated\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"timeSlotsCreated\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 更新时段",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots/{timeSlotId}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "{timeSlotId}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-04-15\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:30\",\n  \"sessionCount\": 3,\n  \"venue\": \"ENG Building, Room 406\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. 复制时段",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/duplicate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "{timeSlotId}",
+            "duplicate"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-04-16\",\n  \"startTime\": \"14:00\",\n  \"clearExaminers\": true\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 201\", () => pm.response.to.have.status(201));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. 删除时段",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"timeSlotIds\": [\n    1,\n    2,\n    3\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. 获取考官列表",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/examiners",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "examiners"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"应返回 examiners\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"examiners\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. 更新考官 session 限制",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/examiners/session-limits",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "examiners",
+            "session-limits"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"examinerLimits\": [\n    {\n      \"examinerId\": 1,\n      \"maxSessions\": 40\n    },\n    {\n      \"examinerId\": 2,\n      \"maxSessions\": 35\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. 为时段分配考官",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/examiners",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "{timeSlotId}",
+            "examiners"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"examinerIds\": [\n    1,\n    2\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. 获取排程状态",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/schedule/status",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "schedule",
+            "status"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"应返回 scheduleStatus\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"scheduleStatus\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "12. 发布排程",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/schedule/release",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "schedule",
+            "release"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"notifyStudents\": true,\n  \"notifyExaminers\": true,\n  \"releaseMessage\": \"Assessment schedule is now available for booking.\",\n  \"reschedulingEnabled\": true,\n  \"bookingDeadline\": \"2025-04-12T17:00:00+10:00\",\n  \"lockoutEnabled\": true,\n  \"lockoutWindowHours\": 24\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "13. 获取日历数据",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/admin/assignments/{assignmentId}/calendar?month=2025-08",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "assignments",
+            "{assignmentId}",
+            "calendar?month=2025-08"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"应返回 month 字段\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"month\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}
