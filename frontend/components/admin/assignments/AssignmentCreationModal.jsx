@@ -1,50 +1,49 @@
+"use client";
 
-'use client';
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "../../ui/button";
+import { useNotification } from "../../../hooks/useNotification";
+import { assignmentService } from "../../../services/assignmentService";
 
-import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '../../ui/button';
-import { useNotification } from '../../../hooks/useNotification';
-import { assignmentService } from '../../../services/assignmentService';
-
-export function AssignmentCreationModal({ 
-  isOpen, 
-  onClose, 
-  onAssignmentCreated, 
+export function AssignmentCreationModal({
+  isOpen,
+  onClose,
+  onAssignmentCreated,
   courseId,
-  courseName = 'Software Project Management',
-  courseCode = 'COMP90082',
-  courseSemester = '2025 Semester 2',
+  courseName = "Software Project Management",
+  courseCode = "COMP90082",
+  courseSemester = "2025 Semester 2",
   // API functions passed from parent
   createAssignment,
   previewStudentCsv,
   previewExaminerCsv,
   uploadStudentCsv,
-  uploadExaminerCsv
+  uploadExaminerCsv,
 }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     courseId,
-    name: '',
-    description: '',
-    type: 'individual',
-    startDate: '',
-    endDate: '',
-    weight: 25
+    name: "",
+    description: "",
+    type: "individual",
+    startDate: "",
+    endDate: "",
+    weight: 25,
   });
 
   // Helper function to format datetime for input[type="datetime-local"]
   const formatDateTimeForInput = (date) => {
-    if (!date) return '';
+    if (!date) return "";
     const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
-    
+    if (isNaN(d.getTime())) return "";
+
     const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
@@ -52,27 +51,34 @@ export function AssignmentCreationModal({
   const [csvData, setCsvData] = useState({
     student: {
       file: null,
-      type: 'student',
-      previewData: null
+      type: "student",
+      previewData: null,
     },
     examiner: {
       file: null,
-      previewData: null
-    }
+      previewData: null,
+    },
   });
 
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdAssignment, setCreatedAssignment] = useState(null);
+  const [createdAssignment, setCreatedAssignment] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [csvUploadStatus, setCsvUploadStatus] = useState({
     student: { uploading: false, error: null },
-    examiner: { uploading: false, error: null }
+    examiner: { uploading: false, error: null },
   });
-  const [courseWeightTotal, setCourseWeightTotal] = useState({ loading: false, value: null, error: null });
+  const [courseWeightTotal, setCourseWeightTotal] = useState({
+    loading: false,
+    value: null,
+    error: null,
+  });
   const fileInputRef = useRef(null);
+  const contentRef = useRef(null);
   const { showNotification } = useNotification();
+  const router = useRouter();
   const router = useRouter();
 
   // Reset form when modal opens
@@ -81,16 +87,16 @@ export function AssignmentCreationModal({
       setStep(1);
       setFormData({
         courseId,
-        name: '',
-        description: '',
-        type: 'individual',
-        startDate: '',
-        endDate: '',
-        weight: 25
+        name: "",
+        description: "",
+        type: "individual",
+        startDate: "",
+        endDate: "",
+        weight: 25,
       });
       setCsvData({
-        student: { file: null, type: 'student', previewData: null },
-        examiner: { file: null, previewData: null }
+        student: { file: null, type: "student", previewData: null },
+        examiner: { file: null, previewData: null },
       });
       setValidationErrors({});
       setShowSuccess(false);
@@ -101,13 +107,25 @@ export function AssignmentCreationModal({
           const res = await assignmentService.getAssignmentStats(courseId);
           if (res?.success && res?.data) {
             // Support both shapes: {data: { totalWeight }} or direct values
-            const total = res.data.totalWeight ?? res.data.total_weight ?? res.data.total ?? 0;
+            const total =
+              res.data.totalWeight ??
+              res.data.total_weight ??
+              res.data.total ??
+              0;
             setCourseWeightTotal({ loading: false, value: total, error: null });
           } else {
-            setCourseWeightTotal({ loading: false, value: null, error: res?.message || 'Failed to load course stats' });
+            setCourseWeightTotal({
+              loading: false,
+              value: null,
+              error: res?.message || "Failed to load course stats",
+            });
           }
         } catch (e) {
-          setCourseWeightTotal({ loading: false, value: null, error: 'Failed to load course stats' });
+          setCourseWeightTotal({
+            loading: false,
+            value: null,
+            error: "Failed to load course stats",
+          });
         }
       })();
     }
@@ -115,25 +133,44 @@ export function AssignmentCreationModal({
 
   // Update CSV type when assignment type changes
   useEffect(() => {
-    if (formData.type === 'group' || formData.type === 'mixed') {
-      setCsvData(prev => ({
+    if (formData.type === "group" || formData.type === "mixed") {
+      setCsvData((prev) => ({
         ...prev,
-        student: { ...prev.student, type: 'group' }
+        student: { ...prev.student, type: "group" },
       }));
     } else {
-      setCsvData(prev => ({
+      setCsvData((prev) => ({
         ...prev,
-        student: { ...prev.student, type: 'student' }
+        student: { ...prev.student, type: "student" },
       }));
     }
   }, [formData.type]);
+
+  // Ensure modal scrolls to top when changing steps
+  useEffect(() => {
+    if (contentRef.current) {
+      try {
+        contentRef.current.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (e) {
+        // Fallback for environments without smooth scroll support
+        contentRef.current.scrollTop = 0;
+      }
+    }
+  }, [step]);
+
+  // When opening the modal, make sure content is at the top
+  useEffect(() => {
+    if (isOpen && contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [isOpen]);
 
   // Calculate step completion
   const getStepCompletion = () => {
     const completion = {
       1: false,
       2: false,
-      3: false
+      3: false,
     };
 
     // Simple logic: current step and all previous steps are complete
@@ -151,30 +188,36 @@ export function AssignmentCreationModal({
     switch (stepNumber) {
       case 1:
         if (!formData.name.trim()) {
-          errors.name = 'Assignment name is required';
+          errors.name = "Assignment name is required";
         }
         if (!formData.startDate) {
-          errors.startDate = 'Start date is required';
+          errors.startDate = "Start date is required";
         }
         if (!formData.endDate) {
-          errors.endDate = 'End date is required';
+          errors.endDate = "End date is required";
         }
-        if (formData.startDate && formData.endDate && new Date(formData.startDate) > new Date(formData.endDate)) {
-          errors.endDate = 'End date must be after start date';
+        if (
+          formData.startDate &&
+          formData.endDate &&
+          new Date(formData.startDate) > new Date(formData.endDate)
+        ) {
+          errors.endDate = "End date must be after start date";
         }
-        if (!formData.weight || formData.weight === '') {
-          errors.weight = 'Weight is required';
+        if (!formData.weight || formData.weight === "") {
+          errors.weight = "Weight is required";
         } else if (formData.weight < 0 || formData.weight > 100) {
-          errors.weight = 'Weight must be between 0 and 100';
+          errors.weight = "Weight must be between 0 and 100";
         }
         break;
       case 2:
         // Require both CSV previews to be successful
         if (!csvData.student.previewData) {
-          errors.studentCsv = 'Please upload and validate the Student CSV before continuing';
+          errors.studentCsv =
+            "Please upload and validate the Student CSV before continuing";
         }
         if (!csvData.examiner.previewData) {
-          errors.examinerCsv = 'Please upload and validate the Examiner CSV before continuing';
+          errors.examinerCsv =
+            "Please upload and validate the Examiner CSV before continuing";
         }
         break;
       case 3:
@@ -191,28 +234,31 @@ export function AssignmentCreationModal({
     if (!formData.name?.trim()) return false;
     if (!formData.startDate || !formData.endDate) return false;
     if (new Date(formData.startDate) > new Date(formData.endDate)) return false;
-    if (formData.weight === '' || formData.weight == null) return false;
+    if (formData.weight === "" || formData.weight == null) return false;
     const w = Number(formData.weight);
     if (Number.isNaN(w)) return false;
     return w >= 0 && w <= 100;
   };
 
   const isStep2Ready = () => {
-    return Boolean(csvData.student.previewData) && Boolean(csvData.examiner.previewData);
+    return (
+      Boolean(csvData.student.previewData) &&
+      Boolean(csvData.examiner.previewData)
+    );
   };
 
   // Handle input changes
   const handleInputChange = (field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
+
     // Clear validation error when user starts typing
     if (validationErrors[field]) {
-      setValidationErrors(prev => ({
+      setValidationErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: "",
       }));
     }
   };
@@ -221,19 +267,19 @@ export function AssignmentCreationModal({
   const handleFileSelect = async (file) => {
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-      showNotification('error', 'Please upload a CSV file');
+    if (!file.name.endsWith(".csv")) {
+      showNotification("error", "Please upload a CSV file");
       return;
     }
 
-    setCsvData(prev => ({
+    setCsvData((prev) => ({
       ...prev,
-      student: { ...prev.student, file: file }
+      student: { ...prev.student, file: file },
     }));
 
-    setCsvUploadStatus(prev => ({
+    setCsvUploadStatus((prev) => ({
       ...prev,
-      student: { uploading: false, error: null }
+      student: { uploading: false, error: null },
     }));
   };
 
@@ -241,19 +287,19 @@ export function AssignmentCreationModal({
   const handleExaminerFileSelect = async (file) => {
     if (!file) return;
 
-    if (!file.name.endsWith('.csv')) {
-      showNotification('error', 'Please upload a CSV file');
+    if (!file.name.endsWith(".csv")) {
+      showNotification("error", "Please upload a CSV file");
       return;
     }
 
-    setCsvData(prev => ({
+    setCsvData((prev) => ({
       ...prev,
-      examiner: { ...prev.examiner, file: file }
+      examiner: { ...prev.examiner, file: file },
     }));
 
-    setCsvUploadStatus(prev => ({
+    setCsvUploadStatus((prev) => ({
       ...prev,
-      examiner: { uploading: false, error: null }
+      examiner: { uploading: false, error: null },
     }));
   };
 
@@ -261,84 +307,92 @@ export function AssignmentCreationModal({
   const handleCsvPreview = async (type) => {
     if (type === "student") {
       if (!csvData.student.file) {
-        showNotification('error', 'Please select a CSV file first');
+        showNotification("error", "Please select a CSV file first");
         return;
       }
 
-      setCsvUploadStatus(prev => ({
+      setCsvUploadStatus((prev) => ({
         ...prev,
-        student: { ...prev.student, uploading: true, error: null }
+        student: { ...prev.student, uploading: true, error: null },
       }));
 
       try {
         // Use parent's preview function with simplified parameters
-        const result = await previewStudentCsv(csvData.student.file, csvData.student.type);
+        const result = await previewStudentCsv(
+          csvData.student.file,
+          csvData.student.type
+        );
 
-        setCsvUploadStatus(prev => ({
+        setCsvUploadStatus((prev) => ({
           ...prev,
           student: { ...prev.student, uploading: false, error: null },
         }));
 
         // Store preview data
-        setCsvData(prev => ({
+        setCsvData((prev) => ({
           ...prev,
-          student: { ...prev.student, previewData: result.data }
+          student: { ...prev.student, previewData: result.data },
         }));
 
-        showNotification('success', 'CSV file validated successfully');
+        showNotification("success", "CSV file validated successfully");
       } catch (error) {
         console.error("CSV upload error:", error);
-        
+
         // 检测格式错误
-        const isFormatError = error.code === "2002" || 
-                             error.data === "CSV header does not match expected format" ||
-                             error.data === "CSV read failed";
-        
+        const isFormatError =
+          error.code === "2002" ||
+          error.data === "CSV header does not match expected format" ||
+          error.data === "CSV read failed";
+
         const errorMessage = isFormatError ? "Error Format" : error.message;
-        
-        setCsvUploadStatus(prev => ({
+
+        setCsvUploadStatus((prev) => ({
           ...prev,
           student: { ...prev.student, uploading: false, error: errorMessage },
         }));
       }
     } else if (type === "examiner") {
       if (!csvData.examiner.file) {
-        showNotification('error', 'Please select a CSV file first');
+        showNotification("error", "Please select a CSV file first");
         return;
       }
 
-      setCsvUploadStatus(prev => ({
+      setCsvUploadStatus((prev) => ({
         ...prev,
-        examiner: { ...prev.examiner, uploading: true, error: null }
+        examiner: { ...prev.examiner, uploading: true, error: null },
       }));
 
       try {
         // Use parent's preview function with simplified parameters (same as student but with type 'examiner')
-        const result = await previewStudentCsv(csvData.examiner.file, 'examiner');
+        const result = await previewStudentCsv(
+          csvData.examiner.file,
+          "examiner"
+        );
 
-        setCsvUploadStatus(prev => ({
+        setCsvUploadStatus((prev) => ({
           ...prev,
           examiner: { ...prev.examiner, uploading: false, error: null },
         }));
 
         // Store preview data
-        setCsvData(prev => ({
+        setCsvData((prev) => ({
           ...prev,
-          examiner: { ...prev.examiner, previewData: result.data }
+          examiner: { ...prev.examiner, previewData: result.data },
         }));
 
-        showNotification('success', 'Examiner CSV file validated successfully');
+        showNotification("success", "Examiner CSV file validated successfully");
       } catch (error) {
         console.error("Examiner CSV upload error:", error);
-        
+
         // 检测格式错误
-        const isFormatError = error.code === "2002" || 
-                             error.data === "CSV header does not match expected format" ||
-                             error.data === "CSV read failed";
-        
+        const isFormatError =
+          error.code === "2002" ||
+          error.data === "CSV header does not match expected format" ||
+          error.data === "CSV read failed";
+
         const errorMessage = isFormatError ? "Error Format" : error.message;
-        
-        setCsvUploadStatus(prev => ({
+
+        setCsvUploadStatus((prev) => ({
           ...prev,
           examiner: { ...prev.examiner, uploading: false, error: errorMessage },
         }));
@@ -360,7 +414,7 @@ export function AssignmentCreationModal({
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     handleFileSelect(file);
   };
@@ -374,7 +428,7 @@ export function AssignmentCreationModal({
   const handleExaminerDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files[0];
     handleExaminerFileSelect(file);
   };
@@ -393,8 +447,14 @@ export function AssignmentCreationModal({
   // Handle form submission
   const handleSubmit = async (isDraft = false) => {
     // Step validations
-    if (!validateStep(1)) { setStep(1); return; }
-    if (!validateStep(2)) { setStep(2); return; }
+    if (!validateStep(1)) {
+      setStep(1);
+      return;
+    }
+    if (!validateStep(2)) {
+      setStep(2);
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -405,40 +465,53 @@ export function AssignmentCreationModal({
       if (result.success) {
         // Store created assignment for post-creation quick navigation
         setCreatedAssignment(result.data);
+        // Store created assignment for post-creation quick navigation
+        setCreatedAssignment(result.data);
         // If not draft, upload CSV data using assignment ID from creation result
         if (!isDraft) {
           const assignmentId = result.data.id;
           try {
             // Upload student CSV data
             if (csvData.student.file) {
-              const uploadResult = await uploadStudentCsv(csvData.student.file, csvData.student.type, assignmentId);
-              console.log('Student CSV uploaded successfully');
+              const uploadResult = await uploadStudentCsv(
+                csvData.student.file,
+                csvData.student.type,
+                assignmentId
+              );
+              console.log("Student CSV uploaded successfully");
             }
 
             // Upload examiner CSV data
             if (csvData.examiner.file) {
-              const uploadResult = await uploadExaminerCsv(csvData.examiner.file, assignmentId);
-              console.log('Examiner CSV uploaded successfully');
+              const uploadResult = await uploadExaminerCsv(
+                csvData.examiner.file,
+                assignmentId
+              );
+              console.log("Examiner CSV uploaded successfully");
             }
           } catch (uploadError) {
-            console.error('CSV upload error:', uploadError);
-            showNotification('warning', 'Assignment created but CSV upload failed. You can upload CSV data later.');
+            console.error("CSV upload error:", uploadError);
+            showNotification(
+              "warning",
+              "Assignment created but CSV upload failed. You can upload CSV data later."
+            );
           }
         }
 
         setShowSuccess(true);
-        
+
         // Celebration animation
         setTimeout(() => {
           onAssignmentCreated(result.data);
         }, 2500);
       } else {
         // Handle backend validation errors
-        const errorMessage = result.data || result.message || 'Failed to create assignment';
-        showNotification('error', errorMessage);
+        const errorMessage =
+          result.data || result.message || "Failed to create assignment";
+        showNotification("error", errorMessage);
       }
     } catch (error) {
-      showNotification('error', 'Failed to create assignment');
+      showNotification("error", "Failed to create assignment");
     } finally {
       setIsSubmitting(false);
     }
@@ -447,44 +520,50 @@ export function AssignmentCreationModal({
   // Get assignment type icon and color
   const getTypeStyles = (type) => {
     switch (type) {
-      case 'individual':
+      case "individual":
         return {
-          icon: 'fa-user',
-          bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
-          borderColor: 'border-indigo-200 dark:border-indigo-800',
-          textColor: 'text-indigo-700 dark:text-indigo-300',
-          iconColor: 'text-indigo-500',
-          activeBg: 'bg-indigo-100 dark:bg-indigo-800',
-          activeText: 'text-indigo-800 dark:text-indigo-200'
+          icon: "fa-user",
+          bgColor: "bg-indigo-50 dark:bg-indigo-900/30",
+          borderColor: "border-indigo-200 dark:border-indigo-800",
+          textColor: "text-indigo-700 dark:text-indigo-300",
+          iconColor: "text-indigo-500",
+          activeBg: "bg-indigo-100 dark:bg-indigo-800",
+          activeText: "text-indigo-800 dark:text-indigo-200",
         };
-      case 'group':
+      case "group":
         return {
-          icon: 'fa-users',
-          bgColor: 'bg-pink-50 dark:bg-pink-900/30',
-          borderColor: 'border-pink-200 dark:border-pink-800',
-          textColor: 'text-pink-700 dark:text-pink-300',
-          iconColor: 'text-pink-500',
-          activeBg: 'bg-pink-100 dark:bg-pink-800',
-          activeText: 'text-pink-800 dark:text-pink-200'
+          icon: "fa-users",
+          bgColor: "bg-pink-50 dark:bg-pink-900/30",
+          borderColor: "border-pink-200 dark:border-pink-800",
+          textColor: "text-pink-700 dark:text-pink-300",
+          iconColor: "text-pink-500",
+          activeBg: "bg-pink-100 dark:bg-pink-800",
+          activeText: "text-pink-800 dark:text-pink-200",
         };
-      case 'mixed':
+      case "mixed":
         return {
-          icon: 'fa-layer-group',
-          bgColor: 'bg-teal-50 dark:bg-teal-900/30',
-          borderColor: 'border-teal-200 dark:border-teal-800',
-          textColor: 'text-teal-700 dark:text-teal-300',
-          iconColor: 'text-teal-500',
-          activeBg: 'bg-teal-100 dark:bg-teal-800',
-          activeText: 'text-teal-800 dark:text-teal-200'
+          icon: "fa-layer-group",
+          bgColor: "bg-teal-50 dark:bg-teal-900/30",
+          borderColor: "border-teal-200 dark:border-teal-800",
+          textColor: "text-teal-700 dark:text-teal-300",
+          iconColor: "text-teal-500",
+          activeBg: "bg-teal-100 dark:bg-teal-800",
+          activeText: "text-teal-800 dark:text-teal-200",
         };
     }
   };
 
   // Normalize preview summary counts to support different backend shapes
   const getCounts = (summary) => {
-    const total = summary?.totalCount ?? summary?.totalRecords ?? summary?.total ?? (Array.isArray(summary?.preview) ? summary.preview.length : 0) ?? 0;
+    const total =
+      summary?.totalCount ??
+      summary?.totalRecords ??
+      summary?.total ??
+      (Array.isArray(summary?.preview) ? summary.preview.length : 0) ??
+      0;
     const newCount = summary?.newCount ?? summary?.created ?? 0;
-    const existingCount = summary?.existingCount ?? summary?.existing ?? summary?.duplicates ?? 0;
+    const existingCount =
+      summary?.existingCount ?? summary?.existing ?? summary?.duplicates ?? 0;
     return { total, newCount, existingCount };
   };
 
@@ -502,7 +581,8 @@ export function AssignmentCreationModal({
               Create New Assignment
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {courseName} ({courseCode}) • {courseSemester.split(' ')[0]} Semester {courseSemester.split(' ')[1]}
+              {courseName} ({courseCode}) • {courseSemester.split(" ")[0]}{" "}
+              Semester {courseSemester.split(" ")[1]}
             </p>
           </div>
           <button
@@ -524,11 +604,16 @@ export function AssignmentCreationModal({
                   <div
                     className={`
                       w-10 h-10 rounded-full flex items-center justify-center font-medium transition-all duration-300
-                      ${step >= num 
-                        ? 'bg-blue-600 text-white scale-110 shadow-lg' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                      ${
+                        step >= num
+                          ? "bg-blue-600 text-white scale-110 shadow-lg"
+                          : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
                       }
-                      ${stepCompletion[num] && step !== num ? 'ring-2 ring-green-500 ring-offset-2' : ''}
+                      ${
+                        stepCompletion[num] && step !== num
+                          ? "ring-2 ring-green-500 ring-offset-2"
+                          : ""
+                      }
                     `}
                   >
                     {stepCompletion[num] ? (
@@ -538,12 +623,13 @@ export function AssignmentCreationModal({
                     )}
                   </div>
                   {index < 2 && (
-                    <div 
+                    <div
                       className={`
                         h-1 w-32 mx-3 rounded-full transition-all duration-500
-                        ${step > num 
-                          ? 'bg-blue-600' 
-                          : 'bg-gray-200 dark:bg-gray-700'
+                        ${
+                          step > num
+                            ? "bg-blue-600"
+                            : "bg-gray-200 dark:bg-gray-700"
                         }
                       `}
                     />
@@ -551,33 +637,51 @@ export function AssignmentCreationModal({
                 </div>
               ))}
             </div>
-            
+
             {/* Step labels with precise positioning */}
             <div className="flex justify-center mt-2 relative">
               <div className="flex items-center">
                 {/* First label */}
                 <div className="w-10 flex justify-center">
-                  <span className={`text-xs whitespace-nowrap ${step >= 1 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <span
+                    className={`text-xs whitespace-nowrap ${
+                      step >= 1
+                        ? "text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
                     Assignment Details
                   </span>
                 </div>
-                
+
                 {/* Spacer for first line */}
-                <div style={{ width: '152px' }}></div>
-                
+                <div style={{ width: "152px" }}></div>
+
                 {/* Second label */}
                 <div className="w-10 flex justify-center">
-                  <span className={`text-xs whitespace-nowrap ${step >= 2 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <span
+                    className={`text-xs whitespace-nowrap ${
+                      step >= 2
+                        ? "text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
                     Participants
                   </span>
                 </div>
-                
+
                 {/* Spacer for second line */}
-                <div style={{ width: '152px' }}></div>
-                
+                <div style={{ width: "152px" }}></div>
+
                 {/* Third label */}
                 <div className="w-10 flex justify-center">
-                  <span className={`text-xs whitespace-nowrap ${step >= 3 ? 'text-blue-600 dark:text-blue-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <span
+                    className={`text-xs whitespace-nowrap ${
+                      step >= 3
+                        ? "text-blue-600 dark:text-blue-400 font-medium"
+                        : "text-gray-500 dark:text-gray-400"
+                    }`}
+                  >
                     Summary
                   </span>
                 </div>
@@ -587,7 +691,11 @@ export function AssignmentCreationModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 280px)' }}>
+        <div
+          ref={contentRef}
+          className="p-6 overflow-y-auto"
+          style={{ maxHeight: "calc(90vh - 280px)" }}
+        >
           {/* Step 1: Basic Information */}
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
@@ -610,11 +718,17 @@ export function AssignmentCreationModal({
                     <input
                       type="text"
                       value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
                       className={`
                         w-full rounded-lg px-4 py-2.5 text-sm
                         bg-white dark:bg-gray-700 
-                        border ${validationErrors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
+                        border ${
+                          validationErrors.name
+                            ? "border-red-500"
+                            : "border-gray-300 dark:border-gray-600"
+                        }
                         focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                         transition-all duration-200
                       `}
@@ -633,7 +747,9 @@ export function AssignmentCreationModal({
                     </label>
                     <textarea
                       value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange("description", e.target.value)
+                      }
                       rows={3}
                       className="w-full rounded-lg px-4 py-2.5 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200"
                       placeholder="Provide a brief description of this assignment..."
@@ -654,29 +770,40 @@ export function AssignmentCreationModal({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {['individual', 'group', 'mixed'].map((type) => {
+                  {["individual", "group", "mixed"].map((type) => {
                     const styles = getTypeStyles(type);
                     return (
                       <button
                         key={type}
-                        onClick={() => handleInputChange('type', type)}
+                        onClick={() => handleInputChange("type", type)}
                         className={`
                           relative p-4 rounded-lg border-2 transition-all duration-300 transform hover:scale-105
-                          ${formData.type === type 
-                            ? `${styles.activeBg} ${styles.borderColor} ring-2 ring-offset-2 ring-blue-500 shadow-lg` 
-                            : `${styles.bgColor} ${styles.borderColor} hover:shadow-md`
+                          ${
+                            formData.type === type
+                              ? `${styles.activeBg} ${styles.borderColor} ring-2 ring-offset-2 ring-blue-500 shadow-lg`
+                              : `${styles.bgColor} ${styles.borderColor} hover:shadow-md`
                           }
                         `}
                       >
                         <div className="flex flex-col items-center">
-                          <i className={`fas ${styles.icon} text-2xl ${styles.iconColor} mb-2`}></i>
-                          <span className={`font-medium capitalize ${formData.type === type ? styles.activeText : styles.textColor}`}>
+                          <i
+                            className={`fas ${styles.icon} text-2xl ${styles.iconColor} mb-2`}
+                          ></i>
+                          <span
+                            className={`font-medium capitalize ${
+                              formData.type === type
+                                ? styles.activeText
+                                : styles.textColor
+                            }`}
+                          >
                             {type}
                           </span>
                           <span className="text-xs mt-1 text-gray-600 dark:text-gray-400">
-                            {type === 'individual' && 'Each student assessed separately'}
-                            {type === 'group' && 'Students assessed as teams'}
-                            {type === 'mixed' && 'Group + individual components'}
+                            {type === "individual" &&
+                              "Each student assessed separately"}
+                            {type === "group" && "Students assessed as teams"}
+                            {type === "mixed" &&
+                              "Group + individual components"}
                           </span>
                         </div>
                         {formData.type === type && (
@@ -710,11 +837,17 @@ export function AssignmentCreationModal({
                       <input
                         type="datetime-local"
                         value={formData.startDate}
-                        onChange={(e) => handleInputChange('startDate', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("startDate", e.target.value)
+                        }
                         className={`
                           w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                           bg-white dark:bg-gray-700 
-                          border ${validationErrors.startDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
+                          border ${
+                            validationErrors.startDate
+                              ? "border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }
                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                           transition-all duration-200
                         `}
@@ -736,12 +869,18 @@ export function AssignmentCreationModal({
                       <input
                         type="datetime-local"
                         value={formData.endDate}
-                        onChange={(e) => handleInputChange('endDate', e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("endDate", e.target.value)
+                        }
                         min={formData.startDate || undefined}
                         className={`
                           w-full rounded-lg pl-6 pr-4 py-2.5 text-sm
                           bg-white dark:bg-gray-700 
-                          border ${validationErrors.endDate ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
+                          border ${
+                            validationErrors.endDate
+                              ? "border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }
                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                           transition-all duration-200
                         `}
@@ -765,12 +904,12 @@ export function AssignmentCreationModal({
                         value={formData.weight}
                         onChange={(e) => {
                           const value = e.target.value;
-                          if (value === '') {
-                            handleInputChange('weight', '');
+                          if (value === "") {
+                            handleInputChange("weight", "");
                           } else {
                             const numValue = parseInt(value);
                             if (!isNaN(numValue)) {
-                              handleInputChange('weight', numValue);
+                              handleInputChange("weight", numValue);
                             }
                           }
                         }}
@@ -779,7 +918,11 @@ export function AssignmentCreationModal({
                         className={`
                           w-full rounded-lg px-4 py-2.5 pr-12 text-sm
                           bg-white dark:bg-gray-700 
-                          border ${validationErrors.weight ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'}
+                          border ${
+                            validationErrors.weight
+                              ? "border-red-500"
+                              : "border-gray-300 dark:border-gray-600"
+                          }
                           focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20
                           transition-all duration-200
                         `}
@@ -795,13 +938,16 @@ export function AssignmentCreationModal({
                     )}
                     {!validationErrors.weight && (
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Total weight across all assignments for a course must not exceed 100%.
+                        Total weight across all assignments for a course must
+                        not exceed 100%.
                       </p>
                     )}
                     {/* Course total weight indicator */}
                     <div className="mt-1 text-xs">
                       {courseWeightTotal.loading ? (
-                        <span className="text-gray-500 dark:text-gray-400">Calculating current course total…</span>
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Calculating current course total…
+                        </span>
                       ) : courseWeightTotal.error ? null : (
                         (() => {
                           const base = Number(courseWeightTotal.value || 0);
@@ -809,8 +955,16 @@ export function AssignmentCreationModal({
                           const projected = base + curr;
                           const over = projected > 100;
                           return (
-                            <span className={over ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400'}>
-                              Current course total (excluding this): {base}% · Projected total: {projected}%{over ? ' — exceeds 100%' : ''}
+                            <span
+                              className={
+                                over
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-gray-600 dark:text-gray-400"
+                              }
+                            >
+                              Current course total (excluding this): {base}% ·
+                              Projected total: {projected}%
+                              {over ? " — exceeds 100%" : ""}
                             </span>
                           );
                         })()
@@ -818,9 +972,15 @@ export function AssignmentCreationModal({
                     </div>
                     <div className="mt-2">
                       <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-500"
-                          style={{ width: `${formData.weight === '' || !formData.weight ? 0 : formData.weight}%` }}
+                          style={{
+                            width: `${
+                              formData.weight === "" || !formData.weight
+                                ? 0
+                                : formData.weight
+                            }%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -845,11 +1005,18 @@ export function AssignmentCreationModal({
                 </div>
 
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Upload a CSV file with student information. This step is required. The CSV data will be uploaded right after the assignment is created.
+                  Upload a CSV file with student information. This step is
+                  required. The CSV data will be uploaded right after the
+                  assignment is created.
                 </p>
                 <div className="mb-4 text-xs">
-                  <a href="/csv-templates/student_template.csv" download className="text-blue-600 dark:text-blue-400 hover:underline mr-3">
-                    <i className="fas fa-download mr-1"></i>Download Student CSV template
+                  <a
+                    href="/csv-templates/student_template.csv"
+                    download
+                    className="text-blue-600 dark:text-blue-400 hover:underline mr-3"
+                  >
+                    <i className="fas fa-download mr-1"></i>Download Student CSV
+                    template
                   </a>
                 </div>
                 {validationErrors.studentCsv && (
@@ -861,7 +1028,7 @@ export function AssignmentCreationModal({
                   </div>
                 )}
 
-{!csvData.student.previewData ? (
+                {!csvData.student.previewData ? (
                   !csvData.student.file ? (
                     <div
                       onDragOver={handleDragOver}
@@ -869,9 +1036,10 @@ export function AssignmentCreationModal({
                       onDrop={handleDrop}
                       className={`
                         border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-                        ${isDragging 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                        ${
+                          isDragging
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                            : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                         }
                       `}
                     >
@@ -882,26 +1050,27 @@ export function AssignmentCreationModal({
                         className="hidden"
                         id="student-file-input"
                       />
-                      
+
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                         <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
                       </div>
-                      
+
                       <p className="text-gray-600 dark:text-gray-400 mb-2">
                         Drag and drop your CSV file here, or
                       </p>
-                      
+
                       <button
                         type="button"
                         onClick={() => {
-                          const fileInput = document.getElementById('student-file-input');
+                          const fileInput =
+                            document.getElementById("student-file-input");
                           if (fileInput) fileInput.click();
                         }}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         Browse Files
                       </button>
-                      
+
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                         Supported format: CSV (.csv)
                       </p>
@@ -913,7 +1082,9 @@ export function AssignmentCreationModal({
                           <i className="fas fa-file-alt text-green-600 mr-3"></i>
                           <div>
                             <p className="font-medium text-gray-900 dark:text-white">
-                              {csvData.student.file ? csvData.student.file.name : ''}
+                              {csvData.student.file
+                                ? csvData.student.file.name
+                                : ""}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               File selected, ready to upload
@@ -922,13 +1093,17 @@ export function AssignmentCreationModal({
                         </div>
                         <button
                           onClick={() => {
-                            setCsvData(prev => ({
+                            setCsvData((prev) => ({
                               ...prev,
-                              student: { file: null, type: prev.student.type, previewData: null }
+                              student: {
+                                file: null,
+                                type: prev.student.type,
+                                previewData: null,
+                              },
                             }));
-                            setCsvUploadStatus(prev => ({
+                            setCsvUploadStatus((prev) => ({
                               ...prev,
-                              student: { uploading: false, error: null }
+                              student: { uploading: false, error: null },
                             }));
                           }}
                           className="text-red-600 hover:text-red-700 p-2"
@@ -978,39 +1153,69 @@ export function AssignmentCreationModal({
                           Upload Successful
                         </span>
                       </div>
-                      {(() => { const c = getCounts(csvData.student.previewData); return (
-                        <div className="text-sm text-green-600 dark:text-green-400">
-                          <span className="mr-3">Total: {c.total}</span>
-                          {c.newCount ? <span className="mr-3 text-blue-600">New: {c.newCount}</span> : null}
-                          {c.existingCount ? <span className="text-orange-600">Existing: {c.existingCount}</span> : null}
-                        </div>
-                      ); })()}
+                      {(() => {
+                        const c = getCounts(csvData.student.previewData);
+                        return (
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            <span className="mr-3">Total: {c.total}</span>
+                            {c.newCount ? (
+                              <span className="mr-3 text-blue-600">
+                                New: {c.newCount}
+                              </span>
+                            ) : null}
+                            {c.existingCount ? (
+                              <span className="text-orange-600">
+                                Existing: {c.existingCount}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Statistics Summary */}
-                    {(() => { const c = getCounts(csvData.student.previewData); return (
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{c.newCount}</div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">New Students</div>
+                    {(() => {
+                      const c = getCounts(csvData.student.previewData);
+                      return (
+                        <div className="grid grid-cols-3 gap-3 mb-3">
+                          <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                              {c.newCount}
+                            </div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400">
+                              New Students
+                            </div>
+                          </div>
+                          <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                              {c.existingCount}
+                            </div>
+                            <div className="text-xs text-orange-600 dark:text-orange-400">
+                              Existing Students
+                            </div>
+                          </div>
+                          <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                              {c.total}
+                            </div>
+                            <div className="text-xs text-green-600 dark:text-green-400">
+                              Total
+                            </div>
+                          </div>
                         </div>
-                        <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{c.existingCount}</div>
-                          <div className="text-xs text-orange-600 dark:text-orange-400">Existing Students</div>
-                        </div>
-                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-green-600 dark:text-green-400">{c.total}</div>
-                          <div className="text-xs text-green-600 dark:text-green-400">Total</div>
-                        </div>
-                      </div>
-                    ); })()}
-                    
+                      );
+                    })()}
+
                     <button
                       type="button"
                       onClick={() => {
-                        setCsvData(prev => ({
+                        setCsvData((prev) => ({
                           ...prev,
-                          student: { file: null, type: prev.student.type, previewData: null }
+                          student: {
+                            file: null,
+                            type: prev.student.type,
+                            previewData: null,
+                          },
                         }));
                       }}
                       className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -1026,7 +1231,10 @@ export function AssignmentCreationModal({
                     <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
                     <div className="text-sm text-amber-800 dark:text-amber-200">
                       <p className="font-medium mb-1">Student CSV Format:</p>
-                      <p className="text-xs">Student, ID, SIS User ID, SIS Login ID, Section, Student Id</p>
+                      <p className="text-xs">
+                        Student, ID, SIS User ID, SIS Login ID, Section, Student
+                        Id
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1042,13 +1250,20 @@ export function AssignmentCreationModal({
                     Upload Examiner Data
                   </h4>
                 </div>
-                
+
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Upload a CSV file with examiner information. This step is required. The CSV data will be uploaded right after the assignment is created.
+                  Upload a CSV file with examiner information. This step is
+                  required. The CSV data will be uploaded right after the
+                  assignment is created.
                 </p>
                 <div className="mb-4 text-xs">
-                  <a href="/csv-templates/examiner_template.csv" download className="text-blue-600 dark:text-blue-400 hover:underline mr-3">
-                    <i className="fas fa-download mr-1"></i>Download Examiner CSV template
+                  <a
+                    href="/csv-templates/examiner_template.csv"
+                    download
+                    className="text-blue-600 dark:text-blue-400 hover:underline mr-3"
+                  >
+                    <i className="fas fa-download mr-1"></i>Download Examiner
+                    CSV template
                   </a>
                 </div>
                 {validationErrors.examinerCsv && (
@@ -1060,7 +1275,7 @@ export function AssignmentCreationModal({
                   </div>
                 )}
 
-{!csvData.examiner.previewData ? (
+                {!csvData.examiner.previewData ? (
                   !csvData.examiner.file ? (
                     <div
                       onDragOver={handleExaminerDragOver}
@@ -1068,39 +1283,44 @@ export function AssignmentCreationModal({
                       onDrop={handleExaminerDrop}
                       className={`
                         border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
-                        ${isDragging 
-                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' 
-                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                        ${
+                          isDragging
+                            ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20"
+                            : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
                         }
                       `}
                     >
                       <input
                         type="file"
                         accept=".csv"
-                        onChange={(e) => handleExaminerFileSelect(e.target.files[0])}
+                        onChange={(e) =>
+                          handleExaminerFileSelect(e.target.files[0])
+                        }
                         className="hidden"
                         id="examiner-file-input"
                       />
-                      
+
                       <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                         <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
                       </div>
-                      
+
                       <p className="text-gray-600 dark:text-gray-400 mb-2">
                         Drag and drop your CSV file here, or
                       </p>
-                      
+
                       <button
                         type="button"
                         onClick={() => {
-                          const fileInput = document.getElementById('examiner-file-input');
+                          const fileInput = document.getElementById(
+                            "examiner-file-input"
+                          );
                           if (fileInput) fileInput.click();
                         }}
                         className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                       >
                         Browse Files
                       </button>
-                      
+
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
                         Supported format: CSV (.csv)
                       </p>
@@ -1112,7 +1332,9 @@ export function AssignmentCreationModal({
                           <i className="fas fa-file-alt text-green-600 mr-3"></i>
                           <div>
                             <p className="font-medium text-gray-900 dark:text-white">
-                              {csvData.examiner.file ? csvData.examiner.file.name : ''}
+                              {csvData.examiner.file
+                                ? csvData.examiner.file.name
+                                : ""}
                             </p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
                               File selected, ready to upload
@@ -1121,13 +1343,13 @@ export function AssignmentCreationModal({
                         </div>
                         <button
                           onClick={() => {
-                            setCsvData(prev => ({
+                            setCsvData((prev) => ({
                               ...prev,
-                              examiner: { file: null, previewData: null }
+                              examiner: { file: null, previewData: null },
                             }));
-                            setCsvUploadStatus(prev => ({
+                            setCsvUploadStatus((prev) => ({
                               ...prev,
-                              examiner: { uploading: false, error: null }
+                              examiner: { uploading: false, error: null },
                             }));
                           }}
                           className="text-red-600 hover:text-red-700 p-2"
@@ -1177,39 +1399,65 @@ export function AssignmentCreationModal({
                           Upload Successful
                         </span>
                       </div>
-                      {(() => { const c = getCounts(csvData.examiner.previewData); return (
-                        <div className="text-sm text-green-600 dark:text-green-400">
-                          <span className="mr-3">Total: {c.total}</span>
-                          {c.newCount ? <span className="mr-3 text-blue-600">New: {c.newCount}</span> : null}
-                          {c.existingCount ? <span className="text-orange-600">Existing: {c.existingCount}</span> : null}
-                        </div>
-                      ); })()}
+                      {(() => {
+                        const c = getCounts(csvData.examiner.previewData);
+                        return (
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            <span className="mr-3">Total: {c.total}</span>
+                            {c.newCount ? (
+                              <span className="mr-3 text-blue-600">
+                                New: {c.newCount}
+                              </span>
+                            ) : null}
+                            {c.existingCount ? (
+                              <span className="text-orange-600">
+                                Existing: {c.existingCount}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {/* Statistics Summary for Examiners */}
-                    {(() => { const c = getCounts(csvData.examiner.previewData); return (
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{c.newCount}</div>
-                          <div className="text-xs text-blue-600 dark:text-blue-400">New Examiners</div>
+                    {(() => {
+                      const c = getCounts(csvData.examiner.previewData);
+                      return (
+                        <div className="grid grid-cols-3 gap-3 mb-3">
+                          <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                              {c.newCount}
+                            </div>
+                            <div className="text-xs text-blue-600 dark:text-blue-400">
+                              New Examiners
+                            </div>
+                          </div>
+                          <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-orange-600 dark:text-orange-400">
+                              {c.existingCount}
+                            </div>
+                            <div className="text-xs text-orange-600 dark:text-orange-400">
+                              Existing Examiners
+                            </div>
+                          </div>
+                          <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                            <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                              {c.total}
+                            </div>
+                            <div className="text-xs text-green-600 dark:text-green-400">
+                              Total
+                            </div>
+                          </div>
                         </div>
-                        <div className="bg-orange-50 dark:bg-orange-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-orange-600 dark:text-orange-400">{c.existingCount}</div>
-                          <div className="text-xs text-orange-600 dark:text-orange-400">Existing Examiners</div>
-                        </div>
-                        <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
-                          <div className="text-xl font-bold text-green-600 dark:text-green-400">{c.total}</div>
-                          <div className="text-xs text-green-600 dark:text-green-400">Total</div>
-                        </div>
-                      </div>
-                    ); })()}
-                    
+                      );
+                    })()}
+
                     <button
                       type="button"
                       onClick={() => {
-                        setCsvData(prev => ({
+                        setCsvData((prev) => ({
                           ...prev,
-                          examiner: { file: null, previewData: null }
+                          examiner: { file: null, previewData: null },
                         }));
                       }}
                       className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -1225,7 +1473,10 @@ export function AssignmentCreationModal({
                     <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
                     <div className="text-sm text-amber-800 dark:text-amber-200">
                       <p className="font-medium mb-1">Examiner CSV Format:</p>
-                      <p className="text-xs">Email, Name, Department, ID, SIS User ID, SIS Login ID</p>
+                      <p className="text-xs">
+                        Headers must exactly match (order matters): Email, Name,
+                        Department, ID, SIS User ID, SIS Login ID
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1241,49 +1492,79 @@ export function AssignmentCreationModal({
                 <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   Assignment Summary
                 </h4>
-                
+
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Name</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formData.name}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Name
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formData.name}
+                    </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Type</span>
-                    <span className={`
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Type
+                    </span>
+                    <span
+                      className={`
                       px-3 py-1 rounded-full text-xs font-medium capitalize
-                      ${formData.type === 'individual' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300' : ''}
-                      ${formData.type === 'group' ? 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300' : ''}
-                      ${formData.type === 'mixed' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300' : ''}
-                    `}>
+                      ${
+                        formData.type === "individual"
+                          ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300"
+                          : ""
+                      }
+                      ${
+                        formData.type === "group"
+                          ? "bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300"
+                          : ""
+                      }
+                      ${
+                        formData.type === "mixed"
+                          ? "bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300"
+                          : ""
+                      }
+                    `}
+                    >
                       {formData.type}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Period</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Period
+                    </span>
                     <span className="font-medium text-gray-900 dark:text-white">
                       {formData.startDate} to {formData.endDate}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center py-2 border-b border-gray-200 dark:border-gray-700">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Weight</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formData.weight}%</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                      Weight
+                    </span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formData.weight}%
+                    </span>
                   </div>
-                  
+
                   {csvData.student.file && (
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Student CSV</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Student CSV
+                      </span>
                       <span className="font-medium text-gray-900 dark:text-white">
                         {csvData.student.file.name}
                       </span>
                     </div>
                   )}
-                  
+
                   {csvData.examiner.file && (
                     <div className="flex justify-between items-center py-2">
-                      <span className="text-sm text-gray-600 dark:text-gray-400">Examiner CSV</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Examiner CSV
+                      </span>
                       <span className="font-medium text-gray-900 dark:text-white">
                         {csvData.examiner.file.name}
                       </span>
@@ -1304,7 +1585,8 @@ export function AssignmentCreationModal({
                 </div>
 
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  After creating the assignment, you can configure these components:
+                  After creating the assignment, you can configure these
+                  components:
                 </p>
 
                 <div className="space-y-3">
@@ -1312,9 +1594,14 @@ export function AssignmentCreationModal({
                     type="button"
                     onClick={() => {
                       if (createdAssignment?.id) {
-                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`);
+                        router.push(
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`
+                        );
                       } else {
-                        showNotification('info', 'Create the assignment first to configure the rubric');
+                        showNotification(
+                          "info",
+                          "Create the assignment first to configure the rubric"
+                        );
                       }
                     }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-400 hover:shadow-md transition-all duration-200 group"
@@ -1324,8 +1611,12 @@ export function AssignmentCreationModal({
                         <i className="fas fa-clipboard-list text-amber-600"></i>
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-gray-900 dark:text-white">Configure Rubric</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Set up assessment criteria</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          Configure Rubric
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Set up assessment criteria
+                        </p>
                       </div>
                     </div>
                     <i className="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
@@ -1335,9 +1626,14 @@ export function AssignmentCreationModal({
                     type="button"
                     onClick={() => {
                       if (createdAssignment?.id) {
-                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`);
+                        router.push(
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`
+                        );
                       } else {
-                        showNotification('info', 'Create the assignment first to set up time slots');
+                        showNotification(
+                          "info",
+                          "Create the assignment first to set up time slots"
+                        );
                       }
                     }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cyan-400 hover:shadow-md transition-all duration-200 group"
@@ -1347,8 +1643,12 @@ export function AssignmentCreationModal({
                         <i className="fas fa-calendar-plus text-cyan-600"></i>
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-gray-900 dark:text-white">Set Up Time Slots</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Schedule assessment sessions</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          Set Up Time Slots
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Schedule assessment sessions
+                        </p>
                       </div>
                     </div>
                     <i className="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
@@ -1358,9 +1658,14 @@ export function AssignmentCreationModal({
                     type="button"
                     onClick={() => {
                       if (createdAssignment?.id) {
-                        router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/schedule`);
+                        router.push(
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/schedule`
+                        );
                       } else {
-                        showNotification('info', 'Create the assignment first to manage examiner assignments');
+                        showNotification(
+                          "info",
+                          "Create the assignment first to manage examiner assignments"
+                        );
                       }
                     }}
                     className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-lime-400 hover:shadow-md transition-all duration-200 group"
@@ -1370,8 +1675,12 @@ export function AssignmentCreationModal({
                         <i className="fas fa-user-shield text-lime-600"></i>
                       </div>
                       <div className="text-left">
-                        <p className="font-medium text-gray-900 dark:text-white">Assign Examiners</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Manage examiner assignments</p>
+                        <p className="font-medium text-gray-900 dark:text-white">
+                          Assign Examiners
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Manage examiner assignments
+                        </p>
                       </div>
                     </div>
                     <i className="fas fa-chevron-right text-gray-400 group-hover:translate-x-1 transition-transform"></i>
@@ -1392,7 +1701,8 @@ export function AssignmentCreationModal({
                   Assignment Created!
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Next: Configure your rubric and schedule sessions
+                  Next: Configure your rubric and schedule sessions Next:
+                  Configure your rubric and schedule sessions
                 </p>
                 <div className="mt-4">
                   <div className="inline-flex items-center justify-center space-x-1">
@@ -1411,14 +1721,22 @@ export function AssignmentCreationModal({
                   <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`)}
+                      onClick={() =>
+                        router.push(
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/rubric`
+                        )
+                      }
                       className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       Go to Rubric
                     </button>
                     <button
                       type="button"
-                      onClick={() => router.push(`/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`)}
+                      onClick={() =>
+                        router.push(
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`
+                        )
+                      }
                       className="px-4 py-2 text-sm font-medium text-white bg-cyan-600 rounded-lg hover:bg-cyan-700 transition-colors"
                     >
                       Set Up Time Slots
@@ -1462,7 +1780,11 @@ export function AssignmentCreationModal({
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={isSubmitting || (step === 1 && !isStep1Ready()) || (step === 2 && !isStep2Ready())}
+                disabled={
+                  isSubmitting ||
+                  (step === 1 && !isStep1Ready()) ||
+                  (step === 2 && !isStep2Ready())
+                }
                 className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center"
               >
                 Next
@@ -1491,7 +1813,6 @@ export function AssignmentCreationModal({
           </div>
         </div>
       </div>
-
     </div>
   );
 }

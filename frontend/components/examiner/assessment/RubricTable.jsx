@@ -18,7 +18,8 @@ export default function RubricTable({
   predefinedComments = {},
   onSavePredefinedComment,
   disabled = false,
-  assessmentType = 'GROUP'
+  assessmentType = 'GROUP',
+  showTotals = true
 }) {
   const [expandedComments, setExpandedComments] = useState({});
   const [localComments, setLocalComments] = useState(comments);
@@ -27,15 +28,26 @@ export default function RubricTable({
     setLocalComments(comments);
   }, [comments]);
 
+  const normalizeRange = (level) => {
+    // Support either min/max on level or a nested levelRange
+    const min = level?.minPoints ?? level?.levelRange?.min ?? 0;
+    const max = level?.maxPoints ?? level?.levelRange?.max ?? min;
+    return { min, max };
+  };
+
+  const getLevelLabel = (level) => {
+    return level?.levelLabel || level?.label || level?.description || (level?.levelId ? level.levelId.replace('L', 'Level ') : '');
+  };
+
   const handleRatingSelect = (criterionId, levelId, level) => {
     if (disabled) return;
-    
-    const midPoint = Math.floor((level.minPoints + level.maxPoints) / 2);
+    const { min, max } = normalizeRange(level);
+    const midPoint = Math.floor((min + max) / 2);
     onRatingChange(criterionId, {
       levelId,
       points: midPoint,
-      minPoints: level.minPoints,
-      maxPoints: level.maxPoints
+      minPoints: min,
+      maxPoints: max
     });
   };
 
@@ -79,7 +91,7 @@ export default function RubricTable({
   };
 
   // Filter criteria based on assessment type
-  const filteredCriteria = criteria.filter(criterion => {
+  const filteredCriteria = (criteria || []).filter(criterion => {
     if (assessmentType === 'GROUP') {
       return criterion.appliesTo === 'GROUP' || criterion.appliesTo === 'BOTH';
     } else {
@@ -131,7 +143,7 @@ export default function RubricTable({
                   className="grid gap-1"
                   style={{ gridTemplateColumns: `repeat(${criterion.levels.length}, minmax(0, 1fr))` }}
                 >
-                  {criterion.levels.map((level) => (
+                  {(criterion.levels || []).map((level) => (
                     <div
                       key={level.levelId}
                       className={cn(
@@ -140,19 +152,24 @@ export default function RubricTable({
                         selectedRatings[criterion.criterionId]?.levelId === level.levelId
                           ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
                           : "border-gray-300 dark:border-gray-600",
-                        disabled && "cursor-not-allowed opacity-50"
+                        disabled && "cursor-not-allowed opacity-75"
                       )}
                       onClick={() => handleRatingSelect(criterion.criterionId, level.levelId, level)}
                     >
-                      <div className="font-semibold text-sm mb-1">
-                        {level.levelId.replace('L', 'Level ')}
+                      <div className="font-semibold text-sm mb-1 flex items-center justify-center gap-1">
+                        {selectedRatings[criterion.criterionId]?.levelId === level.levelId && (
+                          <i className="fas fa-check-circle text-blue-600 dark:text-blue-400"></i>
+                        )}
+                        <span>{getLevelLabel(level)}</span>
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400">
-                        {level.minPoints}-{level.maxPoints}
+                        {(() => { const r = normalizeRange(level); return `${r.min}-${r.max}`; })()}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                        {level.description.split(' - ')[0]}
-                      </div>
+                      {level?.description && (
+                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          {level.description}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -175,7 +192,7 @@ export default function RubricTable({
                     />
                     
                     {/* Predefined Comments */}
-                    {predefinedComments[criterion.criterionId] && 
+                    {!disabled && predefinedComments[criterion.criterionId] && 
                      predefinedComments[criterion.criterionId][selectedRatings[criterion.criterionId]?.levelId] && (
                       <div className="mt-3">
                         <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
@@ -198,64 +215,73 @@ export default function RubricTable({
                       </div>
                     )}
                     
-                    <div className="mt-3 flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`save-comment-${criterion.criterionId}`}
-                        className="mr-2"
-                        disabled={
-                          disabled ||
-                          !selectedRatings[criterion.criterionId]?.levelId ||
-                          !(localComments[criterion.criterionId] && localComments[criterion.criterionId].trim())
-                        }
-                        onChange={async (e) => {
-                          if (!e.target.checked) return;
-                          // Fire save to library callback if provided
-                          const levelId = selectedRatings[criterion.criterionId]?.levelId;
-                          const text = (localComments[criterion.criterionId] || '').trim();
-                          if (onSavePredefinedComment && levelId && text) {
-                            try {
-                              await onSavePredefinedComment(criterion.criterionId, levelId, text);
-                            } finally {
-                              // uncheck after attempting save
+                    {!disabled && (
+                      <div className="mt-3 flex items-center">
+                        <input
+                          type="checkbox"
+                          id={`save-comment-${criterion.criterionId}`}
+                          className="mr-2"
+                          disabled={
+                            disabled ||
+                            !selectedRatings[criterion.criterionId]?.levelId ||
+                            !(localComments[criterion.criterionId] && localComments[criterion.criterionId].trim())
+                          }
+                          onChange={async (e) => {
+                            if (!e.target.checked) return;
+                            // Fire save to library callback if provided
+                            const levelId = selectedRatings[criterion.criterionId]?.levelId;
+                            const text = (localComments[criterion.criterionId] || '').trim();
+                            if (onSavePredefinedComment && levelId && text) {
+                              try {
+                                await onSavePredefinedComment(criterion.criterionId, levelId, text);
+                              } finally {
+                                // uncheck after attempting save
+                                e.target.checked = false;
+                              }
+                            } else {
                               e.target.checked = false;
                             }
-                          } else {
-                            e.target.checked = false;
-                          }
-                        }}
-                        title={!selectedRatings[criterion.criterionId]?.levelId
-                          ? 'Select a level first'
-                          : !(localComments[criterion.criterionId] && localComments[criterion.criterionId].trim())
-                            ? 'Enter a comment to save'
-                            : 'Save this comment to the predefined library'}
-                      />
-                      <label 
-                        htmlFor={`save-comment-${criterion.criterionId}`}
-                        className="text-xs text-gray-600 dark:text-gray-400"
-                      >
-                        Save comment to library for reuse
-                      </label>
-                    </div>
+                          }}
+                          title={!selectedRatings[criterion.criterionId]?.levelId
+                            ? 'Select a level first'
+                            : !(localComments[criterion.criterionId] && localComments[criterion.criterionId].trim())
+                              ? 'Enter a comment to save'
+                              : 'Save this comment to the predefined library'}
+                        />
+                        <label 
+                          htmlFor={`save-comment-${criterion.criterionId}`}
+                          className="text-xs text-gray-600 dark:text-gray-400"
+                        >
+                          Save comment to library for reuse
+                        </label>
+                      </div>
+                    )}
                   </div>
                 )}
               </td>
               <td className="p-3 align-top text-center">
                 {selectedRatings[criterion.criterionId] ? (
                   <div className="space-y-2">
-                    <div className="flex items-center justify-center space-x-2">
-                      <input
-                        type="number"
-                        className="w-16 p-1 border border-gray-300 dark:border-gray-600 rounded text-center
-                                 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                        value={selectedRatings[criterion.criterionId].points || 0}
-                        onChange={(e) => handlePointsChange(criterion.criterionId, e.target.value)}
-                        min={selectedRatings[criterion.criterionId].minPoints}
-                        max={selectedRatings[criterion.criterionId].maxPoints}
-                        disabled={disabled}
-                      />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
-                    </div>
+                    {disabled ? (
+                      <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
+                        <i className="fas fa-star text-amber-500"></i>
+                        <span>{selectedRatings[criterion.criterionId].points}</span>
+                        <span className="text-xs text-gray-500">pts</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center space-x-2">
+                        <input
+                          type="number"
+                          className="w-16 p-1 border border-gray-300 dark:border-gray-600 rounded text-center
+                                   bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                          value={selectedRatings[criterion.criterionId].points || 0}
+                          onChange={(e) => handlePointsChange(criterion.criterionId, e.target.value)}
+                          min={selectedRatings[criterion.criterionId].minPoints}
+                          max={selectedRatings[criterion.criterionId].maxPoints}
+                        />
+                        <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
+                      </div>
+                    )}
                     <div className="text-xs text-gray-500 dark:text-gray-500">
                       ({selectedRatings[criterion.criterionId].minPoints}-{selectedRatings[criterion.criterionId].maxPoints})
                     </div>
@@ -270,18 +296,20 @@ export default function RubricTable({
       </table>
       
       {/* Total Score Display */}
-      <div className="flex justify-end">
-        <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-          <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Weighted Score:
-            </span>
-            <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-              {calculateWeightedScore(filteredCriteria, selectedRatings).toFixed(2)} / 100
-            </span>
-          </div>
-        </Card>
-      </div>
+      {showTotals && (
+        <div className="flex justify-end">
+          <Card className="p-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+            <div className="flex items-center space-x-4">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Weighted Score:
+              </span>
+              <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                {calculateWeightedScore(filteredCriteria, selectedRatings).toFixed(2)} / 100
+              </span>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
