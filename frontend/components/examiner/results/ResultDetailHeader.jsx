@@ -28,11 +28,12 @@ function fmtRange(start, end) {
 }
 
 export default function ResultDetailHeader({ detail, versions = [], currentVersion = 'latest' }) {
+  // Hooks must be called unconditionally
+  const router = useRouter();
+  const search = useSearchParams();
   if (!detail) return null;
   const { assignment, session, assessmentStatus, releaseStatus } = detail;
   const time = fmtRange(session?.start, session?.end);
-  const router = useRouter();
-  const search = useSearchParams();
 
   const onJump = (v) => {
     const params = new URLSearchParams(search?.toString() || '');

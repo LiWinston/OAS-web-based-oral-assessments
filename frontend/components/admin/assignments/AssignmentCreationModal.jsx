@@ -64,7 +64,6 @@ export function AssignmentCreationModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [createdAssignment, setCreatedAssignment] = useState(null);
-  const [createdAssignment, setCreatedAssignment] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [csvUploadStatus, setCsvUploadStatus] = useState({
     student: { uploading: false, error: null },
@@ -78,7 +77,6 @@ export function AssignmentCreationModal({
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
   const { showNotification } = useNotification();
-  const router = useRouter();
   const router = useRouter();
 
   // Reset form when modal opens
@@ -463,8 +461,6 @@ export function AssignmentCreationModal({
       const result = await createAssignment(formData, isDraft);
 
       if (result.success) {
-        // Store created assignment for post-creation quick navigation
-        setCreatedAssignment(result.data);
         // Store created assignment for post-creation quick navigation
         setCreatedAssignment(result.data);
         // If not draft, upload CSV data using assignment ID from creation result

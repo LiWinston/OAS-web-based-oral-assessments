@@ -7,12 +7,13 @@ import VersionsTimeline from './VersionsTimeline';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ResultTabs({ detail, versions }) {
+  // Hooks must be called unconditionally
+  const router = useRouter();
+  const search = useSearchParams();
   if (!detail) return null;
   const { entities, assignment, rubricFrozen } = detail;
   const groupEntity = entities?.find((e) => e.kind === 'GROUP');
   const individualEntities = (entities || []).filter((e) => e.kind === 'INDIVIDUAL');
-  const router = useRouter();
-  const search = useSearchParams();
   const handleSelectVersion = (v) => {
     const params = new URLSearchParams(search?.toString() || '');
     params.set('version', String(v));
