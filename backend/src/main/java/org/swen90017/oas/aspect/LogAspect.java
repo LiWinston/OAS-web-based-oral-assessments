@@ -20,8 +20,10 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.annotation.Log;
+import org.swen90017.oas.common.Result;
 import org.swen90017.oas.entity.SysOperLog;
 import org.swen90017.oas.enums.BusinessStatus;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.utils.AsyncFactory;
 import org.swen90017.oas.utils.AsyncManager;
 import org.swen90017.oas.utils.IpUtils;
@@ -104,8 +106,8 @@ public class LogAspect {
         // Execution duration (milliseconds)
         long time = System.currentTimeMillis() - startTime;
 
-        // Record log - this only handles console output, database persistence is handled by doAfterReturning
-        recordRequestLog(joinPoint, time);
+        // Record log - enhanced to detect error conditions
+        recordRequestLogEnhanced(joinPoint, time, result);
 
         return result;
     }
@@ -224,7 +226,33 @@ public class LogAspect {
 
             // Database log
             SysOperLog operLog = new SysOperLog();
-            operLog.setStatus(e == null ? BusinessStatus.SUCCESS.getCode() : BusinessStatus.FAIL.getCode());
+            
+            // Enhanced status determination logic - check both exception and Result object
+            boolean isError = false;
+            String errorMessage = null;
+            String errorCode = null;
+            
+            if (e != null) {
+                // Direct exception case
+                isError = true;
+                errorMessage = e.getMessage();
+                if (e instanceof BusinessException) {
+                    errorCode = ((BusinessException) e).getCode();
+                }
+            } else if (jsonResult instanceof Result) {
+                // Check if Result object indicates an error
+                Result<?> result = (Result<?>) jsonResult;
+                if (!result.isSuccess()) {
+                    isError = true;
+                    errorCode = result.getCode();
+                    // Extract error message from data field (which contains the error message for error results)
+                    if (result.getData() instanceof String) {
+                        errorMessage = (String) result.getData();
+                    }
+                }
+            }
+            
+            operLog.setStatus(isError ? BusinessStatus.FAIL.getCode() : BusinessStatus.SUCCESS.getCode());
 
             // Set trace ID for this operation
             if (StringUtils.isNotBlank(traceId)) {
@@ -239,8 +267,16 @@ public class LogAspect {
             operLog.setOperName(info.username);
             operLog.setOperRole(info.userRole);
 
-            if (e != null) {
-                operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
+            if (isError && (errorMessage != null || errorCode != null)) {
+                // Combine error code and message for comprehensive error logging
+                StringBuilder errorInfo = new StringBuilder();
+                if (errorCode != null) {
+                    errorInfo.append("[").append(errorCode).append("] ");
+                }
+                if (errorMessage != null) {
+                    errorInfo.append(errorMessage);
+                }
+                operLog.setErrorMsg(StringUtils.substring(errorInfo.toString(), 0, 2000));
             }
 
             // Set method name
@@ -396,6 +432,119 @@ public class LogAspect {
         // Filter BindingResult
         return o instanceof MultipartFile || o instanceof HttpServletRequest || o instanceof HttpServletResponse
                 || o instanceof BindingResult;
+    }
+
+    /**
+     * Record request log with enhanced error detection (console output)
+     *
+     * @param joinPoint JoinPoint
+     * @param time      Execution time
+     * @param result    Method result (may be a Result object with error info)
+     */
+    private void recordRequestLogEnhanced(JoinPoint joinPoint, long time, Object result) {
+        try {
+            OperationInfo info = getOperationInfo(joinPoint);
+            if (info == null) {
+                return;
+            }
+
+            // Detect error conditions
+            boolean isError = false;
+            String errorMessage = null;
+            String errorCode = null;
+            
+            if (result instanceof Result) {
+                Result<?> resultObj = (Result<?>) result;
+                if (!resultObj.isSuccess()) {
+                    isError = true;
+                    errorCode = resultObj.getCode();
+                    if (resultObj.getData() instanceof String) {
+                        errorMessage = (String) resultObj.getData();
+                    }
+                }
+            }
+
+            // Colors based on success/error status
+            String statusColor = isError ? ANSI_RED : ANSI_GREEN;
+            String statusIcon = isError ? "❌" : "✅";
+            String logTitle = isError ? "ERROR RESPONSE" : "REQUEST LOG";
+            
+            // Colors based on HTTP method
+            String methodColor;
+            switch (info.requestMethod) {
+                case "GET":
+                    methodColor = ANSI_GREEN;
+                    break;
+                case "POST":
+                    methodColor = ANSI_BLUE;
+                    break;
+                case "PUT":
+                    methodColor = ANSI_YELLOW;
+                    break;
+                case "DELETE":
+                    methodColor = ANSI_RED;
+                    break;
+                default:
+                    methodColor = ANSI_RESET;
+                    break;
+            }
+
+            // Colors based on execution time
+            String timeColor = ANSI_GREEN;
+            if (time > 500) {
+                timeColor = ANSI_YELLOW;
+            } else if (time > 2000) {
+                timeColor = ANSI_RED;
+            }
+
+            // Create decorative output
+            StringBuilder logBuilder = new StringBuilder();
+            String separator = statusColor + "┌────────────────────────────────────────────────────────────────────────────────┐" + ANSI_RESET;
+            String line = statusColor + "│" + ANSI_RESET;
+            String bottomSeparator = statusColor + "└────────────────────────────────────────────────────────────────────────────────┘" + ANSI_RESET;
+            String midSeparator = statusColor + "├────────────────────────────────────────────────────────────────────────────────┤" + ANSI_RESET;
+
+            logBuilder.append("\n").append(separator).append("\n");
+            logBuilder.append(line).append(" ").append(ANSI_BOLD).append(statusColor).append(statusIcon).append(" ").append(logTitle).append(ANSI_RESET).append(" - ").append(ANSI_BOLD).append(info.module).append(ANSI_RESET).append("\n");
+            logBuilder.append(midSeparator).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Operation:").append(ANSI_RESET).append("  ").append(info.businessType).append("\n");
+
+            if (StringUtils.isNotEmpty(info.username)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User:").append(ANSI_RESET).append("       ").append(info.username).append("\n");
+            }
+
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("IP:").append(ANSI_RESET).append("         ").append(info.ipAddr).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("URL:").append(ANSI_RESET).append("        ").append(info.requestUrl).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Method:").append(ANSI_RESET).append("     ").append(methodColor).append(info.requestMethod).append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("User-Agent:").append(ANSI_RESET).append(" ").append(info.userAgent).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Class:").append(ANSI_RESET).append("      ").append(info.getFullMethodName()).append("\n");
+
+            if (StringUtils.isNotEmpty(info.requestParams)) {
+                logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Parameters:").append(ANSI_RESET).append(" ").append(info.requestParams).append("\n");
+            }
+
+            // Add error information if present
+            if (isError) {
+                if (errorCode != null) {
+                    logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Error Code:").append(ANSI_RESET).append(" ").append(ANSI_RED).append(errorCode).append(ANSI_RESET).append("\n");
+                }
+                if (errorMessage != null) {
+                    logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Error Msg:").append(ANSI_RESET).append("  ").append(ANSI_RED).append(errorMessage).append(ANSI_RESET).append("\n");
+                }
+            }
+
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Status:").append(ANSI_RESET).append("     ").append(statusColor).append(isError ? "FAILED" : "SUCCESS").append(ANSI_RESET).append("\n");
+            logBuilder.append(line).append(" 🔹 ").append(ANSI_BOLD).append("Exec Time:").append(ANSI_RESET).append("  ").append(timeColor).append(time).append(" ms").append(ANSI_RESET).append("\n");
+            logBuilder.append(bottomSeparator);
+
+            if (isError) {
+                log.error(logBuilder.toString());
+            } else {
+                log.info(logBuilder.toString());
+            }
+        } catch (Exception ex) {
+            log.error("Failed to record request log", ex);
+        }
     }
 
     /**
