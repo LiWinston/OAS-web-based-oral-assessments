@@ -14,7 +14,7 @@ public class RegistrationPreviewResponseDTO {
     @Schema(description = "User ID", example = "123")
     private Long userId;
 
-    @Schema(description = "Email used for activation", example = "jsmith@gmail.com")
+    @Schema(description = "Email used for activation", example = "jsmith@unimelb.edu.au")
     private String email;
 
     @Schema(description = "Display name", example = "John Smith")

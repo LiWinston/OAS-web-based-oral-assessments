@@ -215,7 +215,7 @@ public class EmailServiceImpl implements EmailService {
         for (SysAdmin a : admins) {
             String to = null;
             if (a.getSisLoginId() != null && !a.getSisLoginId().isEmpty()) {
-                to = a.getSisLoginId() + "@gmail.com";
+                to = a.getSisLoginId() + "@unimelb.edu.au";
             } else if (a.getEmail() != null && !a.getEmail().isEmpty()) {
                 to = a.getEmail();
             }

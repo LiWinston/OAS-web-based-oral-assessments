@@ -74,7 +74,7 @@ public class ExaminerServiceImpl implements ExaminerService {
                 user.setUserId(userId);
                 user.setUserName(dto.getName());
                 user.setPassword("123456");
-                user.setEmail(dto.getSisLoginId() + "@gmail.com");
+                user.setEmail(dto.getSisLoginId() + "@unimelb.edu.au");
                 user.setStatus(UserStatus.INACTIVE.code());
                 user.setRegistrationStatus(RegistrationStatus.Pending.code());
                 sysUserMapper.insert(user);
