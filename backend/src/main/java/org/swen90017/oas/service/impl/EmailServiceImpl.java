@@ -13,6 +13,7 @@ import org.swen90017.oas.entity.SysAdmin;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.entity.SysExaminer;
+import org.swen90017.oas.mapper.SysUserMapper;
 
 import javax.mail.internet.MimeMessage;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ public class EmailServiceImpl implements EmailService {
 
     @Autowired
     private JavaMailSender mailSender;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     public void sendActivationEmail(List<SysStudent> sysStudents, String reason) {
         int batchSize = 30;
@@ -118,16 +121,28 @@ public class EmailServiceImpl implements EmailService {
     public void sendExaminerActivationEmail(List<SysExaminer> examiners) {
         int batchSize = 30;
         List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
+        log.info("Preparing to send examiner activation emails: count={}",
+                examiners == null ? 0 : examiners.size());
 
         for (SysExaminer ex : examiners) {
-            if (ex.getSisUserId() == null || ex.getToken() == null) {
-                log.warn("Skip examiner with missing sisUserId or token: {}", ex);
+            if (ex.getUserId() == null || ex.getToken() == null) {
+                log.warn("Skip examiner with missing userId or token: {}", ex);
                 continue;
             }
+            SysUser user = sysUserMapper.selectById(ex.getUserId());
+            if (user == null || user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+                log.warn("Skip examiner with missing email for userId={}, sisUserId={}", ex.getUserId(), ex.getSisUserId());
+                continue;
+            }
+            log.info("Queueing examiner activation email: userId={}, email={}, sisUserId={}",
+                    ex.getUserId(), user.getEmail(), ex.getSisUserId());
+
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(ex.getSisUserId() + "@gmail.com");
+            message.setTo(user.getEmail());
             message.setSubject("Examiner Account Activation");
             message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + ex.getToken());
+            log.info("Sending examiner activation email: userId={}, email={}, sisUserId={}",
+                    ex.getUserId(), user.getEmail(), ex.getSisUserId());
             batch.add(message);
 
             if (batch.size() >= batchSize) {
