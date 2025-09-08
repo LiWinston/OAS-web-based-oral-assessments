@@ -12,6 +12,8 @@ public interface EmailService {
 
     void sendExaminerActivationEmail(List<SysExaminer> examiners);
 
+    void sendExaminerActivationEmail(List<SysExaminer> examiners, String reason);
+
     /**
      * Send activation emails to course administrators.
      */

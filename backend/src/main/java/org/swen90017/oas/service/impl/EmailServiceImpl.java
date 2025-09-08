@@ -119,8 +119,13 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendExaminerActivationEmail(List<SysExaminer> examiners) {
+        sendExaminerActivationEmail(examiners, null);
+    }
+
+    @Override
+    public void sendExaminerActivationEmail(List<SysExaminer> examiners, String reason) {
         int batchSize = 30;
-        List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
+        List<MimeMessage> batch = new ArrayList<>(batchSize);
         log.info("Preparing to send examiner activation emails: count={}",
                 examiners == null ? 0 : examiners.size());
 
@@ -134,34 +139,80 @@ public class EmailServiceImpl implements EmailService {
                 log.warn("Skip examiner with missing email for userId={}, sisUserId={}", ex.getUserId(), ex.getSisUserId());
                 continue;
             }
-            log.info("Queueing examiner activation email: userId={}, email={}, sisUserId={}",
-                    ex.getUserId(), user.getEmail(), ex.getSisUserId());
+            try {
+                String to = user.getEmail();
+                String activationLink = "https://frontend-oas1.anzupop.com/onboarding?token=" + ex.getToken();
+                String reasonText = (reason == null || reason.trim().isEmpty()) ? null : reason.trim();
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(user.getEmail());
-            message.setSubject("Examiner Account Activation");
-            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + ex.getToken());
-            log.info("Sending examiner activation email: userId={}, email={}, sisUserId={}",
-                    ex.getUserId(), user.getEmail(), ex.getSisUserId());
-            batch.add(message);
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setTo(to);
+                helper.setSubject("Examiner Account Activation");
+
+                String plain = "Hi there, this is from OAS Team,\n\n"
+                        + (reasonText != null ? ("Reason: " + reasonText + "\n") : "")
+                        + "Click the link to activate: " + activationLink + "\n";
+                String html = buildExaminerActivationHtml(activationLink, reasonText);
+                helper.setText(plain, html);
+
+                batch.add(mimeMessage);
+            } catch (Exception e) {
+                log.error("Failed to build activation email for examiner {}: {}", ex, e.getMessage());
+            }
 
             if (batch.size() >= batchSize) {
-                sendBatch(batch);
+                sendHtmlBatch(batch);
                 batch.clear();
             }
         }
 
         if (!batch.isEmpty()) {
-            sendBatch(batch);
+            sendHtmlBatch(batch);
         }
+    }
+
+    private String buildExaminerActivationHtml(String activationLink, String reasonText) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!doctype html>")
+          .append("<html lang=\"en\"><head><meta charset=\"utf-8\">")
+          .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
+          .append("<title>Activate your examiner account</title>")
+          .append("</head><body style=\"margin:0;padding:0;background:#f6f8fb;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;\">")
+          .append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"background:#f6f8fb;\"><tr><td align=\"center\" style=\"padding:32px 16px;\">")
+          .append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;width:100%;background:#ffffff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.06);\">")
+          .append("<tr><td style=\"padding:32px 32px 8px 32px;text-align:center;border-top-left-radius:12px;border-top-right-radius:12px;\">")
+          .append("<div style=\"font-size:20px;letter-spacing:.4px;color:#3b82f6;font-weight:700;\">OAS</div>")
+          .append("<div style=\"margin-top:8px;font-size:22px;color:#111827;font-weight:700;\">Activate your examiner account</div>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:8px 32px 0 32px;\">")
+          .append("<p style=\"margin:6px 0 10px 0;color:#374151;font-size:15px;line-height:1.6;\">Hi there, this is from OAS Team,</p>");
+        if (reasonText != null) {
+            sb.append("<div style=\"margin:12px 0;padding:10px 14px;background:#eff6ff;border:1px solid #dbeafe;color:#1e40af;border-radius:8px;font-size:14px;\">")
+              .append("<strong style=\"display:block;margin-bottom:4px;\">Reason</strong>")
+              .append("<span>").append(escapeHtml(reasonText)).append("</span>")
+              .append("</div>");
+        }
+        sb.append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">You're invited to access your examiner portal. Click the button below to activate your account and complete onboarding.</p>")
+          .append("<div style=\"text-align:center;margin:24px 0;\">")
+          .append("<a href=\"").append(activationLink).append("\" style=\"display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;\">Activate Account</a>")
+          .append("</div>")
+          .append("<p style=\"margin:0 0 12px 0;color:#6b7280;font-size:13px;\">If the button doesn't work, copy and paste this link into your browser:</p>")
+          .append("<p style=\"margin:0 0 16px 0;word-break:break-all;\"><a href=\"").append(activationLink).append("\" style=\"color:#2563eb;\">").append(activationLink).append("</a></p>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:16px 32px 28px 32px;border-top:1px solid #f3f4f6;\">")
+          .append("<p style=\"margin:0;color:#9ca3af;font-size:12px;\">This invitation was sent by the OAS system. If you weren't expecting this, you can ignore this email.</p>")
+          .append("</td></tr>")
+          .append("</table>")
+          .append("</td></tr></table>")
+          .append("</body></html>");
+        return sb.toString();
     }
 
     public void sendAdminActivationEmail(List<SysAdmin> admins) {
         int batchSize = 30;
-        List<SimpleMailMessage> batch = new ArrayList<>(batchSize);
+        List<MimeMessage> batch = new ArrayList<>(batchSize);
 
         for (SysAdmin a : admins) {
-            // Prefer SIS Login ID if provided (admin CSV flow), fallback to email
             String to = null;
             if (a.getSisLoginId() != null && !a.getSisLoginId().isEmpty()) {
                 to = a.getSisLoginId() + "@gmail.com";
@@ -177,21 +228,62 @@ public class EmailServiceImpl implements EmailService {
                 continue;
             }
 
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(to);
-            message.setSubject("Admin Invitation");
-            message.setText("Click the link to activate: https://frontend-oas1.anzupop.com/onboarding?token=" + a.getToken());
-            batch.add(message);
+            try {
+                String activationLink = "https://frontend-oas1.anzupop.com/onboarding?token=" + a.getToken();
+                MimeMessage mime = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+                helper.setTo(to);
+                helper.setSubject("Admin Invitation");
+                String plain = "Hi there, this is from OAS Team,\n\n"
+                        + "You're invited to access the OAS admin portal.\n"
+                        + "Click the link to activate: " + activationLink + "\n";
+                String html = buildAdminActivationHtml(activationLink);
+                helper.setText(plain, html);
+                batch.add(mime);
+            } catch (Exception e) {
+                log.error("Failed to build admin activation email: {}", e.getMessage());
+            }
 
             if (batch.size() >= batchSize) {
-                sendBatch(batch);
+                sendHtmlBatch(batch);
                 batch.clear();
             }
         }
 
         if (!batch.isEmpty()) {
-            sendBatch(batch);
+            sendHtmlBatch(batch);
         }
+    }
+
+    private String buildAdminActivationHtml(String activationLink) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!doctype html>")
+          .append("<html lang=\"en\"><head><meta charset=\"utf-8\">")
+          .append("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">")
+          .append("<title>Admin invitation</title>")
+          .append("</head><body style=\"margin:0;padding:0;background:#f6f8fb;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;\">")
+          .append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" width=\"100%\" style=\"background:#f6f8fb;\"><tr><td align=\"center\" style=\"padding:32px 16px;\">")
+          .append("<table role=\"presentation\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:560px;width:100%;background:#ffffff;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.06);\">")
+          .append("<tr><td style=\"padding:32px 32px 8px 32px;text-align:center;border-top-left-radius:12px;border-top-right-radius:12px;\">")
+          .append("<div style=\"font-size:20px;letter-spacing:.4px;color:#3b82f6;font-weight:700;\">OAS</div>")
+          .append("<div style=\"margin-top:8px;font-size:22px;color:#111827;font-weight:700;\">You're invited to OAS Admin</div>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:8px 32px 0 32px;\">")
+          .append("<p style=\"margin:6px 0 10px 0;color:#374151;font-size:15px;line-height:1.6;\">Hi there, this is from OAS Team,</p>")
+          .append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">You're invited to access the OAS admin portal. Click the button below to activate your account and complete onboarding.</p>")
+          .append("<div style=\"text-align:center;margin:24px 0;\">")
+          .append("<a href=\"" + activationLink + "\" style=\"display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;\">Activate Account</a>")
+          .append("</div>")
+          .append("<p style=\"margin:0 0 12px 0;color:#6b7280;font-size:13px;\">If the button doesn't work, copy and paste this link into your browser:</p>")
+          .append("<p style=\"margin:0 0 16px 0;word-break:break-all;\"><a href=\"" + activationLink + "\" style=\"color:#2563eb;\">" + activationLink + "</a></p>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:16px 32px 28px 32px;border-top:1px solid #f3f4f6;\">")
+          .append("<p style=\"margin:0;color:#9ca3af;font-size:12px;\">This invitation was sent by the OAS system. If you weren't expecting this, you can ignore this email.</p>")
+          .append("</td></tr>")
+          .append("</table>")
+          .append("</td></tr></table>")
+          .append("</body></html>");
+        return sb.toString();
     }
 
     @Override

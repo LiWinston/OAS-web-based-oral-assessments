@@ -185,7 +185,8 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 ex.setToken(generateToken());
                 ex.setSisUserId(localPart(request.getEmail()));
                 examinerMapper.insert(ex);
-                emailService.sendExaminerActivationEmail(Collections.singletonList(ex));
+                String reason = buildInviteReason(assignmentId);
+                emailService.sendExaminerActivationEmail(Collections.singletonList(ex), reason);
                 inviteSent = true;
             } else if (Objects.equals(normalizedRole, UserRole.STUDENT.code())) {
                 // create student row with token

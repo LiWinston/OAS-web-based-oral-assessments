@@ -133,7 +133,8 @@ public class CsvController {
 
     private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData, Long assignmentId) {
         List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, assignmentId));
-        emailService.sendExaminerActivationEmail(examiners);
+        String reason = buildInviteReason(assignmentId);
+        emailService.sendExaminerActivationEmail(examiners, reason);
         return Result.success(examiners);
     }
 
