@@ -10,12 +10,14 @@ import org.swen90017.oas.dto.request.RegisterRequestDTO;
 import org.swen90017.oas.dto.response.OnboardingVerifyResponse;
 import org.swen90017.oas.entity.AssignmentParticipant;
 import org.swen90017.oas.entity.SysAdmin;
+import org.swen90017.oas.entity.SysExaminer;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentParticipantMapper;
+import org.swen90017.oas.mapper.ExaminerMapper;
 import org.swen90017.oas.mapper.SysAdminMapper;
 import org.swen90017.oas.mapper.SysStudentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
@@ -36,6 +38,8 @@ public class OnboardingServiceImpl implements OnboardingService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private AssignmentParticipantMapper assignmentParticipantMapper;
+    @Autowired
+    private ExaminerMapper examinerMapper;
 
     @Override
     public OnboardingVerifyResponse verify(String token) {
@@ -72,8 +76,33 @@ public class OnboardingServiceImpl implements OnboardingService {
             return resp;
         }
         // 2) Examiner token
+        SysExaminer examiner = examinerMapper.selectOne(new QueryWrapper<SysExaminer>().eq("token", token));
+        if (examiner != null) {
+            SysUser user = userMapper.selectById(examiner.getUserId());
+            if (user == null) {
+                resp.setSuccess(false);
+                resp.setStatus("invalid");
+                resp.setMessage("Invalid link");
+                return resp;
+            }
+            RegistrationStatus r = RegistrationStatus.fromCode(user.getRegistrationStatus());
+            if (r == RegistrationStatus.EXPIRED) {
+                resp.setSuccess(false);
+                resp.setStatus("expired");
+                resp.setMessage("Link expired");
+                return resp;
+            }
 
+            resp.setSuccess(true);
+            resp.setStatus("valid");
+            resp.setAlreadyRegistered(r == RegistrationStatus.REGISTERED);
+            resp.setRole("EXAMINER");
+            resp.setEmail(user.getEmail());
+            resp.setFullName(user.getUserName());
 
+            // 课程/作业上下文：当前后端暂无课程/作业实体，留空占位
+            return resp;
+        }
 
         // 3) Admin token
         SysAdmin admin = adminMapper.selectOne(new QueryWrapper<SysAdmin>().eq("token", token));
@@ -138,7 +167,27 @@ public class OnboardingServiceImpl implements OnboardingService {
             });
             return user;
         }
-        // 2) Try admin
+        // 2) Try examiner
+        SysExaminer examiner = examinerMapper.selectOne(new QueryWrapper<SysExaminer>().eq("token", token));
+        if (examiner != null) {
+            SysUser user = userMapper.selectById(examiner.getUserId());
+            if (user == null) throw new BusinessException(BusinessError.USER_NOT_FOUND);
+            user.setStatus(UserStatus.ACTIVE.code());
+            user.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
+            user.setRegisteredAt(new java.util.Date());
+            user.setPassword(passwordEncoder.encode(rawPassword));
+            userMapper.updateById(user);
+            // 与学生一致：标记所有关联的 assignment 参与记录为未确认/未加入（ifJoin=0）
+            List<AssignmentParticipant> participant = assignmentParticipantMapper.selectList(
+                    new QueryWrapper<AssignmentParticipant>().eq("user_id", user.getUserId())
+            );
+            participant.forEach(p -> {
+                p.setIfJoin(0);
+                assignmentParticipantMapper.updateById(p);
+            });
+            return user;
+        }
+        // 3) Try admin
         SysAdmin admin = adminMapper.selectOne(new QueryWrapper<SysAdmin>().eq("token", token));
         if (admin != null) {
             SysUser user = userMapper.selectById(admin.getUserId());
@@ -154,7 +203,7 @@ public class OnboardingServiceImpl implements OnboardingService {
             return user;
         }
 
-        // 3) Not found
+        // 4) Not found
         throw new BusinessException("Invalid registration link or token has expired");
     }
 }
