@@ -9,11 +9,13 @@ import { superadminCourseService } from "../../../services/superadminCourseServi
 import Pagination from "../../ui/Pagination";
 
 export function CourseOverviewTable() {
+
   const [searchTerm, setSearchTerm] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filteredCourses, setFilteredCourses] = useState([]);
@@ -243,6 +245,7 @@ export function CourseOverviewTable() {
   // 前端筛选逻辑已移除，现在由后端处理
 
   const getStatusBadge = (status) => {
+
     // Debug: Log the status value being processed
     console.log("=== STATUS BADGE DEBUG ===");
     console.log("Status value:", status);
@@ -262,6 +265,7 @@ export function CourseOverviewTable() {
 
     const statusConfig = {
       active: { 
+
         color:
           "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200 dark:from-green-900/30 dark:to-emerald-900/30 dark:text-green-300 dark:border-green-700",
         icon: "fas fa-check-circle",
@@ -269,6 +273,7 @@ export function CourseOverviewTable() {
         pulse: true,
       },
       setup: { 
+
         color:
           "bg-gradient-to-br from-yellow-100 to-orange-100 text-yellow-800 border border-yellow-200 dark:from-yellow-900/30 dark:to-orange-900/30 dark:text-yellow-300 dark:border-yellow-700",
         icon: "fas fa-cog fa-spin",
@@ -276,6 +281,7 @@ export function CourseOverviewTable() {
         pulse: false,
       },
       inactive: { 
+
         color:
           "bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200 dark:from-gray-900/30 dark:to-slate-900/30 dark:text-gray-300 dark:border-gray-700",
         icon: "fas fa-pause-circle",
@@ -301,6 +307,7 @@ export function CourseOverviewTable() {
     console.log("Selected config:", config);
     
     return (
+
       <span
         className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium shadow-sm transition-all duration-200 hover:shadow-md ${
           config.color
@@ -313,6 +320,7 @@ export function CourseOverviewTable() {
   };
 
   const handleCourseClick = (course) => {
+
     if (!course || !course.id) {
       console.warn("Invalid course data for detail view");
       return;
@@ -322,6 +330,7 @@ export function CourseOverviewTable() {
   };
 
   const getAdminAvatar = (adminName) => {
+
     if (!adminName || typeof adminName !== "string") {
       return (
         <div className="w-10 h-10 bg-gradient-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center shadow-md">
@@ -336,6 +345,7 @@ export function CourseOverviewTable() {
       .join("")
       .toUpperCase();
     const colors = [
+
       "from-blue-400 to-blue-600",
       "from-purple-400 to-purple-600",
       "from-green-400 to-green-600",
@@ -346,6 +356,7 @@ export function CourseOverviewTable() {
     const colorIndex = adminName.length % colors.length;
     
     return (
+
       <div
         className={`w-10 h-10 bg-gradient-to-br ${colors[colorIndex]} rounded-full flex items-center justify-center shadow-md transition-transform duration-200 hover:scale-110`}
       >
@@ -353,6 +364,7 @@ export function CourseOverviewTable() {
       </div>
     );
   };
+
 
   // Show loading state
   if (isLoading) {
@@ -423,6 +435,7 @@ export function CourseOverviewTable() {
           Read-only view of all courses across the platform
         </p>
       </div>
+
 
       {/* Enhanced Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -515,6 +528,7 @@ export function CourseOverviewTable() {
               />
               {searchTerm && (
                 <button
+
                   onClick={() => setSearchTerm("")}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
                 >
@@ -532,6 +546,7 @@ export function CourseOverviewTable() {
               className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:border-orange-500 dark:focus:border-orange-400 shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
             >
               <option value="all">All Departments</option>
+
               {departments.map((dept, index) => (
                 <option key={dept || `dept-${index}`} value={dept || ""}>
                   {dept || "Unknown"}
@@ -548,6 +563,7 @@ export function CourseOverviewTable() {
               className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:border-orange-500 dark:focus:border-orange-400 shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
             >
               <option value="all">All Status</option>
+
               <option value="ACTIVE">Active</option>
               <option value="ARCHIVED">Archived</option>
             </select>
@@ -568,6 +584,7 @@ export function CourseOverviewTable() {
         {/* Enhanced Results count with filter indicators */}
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-600 dark:text-gray-400">
+
             Showing{" "}
             <span className="font-semibold text-gray-800 dark:text-gray-200">
               {filteredCourses.length}
@@ -579,25 +596,30 @@ export function CourseOverviewTable() {
           <div className="flex items-center space-x-2">
             {searchTerm && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+
                 <i className="fas fa-search mr-1"></i>"{searchTerm}"
               </span>
             )}
+
             {filterDepartment !== "all" && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                 <i className="fas fa-building mr-1"></i>
                 {filterDepartment}
               </span>
             )}
+
             {filterStatus !== "all" && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <i className="fas fa-circle mr-1"></i>
                 {filterStatus}
               </span>
             )}
+
             {(searchTerm ||
               filterDepartment !== "all" ||
               filterStatus !== "all") && (
               <button
+
                 onClick={clearAllFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
@@ -639,11 +661,14 @@ export function CourseOverviewTable() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+
               {filteredCourses.map((course, index) => (
                 <tr 
+
                   key={course?.id || `course-${index}`}
                   className="group hover:bg-gradient-to-r hover:from-orange-50/50 hover:to-red-50/50 dark:hover:from-orange-900/10 dark:hover:to-red-900/10 transition-all duration-300 cursor-pointer border-b border-gray-100 dark:border-gray-800 hover:border-orange-200 dark:hover:border-orange-800"
                   onClick={() => handleCourseClick(course)}
+
                   data-course-id={course?.id || `course-${index}`}
                 >
                   <td className="px-6 py-6">
@@ -652,6 +677,7 @@ export function CourseOverviewTable() {
                         {course.name}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+
                         <span className="font-medium">
                           {course.code || "N/A"}
                         </span>{" "}
@@ -659,6 +685,7 @@ export function CourseOverviewTable() {
                       </div>
                       <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                         <i className="fas fa-map-marker-alt mr-1"></i>
+
                         {course.venue || "TBD"}
                       </div>
                     </div>
@@ -666,6 +693,7 @@ export function CourseOverviewTable() {
                   <td className="px-6 py-6">
                     <div className="flex items-center">
                       <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 mr-2 shadow-sm"></div>
+
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {course.department}
                       </span>
@@ -676,9 +704,11 @@ export function CourseOverviewTable() {
                       {getAdminAvatar(course.admin)}
                       <div className="ml-3">
                         <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+
                           {course.admin || "Unassigned"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">
+
                           {course.adminEmail || "No email"}
                         </div>
                       </div>
@@ -690,6 +720,7 @@ export function CourseOverviewTable() {
                         <i className="fas fa-user-graduate text-purple-600 dark:text-purple-400 text-sm"></i>
                       </div>
                       <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+
                         {course.students || 0}
                       </span>
                     </div>
@@ -701,11 +732,14 @@ export function CourseOverviewTable() {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+
                           {course.assignments || 0} total
                         </div>
+
                         {(course.activeAssignments || 0) > 0 && (
                           <div className="text-xs text-green-600 dark:text-green-400 flex items-center">
                             <i className="fas fa-play-circle mr-1"></i>
+
                             {course.activeAssignments || 0} active
                           </div>
                         )}
@@ -719,10 +753,12 @@ export function CourseOverviewTable() {
                   </td>
                   <td className="px-6 py-6">
                     <div className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+
                       {course.lastActivity || "No activity"}
                     </div>
                     <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
                       <i className="fas fa-clock mr-1"></i>
+
                       {course.completionRate || 0}% complete
                     </div>
                   </td>
@@ -736,6 +772,7 @@ export function CourseOverviewTable() {
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-search text-gray-400 text-2xl"></i>
               </div>
+
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                 No courses found
               </h3>
@@ -744,6 +781,7 @@ export function CourseOverviewTable() {
               </p>
               <Button 
                 variant="outline" 
+
                 onClick={clearAllFilters}
                 className="text-orange-600 border-orange-200 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-800 dark:hover:bg-orange-900/20"
               >
@@ -754,6 +792,7 @@ export function CourseOverviewTable() {
           )}
         </div>
       </Card>
+
 
       {/* Pagination */}
       {pagination.totalItems > 0 && (
@@ -781,4 +820,5 @@ export function CourseOverviewTable() {
       )}
     </div>
   );
+
 }

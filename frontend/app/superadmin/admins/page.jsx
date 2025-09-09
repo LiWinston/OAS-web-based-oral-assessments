@@ -554,7 +554,7 @@ export default function AdminManagementPage() {
         console.log("  - FINAL RESULT:", matchesSearch && matchesStatus);
       }
 
-      return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus;
     }) || [];
 
   // Debug logs for data tracking
@@ -622,13 +622,13 @@ export default function AdminManagementPage() {
               </p>
             </div>
             </div>
-      </div>
+          </div>
 
       {/* Quick Stats */}
       
 
       {/* Action Bar */}
-      <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
            {/* Advanced Search Dropdown */}
            <div className="relative search-dropdown">
@@ -662,7 +662,7 @@ export default function AdminManagementPage() {
                    </div>
 
                    {/* Name Search */}
-                   <div>
+            <div>
                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                        Name
                      </Label>
@@ -672,10 +672,10 @@ export default function AdminManagementPage() {
                        onChange={(e) => setSearchName(e.target.value)}
                        className="mt-1 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400"
             />
-          </div>
+            </div>
 
                    {/* Email Search */}
-                   <div>
+            <div>
                      <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                        Email
                      </Label>
@@ -685,7 +685,7 @@ export default function AdminManagementPage() {
                        onChange={(e) => setSearchEmail(e.target.value)}
                        className="mt-1 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400"
                      />
-                   </div>
+            </div>
 
                    {/* Action Buttons */}
                    <div className="flex items-center justify-between pt-2">
@@ -709,11 +709,11 @@ export default function AdminManagementPage() {
                        <i className="fas fa-search mr-2"></i>
                        Search
                      </Button>
-                   </div>
-                 </div>
-               </div>
+            </div>
+          </div>
+      </div>
              )}
-           </div>
+          </div>
 
            {/* Status Filter */}
            <div className="flex items-center space-x-2">
@@ -1074,18 +1074,18 @@ export default function AdminManagementPage() {
         </div>
       )}
 
-            {/* Pending Invitations */}
+      {/* Pending Invitations */}
       {filteredInvitations.length > 0 && (
         <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Pending Invitations
-              </h3>
-              <div className="text-xs text-gray-500">
-                <i className="fas fa-clock mr-1"></i>
-                Invitations expire after 7 days
-              </div>
+            </h3>
+            <div className="text-xs text-gray-500">
+              <i className="fas fa-clock mr-1"></i>
+              Invitations expire after 7 days
             </div>
+          </div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Showing {filteredInvitations.length} of{" "}
               {adminData?.pendingInvitations?.length || 0} invitations
