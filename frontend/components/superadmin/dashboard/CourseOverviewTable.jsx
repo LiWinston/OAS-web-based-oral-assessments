@@ -19,7 +19,6 @@ export function CourseOverviewTable() {
   const [courses, setCourses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filteredCourses, setFilteredCourses] = useState([]);
-  const [hasError, setHasError] = useState(false);
   
   // 课程统计状态
   const [courseStats, setCourseStats] = useState({
@@ -110,7 +109,6 @@ export function CourseOverviewTable() {
     setFilterDepartment("all");
     setFilterStatus("all");
     setCurrentPage(1);
-    setHasError(false); // 重置错误状态
     // 不需要手动调用 loadCourses，useEffect 会自动触发
   };
 
@@ -131,7 +129,6 @@ export function CourseOverviewTable() {
       if (response.success) {
         setCourses(response.data || []);
         setFilteredCourses(response.data || []);
-        setHasError(false); // 重置错误状态
         
         // 更新分页信息
         if (response.pagination) {
@@ -142,7 +139,6 @@ export function CourseOverviewTable() {
         // API failed, set empty data
         setCourses([]);
         setFilteredCourses([]);
-        setHasError(true); // 设置错误状态
         setPagination({
           currentPage: page,
           totalPages: 1,
@@ -157,7 +153,6 @@ export function CourseOverviewTable() {
       // API error, set empty data
       setCourses([]);
       setFilteredCourses([]);
-      setHasError(true); // 设置错误状态
       setPagination({
         currentPage: page,
         totalPages: 1,
@@ -390,39 +385,7 @@ export function CourseOverviewTable() {
     );
   }
 
-  // Show error state only if there's a real error (not just no search results)
-  if (hasError && (!courses || courses.length === 0)) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            System-wide Course Overview
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            No course data available
-          </p>
-        </div>
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-              Unable to load course data
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              Please check your connection and try again
-            </p>
-            <Button
-              onClick={() => loadCourses(1, pageSize)}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              Retry
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Error state removed - always show normal interface even if no data
 
   return (
     <div className="space-y-6">

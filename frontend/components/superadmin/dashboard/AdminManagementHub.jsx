@@ -590,37 +590,7 @@ export function AdminManagementHub() {
     );
   }
 
-  // Show error state if no data
-  if (
-    !adminData ||
-    !adminData.pendingInvitations ||
-    !adminData.activeAdmins ||
-    (adminData.pendingInvitations.length === 0 &&
-      adminData.activeAdmins.length === 0)
-  ) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-center py-20">
-          <div className="text-center">
-            <i className="fas fa-exclamation-triangle text-4xl text-orange-500 mb-4"></i>
-            <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-              Unable to load administrator data
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mb-6">
-              Please check your connection and try again
-            </p>
-            <Button
-              onClick={loadAdminData}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-            >
-              <i className="fas fa-redo mr-2"></i>
-              Retry
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Error state removed - always show normal interface even if no data
 
   return (
     <div className="space-y-6">
