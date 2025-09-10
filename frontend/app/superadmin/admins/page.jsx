@@ -971,7 +971,7 @@ export default function AdminManagementPage() {
                     <Input
                       id="edit-email"
                       value={editData.email}
-                      placeholder="jane.smith@student.unimelb.edu.au"
+                      placeholder="jane.smith@unimelb.edu.au"
                       className="mt-1"
                       disabled
                     />

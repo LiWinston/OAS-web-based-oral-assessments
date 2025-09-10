@@ -810,7 +810,7 @@ export function AdminManagementHub() {
                   onChange={(e) => {
                     setInviteData({ ...inviteData, email: e.target.value });
                   }}
-                  placeholder="jane.smith@student.unimelb.edu.au"
+                  placeholder="jane.smith@unimelb.edu.au"
                   className="mt-1"
                   required
                 />
