@@ -233,12 +233,12 @@ export function AdminManagementHub() {
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const universityDomains = ["unimelb.edu.au", "student.unimelb.edu.au"];
 
     if (!emailRegex.test(email)) return false;
 
     const domain = email.split("@")[1];
-    return universityDomains.includes(domain);
+    // 接受所有以unimelb.edu.au结尾的域名（包括子域名）
+    return domain.endsWith("unimelb.edu.au");
   };
 
   const checkDuplicateEmail = (email) => {
@@ -389,6 +389,13 @@ export function AdminManagementHub() {
     }, 5000);
   };
 
+  // 状态标准化函数：将后端的大写状态转换为前端的小写状态
+  const normalizeStatus = (status) => {
+    if (!status) return "active";
+    const normalized = status.toLowerCase();
+    return normalized === "inactive" ? "inactive" : "active";
+  };
+
   // Handle edit admin
   const handleEditAdmin = (admin) => {
     console.log("🔍 AdminManagementHub - handleEditAdmin - admin:", admin);
@@ -398,15 +405,17 @@ export function AdminManagementHub() {
     );
 
     setEditingAdmin(admin);
+    const normalizedStatus = normalizeStatus(admin.status);
+    console.log("🔍 AdminManagementHub - normalized status:", normalizedStatus);
     setEditData({
       name: admin.name || "",
       email: admin.email || "",
       department: admin.department || "",
-      status: editData.status || "active",
+      status: normalizedStatus, // 使用标准化后的状态
     });
     console.log(
       "🔍 AdminManagementHub - handleEditAdmin - setEditData.status:",
-      admin.status || "active"
+      normalizedStatus
     );
     setShowEditForm(true);
   };
@@ -806,7 +815,7 @@ export function AdminManagementHub() {
                   required
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  Must be a @student.unimelb.edu.au email address
+                  Must be a unimelb.edu.au email address
                 </p>
               </div>
             </div>
@@ -1297,14 +1306,7 @@ export function AdminManagementHub() {
                           • <strong>Inactive:</strong> Administrator's access is
                           temporarily suspended
                         </li>
-                        <li>
-                          • <strong>Pending:</strong> Administrator is in setup
-                          process
-                        </li>
-                        <li>
-                          • <strong>Setup:</strong> Administrator is completing
-                          initial configuration
-                        </li>
+                        
                       </ul>
                     </div>
                   </div>

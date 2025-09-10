@@ -11,6 +11,7 @@ import Pagination from "../../ui/Pagination";
 export function CourseOverviewTable() {
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeSearchTerm, setActiveSearchTerm] = useState(""); // 实际用于搜索的术语
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -42,24 +43,15 @@ export function CourseOverviewTable() {
     hasPrev: false
   });
 
-  // 防抖搜索
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-
-  // 防抖搜索效果
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchTerm(searchTerm);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  // 手动搜索 - 移除防抖，改为点击按钮触发
 
   // 构建筛选参数
-  const buildFilters = useCallback(() => {
+  const buildFilters = useCallback((searchTermOverride = null) => {
     const filters = {};
     
-    if (debouncedSearchTerm) {
-      filters.search = debouncedSearchTerm;
+    const searchToUse = searchTermOverride !== null ? searchTermOverride : activeSearchTerm;
+    if (searchToUse) {
+      filters.search = searchToUse;
     }
     
     if (filterDepartment !== "all") {
@@ -71,41 +63,50 @@ export function CourseOverviewTable() {
     }
     
     return filters;
-  }, [debouncedSearchTerm, filterDepartment, filterStatus]);
+  }, [activeSearchTerm, filterDepartment, filterStatus]);
 
   // 初始加载
   useEffect(() => {
     // 初始加载逻辑将在 loadCourses 定义后处理
   }, []);
 
-  // 当筛选条件改变时，重新加载数据
+  // 当筛选条件改变时，重新加载数据（搜索除外，需要手动触发）
   useEffect(() => {
     setCurrentPage(1); // 重置到第一页
     // 筛选逻辑将在 loadCourses 定义后处理
-  }, [debouncedSearchTerm, filterDepartment, filterStatus, pageSize]);
+  }, [filterDepartment, filterStatus, pageSize]);
 
   // 处理分页变化
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    loadCourses(newPage, pageSize);
+    loadCourses(newPage, pageSize); // 使用当前的activeSearchTerm
   };
 
   // 处理页面大小变化
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
     setCurrentPage(1); // 重置到第一页
-    loadCourses(1, newPageSize);
+    loadCourses(1, newPageSize); // 使用当前的activeSearchTerm
   };
 
-  // 应用筛选（重置到第一页并重新加载）
-  const applyFilters = () => {
+  // 处理搜索按钮点击
+  const handleSearch = () => {
+    setActiveSearchTerm(searchTerm);
     setCurrentPage(1);
-    loadCourses(1, pageSize);
+    loadCourses(1, pageSize, searchTerm); // 直接传递搜索词
+  };
+
+  // 处理回车键搜索
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
   };
 
   // 清除所有筛选
   const clearAllFilters = () => {
     setSearchTerm("");
+    setActiveSearchTerm("");
     setFilterDepartment("all");
     setFilterStatus("all");
     setCurrentPage(1);
@@ -113,15 +114,16 @@ export function CourseOverviewTable() {
   };
 
   // 加载课程数据（支持筛选和分页）
-  const loadCourses = useCallback(async (page = 1, size = pageSize) => {
+  const loadCourses = useCallback(async (page = 1, size = pageSize, searchTermOverride = null) => {
     try {
       setIsLoading(true);
-      const filters = buildFilters();
+      const filters = buildFilters(searchTermOverride);
       
       console.log("=== LOAD COURSES DEBUG ===");
       console.log("Filters:", filters);
       console.log("Page:", page);
       console.log("PageSize:", size);
+      console.log("SearchTermOverride:", searchTermOverride);
       console.log("=== END DEBUG ===");
       
       const response = await superadminCourseService.getCourses(filters, page, size);
@@ -219,17 +221,17 @@ export function CourseOverviewTable() {
 
   // 在 loadCourses 定义后，处理初始加载和筛选变化
   useEffect(() => {
-    loadCourses(1, pageSize);
+    loadCourses(1, pageSize); // 使用当前的activeSearchTerm
     loadCourseStats(); // 同时加载课程统计
   }, [loadCourses, loadCourseStats]);
 
-  // 当筛选条件改变时，重新加载数据
+  // 当筛选条件改变时，重新加载数据（搜索除外，需要手动触发）
   useEffect(() => {
     if (loadCourses) {
       setCurrentPage(1); // 重置到第一页
-      loadCourses(1, pageSize);
+      loadCourses(1, pageSize); // 使用当前的activeSearchTerm
     }
-  }, [debouncedSearchTerm, filterDepartment, filterStatus, pageSize, loadCourses]);
+  }, [filterDepartment, filterStatus, pageSize, loadCourses]);
 
   // Get unique departments from courses
   const departments =
@@ -479,25 +481,34 @@ export function CourseOverviewTable() {
       {/* Enhanced Filters and Search */}
       <Card className="p-6 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-orange-100 dark:border-orange-900/30">
         <div className="flex flex-col lg:flex-row gap-4 items-end">
-          {/* Enhanced Search */}
+          {/* Enhanced Search with Search Button */}
           <div className="flex-1">
-            <div className="relative group">
-              <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-200"></i>
-              <Input
-                placeholder="Search courses, codes, or administrators..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
-              />
-              {searchTerm && (
-                <button
-
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-              )}
+            <div className="flex gap-2">
+              <div className="relative group flex-1">
+                <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-200"></i>
+                <Input
+                  placeholder="Search courses, codes, or administrators..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  className="pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                )}
+              </div>
+              <Button
+                onClick={handleSearch}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-6 h-12 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md"
+              >
+                <i className="fas fa-search mr-2"></i>
+                Search
+              </Button>
             </div>
           </div>
           
@@ -557,10 +568,9 @@ export function CourseOverviewTable() {
           
           {/* Active filter indicators */}
           <div className="flex items-center space-x-2">
-            {searchTerm && (
+            {activeSearchTerm && (
               <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-
-                <i className="fas fa-search mr-1"></i>"{searchTerm}"
+                <i className="fas fa-search mr-1"></i>"{activeSearchTerm}"
               </span>
             )}
 
@@ -578,11 +588,10 @@ export function CourseOverviewTable() {
               </span>
             )}
 
-            {(searchTerm ||
+            {(activeSearchTerm ||
               filterDepartment !== "all" ||
               filterStatus !== "all") && (
               <button
-
                 onClick={clearAllFilters}
                 className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
               >
