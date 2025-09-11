@@ -28,6 +28,7 @@ public class SlotSession implements Serializable {
     private Long venueId;                       // 会话级场地，可空
     private Integer capacityGroups;             // 组容量
     private Integer enrolledGroups;             // 已报名的组数
+    private Integer requiredExaminers;          // 需要考官数
     private AssignMode assignMode;              // INDIVIDUAL / GROUP
     private Boolean isPublishedToExaminer;      // 对考官是否发布
     private Boolean isPublishedToStudent;       // 对学生是否发布

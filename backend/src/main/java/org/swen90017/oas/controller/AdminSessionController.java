@@ -8,12 +8,22 @@ import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.BatchCreateSessionsRequestDTO;
+import org.swen90017.oas.dto.request.GenerateSessionsRequestDTO;
+import org.swen90017.oas.dto.request.BatchCreateSessionsExplicitRequestDTO;
+import org.swen90017.oas.dto.request.SessionRequestDTO;
+import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
+import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.request.AssignSessionExaminersRequestDTO;
+import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.SessionService;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Admin Session Management", description = "Admin operations for session-level settings and assignments")
 @RestController
@@ -22,6 +32,17 @@ import java.util.List;
 public class AdminSessionController {
 
     private final SessionService sessionService;
+
+    @Operation(summary = "List sessions for assignment")
+    @GetMapping("/assignments/{assignmentId}/sessions")
+    @Log(module = "Session Management", businessType = BusinessType.QUERY)
+    public Result<AdminSessionsListResponseDTO> listSessions(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(value = "status", required = false) String status,
+            @RequestParam(value = "venueId", required = false) Long venueId) {
+        return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId));
+    }
 
     @Operation(summary = "List examiners assigned to a session")
     @GetMapping("/{sessionId}/examiners")
@@ -56,13 +77,120 @@ public class AdminSessionController {
     }
 
     @Operation(summary = "Batch create sessions (no timeslot)")
-    @PostMapping("/assignments/{assignmentId}/batch-create")
+    @PostMapping("/assignments/{assignmentId}/sessions/batch")
     @Log(module = "Session Management", businessType = BusinessType.INSERT)
-    public Result<Integer> batchCreate(
+    public Result<org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO> batchCreate(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody BatchCreateSessionsRequestDTO request) {
         int created = sessionService.batchCreateSessions(assignmentId, request.getWindows());
-        return Result.success(created);
+        org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
+        dto.setCreatedCount(created);
+        dto.setSessions(java.util.Collections.emptyList());
+        return Result.success(dto);
+    }
+
+    @Operation(summary = "Generate sessions (length+gap)")
+    @PostMapping("/assignments/{assignmentId}/sessions/generate")
+    @Log(module = "Session Management", businessType = BusinessType.INSERT)
+    public Result<org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO> generate(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody GenerateSessionsRequestDTO request) {
+        // 将生成器参数转为 windows 后复用 batchCreateSessions
+        List<BatchCreateSessionsRequestDTO.SessionWindowDTO> windows = new ArrayList<>();
+        LocalDateTime cursor = request.getDate().atTime(request.getStartTime());
+        for (int i = 0; i < request.getCount(); i++) {
+            BatchCreateSessionsRequestDTO.SessionWindowDTO w = new BatchCreateSessionsRequestDTO.SessionWindowDTO();
+            w.setDate(cursor.toLocalDate());
+            w.setStartTime(cursor.toLocalTime());
+            LocalDateTime end = cursor.plusMinutes(request.getLength());
+            w.setEndTime(end.toLocalTime());
+            w.setSessionCount(1);
+            w.setVenueId(request.getVenueId());
+            windows.add(w);
+            cursor = end.plusMinutes(request.getGapTime() == null ? 0 : request.getGapTime());
+        }
+        int created = sessionService.batchCreateSessions(assignmentId, windows);
+        org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
+        dto.setCreatedCount(created);
+        dto.setSessions(java.util.Collections.emptyList());
+        return Result.success(dto);
+    }
+
+    @Operation(summary = "Update single session")
+    @PutMapping("/assignments/{assignmentId}/sessions/{sessionId}")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<SessionDetailDTO> updateSession(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Session ID") @PathVariable Long sessionId,
+            @Valid @RequestBody SessionRequestDTO request) {
+        return Result.success(sessionService.updateSession(assignmentId, sessionId, request));
+    }
+
+    @Operation(summary = "Delete sessions in batch")
+    @DeleteMapping("/assignments/{assignmentId}/sessions")
+    @Log(module = "Session Management", businessType = BusinessType.DELETE)
+    public Result<Map<String,Object>> deleteSessions(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.getOrDefault("sessionIds", Collections.emptyList());
+        try {
+            return Result.success(sessionService.deleteSessions(assignmentId, ids));
+        } catch (org.swen90017.oas.exception.BusinessException ex) {
+            if (org.swen90017.oas.common.BusinessError.SESSION_HAS_BOOKINGS.getCode().equals(ex.getCode())) {
+                Map<String,Object> err = new java.util.HashMap<>();
+                err.put("blockedSessionIds", ids);
+                throw ex;
+            }
+            throw ex;
+        }
+    }
+
+    @Operation(summary = "Add examiners to sessions")
+    @PutMapping("/assignments/{assignmentId}/sessions/examiners/add")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Map<String,Object>> addExaminers(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody UpdateSessionsExaminersRequestDTO request) {
+        request.setAction("add");
+        return Result.success(sessionService.updateSessionsExaminers(assignmentId, request));
+    }
+
+    @Operation(summary = "Remove examiners from sessions")
+    @PutMapping("/assignments/{assignmentId}/sessions/examiners/remove")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Map<String,Object>> removeExaminers(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody UpdateSessionsExaminersRequestDTO request) {
+        request.setAction("remove");
+        return Result.success(sessionService.updateSessionsExaminers(assignmentId, request));
+    }
+
+    @Operation(summary = "Set examiners for sessions (overwrite)")
+    @PutMapping("/assignments/{assignmentId}/sessions/examiners/set")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Map<String,Object>> setExaminers(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody UpdateSessionsExaminersRequestDTO request) {
+        request.setAction("set");
+        return Result.success(sessionService.updateSessionsExaminers(assignmentId, request));
+    }
+
+    @Operation(summary = "Publish/unpublish session to examiner")
+    @PutMapping("/sessions/{sessionId}/publish/examiner")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Boolean> publishToExaminer(
+            @Parameter(description = "Session ID") @PathVariable Long sessionId,
+            @RequestParam("value") Boolean value) {
+        return Result.success(sessionService.publishSessionToExaminer(sessionId, Boolean.TRUE.equals(value)));
+    }
+
+    @Operation(summary = "Publish/unpublish session to student (requires staffed)")
+    @PutMapping("/sessions/{sessionId}/publish/student")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Boolean> publishToStudent(
+            @Parameter(description = "Session ID") @PathVariable Long sessionId,
+            @RequestParam("value") Boolean value) {
+        return Result.success(sessionService.publishSessionToStudent(sessionId, Boolean.TRUE.equals(value)));
     }
 }
 

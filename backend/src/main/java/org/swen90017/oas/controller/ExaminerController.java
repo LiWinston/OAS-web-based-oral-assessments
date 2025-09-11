@@ -6,19 +6,21 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
+import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
-import org.swen90017.oas.dto.response.AssignmentResponseDTO;
-import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
-import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
-import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
-import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
+import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
+import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.enums.BusinessType;
+import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.service.ExaminerSelfService;
 import org.swen90017.oas.service.SessionService;
 
 import javax.validation.Valid;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Tag(name = "Examiner Self Assignment", description = "Examiner self-service APIs for selecting time slots")
 @RestController
@@ -28,6 +30,50 @@ public class ExaminerController {
     private ExaminerSelfService examinerSelfService;
     @Autowired
     private SessionService sessionService;
+    @Operation(summary = "List sessions for examiner")
+    @GetMapping("/api/examiners/{examinerId}/assignments/{assignmentId}/sessions")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
+    public Result<AdminSessionsListResponseDTO> listForExaminer(
+            @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "status", required = false) String status) {
+        // 最小校验与日志
+        try {
+            return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId));
+        } catch (Exception e) {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
+        }
+    }
+
+    @Operation(summary = "Batch self-assign sessions")
+    @PostMapping("/api/assignments/{assignmentId}/sessions/assign")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.UPDATE)
+    public Result<Map<String,Object>> batchSelfAssign(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestBody Map<String, List<Long>> body,
+            @RequestParam("examinerId") Long examinerId) {
+        UpdateSessionsExaminersRequestDTO req = new UpdateSessionsExaminersRequestDTO();
+        req.setSessionIds(body.getOrDefault("sessionIds", Collections.emptyList()));
+        req.setExaminerIds(Collections.singletonList(examinerId));
+        req.setAction("add");
+        return Result.success(sessionService.updateSessionsExaminers(assignmentId, req));
+    }
+
+    @Operation(summary = "Self unassign a session")
+    @DeleteMapping("/api/assignments/{assignmentId}/sessions/{sessionId}/unassign")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.DELETE)
+    public Result<Map<String,Object>> selfUnassign(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Session ID") @PathVariable Long sessionId,
+            @RequestParam("examinerId") Long examinerId) {
+        boolean ok = sessionService.unassignExaminer(sessionId, examinerId);
+        Map<String,Object> resp = new HashMap<>();
+        resp.put("sessionId", sessionId);
+        resp.put("success", ok);
+        return Result.success(resp);
+    }
 
     @Operation(summary = "List assignments available to examiner")
     @GetMapping("/api/examiners/{examinerId}/assignments")

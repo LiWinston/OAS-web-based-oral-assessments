@@ -7,6 +7,9 @@ import lombok.Data;
 @Schema(description = "Release schedule request DTO")
 public class ReleaseScheduleRequestDTO {
 
+    @Schema(description = "Audience to release to: examiners | students", example = "examiners")
+    private String audience; // "examiners" | "students"
+
     @Schema(description = "Whether to notify students", example = "true")
     private Boolean notifyStudents = true;
 

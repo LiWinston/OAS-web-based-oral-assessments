@@ -16,6 +16,9 @@ public interface SessionExaminerMapper extends BaseMapper<SessionExaminer> {
     List<Long> findConflictedSessionsForExaminer(@Param("examinerId") Long examinerId,
                                                  @Param("startAt") LocalDateTime startAt,
                                                  @Param("endAt") LocalDateTime endAt);
+
+    int countAssignedSessionsByExaminer(@Param("assignmentId") Long assignmentId,
+                                        @Param("examinerId") Long examinerId);
 }
 
 

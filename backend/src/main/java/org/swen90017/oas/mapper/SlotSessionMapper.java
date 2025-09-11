@@ -45,6 +45,16 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     List<SlotSession> listSessionsByAssignmentAndRange(@Param("assignmentId") Long assignmentId,
                                                        @Param("startAt") java.time.LocalDateTime startAt,
                                                        @Param("endAt") java.time.LocalDateTime endAt);
+
+    int countVenueOverlap(@Param("assignmentId") Long assignmentId,
+                          @Param("venueId") Long venueId,
+                          @Param("date") java.time.LocalDateTime date,
+                          @Param("startAt") java.time.LocalDateTime startAt,
+                          @Param("endAt") java.time.LocalDateTime endAt,
+                          @Param("excludeSessionId") Long excludeSessionId);
+
+    int incrementBookedIfAvailable(@Param("sessionId") Long sessionId);
+    int decrementBookedIfExists(@Param("sessionId") Long sessionId);
     
     List<SlotSession> findActiveBookingsByStudent(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
     

@@ -4,11 +4,11 @@
 
     <insert id="batchInsert">
         INSERT INTO slot_sessions
-        (assignment_id, slot_id, session_number, start_at, end_at, status, venue_id, capacity_groups, enrolled_groups, assign_mode, is_published_to_examiner, is_published_to_student, is_staffed, created_at, updated_at)
+        (assignment_id, slot_id, session_number, start_at, end_at, status, venue_id, capacity_groups, enrolled_groups, required_examiners, assign_mode, is_published_to_examiner, is_published_to_student, is_staffed, created_at, updated_at)
         VALUES
         <foreach collection="list" item="s" separator=",">
             (#{s.assignmentId}, #{s.slotId}, #{s.sessionNumber}, #{s.startAt}, #{s.endAt}, #{s.status},
-            #{s.venueId}, #{s.capacityGroups}, #{s.enrolledGroups}, #{s.assignMode}, #{s.isPublishedToExaminer}, #{s.isPublishedToStudent}, #{s.isStaffed}, NOW(), NOW())
+            #{s.venueId}, #{s.capacityGroups}, #{s.enrolledGroups}, #{s.requiredExaminers}, #{s.assignMode}, #{s.isPublishedToExaminer}, #{s.isPublishedToStudent}, #{s.isStaffed}, NOW(), NOW())
         </foreach>
     </insert>
 
@@ -26,6 +26,41 @@
           <if test="startAt != null">AND ss.start_at &gt;= #{startAt}</if>
           <if test="endAt != null">AND ss.end_at &lt;= #{endAt}</if>
         ORDER BY ss.start_at ASC, ss.session_number ASC
+    </select>
+
+    <!-- 并发：容量可用时自增已占用计数，并在达到容量时可将状态置为 booked -->
+    <update id="incrementBookedIfAvailable">
+        <![CDATA[
+        UPDATE slot_sessions
+        SET enrolled_groups = enrolled_groups + 1,
+            status = CASE WHEN enrolled_groups + 1 >= capacity_groups THEN 'booked' ELSE status END,
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND enrolled_groups < capacity_groups
+          AND status <> 'blocked'
+        ]]>
+    </update>
+
+    <!-- 并发：有已占用则自减；若回落到未满，可按需要恢复 available（这里不强制改 status） -->
+    <update id="decrementBookedIfExists">
+        <![CDATA[
+        UPDATE slot_sessions
+        SET enrolled_groups = CASE WHEN enrolled_groups > 0 THEN enrolled_groups - 1 ELSE 0 END,
+            updated_at = NOW()
+        WHERE session_id = #{sessionId}
+          AND enrolled_groups > 0
+        ]]>
+    </update>
+
+    <!-- 查询同 venue+日期 的时间重叠会话计数（排除可选的 sessionId） -->
+    <select id="countVenueOverlap" resultType="int">
+        SELECT COUNT(1)
+        FROM slot_sessions ss
+        WHERE ss.assignment_id = #{assignmentId}
+          AND ss.venue_id = #{venueId}
+          AND DATE(ss.start_at) = DATE(#{date})
+          AND NOT (ss.end_at &lt;= #{startAt} OR ss.start_at &gt;= #{endAt})
+          <if test="excludeSessionId != null">AND ss.session_id &lt;&gt; #{excludeSessionId}</if>
     </select>
 
     <delete id="deleteBySlotId">

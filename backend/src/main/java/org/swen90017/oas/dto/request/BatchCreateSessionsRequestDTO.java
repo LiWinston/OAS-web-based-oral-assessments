@@ -23,6 +23,8 @@ public class BatchCreateSessionsRequestDTO {
         private LocalTime endTime;
         private Integer sessionCount; // 可选；若为空，根据配置自动计算最大可容纳
         private Long venueId; // 可空
+        private Integer requiredExaminers; // 可空
+        private Integer capacity; // 可空
     }
 }
 

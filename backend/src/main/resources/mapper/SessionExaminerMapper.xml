@@ -32,6 +32,14 @@
           AND NOT (ss.end_at &lt;= #{startAt} OR ss.start_at &gt;= #{endAt})
     </select>
 
+    <select id="countAssignedSessionsByExaminer" resultType="int">
+        SELECT COUNT(1)
+        FROM session_examiners se
+                 JOIN slot_sessions ss ON ss.session_id = se.session_id
+        WHERE ss.assignment_id = #{assignmentId}
+          AND se.examiner_id = #{examinerId}
+    </select>
+
 </mapper>
 
 

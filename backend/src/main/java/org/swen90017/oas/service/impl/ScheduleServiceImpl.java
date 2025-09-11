@@ -75,20 +75,46 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional
     public ReleaseScheduleResponseDTO releaseSchedule(Long assignmentId, ReleaseScheduleRequestDTO request) {
-        // Verify schedule is ready for release
-        if (!isReadyForRelease(assignmentId)) {
-            throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
-        }
-
-        // Update assignment release status
+        String audience = request.getAudience() == null ? "examiners" : request.getAudience().toLowerCase();
         LocalDateTime releasedAt = LocalDateTime.now();
-        int updated = assignmentMapper.updateRelease(assignmentId, "released", true, releasedAt);
-        
-        if (updated == 0) {
-            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        if ("examiners".equals(audience)) {
+            // 发布给考官：将所有会话标记 is_published_to_examiner = true
+            List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+            if (sessions == null || sessions.isEmpty()) {
+                throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
+            }
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                if (Boolean.TRUE.equals(s.getIsPublishedToExaminer())) continue;
+                s.setIsPublishedToExaminer(true);
+                s.setUpdatedAt(releasedAt);
+                slotSessionMapper.updateById(s);
+            }
+        } else if ("students".equals(audience)) {
+            // 发布给学生：要求所有会话 fully staffed
+            List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+            if (sessions == null || sessions.isEmpty()) {
+                throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
+            }
+            java.util.List<Long> uncovered = new java.util.ArrayList<>();
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                int required = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+                int current = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId()).size();
+                if (required <= 0 || current < required) {
+                    uncovered.add(s.getSessionId());
+                }
+            }
+            if (!uncovered.isEmpty()) {
+                throw new BusinessException(BusinessError.STAFFING_INCOMPLETE);
+            }
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                if (Boolean.TRUE.equals(s.getIsPublishedToStudent())) continue;
+                s.setIsPublishedToStudent(true);
+                s.setUpdatedAt(releasedAt);
+                slotSessionMapper.updateById(s);
+            }
+        } else {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
         }
-
-        // 会话级发布时，可在此批量设置对学生发布标记（如需要）。先保持最小变更，不批量写。
 
         // Build notifications by counting participants who joined
         ReleaseScheduleResponseDTO.NotificationsSentDTO notifications = new ReleaseScheduleResponseDTO.NotificationsSentDTO();
@@ -100,7 +126,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         ReleaseScheduleResponseDTO response = new ReleaseScheduleResponseDTO();
         response.setReleasedAt(releasedAt);
         response.setNotificationsSent(notifications);
-        response.setMessage("Schedule released successfully");
+        response.setMessage("Schedule released successfully to " + audience);
         
         return response;
     }

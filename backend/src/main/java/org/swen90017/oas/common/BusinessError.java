@@ -65,7 +65,21 @@ public enum BusinessError implements Error {
     FORBIDDEN("6006", "Operation not allowed"),
 
     // User Management (Assignment Members)
-    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment");
+    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment"),
+
+    // Generic / New session-era errors
+    INVALID_PARAM("8000", "Invalid parameter"),
+    SESSION_NOT_FOUND("8001", "Session not found"),
+    VENUE_SESSION_OVERLAP("8002", "Venue session overlap detected"),
+    EXCEEDS_MAX_SESSIONS("8003", "Exceeds examiner session limit"),
+    SESSION_ASSIGNMENT_CONFLICT("8004", "Session assignment conflict"),
+    EXAMINER_TIME_CONFLICT("8005", "Examiner has time conflict"),
+    SESSION_NOT_STAFFED("8006", "Session has no assigned examiners"),
+    SESSION_CONFLICT("8007", "Session conflict"),
+    SESSION_HAS_BOOKINGS("8008", "Session has bookings"),
+    STAFFING_INCOMPLETE("8009", "Staffing incomplete"),
+    ALREADY_RELEASED("8010", "Already released");
+    // add more below as needed
     
   
     private final String code;
