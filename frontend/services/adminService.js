@@ -4,15 +4,24 @@ import { api } from "./apiClient";
 // Handles invitation workflow, status tracking, and admin CRUD operations
 
 export const adminService = {
-  // Validate that email is a unimelb student email
+  // Validate that email is a unimelb email
   validateUniversityEmail(email) {
-    const re = /^[^@\s]+@student\.unimelb\.edu\.au$/i;
+    const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
     if (!re.test(email)) {
       return {
         valid: false,
-        message: "Email must be a @student.unimelb.edu.au address",
+        message: "Email must be a valid email address",
       };
     }
+    
+    const domain = email.split("@")[1];
+    if (!domain.endsWith("unimelb.edu.au")) {
+      return {
+        valid: false,
+        message: "Email must be a @unimelb.edu.au address (including subdomains)",
+      };
+    }
+    
     return { valid: true };
   },
 
