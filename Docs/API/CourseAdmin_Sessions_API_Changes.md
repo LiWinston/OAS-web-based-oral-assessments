@@ -9,7 +9,7 @@ Base prefix: `/api/admin/assignments/{assignmentId}` unless noted. Response enve
 - Remove: TimeSlot entity from admin scheduling APIs.
 - New primary entity: Session.
   - Core fields: `id`, `date` (YYYY-MM-DD), `startTime` (LocalTime), `endTime` (LocalTime), `venueId`, `requiredExaminers` (per-session), `capacity` (student groups per session, default 1), `assignedExaminers[]`, `bookedCount`, `status` (available/blocked/booked/closed).
-  - Concurrency: if `capacity > 1`, multiple student groups can book the same session concurrently; server tracks concurrent bookings via `bookedCount` and enforces `remainingCapacity = capacity - bookedCount`.
+  - Concurrency: if `capacity > 1`, multiple student groups can book the same session concurrently; server enforces capacity limits using `capacity` and `bookedCount`.
 - Session generation: replace global Session Config with on-demand batch generation parameters (length, gapTime, startTime, count, venueId, requiredExaminers, capacity).
 
 ## 2) New Endpoints (Admin)
@@ -35,7 +35,9 @@ Base prefix: `/api/admin/assignments/{assignmentId}` unless noted. Response enve
   "capacity": 1
 }
 ```
+- Semantics: all-or-nothing. If validation fails (e.g., venue/time conflicts with existing sessions), no sessions are created.
 - Response: `ResultBatchCreateSessionsResponseDTO` → `{ createdCount, sessions: SessionDetailDTO[] }`
+- Error (conflict): `409 Conflict` with `{ code: "SESSION_CONFLICT" }`
 
 ### Batch Create Sessions (Explicit)
 - `POST /api/admin/assignments/{assignmentId}/sessions/batch`
@@ -49,7 +51,9 @@ Base prefix: `/api/admin/assignments/{assignmentId}` unless noted. Response enve
   ]
 }
 ```
+- Semantics: all-or-nothing. If any session fails validation, none are created.
 - Response: `ResultBatchCreateSessionsResponseDTO`
+- Error (conflict): `409 Conflict` with `{ code: "SESSION_CONFLICT" }`
 
 ### Update Session
 - `PUT /api/admin/assignments/{assignmentId}/sessions/{sessionId}`
@@ -72,7 +76,9 @@ Base prefix: `/api/admin/assignments/{assignmentId}` unless noted. Response enve
 ```json
 { "sessionIds": [101, 102, 103] }
 ```
-- Response: `ResultVoid` with deletion summary in `code`/message
+- Semantics: all-or-nothing. Deletion is rejected if any targeted session has existing student bookings (`bookedCount > 0`). Presence of assigned examiners does not block deletion; they are implicitly unassigned as part of deletion.
+- Response (success): `ResultVoid` with deletion summary in `code`/message
+- Error (has bookings): `409 Conflict` with body `{ success: false, code: "SESSION_HAS_BOOKINGS", data: { blockedSessionIds: [102] } }`
 
 ### Assign/Unassign Examiners to Sessions (Batch)
 - `PUT /api/admin/assignments/{assignmentId}/sessions/examiners`
@@ -92,10 +98,14 @@ Base prefix: `/api/admin/assignments/{assignmentId}` unless noted. Response enve
 
 ### Get Available Examiners (session-aware)
 - `GET /api/admin/assignments/{assignmentId}/examiners`
-- Query: `sessionId` (optional, replaces `timeSlotId`)
-- Response unchanged envelope; server uses `sessionId` for conflict checks.
+- Query: `sessionIds[]` (optional array) — when provided, returns only examiners who are eligible and time-available for all listed sessions (intersection across sessions). If omitted, returns the general examiner pool for the assignment.
+- Response unchanged envelope; server uses `sessionIds[]` for conflict checks and limit validation.
 
 ## 3) Examiner Self-Assignment (Non-Admin) — Session-Based
+
+## 3a) Transactions & Atomicity (Mutations)
+- All mutating operations are atomic (all-or-nothing): generate, batch create, update, batch delete, batch examiner assignment, and release.
+- On any validation failure or conflict, the entire operation is rejected; no partial changes are applied.
 
 Prefix: `/api/assignments/{assignmentId}`
 
@@ -106,8 +116,7 @@ Prefix: `/api/assignments/{assignmentId}`
 ## 4) Student Booking (Capacity)
 
 - Session now holds `capacity` (number of student groups allowed; default 1) and `bookedCount`.
-- Booking endpoints must enforce `remainingCapacity = capacity - bookedCount` and allow concurrent bookings within the same time window when `capacity > 1`.
-- Responses should include `bookedCount` (and optionally `remainingCapacity`) so UI can display concurrent occupancy.
+- Booking endpoints must enforce available capacity and allow concurrent bookings within the same time window when `capacity > 1`.
 
 ## 5) Deprecations and Migrations
 
@@ -150,7 +159,6 @@ SessionDetailDTO (response)
   "capacity": 1,
   "assignedExaminers": [{ "id": 5, "name": "Dr. A" }],
   "bookedCount": 0,
-  "remainingCapacity": 1,
   "status": "available",
   "createdAt": "2025-08-26T09:00:00Z",
   "lastModified": "2025-08-26T10:30:00Z"
@@ -198,7 +206,40 @@ UpdateSessionsExaminersRequestDTO
 - Release validation moves from TimeSlot-level to Session-level:
   - Examiner coverage: each session meets `requiredExaminers`.
   - Venue conflicts: no overlapping sessions in same venue.
-  - Capacity: sessions expose `remainingCapacity` for student booking visibility.
+  - Capacity rules: enforced during booking; students are shown availability based on session capacity and bookings.
+
+### Release Schedule Endpoint
+- `POST /api/admin/assignments/{assignmentId}/schedule/release`
+- Purpose: single endpoint to handle both “Release to Examiners” and “Release to Students”.
+- Body `ReleaseScheduleRequestDTO`:
+```json
+{
+  "audience": "examiners",  
+  "note": "Optional release note"
+}
+```
+  - `audience`: `"examiners"` | `"students"`
+  - Preconditions:
+    - `examiners`: schedule exists (no special coverage requirement).
+    - `students`: all sessions must be fully staffed (assigned examiners ≥ requiredExaminers per session).
+- Response (success):
+```json
+{
+  "success": true,
+  "code": "SCHEDULE_RELEASED",
+  "data": { "audience": "examiners", "releasedAt": "2025-09-01T10:00:00Z" }
+}
+```
+- Errors:
+  - `409 CONFLICT` when `audience = students` and staffing incomplete:
+```json
+{
+  "success": false,
+  "code": "STAFFING_INCOMPLETE",
+  "data": { "uncoveredSessionIds": [101, 205] }
+}
+```
+  - `409 CONFLICT` when already released for the given audience: `{ code: "ALREADY_RELEASED" }`
 
 ## 8) Frontend Integration Notes
 
@@ -208,6 +249,6 @@ UpdateSessionsExaminersRequestDTO
 
 ## 9) Decisions (confirmed)
 
-- Capacity: default `capacity = 1`; when `capacity > 1`, multiple groups can book concurrently, tracked by `bookedCount` and `remainingCapacity`.
+- Capacity: default `capacity = 1`; when `capacity > 1`, multiple groups can book concurrently, tracked by `bookedCount`.
 - Batch assign: all-or-nothing — any conflict yields `409` and no updates applied.
 - Migration: no existing data; implement session-centric schema and retire TimeSlot.

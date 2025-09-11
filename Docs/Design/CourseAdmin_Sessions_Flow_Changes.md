@@ -59,14 +59,15 @@ Sessions List (right)
 - Bulk actions (selection enabled):
   - Delete selected sessions (backend: `DELETE /sessions`)
   - Allocate selected examiners to selected sessions (backend: `PUT /sessions/examiners` with `action: add`)
-  - Optional: Notify examiners (unchanged behavior, now session-scoped)
 
 ### Schedule Release and Validation (adjusted)
 - Validation operates at session level:
   - Examiner coverage per session ≥ `requiredExaminers`.
   - Venue conflict checks at session granularity.
   - Capacity: sessions expose `remainingCapacity` for visibility to students.
-- Release workflow UI unchanged aside from wording (sessions vs time slots).
+- Two release actions using one endpoint `POST /api/admin/assignments/{assignmentId}/schedule/release`:
+  - Release to Examiners (after completing the Schedule wizard): sends schedule to examiners.
+  - Release to Students (from the Sessions page): only allowed when all sessions are fully staffed (each session meets required examiner count).
 
 ## Examiner Self-Assignment (Conceptual Updates)
 - Examiner-facing selection shows sessions needing examiners (not time slots).
@@ -91,7 +92,8 @@ Sessions List (right)
 - Use new admin endpoints from `Docs/API/CourseAdmin_Sessions_API_Changes.md`.
 - Remove use of `/session-config` and all `/timeslots*` calls in the admin UI.
 - Add batch examiner allocation call for selected sessions in the management page.
-- Keep schedule release endpoints; adjust server-side validation to session-level checks.
+- Use a single release endpoint `/api/admin/assignments/{assignmentId}/schedule/release` with an `audience` parameter (`examiners` | `students`).
+- Enforce precondition for student release: every session is fully staffed.
 
 ## Decisions (confirmed)
 1. Capacity: default 1; if `capacity > 1`, sessions support concurrent group bookings and show `bookedCount/capacity`.
