@@ -106,6 +106,18 @@ Out of scope
 
 ---
 
+## Appendix — API alignment
+
+Reference API document: “Student‑Groups‑API‑Contracts (Final)”
+
+- Overview: `GET /api/students/{studentId}/groups?status=active&pageNum=&pageSize=&sort=`
+- Details: `GET /api/students/{studentId}/groups/{groupId}`
+- Wrapper: `{ success, code, data, message? }`
+- Conditional read: request `If-Modified-Since`, response `Last-Modified`
+- Error codes and copy: aligned with this section “Error Handling”
+
+---
+
 ## State & Transitions (High level)
 
 ```
