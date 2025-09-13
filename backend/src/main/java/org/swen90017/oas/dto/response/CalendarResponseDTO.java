@@ -31,6 +31,14 @@ public class CalendarResponseDTO {
 
         @Schema(description = "Count of unstaffed time slots on this date", example = "2")
         private Integer noStaffed;
+
+        // 新增：会话级标识聚合
+        @Schema(description = "Bookable sessions count (session-level)", example = "5")
+        private Integer bookableSessions;
+        @Schema(description = "Full sessions count (session-level)", example = "1")
+        private Integer fullSessions;
+        @Schema(description = "Unstaffed sessions count (session-level)", example = "0")
+        private Integer unstaffedSessions;
     }
 
 

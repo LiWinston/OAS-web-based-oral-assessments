@@ -65,7 +65,32 @@ public enum BusinessError implements Error {
     FORBIDDEN("6006", "Operation not allowed"),
 
     // User Management (Assignment Members)
-    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment");
+    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment"),
+
+    // Generic / New session-era errors
+    INVALID_PARAM("8000", "Invalid parameter"),
+    SESSION_NOT_FOUND("8001", "Session not found"),
+    VENUE_SESSION_OVERLAP("8002", "Venue session overlap detected"),
+    EXCEEDS_MAX_SESSIONS("8003", "Exceeds examiner session limit"),
+    SESSION_ASSIGNMENT_CONFLICT("8004", "Session assignment conflict"),
+    EXAMINER_TIME_CONFLICT("8005", "Examiner has time conflict"),
+    SESSION_NOT_STAFFED("8006", "Session has no assigned examiners"),
+    SESSION_CONFLICT("8007", "Session conflict"),
+    SESSION_HAS_BOOKINGS("8008", "Session has bookings"),
+    STAFFING_INCOMPLETE("8009", "Staffing incomplete"),
+    ALREADY_RELEASED("8010", "Already released"),
+
+    // Assessment & Rubric errors (9000+)
+    RUBRIC_INFO_EMPTY("9001", "Rubric info is empty"),
+    RUBRIC_ITEMS_EMPTY("9002", "Rubric items are empty"),
+    RUBRIC_CRITERION_NOT_FOUND("9003", "Rubric criterion not found"),
+    RUBRIC_MISMATCH("9004", "Rubric mismatch"),
+    SCORE_OUT_OF_RANGE("9005", "Score out of range"),
+    INVALID_SELECTED_LEVEL("9006", "Invalid selected level"),
+    RUBRIC_PARSE_ERROR("9007", "Rubric parse error"),
+    NOT_ASSIGNED_TO_SESSION("9008", "Examiner not assigned to session"),
+    ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted");
+    // add more below as needed
     
   
     private final String code;

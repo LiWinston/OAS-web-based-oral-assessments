@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.swen90017.oas.mapper.AssessmentSubmissionMapper">
+
+    <resultMap id="AssessmentSubmissionMap" type="org.swen90017.oas.entity.AssessmentSubmission">
+        <id column="id" property="id" />
+        <result column="assignment_id" property="assignmentId" />
+        <result column="session_id" property="sessionId" />
+        <result column="subject_type" property="subjectType" />
+        <result column="subject_id" property="subjectId" />
+        <result column="examiner_id" property="examinerId" />
+        <result column="status" property="status" />
+        <result column="overall_feedback" property="overallFeedback" />
+        <result column="admin_note" property="adminNote" />
+        <result column="total_score" property="totalScore" />
+        <result column="rubric_meta_snapshot" property="rubricMetaSnapshot" />
+        <result column="rubrics_info_snapshot" property="rubricsInfoSnapshot" />
+        <result column="scores_json" property="scoresJson" />
+        <result column="submitted_at" property="submittedAt" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="version" property="version" />
+    </resultMap>
+
+    <select id="selectByUniqueTarget" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        WHERE assignment_id = #{assignmentId}
+          AND (session_id = #{sessionId} OR (session_id IS NULL AND #{sessionId} IS NULL))
+          AND subject_type = #{subjectType}
+          AND subject_id = #{subjectId}
+          AND examiner_id = #{examinerId}
+        LIMIT 1
+    </select>
+
+    <select id="listByExaminer" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        WHERE examiner_id = #{examinerId}
+        <if test="assignmentId != null">
+            AND assignment_id = #{assignmentId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="from != null">
+            AND created_at &gt;= #{from}
+        </if>
+        <if test="to != null">
+            AND created_at &lt;= #{to}
+        </if>
+        ORDER BY updated_at DESC
+    </select>
+
+</mapper>
+
+

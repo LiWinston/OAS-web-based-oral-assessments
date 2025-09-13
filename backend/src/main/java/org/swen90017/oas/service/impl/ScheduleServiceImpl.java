@@ -13,14 +13,14 @@ import org.swen90017.oas.dto.request.UpdateExaminerSessionLimitsRequestDTO;
 import org.swen90017.oas.dto.response.ReleaseScheduleResponseDTO;
 import org.swen90017.oas.dto.response.ScheduleStatusResponseDTO;
 import org.swen90017.oas.entity.ExaminerAssignmentLimit;
-import org.swen90017.oas.entity.TimeSlot;
-import org.swen90017.oas.enums.SlotStatus;
+import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.AssignmentParticipantMapper;
 import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
-import org.swen90017.oas.mapper.TimeSlotMapper;
+import org.swen90017.oas.mapper.SlotSessionMapper;
+import org.swen90017.oas.mapper.SessionExaminerMapper;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.ScheduleService;
 
@@ -38,11 +38,12 @@ import java.util.List;
 public class ScheduleServiceImpl implements ScheduleService {
 
     private final AssignmentMapper assignmentMapper;
-    private final TimeSlotMapper timeSlotMapper;
     private final AssignmentSessionConfigMapper assignmentSessionConfigMapper;
     private final AssignmentParticipantMapper assignmentParticipantMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
     private final EmailService emailService;
+    private final SlotSessionMapper slotSessionMapper;
+    private final SessionExaminerMapper sessionExaminerMapper;
 
     @Override
     public ScheduleStatusResponseDTO getScheduleStatus(Long assignmentId) {
@@ -54,18 +55,16 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         Boolean isReleased = assignmentMapper.isReleased(assignmentId);
         
-        // Get time slots for analysis
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
-        
-        // Analyze schedule readiness
+        // 获取会话进行分析（过渡期仍通过 slot 关联取 sessions）
+        List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
         List<String> issues = new ArrayList<>();
-        ScheduleStatusResponseDTO.ScheduleSummaryDTO summary = analyzeSchedule(timeSlots, issues);
+        ScheduleStatusResponseDTO.ScheduleSummaryDTO summary = analyzeSessions(sessions, issues);
         
         ScheduleStatusResponseDTO response = new ScheduleStatusResponseDTO();
         response.setAssignmentId(assignmentId);
         response.setScheduleStatus(isReleased ? "released" : "draft");
         response.setIsReleased(isReleased);
-        response.setTotalTimeSlots(timeSlots.size());
+        response.setTotalTimeSlots(null); // timeslot已逐步移除，此字段置空或改名（保持DTO兼容）
         response.setReadyForRelease(issues.isEmpty());
         response.setIssues(issues);
         response.setSummary(summary);
@@ -76,24 +75,45 @@ public class ScheduleServiceImpl implements ScheduleService {
     @Override
     @Transactional
     public ReleaseScheduleResponseDTO releaseSchedule(Long assignmentId, ReleaseScheduleRequestDTO request) {
-        // Verify schedule is ready for release
-        if (!isReadyForRelease(assignmentId)) {
-            throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
-        }
-
-        // Update assignment release status
+        String audience = request.getAudience() == null ? "examiners" : request.getAudience().toLowerCase();
         LocalDateTime releasedAt = LocalDateTime.now();
-        int updated = assignmentMapper.updateRelease(assignmentId, "released", true, releasedAt);
-        
-        if (updated == 0) {
-            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
-        }
-
-        // Enable booking for all time slots
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
-        for (TimeSlot slot : timeSlots) {
-            slot.setBookingOpen(true);
-            timeSlotMapper.updateById(slot);
+        if ("examiners".equals(audience)) {
+            // 发布给考官：将所有会话标记 is_published_to_examiner = true
+            List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+            if (sessions == null || sessions.isEmpty()) {
+                throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
+            }
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                if (Boolean.TRUE.equals(s.getIsPublishedToExaminer())) continue;
+                s.setIsPublishedToExaminer(true);
+                s.setUpdatedAt(releasedAt);
+                slotSessionMapper.updateById(s);
+            }
+        } else if ("students".equals(audience)) {
+            // 发布给学生：要求所有会话 fully staffed
+            List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+            if (sessions == null || sessions.isEmpty()) {
+                throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
+            }
+            java.util.List<Long> uncovered = new java.util.ArrayList<>();
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                int required = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+                int current = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId()).size();
+                if (required <= 0 || current < required) {
+                    uncovered.add(s.getSessionId());
+                }
+            }
+            if (!uncovered.isEmpty()) {
+                throw new BusinessException(BusinessError.STAFFING_INCOMPLETE);
+            }
+            for (org.swen90017.oas.entity.SlotSession s : sessions) {
+                if (Boolean.TRUE.equals(s.getIsPublishedToStudent())) continue;
+                s.setIsPublishedToStudent(true);
+                s.setUpdatedAt(releasedAt);
+                slotSessionMapper.updateById(s);
+            }
+        } else {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
         }
 
         // Build notifications by counting participants who joined
@@ -106,23 +126,23 @@ public class ScheduleServiceImpl implements ScheduleService {
         ReleaseScheduleResponseDTO response = new ReleaseScheduleResponseDTO();
         response.setReleasedAt(releasedAt);
         response.setNotificationsSent(notifications);
-        response.setMessage("Schedule released successfully");
+        response.setMessage("Schedule released successfully to " + audience);
         
         return response;
     }
 
     @Override
     public Boolean isReadyForRelease(Long assignmentId) {
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
-        
-        if (CollectionUtils.isEmpty(timeSlots)) {
+        List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+        if (CollectionUtils.isEmpty(sessions)) {
             return false; // No time slots defined
         }
 
-        // Check if all slots have required examiners
-        for (TimeSlot slot : timeSlots) {
-            if (slot.getCurrentExaminers() < slot.getRequiredExaminers()) {
-                return false; // Understaffed slot found
+        // 新校验：任意会话无考官视为不可发布
+        for (SlotSession s : sessions) {
+            List<Long> examinerIds = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+            if (examinerIds == null || examinerIds.isEmpty()) {
+                return false; // 存在未配员的 session
             }
         }
 
@@ -161,11 +181,10 @@ public class ScheduleServiceImpl implements ScheduleService {
     /**
      * Analyze schedule and identify issues
      */
-    private ScheduleStatusResponseDTO.ScheduleSummaryDTO analyzeSchedule(List<TimeSlot> timeSlots, List<String> issues) {
+    private ScheduleStatusResponseDTO.ScheduleSummaryDTO analyzeSessions(List<SlotSession> sessions, List<String> issues) {
         ScheduleStatusResponseDTO.ScheduleSummaryDTO summary = new ScheduleStatusResponseDTO.ScheduleSummaryDTO();
-        
-        if (CollectionUtils.isEmpty(timeSlots)) {
-            issues.add("No time slots defined");
+        if (CollectionUtils.isEmpty(sessions)) {
+            issues.add("No sessions defined");
             summary.setTotalSessions(0);
             summary.setFullyStaffedSlots(0);
             summary.setUnstaffedSlots(0);
@@ -173,35 +192,20 @@ public class ScheduleServiceImpl implements ScheduleService {
             return summary;
         }
 
-        int totalSessions = 0;
-        int fullyStaffed = 0;
+        int totalSessions = sessions.size();
         int unstaffed = 0;
-        int totalExaminers = 0;
 
-        for (TimeSlot slot : timeSlots) {
-            totalSessions += slot.getSessionCount();
-
-            int required = slot.getRequiredExaminers() == null ? 0 : slot.getRequiredExaminers();
-            int current = slot.getCurrentExaminers() == null ? 0 : slot.getCurrentExaminers();
-
-            if (current >= required && required > 0) {
-                fullyStaffed++;
-            } else if (current == 0) {
+        for (SlotSession s : sessions) {
+            List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+            if (examiners == null || examiners.isEmpty()) {
                 unstaffed++;
-                issues.add(String.format("Time slot %d has no assigned examiners", slot.getSlotId()));
-            } else if (current < required) {
-                issues.add(String.format("Time slot %d needs %d more examiner(s)",
-                        slot.getSlotId(), Math.max(0, required - current)));
             }
-
-            totalExaminers += current;
         }
 
         summary.setTotalSessions(totalSessions);
-        summary.setFullyStaffedSlots(fullyStaffed);
+        summary.setFullyStaffedSlots(totalSessions - unstaffed);
         summary.setUnstaffedSlots(unstaffed);
-        summary.setTotalExaminers(totalExaminers);
-
+        summary.setTotalExaminers(null);
         return summary;
     }
 

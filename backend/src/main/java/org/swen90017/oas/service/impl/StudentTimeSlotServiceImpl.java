@@ -115,18 +115,11 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         // Check if student/group already has an active booking
         checkExistingBooking(request.getStudentId(), assignmentId, request.getGroupId());
 
-        // Check if session is already booked
-        checkSessionAvailability(request.getSessionId());
-
-        // Update session to booked status
-        String bookedSubjectType = (request.getGroupId() != null) ? "group" : "student";
-        Long bookedSubjectId = (request.getGroupId() != null) ? request.getGroupId() : request.getStudentId();
-        
-        session.setStatus(SessionStatus.BOOKED);
-        session.setBookedSubjectId(bookedSubjectId);
-        session.setBookedSubjectType(bookedSubjectType);
-        session.setBookedAt(LocalDateTime.now());
-        slotSessionMapper.updateById(session);
+        // 并发容量控制：原子自增，否则报冲突
+        int ok = slotSessionMapper.incrementBookedIfAvailable(request.getSessionId());
+        if (ok == 0) {
+            throw new BusinessException(BusinessError.SESSION_CONFLICT);
+        }
 
         // Build response
         return buildCreateBookingResponse(session, assignment, request);
@@ -180,9 +173,8 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         // Check if target session is available
         checkSessionAvailability(request.getTargetSessionId());
 
-        // Update current session to available
-        currentSession.setStatus(SessionStatus.AVAILABLE);
-        slotSessionMapper.updateById(currentSession);
+        // 自减目标会话占用
+        slotSessionMapper.decrementBookedIfExists(currentSession.getSessionId());
 
         // Update target session to booked
         targetSession.setStatus(SessionStatus.BOOKED);
@@ -211,9 +203,8 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         // Validate session is booked by the student
         SlotSession session = validateSessionOwnership(sessionId, studentId, assignmentId);
         
-        // Update session to available
-        session.setStatus(SessionStatus.AVAILABLE);
-        slotSessionMapper.updateById(session);
+        // 自减占用
+        slotSessionMapper.decrementBookedIfExists(sessionId);
 
         return sessionId;
     }

@@ -85,7 +85,7 @@ public class AdminTimeslotController {
     /**
      * Get time slots for an assignment
      */
-    @Operation(summary = "Get time slots", description = "Retrieve time slots for a specific assignment with optional filters")
+    @Operation(summary = "Get time slots", description = "[Deprecated] Use session-based APIs instead", deprecated = true)
     @PostMapping("/{assignmentId}/timeslots")
     @Log(module = "Time Slot Management", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<GetTimeSlotsResponseDTO>> getTimeSlots(
@@ -98,7 +98,7 @@ public class AdminTimeslotController {
     /**
      * Get calendar aggregated data for a given month
      */
-    @Operation(summary = "Get Calendar Data", description = "Return per-date aggregation of time slots and sessions for a given month")
+    @Operation(summary = "Get Calendar Data", description = "[Deprecated] Use session-based calendar endpoints", deprecated = true)
     @GetMapping("/{assignmentId}/calendar")
     @Log(module = "Calendar", businessType = BusinessType.QUERY)
     public Result<CalendarResponseDTO> getCalendar(
@@ -115,7 +115,7 @@ public class AdminTimeslotController {
     /**
      * Batch create time slots
      */
-    @Operation(summary = "Batch create time slots", description = "Create multiple time slots with automatic session generation")
+    @Operation(summary = "Batch create time slots", description = "[Deprecated] Use session generator endpoint", deprecated = true)
     @PostMapping("/{assignmentId}/timeslots/batch")
     @Log(module = "Time Slot Management", businessType = BusinessType.INSERT)
     public ResponseEntity<Result<BatchCreateTimeSlotsResponseDTO>> batchCreateTimeSlots(
@@ -125,7 +125,7 @@ public class AdminTimeslotController {
         return ResponseEntity.status(201).body(Result.success(response));
     }
 
-    @Operation(summary = "Create single time slot", description = "Create one time slot and optionally assign examiners")
+    @Operation(summary = "Create single time slot", description = "[Deprecated] Use session create endpoints", deprecated = true)
     @PostMapping("/{assignmentId}/timeslots/create")
     @Log(module = "Time Slot Management", businessType = BusinessType.INSERT)
     public ResponseEntity<Result<TimeSlotDetailDTO>> createSingleTimeSlot(
@@ -138,7 +138,7 @@ public class AdminTimeslotController {
     /**
      * Update time slot
      */
-    @Operation(summary = "Update time slot", description = "Update an existing time slot")
+    @Operation(summary = "Update time slot", description = "[Deprecated] Use session update endpoint", deprecated = true)
     @PutMapping("/{assignmentId}/timeslots/{timeSlotId}")
     @Log(module = "Time Slot Management", businessType = BusinessType.UPDATE)
     public ResponseEntity<Result<UpdateTimeSlotResponseDTO>> updateTimeSlot(
@@ -152,7 +152,7 @@ public class AdminTimeslotController {
     /**
      * Duplicate time slot
      */
-    @Operation(summary = "Duplicate time slot", description = "Create a copy of an existing time slot with modifications")
+    @Operation(summary = "Duplicate time slot", description = "[Deprecated] Use session-based create endpoints", deprecated = true)
     @PostMapping("/{assignmentId}/timeslots/{timeSlotId}/duplicate")
     @Log(module = "Time Slot Management", businessType = BusinessType.INSERT)
     public ResponseEntity<Result<TimeSlotDetailDTO>> duplicateTimeSlot(
@@ -169,7 +169,7 @@ public class AdminTimeslotController {
     /**
      * Delete time slots
      */
-    @Operation(summary = "Delete time slots", description = "Delete multiple time slots")
+    @Operation(summary = "Delete time slots", description = "[Deprecated] Use session delete endpoint", deprecated = true)
     @DeleteMapping("/{assignmentId}/timeslots")
     @Log(module = "Time Slot Management", businessType = BusinessType.DELETE)
     public ResponseEntity<Result<List<Long>>> deleteTimeSlots(
