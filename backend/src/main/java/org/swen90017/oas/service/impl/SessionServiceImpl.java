@@ -9,16 +9,21 @@ import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.BatchCreateSessionsRequestDTO;
 import org.swen90017.oas.entity.SessionExaminer;
 import org.swen90017.oas.entity.SlotSession;
+import org.swen90017.oas.entity.Venue;
 import org.swen90017.oas.enums.AssignMode;
 import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
+import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
+import org.swen90017.oas.mapper.SysUserMapper;
+import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.service.SessionService;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.dto.request.SessionRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
+import org.swen90017.oas.enums.UserRole;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -32,6 +37,8 @@ public class SessionServiceImpl implements SessionService {
 
     private final SessionExaminerMapper sessionExaminerMapper;
     private final SlotSessionMapper slotSessionMapper;
+    private final VenueMapper venueMapper;
+    private final SysUserMapper sysUserMapper;
 
     @Override
     public List<Long> listExaminerIds(Long sessionId) {
@@ -51,6 +58,12 @@ public class SessionServiceImpl implements SessionService {
             throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         }
 
+        // 身份校验：必须是考官角色
+        boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, java.util.Collections.singletonList(UserRole.EXAMINER.code()));
+        if (!isExaminer) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+
         // 冲突校验
         List<Long> conflicts = sessionExaminerMapper.findConflictedSessionsForExaminer(
                 examinerId, session.getStartAt(), session.getEndAt());
@@ -62,6 +75,13 @@ public class SessionServiceImpl implements SessionService {
         List<Long> existing = sessionExaminerMapper.listExaminerIdsBySession(sessionId);
         if (existing != null && new HashSet<>(existing).contains(examinerId)) {
             return false;
+        }
+
+        // 容量校验：已分配数量不能超过 requiredExaminers
+        Integer required = session.getRequiredExaminers();
+        int currentAssigned = existing == null ? 0 : existing.size();
+        if (required != null && required > 0 && currentAssigned >= required) {
+            throw new BusinessException(BusinessError.EXCEEDS_REQUIRED_EXAMINERS);
         }
 
         SessionExaminer link = new SessionExaminer();
@@ -95,6 +115,17 @@ public class SessionServiceImpl implements SessionService {
             LocalDateTime endAt = w.getDate().atTime(w.getEndTime());
             if (!endAt.isAfter(startAt)) {
                 throw new BusinessException(BusinessError.INVALID_PARAM);
+            }
+
+            // 校验 venue 合法性（存在且属于 assignment）
+            if (w.getVenueId() != null) {
+                Venue v = venueMapper.selectById(w.getVenueId());
+                if (v == null) {
+                    throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
+                }
+                if (v.getAssignmentId() == null || !assignmentId.equals(v.getAssignmentId())) {
+                    throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
+                }
             }
 
             // 简化：按 sessionCount 均分；若未提供则整个窗口作为 1 个会话
@@ -178,7 +209,8 @@ public class SessionServiceImpl implements SessionService {
                 for (Long id : examinerIds) {
                     AdminSessionsListResponseDTO.ExaminerDTO e = new AdminSessionsListResponseDTO.ExaminerDTO();
                     e.setId(id);
-                    e.setName(null);
+                    SysUser u = sysUserMapper.selectById(id);
+                    e.setName(u == null ? null : u.getUserName());
                     assigned.add(e);
                 }
             }
@@ -215,7 +247,17 @@ public class SessionServiceImpl implements SessionService {
         LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
         LocalDateTime endAt = request.getDate().atTime(request.getEndTime());
         if (!endAt.isAfter(startAt)) throw new BusinessException(BusinessError.INVALID_PARAM);
-        if (request.getVenueId() != null) s.setVenueId(request.getVenueId());
+        // 校验场地：存在且属于该 assignment
+        if (request.getVenueId() != null) {
+            Venue v = venueMapper.selectById(request.getVenueId());
+            if (v == null) {
+                throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
+            }
+            if (v.getAssignmentId() == null || !assignmentId.equals(v.getAssignmentId())) {
+                throw new BusinessException(BusinessError.VENUE_NOT_IN_ASSIGNMENT);
+            }
+            s.setVenueId(request.getVenueId());
+        }
         // overlap check
         int overlap = slotSessionMapper.countVenueOverlap(assignmentId, s.getVenueId(), startAt, startAt, endAt, sessionId);
         if (overlap > 0) throw new BusinessException(BusinessError.VENUE_SESSION_OVERLAP);
@@ -278,20 +320,32 @@ public class SessionServiceImpl implements SessionService {
             sessions.add(s);
         }
 
-        // 校验：时间冲突与上限（仅对 add/set 生效）
+        // 统一校验：examinerId 必须为考官角色
+        for (Long examinerId : request.getExaminerIds()) {
+            boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, java.util.Collections.singletonList(UserRole.EXAMINER.code()));
+            if (!isExaminer) {
+                throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+            }
+        }
+
+        // 校验：时间冲突（仅对 add/set 生效）。set 操作忽略与自身目标会话的“伪冲突”。
         if (action.equals("add") || action.equals("set")) {
+            Set<Long> targetSessionIds = new HashSet<>(request.getSessionIds());
             for (Long examinerId : request.getExaminerIds()) {
-                // 上限
-                Integer maxSessions = null; // 可接入个性化与默认配置，此处留空代表无限制
-                if (maxSessions != null && maxSessions > 0) {
-                    int current = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
-                    int after = current + sessions.size();
-                    if (after > maxSessions) throw new BusinessException(BusinessError.EXCEEDS_MAX_SESSIONS);
-                }
-                // 冲突
                 for (SlotSession s : sessions) {
                     List<Long> conflicted = sessionExaminerMapper.findConflictedSessionsForExaminer(examinerId, s.getStartAt(), s.getEndAt());
-                    if (conflicted != null && !conflicted.isEmpty()) throw new BusinessException(BusinessError.EXAMINER_TIME_CONFLICT);
+                    if (conflicted != null && !conflicted.isEmpty()) {
+                        if (action.equals("set")) {
+                            // 过滤掉与本次 set 的目标会话相同的冲突记录
+                            boolean hasRealConflict = false;
+                            for (Long cid : conflicted) {
+                                if (!targetSessionIds.contains(cid)) { hasRealConflict = true; break; }
+                            }
+                            if (hasRealConflict) throw new BusinessException(BusinessError.EXAMINER_TIME_CONFLICT);
+                        } else {
+                            throw new BusinessException(BusinessError.EXAMINER_TIME_CONFLICT);
+                        }
+                    }
                 }
             }
         }

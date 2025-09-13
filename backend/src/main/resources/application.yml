@@ -36,6 +36,13 @@ spring:
   jackson:
     time-zone: "Australia/Melbourne"
     date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    format:
+        date-time: yyyy-MM-dd HH:mm:ss
+        date: yyyy-MM-dd
+        time: HH:mm:ss
 
   thread-pool:
     default:

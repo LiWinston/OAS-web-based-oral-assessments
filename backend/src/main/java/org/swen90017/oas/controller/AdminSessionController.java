@@ -9,21 +9,20 @@ import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.BatchCreateSessionsRequestDTO;
 import org.swen90017.oas.dto.request.GenerateSessionsRequestDTO;
-import org.swen90017.oas.dto.request.BatchCreateSessionsExplicitRequestDTO;
 import org.swen90017.oas.dto.request.SessionRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.request.AssignSessionExaminersRequestDTO;
+import org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO;
 import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.enums.BusinessType;
+import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.service.SessionService;
 
 import javax.validation.Valid;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.time.LocalTime;
+import java.util.*;
 
 @Tag(name = "Admin Session Management", description = "Admin operations for session-level settings and assignments")
 @RestController
@@ -85,14 +84,34 @@ public class AdminSessionController {
         int created = sessionService.batchCreateSessions(assignmentId, request.getWindows());
         org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
         dto.setCreatedCount(created);
-        dto.setSessions(java.util.Collections.emptyList());
+
+        // 汇总本次各 window 对应日期/场地下、时间落在窗口内的会话
+        List<SessionDetailDTO> details = new ArrayList<>();
+        for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : request.getWindows()) {
+            AdminSessionsListResponseDTO day = sessionService.listAdminSessions(assignmentId, w.getDate().toString(), null, w.getVenueId());
+            if (day == null || day.getSessions() == null) continue;
+            for (AdminSessionsListResponseDTO.Item it : day.getSessions()) {
+                java.time.LocalTime st = it.getStartTime();
+                if ((st.equals(w.getStartTime()) || st.isAfter(w.getStartTime())) && (st.equals(w.getEndTime()) || st.isBefore(w.getEndTime()))) {
+                    SessionDetailDTO s = new SessionDetailDTO();
+                    s.setId(it.getId());
+                    s.setStartTime(it.getStartTime());
+                    s.setEndTime(it.getEndTime());
+                    s.setStatus(org.swen90017.oas.enums.SessionStatus.valueOf(it.getStatus().toUpperCase()));
+                    s.setSessionNumber(null);
+                    s.setBookedBy(null);
+                    details.add(s);
+                }
+            }
+        }
+        dto.setSessions(details);
         return Result.success(dto);
     }
 
     @Operation(summary = "Generate sessions (length+gap)")
     @PostMapping("/assignments/{assignmentId}/sessions/generate")
     @Log(module = "Session Management", businessType = BusinessType.INSERT)
-    public Result<org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO> generate(
+    public Result<ResultBatchCreateSessionsResponseDTO> generate(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody GenerateSessionsRequestDTO request) {
         // 将生成器参数转为 windows 后复用 batchCreateSessions
@@ -106,13 +125,36 @@ public class AdminSessionController {
             w.setEndTime(end.toLocalTime());
             w.setSessionCount(1);
             w.setVenueId(request.getVenueId());
+            w.setRequiredExaminers(request.getRequiredExaminers());
+            w.setCapacity(request.getCapacity());
             windows.add(w);
             cursor = end.plusMinutes(request.getGapTime() == null ? 0 : request.getGapTime());
         }
         int created = sessionService.batchCreateSessions(assignmentId, windows);
         org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
         dto.setCreatedCount(created);
-        dto.setSessions(java.util.Collections.emptyList());
+
+        // 返回刚生成的会话明细：基于生成的时间点过滤当日会话
+        Set<LocalTime> generatedStarts = new HashSet<>();
+        for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : windows) {
+            generatedStarts.add(w.getStartTime());
+        }
+        AdminSessionsListResponseDTO adminList = sessionService.listAdminSessions(assignmentId, request.getDate().toString(), null, request.getVenueId());
+        List<SessionDetailDTO> details = new ArrayList<>();
+        if (adminList != null && adminList.getSessions() != null) {
+            for (AdminSessionsListResponseDTO.Item it : adminList.getSessions()) {
+                if (!generatedStarts.contains(it.getStartTime())) continue;
+                SessionDetailDTO s = new SessionDetailDTO();
+                s.setId(it.getId());
+                s.setStartTime(it.getStartTime());
+                s.setEndTime(it.getEndTime());
+                s.setStatus(SessionStatus.valueOf(it.getStatus().toUpperCase()));
+                s.setSessionNumber(null);
+                s.setBookedBy(null);
+                details.add(s);
+            }
+        }
+        dto.setSessions(details);
         return Result.success(dto);
     }
 
