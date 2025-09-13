@@ -11,8 +11,6 @@ import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
 import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
-// UI-only (no backend calls in this pass)
-import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 
 /**
  * AssignmentTimeSlotsPage - Refactored timeslot management
@@ -23,14 +21,7 @@ import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
  * Add/Edit modal: injects sessionLength/gapTime from useSessionConfig
  */
 
-const MOCK_EXAMINERS = [
-  { id: 1, name: 'Dr. Emma Thompson', avatar: '/api/placeholder/24/24', assignments: 4 },
-  { id: 2, name: 'Dr. Michael Chen', avatar: '/api/placeholder/24/24', assignments: 2 },
-  { id: 3, name: 'Dr. Sarah Johnson', avatar: '/api/placeholder/24/24', assignments: 1 },
-  { id: 4, name: 'Prof. David Williams', avatar: '/api/placeholder/24/24', assignments: 3 },
-  { id: 5, name: 'Dr. Jennifer Lee', avatar: '/api/placeholder/24/24', assignments: 0 },
-  { id: 6, name: 'Prof. Robert Brown', avatar: '/api/placeholder/24/24', assignments: 2 },
-];
+// Legacy MOCK_EXAMINERS removed; live API provides examiners
 
 export default function AssignmentTimeSlotsPage() {
   const params = useParams();
@@ -70,9 +61,6 @@ export default function AssignmentTimeSlotsPage() {
   }, [assignmentId, selectedDate]);
 
   const { release, canRelease } = useScheduleRelease(assignmentId);
-  // Temporary UI-only defaults for session configuration references
-  const sessionConfig = { sessionLength: 30, gapTime: 5, examinersPerSession: 2 };
-  useExaminerLimits(assignmentId);
 
   // Filter slots for selected date
   const sessionsForSelectedDate = selectedDate 
@@ -85,21 +73,7 @@ export default function AssignmentTimeSlotsPage() {
     return map;
   }, [availableExaminers]);
 
-  // Selection handlers
-  // Selection features removed per request
-
-  // Modal handlers
-  const openAddModal = (prefillDate = null) => {
-    setModalMode('add');
-    setEditingTimeSlot(prefillDate ? { date: prefillDate } : null);
-    setShowModal(true);
-  };
-
-  const openEditModal = (timeSlot) => {
-    setModalMode('edit');
-    setEditingTimeSlot(timeSlot);
-    setShowModal(true);
-  };
+  // Selection handlers removed; cleaned up legacy modal helpers
 
   // Session creation handlers (API)
   const identity = (s) => `${s.date}|${s.startTime}|${s.endTime}|${s.venueId ?? ''}`;
@@ -142,15 +116,6 @@ export default function AssignmentTimeSlotsPage() {
       setSessions((prev) => prev.filter((s) => s.id !== id));
       queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
     }
-  };
-
-  const handleDuplicateTimeSlot = (slot) => {
-    // Open add modal prefilled with the selected slot's data (no API call until submit)
-    openAddModal(slot.date);
-    // Pre-fill all fields by passing slot as initialData
-    setEditingTimeSlot({ ...slot, id: undefined });
-    setShowModal(true);
-    setModalMode('add');
   };
 
   // Examiners dropdown logic
@@ -211,31 +176,7 @@ export default function AssignmentTimeSlotsPage() {
     }
   };
 
-  const handleNotifyExaminers = async () => {
-    // Mock notification - would call API
-    showSuccess('Examiner notifications sent!');
-  };
-
-  // Bulk operations
-  const handleBulkNotify = async () => {
-    // Mock bulk notification
-    showSuccess(`Notifications sent to examiners for ${selectedTimeSlots.length} time slots`);
-  };
-
-  const handleBulkDuplicate = () => {
-    selectedTimeSlots.forEach(id => {
-      duplicateSlot({ timeSlotId: id });
-    });
-    setSelectedTimeSlots([]);
-  };
-
-  const handleBulkDelete = async () => {
-    const confirmed = await confirm(`Delete ${selectedTimeSlots.length} selected time slots?`);
-    if (confirmed) {
-      deleteSlots(selectedTimeSlots);
-      setSelectedTimeSlots([]);
-    }
-  };
+  // Removed legacy examiner notifications and bulk operations (unused)
 
   const handleReleaseSchedule = () => {
     if (!canRelease) {
