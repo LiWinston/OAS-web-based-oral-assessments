@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSessionConfig } from '@/hooks/useSessionConfig.js';
-import { calculateEndTimeWithConfig, to24Hour } from '@/lib/timeMath.js';
+import { to24Hour } from '@/lib/timeMath.js';
 import { showError } from '@/lib/notifications.js';
 import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
 
@@ -20,57 +19,69 @@ export default function TimeSlotForm({
   onCancelEdit = null,
   submitLabel
 }) {
-  const { data: sessionConfig } = useSessionConfig(assignmentId);
-  
   const [timeSlotStartDate, setTimeSlotStartDate] = useState(editingSlot?.date || '');
   const [timeSlotStartTime, setTimeSlotStartTime] = useState(
     editingSlot ? editingSlot.startTime : '09:00'
   );
   const [sessionCount, setSessionCount] = useState(editingSlot?.sessionCount || 3);
+  const [lengthMinutes, setLengthMinutes] = useState(editingSlot?.lengthMinutes || 30);
+  const [gapTimeMinutes, setGapTimeMinutes] = useState(editingSlot?.gapTimeMinutes || 5);
+  const [requiredExaminers, setRequiredExaminers] = useState(editingSlot?.requiredExaminers || 2);
+  const [capacity, setCapacity] = useState(editingSlot?.capacity || 1);
   const [venueId, setVenueId] = useState(editingSlot?.venueId || null);
   const [venueName, setVenueName] = useState(editingSlot?.venue || '');
 
-  const calculatedEndTime12h = useMemo(() => {
-    if (!timeSlotStartDate || sessionCount <= 0 || !sessionConfig || !timeSlotStartTime) return 'N/A';
-    return calculateEndTimeWithConfig(timeSlotStartTime, sessionCount, sessionConfig);
-  }, [timeSlotStartDate, sessionCount, sessionConfig, timeSlotStartTime]);
+  const addMinutes = (hhmm, minutes) => {
+    const [hStr, mStr] = String(hhmm).split(':');
+    let total = parseInt(hStr, 10) * 60 + parseInt(mStr, 10) + minutes;
+    total = ((total % (24 * 60)) + (24 * 60)) % (24 * 60);
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  };
 
+  // End time of the whole block: start + (count*length) + ((count-1)*gap)
   const calculatedEndTime24h = useMemo(() => {
-    if (!calculatedEndTime12h || calculatedEndTime12h === 'N/A') return '';
-    return to24Hour(calculatedEndTime12h);
-  }, [calculatedEndTime12h]);
+    if (!timeSlotStartTime || sessionCount <= 0 || lengthMinutes <= 0 || gapTimeMinutes < 0) return '';
+    const total = Number(sessionCount) * Number(lengthMinutes) + (Number(sessionCount) - 1) * Number(gapTimeMinutes);
+    return addMinutes(timeSlotStartTime, total);
+  }, [timeSlotStartTime, sessionCount, lengthMinutes, gapTimeMinutes]);
 
   const handleSubmit = () => {
     if (!timeSlotStartDate || !venueName || sessionCount <= 0) {
       showError('Please fill in all required fields');
       return;
     }
-    
-    const startTime = timeSlotStartTime;
-    const endTime = calculatedEndTime24h || '';
-    
-    const timeSlotData = {
-      id: editingSlot?.id,
-      date: timeSlotStartDate,
-      startTime: startTime,
-      sessionCount: sessionCount,
-      endTime: endTime,
-      venue: venueName,
-      venueId: venueId,
-      requiredExaminers: sessionConfig?.examinersPerSession || 2,
-      assignedExaminers: editingSlot?.assignedExaminers || [],
-      status: editingSlot?.status || 'empty'
-    };
-    // eslint-disable-next-line no-console
-    console.log('[TimeSlotForm] Add/Update time slot (local draft)', timeSlotData);
-    
-    onAddTimeSlot?.(timeSlotData);
+    // Expand to individual sessions
+    const sessions = [];
+    let cursor = timeSlotStartTime;
+    for (let i = 0; i < Number(sessionCount); i += 1) {
+      const s = cursor;
+      const e = addMinutes(s, Number(lengthMinutes));
+      sessions.push({
+        id: `${timeSlotStartDate}-${s}-${i}`,
+        date: timeSlotStartDate,
+        startTime: s,
+        endTime: e,
+        venue: venueName,
+        venueId: venueId,
+        requiredExaminers: Number(requiredExaminers) || 1,
+        capacity: Number(capacity) || 1,
+        assignedExaminers: []
+      });
+      cursor = addMinutes(e, Number(gapTimeMinutes));
+    }
+    onAddTimeSlot?.(sessions);
     
     // Reset form if not editing
     if (!editingSlot) {
       setTimeSlotStartDate('');
       setTimeSlotStartTime('09:00');
       setSessionCount(3);
+      setLengthMinutes(30);
+      setGapTimeMinutes(5);
+      setRequiredExaminers(2);
+      setCapacity(1);
       setVenueId(null);
       setVenueName('');
     }
@@ -96,7 +107,7 @@ export default function TimeSlotForm({
           <i className="fas fa-plus-circle" />
         </div>
         <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">
-          {editingSlot ? 'Edit Time Slot' : 'Add New Time Slot'}
+          {editingSlot ? 'Edit Batch' : 'Batch Create Sessions'}
         </h3>
       </div>
 
@@ -144,7 +155,7 @@ export default function TimeSlotForm({
             <input
               type="number"
               id="sessionCount"
-              className="number-input"
+              className="number-input bg-white dark:bg-white text-gray-900"
               min="1"
               value={sessionCount}
               onChange={(e) => setSessionCount(Number(e.target.value) || 1)}
@@ -158,6 +169,28 @@ export default function TimeSlotForm({
             </button>
             <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">sessions</span>
           </div>
+        </div>
+
+        {/* Length & Gap */}
+        <div className="form-field">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Length (minutes)</label>
+          <input
+            type="number"
+            min="1"
+            className="custom-input bg-white dark:bg-white text-gray-900"
+            value={lengthMinutes}
+            onChange={(e) => setLengthMinutes(Number(e.target.value) || 1)}
+          />
+        </div>
+        <div className="form-field">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gap Time (minutes)</label>
+          <input
+            type="number"
+            min="0"
+            className="custom-input bg-white dark:bg-white text-gray-900"
+            value={gapTimeMinutes}
+            onChange={(e) => setGapTimeMinutes(Number(e.target.value) || 0)}
+          />
         </div>
 
         {/* End Time (calculated) */}
@@ -174,7 +207,7 @@ export default function TimeSlotForm({
             tabIndex={-1}
             aria-disabled="true"
           />
-          <p className="helper-text">Based on session length ({sessionConfig?.sessionLength || 30} min) and gap time ({sessionConfig?.gapTime || 5} min)</p>
+          <p className="helper-text">Based on length ({lengthMinutes} min) and gap time ({gapTimeMinutes} min)</p>
         </div>
 
         {/* Venue */}
@@ -191,6 +224,15 @@ export default function TimeSlotForm({
             placeholder="Search or add venue"
           />
         </div>
+        {/* Requirements */}
+        <div className="form-field">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Required Examiners per Session</label>
+          <input type="number" min="1" className="custom-input bg-white dark:bg-white text-gray-900" value={requiredExaminers} onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)} />
+        </div>
+        <div className="form-field">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Capacity (student groups)</label>
+          <input type="number" min="1" className="custom-input bg-white dark:bg-white text-gray-900" value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 1)} />
+        </div>
       </div>
 
       <div className="mt-4 flex justify-end space-x-3">
@@ -202,9 +244,9 @@ export default function TimeSlotForm({
             Cancel
           </button>
         )}
-        <button onClick={handleSubmit} className="btn btn-primary" title="Add or update time slot">
+        <button onClick={handleSubmit} className="btn btn-primary" title="Add batch definition">
           <i className="fas fa-plus mr-1.5" />
-          <span>{submitLabel || (editingSlot ? 'Update Time Slot' : 'Add Time Slot')}</span>
+          <span>{submitLabel || (editingSlot ? 'Update Batch' : 'Add Batch')}</span>
         </button>
       </div>
     </div>

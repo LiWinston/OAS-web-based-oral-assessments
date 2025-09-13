@@ -1,18 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import CalendarMonth from '@/components/admin/schedule/CalendarMonth.jsx';
-import TimeSlotCard from '@/components/admin/schedule/TimeSlotCard.jsx';
-import AddTimeSlotModal from '@/components/admin/schedule/AddTimeSlotModal.jsx';
-import { useTimeSlots } from '@/hooks/useTimeSlots.js';
-import { useSessionConfig } from '@/hooks/useSessionConfig.js';
+import BatchCreateSessionsModal from '@/components/admin/schedule/BatchCreateSessionsModal.jsx';
+import SingleSessionModal from '@/components/admin/schedule/SingleSessionModal.jsx';
+import ExaminerLimitsStep from '@/components/admin/schedule/ExaminerLimitsStep.jsx';
 import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
+import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
-import { to24Hour } from '@/lib/timeMath.js';
-import { venueService } from '@/services/venueService.js';
-import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
+// UI-only (no backend calls in this pass)
 import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 
 /**
@@ -39,34 +38,52 @@ export default function AssignmentTimeSlotsPage() {
   const queryClient = useQueryClient();
   
   const [selectedDate, setSelectedDate] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editingTimeSlot, setEditingTimeSlot] = useState(null);
-  const [modalMode, setModalMode] = useState('add');
+  const [showBatchModal, setShowBatchModal] = useState(false);
+  const [showSingleModal, setShowSingleModal] = useState(false);
+  const [sessions, setSessions] = useState([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [showLimits, setShowLimits] = useState(false);
+  const [openExaminerForSessionId, setOpenExaminerForSessionId] = useState(null);
+  const [openBookedForSessionId, setOpenBookedForSessionId] = useState(null);
+  const [availableExaminers, setAvailableExaminers] = useState([]);
 
-  // Hooks for server state (replace in-memory arrays per Section 9.2)
-  const { data: sessionConfig } = useSessionConfig(assignmentId);
-  const {
-    data: timeSlots,
-    isLoading: isLoadingSlots,
-    createBatch,
-    updateSlot,
-    updateSlotAsync,
-    deleteSlots,
-    deleteSlotsAsync,
-    duplicateSlot,
-    isUpdating,
-    isDeleting,
-    isDuplicating,
-    refetch
-  } = useTimeSlots(assignmentId, selectedDate ? { date: selectedDate } : {});
+  // fetch sessions on date change
+  useEffect(() => {
+    let cancelled = false;
+    const fetchForDate = async () => {
+      if (!selectedDate) return;
+      setIsLoadingSlots(true);
+      try {
+        const res = await courseAdminSessionService.getSessions(assignmentId, { date: selectedDate });
+        if (!cancelled) {
+          const list = Array.isArray(res?.data) ? res.data : [];
+          setSessions(list);
+        }
+      } catch (e) {
+        if (!cancelled) setSessions([]);
+      } finally {
+        if (!cancelled) setIsLoadingSlots(false);
+      }
+    };
+    fetchForDate();
+    return () => { cancelled = true; };
+  }, [assignmentId, selectedDate]);
 
   const { release, canRelease } = useScheduleRelease(assignmentId);
-  const { data: availableExaminers = [] } = useExaminerLimits(assignmentId);
+  // Temporary UI-only defaults for session configuration references
+  const sessionConfig = { sessionLength: 30, gapTime: 5, examinersPerSession: 2 };
+  useExaminerLimits(assignmentId);
 
   // Filter slots for selected date
-  const timeSlotsForSelectedDate = selectedDate 
-    ? timeSlots.filter(slot => slot.date === selectedDate)
+  const sessionsForSelectedDate = selectedDate 
+    ? sessions.filter(s => s.date === selectedDate)
     : [];
+
+  const examinerLookup = useMemo(() => {
+    const map = new Map();
+    for (const ex of availableExaminers) map.set(ex.id, ex);
+    return map;
+  }, [availableExaminers]);
 
   // Selection handlers
   // Selection features removed per request
@@ -84,73 +101,46 @@ export default function AssignmentTimeSlotsPage() {
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setEditingTimeSlot(null);
+  // Session creation handlers (API)
+  const identity = (s) => `${s.date}|${s.startTime}|${s.endTime}|${s.venueId ?? ''}`;
+  const mergeUnique = (prev, incoming) => {
+    const seen = new Set(prev.map(identity));
+    const merged = [...prev];
+    for (const s of incoming) {
+      const key = identity(s);
+      if (!seen.has(key)) {
+        merged.push(s);
+        seen.add(key);
+      }
+    }
+    return merged;
   };
-
-  // CRUD operations using server state (per Section 9.2)
-  const handleModalSave = async (timeSlotData) => {
-    // Normalize modal payload to UI/API expectations
-    const start = timeSlotData.startTime && String(timeSlotData.startTime).includes(' ')
-      ? to24Hour(timeSlotData.startTime)
-      : timeSlotData.startTime;
-    const end = timeSlotData.endTime && String(timeSlotData.endTime).includes(' ')
-      ? to24Hour(timeSlotData.endTime)
-      : timeSlotData.endTime;
-    let venueId = timeSlotData.venueId;
-    const venue = timeSlotData.venue;
-
-    // Resolve venueId if missing but venue name provided
-    if (!venueId && venue) {
-      try {
-        const listRes = await venueService.list(assignmentId, '');
-        const all = listRes?.data || [];
-        const existing = all.find(v => (v.name || '').trim() === venue.trim());
-        if (existing) {
-          venueId = existing.id;
-        }
-      } catch {}
+  const handleAddBatchSessions = async (generator) => {
+    if (!generator || !generator.date || !generator.startTime) return;
+    try {
+      const res = await courseAdminSessionService.generateSessions(assignmentId, generator);
+      const created = res?.data || [];
+      setSessions((prev) => mergeUnique(prev, created));
+    } catch (e) {
+      showError('Failed to create sessions');
     }
-
-    const normalized = {
-      id: timeSlotData.id,
-      date: timeSlotData.date,
-      startTime: start,
-      endTime: end,
-      sessionCount: timeSlotData.sessionCount || timeSlotData.sessions || 1,
-      venue,
-      venueId,
-      requiredExaminers: timeSlotData.requiredExaminers,
-      assignedExaminers: timeSlotData.assignedExaminers || [],
-      assignExaminerIds: timeSlotData.assignExaminerIds || timeSlotData.assignedExaminerIds || []
-    };
-
-    if (modalMode === 'edit' && editingTimeSlot?.id) {
-      await updateSlotAsync({ timeSlotId: editingTimeSlot.id, data: normalized });
-      refetch();
-      // also refresh calendar legend dots
-      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
-    } else {
-      await courseAdminTimeslotService.createTimeSlot(assignmentId, normalized);
-      refetch();
-      // also refresh calendar legend dots
-      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
-      // refresh schedule status so release button updates promptly
-      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
+  };
+  const handleAddSingleSession = async (session) => {
+    if (!session) return;
+    try {
+      const res = await courseAdminSessionService.createSessionsBatch(assignmentId, { sessions: [session] });
+      const created = res?.data || [];
+      setSessions((prev) => mergeUnique(prev, created.length ? created : [session]));
+    } catch (e) {
+      showError('Failed to create session');
     }
-    closeModal();
   };
 
   const handleDeleteTimeSlot = async (id) => {
-    const confirmed = await confirm('Delete this time slot?');
+    const confirmed = await confirm('Delete this session?');
     if (confirmed) {
-      await deleteSlotsAsync([id]);
-      await refetch();
-      // refresh calendar legend dots as counts changed
+      setSessions((prev) => prev.filter((s) => s.id !== id));
       queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
-      // refresh schedule status so release button updates promptly
-      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'schedule', 'status'] });
     }
   };
 
@@ -161,6 +151,64 @@ export default function AssignmentTimeSlotsPage() {
     setEditingTimeSlot({ ...slot, id: undefined });
     setShowModal(true);
     setModalMode('add');
+  };
+
+  // Examiners dropdown logic
+  const ensureExaminersLoaded = async () => {
+    if (availableExaminers.length) return;
+    try {
+      const res = await courseAdminSessionService.getAvailableExaminers(assignmentId);
+      setAvailableExaminers(Array.isArray(res?.data) ? res.data : []);
+    } catch (e) {
+      // ignore
+    }
+  };
+  const toggleExaminers = async (sessionId) => {
+    if (openExaminerForSessionId === sessionId) {
+      setOpenExaminerForSessionId(null);
+      return;
+    }
+    await ensureExaminersLoaded();
+    setOpenExaminerForSessionId(sessionId);
+    setOpenBookedForSessionId(null);
+  };
+  const toggleBooked = (sessionId) => {
+    setOpenBookedForSessionId(openBookedForSessionId === sessionId ? null : sessionId);
+    setOpenExaminerForSessionId(null);
+  };
+
+  const updateSessionLocal = (sessionId, updater) => {
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? updater(s) : s)));
+  };
+  const handleAssignExaminer = async (session, examinerId) => {
+    if (!session?.id || !examinerId) return;
+    try {
+      await courseAdminSessionService.assignSessionExaminers(session.id, [Number(examinerId)]);
+      // Update local state: append to assignedExaminers if not already present
+      updateSessionLocal(session.id, (s) => {
+        const exists = (s.assignedExaminers || []).some((e) => (e.id || e.examinerId) === Number(examinerId));
+        if (exists) return s;
+        const ex = examinerLookup.get(Number(examinerId));
+        const entry = ex ? { id: ex.id, name: ex.name } : { id: Number(examinerId) };
+        return { ...s, assignedExaminers: [ ...(s.assignedExaminers || []), entry ] };
+      });
+      showSuccess('Examiner assigned');
+    } catch (e) {
+      showError('Failed to assign examiner');
+    }
+  };
+  const handleRemoveExaminer = async (session, examinerId) => {
+    if (!session?.id || !examinerId) return;
+    try {
+      await courseAdminSessionService.unassignSessionExaminer(session.id, Number(examinerId));
+      updateSessionLocal(session.id, (s) => ({
+        ...s,
+        assignedExaminers: (s.assignedExaminers || []).filter((e) => (e.id || e.examinerId) !== Number(examinerId)),
+      }));
+      showSuccess('Examiner removed');
+    } catch (e) {
+      showError('Failed to remove examiner');
+    }
   };
 
   const handleNotifyExaminers = async () => {
@@ -191,10 +239,10 @@ export default function AssignmentTimeSlotsPage() {
 
   const handleReleaseSchedule = () => {
     if (!canRelease) {
-      showError('Cannot release schedule: some time slots are not fully staffed');
+      showError('Cannot release schedule: some sessions are not fully staffed');
       return;
     }
-    release();
+    release({ audience: 'students' });
   };
 
   return (
@@ -231,36 +279,25 @@ export default function AssignmentTimeSlotsPage() {
         </div>
       </div>
 
-      {/* Project Info Card with dynamic session config */}
+      {/* Assignment Info + Actions */}
       <div className="dashboard-card p-4">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 rounded-lg flex items-center justify-center">
-            <i className="fas fa-shield-alt text-blue-600 dark:text-blue-400"></i>
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-800 dark:text-gray-200">Assignment {assignmentId}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Course {courseId} - Oral Assessment</p>
-          </div>
-        </div>
-        
-        <div className="project-info-grid mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">SESSION LENGTH</div>
-            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-              {sessionConfig?.sessionLength || 30} minutes per session
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 rounded-lg flex items-center justify-center">
+              <i className="fas fa-shield-alt text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200">Assignment {assignmentId}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Course {courseId} - Oral Assessment</p>
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">GAP TIME</div>
-            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-              {sessionConfig?.gapTime || 5} minutes between sessions
-            </div>
-          </div>
-          <div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium mb-1">EXAMINERS REQUIRED</div>
-            <div className="text-sm font-medium text-gray-800 dark:text-gray-200">
-              {sessionConfig?.examinersPerSession || 2} examiners per session
-            </div>
+            <button
+              onClick={() => setShowLimits(true)}
+              className="px-3 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <i className="fas fa-user-cog mr-2" /> Set Examiner Limits
+            </button>
           </div>
         </div>
       </div>
@@ -279,15 +316,15 @@ export default function AssignmentTimeSlotsPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2" />
-              {selectedDate ? `Time Slots - ${selectedDate}` : 'Time Slots - Select a date'}
+              {selectedDate ? `Sessions - ${selectedDate}` : 'Sessions - Select a date'}
             </h2>
             {selectedDate && (
               <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => openAddModal(selectedDate)} 
-                  className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-                >
-                  <i className="fas fa-plus mr-1" /> Add Time Slot
+                <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                  <i className="fas fa-layer-group mr-1" /> Batch Create Sessions
+                </button>
+                <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                  <i className="fas fa-plus mr-1" /> Create Session
                 </button>
               </div>
             )}
@@ -307,52 +344,133 @@ export default function AssignmentTimeSlotsPage() {
                 <i className="fas fa-calendar-day text-xl" />
               </div>
               <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Date Selected</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">Select a date from the calendar to view and manage time slots for that day.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">Select a date from the calendar to view and manage sessions for that day.</p>
             </div>
           )}
 
-          {!isLoadingSlots && selectedDate && timeSlotsForSelectedDate.length === 0 && (
+          {!isLoadingSlots && selectedDate && sessionsForSelectedDate.length === 0 && (
             <div className="empty-state">
               <div className="empty-state-icon">
                 <i className="fas fa-calendar-plus text-xl" />
               </div>
-              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Time Slots</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no time slots scheduled for this date yet.</p>
-              <button onClick={() => openAddModal(selectedDate)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors">
-                <i className="fas fa-plus mr-2" /> Add Time Slot
-              </button>
+              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Sessions</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no sessions scheduled for this date yet.</p>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                  <i className="fas fa-layer-group mr-1" /> Batch Create Sessions
+                </button>
+                <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                  <i className="fas fa-plus mr-1" /> Create Session
+                </button>
+              </div>
             </div>
           )}
 
-          {/* Time Slots Content */}
-          {!isLoadingSlots && selectedDate && timeSlotsForSelectedDate.length > 0 && (
+          {/* Sessions Content */}
+          {!isLoadingSlots && selectedDate && sessionsForSelectedDate.length > 0 && (
             <div className="space-y-4">
-              {/* Time Slot Cards */}
-              {timeSlotsForSelectedDate.map((timeSlot) => (
-                <TimeSlotCard
-                  key={timeSlot.id}
-                  timeSlot={timeSlot}
-                  onEdit={openEditModal}
-                  onDuplicate={handleDuplicateTimeSlot}
-                  onDelete={handleDeleteTimeSlot}
-                />
+              {sessionsForSelectedDate.map((s, idx) => (
+                <div key={`${s.id ?? `${s.date}-${s.startTime}-${s.endTime}-${s.venueId ?? ''}`}-${idx}`} className="time-slot-item relative">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <div className="text-base font-medium text-gray-800 dark:text-gray-200">{s.startTime} - {s.endTime}</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5"><i className="fas fa-map-marker-alt mr-1.5" /> {s.venue || s.venueName || (s.venueId != null ? `Venue #${s.venueId}` : 'Venue')}</div>
+                    </div>
+                    <div className="flex items-center gap-2 text-right">
+                      <button
+                        className="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        onClick={() => toggleExaminers(s.id)}
+                      >
+                        {(s.assignedExaminers?.length || 0)}/{s.requiredExaminers || 1} examiners
+                      </button>
+                      <button
+                        className="text-xs text-gray-600 dark:text-gray-300 hover:underline"
+                        onClick={() => toggleBooked(s.id)}
+                      >
+                        {(s.bookedCount || 0)}/{s.capacity || 1} booked
+                      </button>
+                      <button className="action-btn text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDeleteTimeSlot(s.id)}>
+                        <i className="fas fa-trash-alt" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {openExaminerForSessionId === s.id && (
+                    <div className="absolute right-3 z-20 mt-1 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Assign examiners</div>
+                        <button className="text-gray-400 hover:text-gray-600" onClick={() => setOpenExaminerForSessionId(null)} aria-label="Close"><i className="fas fa-times" /></button>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Currently assigned</div>
+                        <div className="flex flex-wrap gap-2">
+                          {(s.assignedExaminers && s.assignedExaminers.length > 0) ? (
+                            s.assignedExaminers.map((ex) => (
+                              <span key={ex.id || ex.examinerId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs">
+                                {ex.name || examinerLookup.get(ex.id || ex.examinerId)?.name || `#${ex.id || ex.examinerId}`}
+                                <button className="text-red-500 hover:text-red-700 ml-1" onClick={() => handleRemoveExaminer(s, ex.id || ex.examinerId)} title="Remove"><i className="fas fa-times" /></button>
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-500">No examiners assigned</span>
+                          )}
+                        </div>
+                        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Add examiner</div>
+                          <Select onValueChange={(val) => handleAssignExaminer(s, val)}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="Select examiner" /></SelectTrigger>
+                            <SelectContent>
+                              {availableExaminers.map((ex) => (
+                                <SelectItem key={ex.id} value={String(ex.id)}>{ex.name} {ex.currentAssignments != null ? `(${ex.currentAssignments}/${ex.maxSessions || '∞'})` : ''}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {openBookedForSessionId === s.id && (
+                    <div className="absolute right-3 z-20 mt-1 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Booked groups</div>
+                        <button className="text-gray-400 hover:text-gray-600" onClick={() => setOpenBookedForSessionId(null)} aria-label="Close"><i className="fas fa-times" /></button>
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-300">{s.bookedCount || 0} of {s.capacity || 1} booked.</div>
+                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Detailed list not available yet.</div>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      {/* Add/Edit Modal with injected session config */}
-      <AddTimeSlotModal
-        assignmentId={assignmentId}
-        isOpen={showModal}
-        mode={modalMode}
-        initialData={editingTimeSlot}
-        availableExaminers={availableExaminers}
-        sessionConfig={sessionConfig}
-        onCancel={closeModal}
-        onSave={handleModalSave}
-      />
+      {/* Batch Create & Single Session Modals */}
+      <BatchCreateSessionsModal assignmentId={assignmentId} isOpen={showBatchModal} onClose={() => setShowBatchModal(false)} onGenerate={handleAddBatchSessions} defaultDate={selectedDate || undefined} />
+      <SingleSessionModal assignmentId={assignmentId} isOpen={showSingleModal} onClose={() => setShowSingleModal(false)} onCreate={handleAddSingleSession} defaultDate={selectedDate || undefined} />
+
+      {/* Examiner Limits Modal */}
+      {showLimits && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowLimits(false)} />
+          <div className="relative w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Examiner Session Limits</h3>
+              <button onClick={() => setShowLimits(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label="Close">
+                <i className="fas fa-times" />
+              </button>
+            </div>
+            <ExaminerLimitsStep
+              assignmentId={assignmentId}
+              totalSessions={sessionsForSelectedDate.length || sessions.length}
+              onPrevious={() => setShowLimits(false)}
+              onComplete={() => setShowLimits(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
