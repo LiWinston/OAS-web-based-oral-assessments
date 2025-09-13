@@ -280,7 +280,8 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private String normalizeSubjectType(String subjectType) {
         if (subjectType == null) return null;
-        if (subjectType.equalsIgnoreCase("INDIVIDUAL") || subjectType.equalsIgnoreCase("STUDENT")) return "STUDENT";
+        // 对齐 AssignMode：INDIVIDUAL / GROUP
+        if (subjectType.equalsIgnoreCase("INDIVIDUAL") || subjectType.equalsIgnoreCase("STUDENT") || subjectType.equalsIgnoreCase("PERSONAL")) return "INDIVIDUAL";
         if (subjectType.equalsIgnoreCase("GROUP")) return "GROUP";
         return subjectType;
     }

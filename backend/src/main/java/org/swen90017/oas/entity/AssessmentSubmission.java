@@ -23,7 +23,7 @@ public class AssessmentSubmission implements Serializable {
     private Long sessionId; // 可为空
 
     /**
-     * STUDENT | GROUP
+     * Align with AssignMode: INDIVIDUAL | GROUP
      */
     private String subjectType;
     private Long subjectId;
