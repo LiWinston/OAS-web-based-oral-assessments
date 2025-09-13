@@ -201,6 +201,12 @@ public class SessionServiceImpl implements SessionService {
             it.setStartTime(s.getStartAt().toLocalTime());
             it.setEndTime(s.getEndAt().toLocalTime());
             it.setVenueId(s.getVenueId());
+            if (s.getVenueId() != null) {
+                Venue v = venueMapper.selectById(s.getVenueId());
+                it.setVenueName(v == null ? null : v.getRoomName());
+            } else {
+                it.setVenueName(null);
+            }
             it.setRequiredExaminers(s.getRequiredExaminers());
             it.setCapacity(s.getCapacityGroups());
             List<Long> examinerIds = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());

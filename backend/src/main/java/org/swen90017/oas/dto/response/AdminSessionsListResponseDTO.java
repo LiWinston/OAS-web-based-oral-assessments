@@ -1,6 +1,5 @@
 package org.swen90017.oas.dto.response;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -19,6 +18,7 @@ public class AdminSessionsListResponseDTO {
         private LocalTime startTime;
         private LocalTime endTime;
         private Long venueId;
+        private String venueName;
         private Integer requiredExaminers;
         private Integer capacity;
         private List<ExaminerDTO> assignedExaminers;

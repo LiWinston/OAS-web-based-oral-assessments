@@ -13,6 +13,7 @@ import java.time.LocalTime;
 @Data
 public class GenerateSessionsRequestDTO {
     @NotNull
+    @Schema(type = "string", format = "date", example = "2025-10-01")
     private LocalDate date;
     @NotNull
     @Schema(type = "string", format = "time", example = "09:30:00")
