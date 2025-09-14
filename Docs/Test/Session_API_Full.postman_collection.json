@@ -1,0 +1,402 @@
+{
+  "info": {
+    "name": "Session API Full Test",
+    "_postman_id": "c9e4d6d1-1234-5678-9101-abcdefabcdef",
+    "description": "Postman collection for testing all Session API endpoints (200 OK validation)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Publish Session to Student",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/sessions/{{sessionId}}/publish/student?value=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "sessions",
+            "{{sessionId}}",
+            "publish",
+            "student"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Publish Session to Examiner",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/sessions/{{sessionId}}/publish/examiner?value=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "sessions",
+            "{{sessionId}}",
+            "publish",
+            "examiner"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Update Single Session",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/{{sessionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "{{sessionId}}"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-09-13\",\n  \"startTime\": {\n    \"hour\": 9,\n    \"minute\": 0,\n    \"second\": 0,\n    \"nano\": 0\n  },\n  \"endTime\": {\n    \"hour\": 10,\n    \"minute\": 0,\n    \"second\": 0,\n    \"nano\": 0\n  },\n  \"venueId\": 1,\n  \"requiredExaminers\": 1,\n  \"capacity\": 10\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Set Examiners for Sessions",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/examiners/set",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "examiners",
+            "set"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionIds\": [\n    55\n  ],\n  \"examinerIds\": [\n    100\n  ],\n  \"action\": \"set\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Remove Examiners from Sessions",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/examiners/remove",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "examiners",
+            "remove"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionIds\": [\n    55\n  ],\n  \"examinerIds\": [\n    100\n  ],\n  \"action\": \"remove\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Add Examiners to Sessions",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/examiners/add",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "examiners",
+            "add"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"sessionIds\": [\n    55\n  ],\n  \"examinerIds\": [\n    100\n  ],\n  \"action\": \"add\"\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Examiners Assigned to Session",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/{{sessionId}}/examiners",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "{{sessionId}}",
+            "examiners"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Assign Examiners to Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/{{sessionId}}/examiners",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "{{sessionId}}",
+            "examiners"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"examinerIds\": [\n    100\n  ]\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Generate Sessions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/generate",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "generate"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"date\": \"2025-09-13\",\n  \"startTime\": {\n    \"hour\": 9,\n    \"minute\": 0,\n    \"second\": 0,\n    \"nano\": 0\n  },\n  \"count\": 2,\n  \"length\": 25,\n  \"gapTime\": 5,\n  \"venueId\": 1,\n  \"requiredExaminers\": 1,\n  \"capacity\": 10\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Batch Create Sessions",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions/batch",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions",
+            "batch"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"windows\": [\n    {\n      \"date\": \"2025-09-13\",\n      \"startTime\": {\n        \"hour\": 9,\n        \"minute\": 0,\n        \"second\": 0,\n        \"nano\": 0\n      },\n      \"endTime\": {\n        \"hour\": 11,\n        \"minute\": 0,\n        \"second\": 0,\n        \"nano\": 0\n      },\n      \"sessionCount\": 2,\n      \"venueId\": 1,\n      \"requiredExaminers\": 1,\n      \"capacity\": 10\n    }\n  ]\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Sessions for Assignment",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Delete Sessions in Batch",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/assignments/{{assignmentId}}/sessions",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "assignments",
+            "{{assignmentId}}",
+            "sessions"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ids\": [\n    55\n  ]\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Unassign Examiner from Session",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/admin/sessions/{{sessionId}}/examiners/{{examinerId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "sessions",
+            "{{sessionId}}",
+            "examiners",
+            "{{examinerId}}"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
