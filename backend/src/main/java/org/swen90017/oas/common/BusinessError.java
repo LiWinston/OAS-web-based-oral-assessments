@@ -89,9 +89,7 @@ public enum BusinessError implements Error {
     INVALID_SELECTED_LEVEL("9006", "Invalid selected level"),
     RUBRIC_PARSE_ERROR("9007", "Rubric parse error"),
     NOT_ASSIGNED_TO_SESSION("9008", "Examiner not assigned to session"),
-    ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted");
-    // add more below as needed
-    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment"),
+    ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted"),
 
     // Student Results domain
     NOT_RELEASED("410", "Results for this assignment haven't been released yet."),

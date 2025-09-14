@@ -50,6 +50,30 @@
         ORDER BY updated_at DESC
     </select>
 
+    <select id="listByStudentAndAssignment" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        WHERE assignment_id = #{assignmentId}
+          AND subject_type = 'STUDENT'
+          AND subject_id = #{studentId}
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY submitted_at DESC
+    </select>
+
+    <select id="listByStudent" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        WHERE subject_type = 'STUDENT'
+          AND subject_id = #{studentId}
+        <if test="assignmentId != null">
+            AND assignment_id = #{assignmentId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+        ORDER BY submitted_at DESC
+    </select>
+
 </mapper>
 
 
