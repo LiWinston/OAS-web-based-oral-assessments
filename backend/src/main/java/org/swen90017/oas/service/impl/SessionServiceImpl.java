@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.BatchCreateSessionsRequestDTO;
+import org.swen90017.oas.dto.response.CalendarResponseDTO;
 import org.swen90017.oas.entity.SessionExaminer;
 import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.entity.Venue;
@@ -16,6 +17,7 @@ import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
 import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
+import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.service.SessionService;
@@ -28,6 +30,7 @@ import org.swen90017.oas.enums.UserRole;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.*;
 
 @Service
@@ -39,6 +42,7 @@ public class SessionServiceImpl implements SessionService {
     private final SlotSessionMapper slotSessionMapper;
     private final VenueMapper venueMapper;
     private final SysUserMapper sysUserMapper;
+    private final AssignmentMapper assignmentMapper;
 
     @Override
     public List<Long> listExaminerIds(Long sessionId) {
@@ -228,6 +232,13 @@ public class SessionServiceImpl implements SessionService {
             it.setStatus(s.getStatus().name().toLowerCase());
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
+            // 基于 assignment.status 派生发布布尔位
+            org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(s.getAssignmentId());
+            String st = a == null ? null : a.getStatus();
+            boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
+            boolean toStudent = "RELEASED".equalsIgnoreCase(st);
+            it.setPublishedToExaminer(toExaminer);
+            it.setPublishedToStudent(toStudent);
             items.add(it);
             int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
             int cur = examinerIds == null ? 0 : examinerIds.size();
@@ -399,15 +410,123 @@ public class SessionServiceImpl implements SessionService {
         SlotSession s = slotSessionMapper.selectById(sessionId);
         if (s == null) throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         if (value) {
-            // 需要已配员
+            // 需要满足会话规定的考官人数（cur >= requiredExaminers，若未配置则按 1）
             List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(sessionId);
-            if (examiners == null || examiners.isEmpty()) {
+            int cur = examiners == null ? 0 : examiners.size();
+            int req = (s.getRequiredExaminers() == null || s.getRequiredExaminers() <= 0) ? 1 : s.getRequiredExaminers();
+            if (cur < req) {
                 throw new BusinessException(BusinessError.SESSION_NOT_STAFFED);
             }
         }
         s.setIsPublishedToStudent(value);
         s.setUpdatedAt(LocalDateTime.now());
         return slotSessionMapper.updateById(s) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean publishAssignmentToExaminer(Long assignmentId, boolean value) {
+        // 改为更新 assignment.status：true -> IN_PROGRESS；false -> PENDING
+        org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
+        if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        a.setStatus(value ? "IN_PROGRESS" : "PENDING");
+        a.setUpdateTime(LocalDateTime.now());
+        return assignmentMapper.updateById(a) > 0;
+    }
+
+    @Override
+    @Transactional
+    public boolean publishAssignmentToStudent(Long assignmentId, boolean value) {
+        // 发布给学生：true -> 校验所有 sessions 已配员；然后 assignment.status=RELEASED 且 isReleased=true, releasedAt=now
+        // 取消发布：assignment.status=IN_PROGRESS, isReleased=false
+        org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
+        if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        if (value) {
+            List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, null, null);
+            for (SlotSession s : sessions) {
+                List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+                int cur = examiners == null ? 0 : examiners.size();
+                int req = (s.getRequiredExaminers() == null || s.getRequiredExaminers() <= 0) ? 1 : s.getRequiredExaminers();
+                if (cur < req) {
+                    throw new BusinessException(BusinessError.SESSION_NOT_STAFFED);
+                }
+            }
+            a.setStatus("RELEASED");
+            a.setIsReleased(Boolean.TRUE);
+            a.setReleasedAt(LocalDateTime.now());
+        } else {
+            a.setStatus("IN_PROGRESS");
+            a.setIsReleased(Boolean.FALSE);
+            a.setReleasedAt(null);
+        }
+        a.setUpdateTime(LocalDateTime.now());
+        return assignmentMapper.updateById(a) > 0;
+    }
+
+    @Override
+    public CalendarResponseDTO getSessionCalendar(Long assignmentId, String month) {
+        YearMonth ym = YearMonth.parse(month);
+        LocalDateTime from = ym.atDay(1).atStartOfDay();
+        LocalDateTime to = ym.atEndOfMonth().atTime(23,59,59);
+        List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
+        Map<String, CalendarResponseDTO.DateInfoDTO> map = new LinkedHashMap<>();
+        for (SlotSession s : sessions) {
+            String key = s.getStartAt().toLocalDate().toString();
+            CalendarResponseDTO.DateInfoDTO di = map.computeIfAbsent(key, k -> new CalendarResponseDTO.DateInfoDTO());
+            di.setSessions((di.getSessions() == null ? 0 : di.getSessions()) + 1);
+            // staffing 状态
+            List<Long> ex = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+            int cur = ex == null ? 0 : ex.size();
+            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+            if (req > 0 && cur >= req) {
+                di.setFullyStaffed((di.getFullyStaffed() == null ? 0 : di.getFullyStaffed()) + 1);
+            } else if (cur > 0) {
+                di.setPartialStaffed((di.getPartialStaffed() == null ? 0 : di.getPartialStaffed()) + 1);
+            } else {
+                di.setNoStaffed((di.getNoStaffed() == null ? 0 : di.getNoStaffed()) + 1);
+            }
+            // bookable/full 统计（基于容量）
+            int cap = s.getCapacityGroups() == null ? 1 : s.getCapacityGroups();
+            int booked = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
+            if (booked >= cap) {
+                di.setFullSessions((di.getFullSessions() == null ? 0 : di.getFullSessions()) + 1);
+            } else {
+                di.setBookableSessions((di.getBookableSessions() == null ? 0 : di.getBookableSessions()) + 1);
+            }
+
+            // items 明细
+            List<CalendarResponseDTO.CalendarItem> items = di.getItems();
+            if (items == null) {
+                items = new java.util.ArrayList<>();
+                di.setItems(items);
+            }
+            CalendarResponseDTO.CalendarItem item = new CalendarResponseDTO.CalendarItem();
+            item.setId(s.getSessionId());
+            item.setType("session");
+            item.setStatus(s.getStatus() == null ? null : s.getStatus().name().toLowerCase());
+            item.setStart(s.getStartAt().toLocalTime());
+            item.setEnd(s.getEndAt().toLocalTime());
+            item.setVenueId(s.getVenueId());
+            if (s.getVenueId() != null) {
+                Venue v = venueMapper.selectById(s.getVenueId());
+                item.setVenueName(v == null ? null : v.getRoomName());
+            }
+            items.add(item);
+        }
+        CalendarResponseDTO dto = new CalendarResponseDTO();
+        dto.setMonth(month);
+        dto.setDates(map);
+        return dto;
+    }
+
+    @Override
+    public Map<String, Boolean> getPublishStatus(Long sessionId) {
+        SlotSession s = slotSessionMapper.selectById(sessionId);
+        if (s == null) throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
+        Map<String, Boolean> m = new HashMap<>();
+        m.put("publishedToExaminer", Boolean.TRUE.equals(s.getIsPublishedToExaminer()));
+        m.put("publishedToStudent", Boolean.TRUE.equals(s.getIsPublishedToStudent()));
+        return m;
     }
 }
 

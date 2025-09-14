@@ -27,6 +27,8 @@ public class AdminSessionsListResponseDTO {
         private String status;
         private java.time.LocalDateTime createdAt;
         private java.time.LocalDateTime lastModified;
+        private Boolean publishedToExaminer;
+        private Boolean publishedToStudent;
     }
 
     @Data

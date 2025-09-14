@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.SecurityError;
+import org.swen90017.oas.dto.PerformanceDto;
 import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.ExaminerAssessmentsQueryDTO;
 import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
@@ -106,6 +107,22 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Transactional
     public AssessmentSubmissionDTO submit(SubmitAssessmentRequestDTO request, Long examinerId) {
         AssessmentSubmission target = resolveTargetSubmission(request, examinerId);
+        // 若本次提交携带了评分/反馈内容，同步写入到记录再提交
+        boolean needUpdateContent = request.getScores() != null || request.getOverallFeedback() != null || request.getAdminNote() != null;
+        if (needUpdateContent) {
+            // 使用 saveDraft 的校验与归一逻辑进行一次标准化
+            SaveAssessmentDraftRequestDTO save = new SaveAssessmentDraftRequestDTO();
+            save.setAssignmentId(target.getAssignmentId());
+            save.setSessionId(target.getSessionId());
+            save.setSubjectType(target.getSubjectType());
+            save.setSubjectId(target.getSubjectId());
+            save.setOverallFeedback(request.getOverallFeedback());
+            save.setAdminNote(request.getAdminNote());
+            save.setScores(request.getScores());
+            AssessmentSubmissionDTO updated = saveDraft(save, examinerId);
+            // 重新读取最新实体
+            target = submissionMapper.selectById(updated.getSubmissionId());
+        }
         if (!Objects.equals(target.getExaminerId(), examinerId)) {
             throw new BusinessException(SecurityError.INSUFFICIENT_PRIVILEGES);
         }
@@ -113,7 +130,8 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new BusinessException(BusinessError.ASSESSMENT_ALREADY_SUBMITTED);
         }
 
-        // 提交校验：需可计算总分（若有缺漏，按业务决定：这里允许缺项按 0 分对待）
+        // 提交校验：需可计算总分；若有缺漏，直接报未完成（避免空项默认0分）
+        ensureAllCriteriaCompleted(target.getRubricsInfoSnapshot(), target.getScoresJson());
         Double total = computeTotalScore(target.getRubricsInfoSnapshot(), target.getScoresJson());
         target.setTotalScore(total);
         target.setStatus("SUBMITTED");
@@ -178,10 +196,41 @@ public class AssessmentServiceImpl implements AssessmentService {
         AssessmentSubmission target;
         if (request.getSubmissionId() != null) {
             target = submissionMapper.selectById(request.getSubmissionId());
+            if (target == null) {
+                // 明确要求：传了 submissionId 不创建，查不到即报错
+                throw new BusinessException(BusinessError.INVALID_PARAM);
+            }
         } else {
             target = submissionMapper.selectByUniqueTarget(request.getAssignmentId(), request.getSessionId(), normalizeSubjectType(request.getSubjectType()), request.getSubjectId(), examinerId);
+            // 若不存在，允许在提交时自动创建一条草稿记录，支持“直接提交”的流程
+            if (target == null) {
+                // 严格：仅当提供了 assignmentId + subjectType(INDIVIDUAL/GROUP) + subjectId 才允许自动创建
+                String normalizedType = normalizeSubjectType(request.getSubjectType());
+                if (request.getAssignmentId() == null || normalizedType == null || request.getSubjectId() == null) {
+                    throw new BusinessException(BusinessError.INVALID_PARAM);
+                }
+                Assignment assignment = assignmentMapper.selectById(request.getAssignmentId());
+                if (assignment == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+                if (!("INDIVIDUAL".equalsIgnoreCase(normalizedType) || "GROUP".equalsIgnoreCase(normalizedType))) {
+                    throw new BusinessException(BusinessError.INVALID_PARAM);
+                }
+                AssessmentSubmission draft = new AssessmentSubmission();
+                draft.setAssignmentId(request.getAssignmentId());
+                draft.setSessionId(request.getSessionId());
+                draft.setSubjectType(normalizedType);
+                draft.setSubjectId(request.getSubjectId());
+                draft.setExaminerId(examinerId);
+                draft.setStatus("DRAFT");
+                draft.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                draft.setRubricsInfoSnapshot(assignment.getRubricsInfo());
+                draft.setScoresJson("[]");
+                draft.setCreatedAt(LocalDateTime.now());
+                draft.setUpdatedAt(LocalDateTime.now());
+                draft.setVersion(0);
+                submissionMapper.insert(draft);
+                target = draft;
+            }
         }
-        if (target == null) throw new BusinessException(BusinessError.INVALID_PARAM);
         return target;
     }
 
@@ -209,16 +258,39 @@ public class AssessmentServiceImpl implements AssessmentService {
                 }
 
                 if (isPointsLike(reqType)) {
+                    // points/percentage: 允许携带 selectedLevel，但会被忽略，仅校验 inputPoints
                     if (s.getInputPoints() != null && (s.getInputPoints() < 0 || s.getInputPoints() > 100)) {
                         throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
                     }
                 } else if ("descriptive".equalsIgnoreCase(reqType)) {
+                    // descriptive: 若提供 inputPoints（0..100）则优先按分数计；否则可使用 selectedLevel
+                    if (s.getInputPoints() != null) {
+                        if (s.getInputPoints() < 0 || s.getInputPoints() > 100) {
+                            throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
+                        }
+                    }
                     if (s.getSelectedLevel() != null) {
                         Double st = s.getSelectedLevel().getStartPoint();
                         Double ed = s.getSelectedLevel().getEndPoint();
                         if (st == null || ed == null || st < 0 || ed > 100 || st > ed) {
                             throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                         }
+                        // 校验所选档与 rubrics 中某一档完全匹配（description + 区间）
+                        boolean matchAny = false;
+                        if (matched.getPerformanceLevel() != null) {
+                            for (PerformanceDto p : matched.getPerformanceLevel()) {
+                                String pd = p.getDescription() == null ? null : p.getDescription().trim();
+                                String sd = s.getSelectedLevel().getDescription() == null ? null : s.getSelectedLevel().getDescription().trim();
+                                if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
+                                    Double pst = p.getStartPoint();
+                                    Double ped = p.getEndPoint();
+                                    if (pst != null && ped != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
+                                        matchAny = true; break;
+                                    }
+                                }
+                            }
+                        }
+                        if (!matchAny) throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                     }
                 }
             }
@@ -248,7 +320,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                         Double p = matched.getInputPoints();
                         normalized = p == null ? 0.0 : Math.max(0.0, Math.min(100.0, p));
                     } else if ("descriptive".equalsIgnoreCase(scale)) {
-                        if (matched.getSelectedLevel() != null) {
+                        // 支持传 inputPoints 时直接按百分比计分，否则使用 selectedLevel 的区间中值
+                        if (matched.getInputPoints() != null) {
+                            Double p = matched.getInputPoints();
+                            normalized = p == null ? 0.0 : Math.max(0.0, Math.min(100.0, p));
+                        } else if (matched.getSelectedLevel() != null) {
                             Double st = matched.getSelectedLevel().getStartPoint();
                             Double ed = matched.getSelectedLevel().getEndPoint();
                             if (st != null && ed != null) normalized = (st + ed) / 2.0;
@@ -261,6 +337,55 @@ public class AssessmentServiceImpl implements AssessmentService {
         } catch (Exception e) {
             log.warn("Failed to compute total score", e);
             return null;
+        }
+    }
+
+    /**
+     * 确保每个 rubric 项都已选择有效分值：
+     * - points/percentage: 需要 inputPoints 非空且 0..100；
+     * - descriptive: 需要 selectedLevel 与 rubrics 中某档完全匹配。
+     */
+    private void ensureAllCriteriaCompleted(String rubricsInfoSnapshot, String scoresJson) {
+        try {
+            List<RubricsInfoDto> rubricItems = parseRubricItems(rubricsInfoSnapshot);
+            List<SaveAssessmentDraftRequestDTO.ScoreItem> scores = objectMapper.readValue(scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>(){});
+            for (RubricsInfoDto r : rubricItems) {
+                SaveAssessmentDraftRequestDTO.ScoreItem matched = scores.stream()
+                        .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
+                        .findFirst().orElse(null);
+                String scale = r.getScaleType();
+                if (isPointsLike(scale)) {
+                    if (matched == null || matched.getInputPoints() == null) {
+                        throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                    }
+                } else if ("descriptive".equalsIgnoreCase(scale)) {
+                    if (matched == null || matched.getSelectedLevel() == null) {
+                        throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                    }
+                    // 与 rubrics 档位严格匹配
+                    boolean ok = false;
+                    if (r.getPerformanceLevel() != null) {
+                        for (PerformanceDto p : r.getPerformanceLevel()) {
+                            String pd = p.getDescription() == null ? null : p.getDescription().trim();
+                            String sd = matched.getSelectedLevel().getDescription() == null ? null : matched.getSelectedLevel().getDescription().trim();
+                            if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
+                                Double pst = p.getStartPoint();
+                                Double ped = p.getEndPoint();
+                                Double st = matched.getSelectedLevel().getStartPoint();
+                                Double ed = matched.getSelectedLevel().getEndPoint();
+                                if (pst != null && ped != null && st != null && ed != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
+                                    ok = true; break;
+                                }
+                            }
+                        }
+                    }
+                    if (!ok) throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+            }
+        } catch (BusinessException be) {
+            throw be;
+        } catch (Exception e) {
+            throw new BusinessException(BusinessError.RUBRIC_PARSE_ERROR.getMessage() + ": " + e.getMessage(), BusinessError.RUBRIC_PARSE_ERROR.getCode());
         }
     }
 
