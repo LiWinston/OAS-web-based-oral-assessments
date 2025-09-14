@@ -1,0 +1,147 @@
+{
+  "info": {
+    "name": "Student Results API Test",
+    "_postman_id": "f1a2b3c4-5678-9876-4321-abcdefabcdef",
+    "description": "Postman collection for testing Student Results API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "List Student's Results",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/students/{{studentId}}/results",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "students",
+            "{{studentId}}",
+            "results"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Assignment Result Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/students/{{studentId}}/assignments/{{assignmentId}}/result",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "students",
+            "{{studentId}}",
+            "assignments",
+            "{{assignmentId}}",
+            "result"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Detailed Rubric Breakdown",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/students/{{studentId}}/assignments/{{assignmentId}}/result/rubric",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "students",
+            "{{studentId}}",
+            "assignments",
+            "{{assignmentId}}",
+            "result",
+            "rubric"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Rubric Scale",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/students/{{studentId}}/assignments/{{assignmentId}}/result/rubric/scale",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "students",
+            "{{studentId}}",
+            "assignments",
+            "{{assignmentId}}",
+            "result",
+            "rubric",
+            "scale"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Examiner Feedback",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/students/{{studentId}}/assignments/{{assignmentId}}/result/feedback",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "students",
+            "{{studentId}}",
+            "assignments",
+            "{{assignmentId}}",
+            "result",
+            "feedback"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
