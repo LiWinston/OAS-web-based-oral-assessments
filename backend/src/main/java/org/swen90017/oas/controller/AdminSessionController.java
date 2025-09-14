@@ -13,6 +13,7 @@ import org.swen90017.oas.dto.request.SessionRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.request.AssignSessionExaminersRequestDTO;
+import org.swen90017.oas.dto.response.CalendarResponseDTO;
 import org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO;
 import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.enums.BusinessType;
@@ -41,6 +42,15 @@ public class AdminSessionController {
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "venueId", required = false) Long venueId) {
         return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId));
+    }
+
+    @Operation(summary = "Get session calendar (assignment)", description = "Aggregate session data per day for given month")
+    @GetMapping("/assignments/{assignmentId}/calendar")
+    @Log(module = "Session Calendar", businessType = BusinessType.QUERY)
+    public Result<CalendarResponseDTO> getSessionCalendar(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Target month YYYY-MM") @RequestParam String month) {
+        return Result.success(sessionService.getSessionCalendar(assignmentId, month));
     }
 
     @Operation(summary = "List examiners assigned to a session")
@@ -233,6 +243,32 @@ public class AdminSessionController {
             @Parameter(description = "Session ID") @PathVariable Long sessionId,
             @RequestParam("value") Boolean value) {
         return Result.success(sessionService.publishSessionToStudent(sessionId, Boolean.TRUE.equals(value)));
+    }
+
+    @Operation(summary = "Publish/unpublish ALL sessions of an assignment to examiner")
+    @PutMapping("/assignments/{assignmentId}/publish/examiner")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Boolean> publishAssignmentToExaminer(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestParam("value") Boolean value) {
+        return Result.success(sessionService.publishAssignmentToExaminer(assignmentId, Boolean.TRUE.equals(value)));
+    }
+
+    @Operation(summary = "Publish/unpublish ALL sessions of an assignment to student (requires all staffed)")
+    @PutMapping("/assignments/{assignmentId}/publish/student")
+    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
+    public Result<Boolean> publishAssignmentToStudent(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @RequestParam("value") Boolean value) {
+        return Result.success(sessionService.publishAssignmentToStudent(assignmentId, Boolean.TRUE.equals(value)));
+    }
+
+    @Operation(summary = "Get publish status for a session")
+    @GetMapping("/sessions/{sessionId}/publish/status")
+    @Log(module = "Session Management", businessType = BusinessType.QUERY)
+    public Result<Map<String, Boolean>> getPublishStatus(
+            @Parameter(description = "Session ID") @PathVariable Long sessionId) {
+        return Result.success(sessionService.getPublishStatus(sessionId));
     }
 }
 

@@ -89,7 +89,9 @@ public enum BusinessError implements Error {
     INVALID_SELECTED_LEVEL("9006", "Invalid selected level"),
     RUBRIC_PARSE_ERROR("9007", "Rubric parse error"),
     NOT_ASSIGNED_TO_SESSION("9008", "Examiner not assigned to session"),
-    ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted");
+    ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted"),
+    RUBRIC_CRITERION_INCOMPLETE("9010", "Rubric criterion not fully completed"),
+    INCOMPATIBLE_SCORE_FIELDS("9011", "Incompatible score fields for scaleType");
     // add more below as needed
     
   
