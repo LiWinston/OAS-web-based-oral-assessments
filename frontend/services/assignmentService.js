@@ -35,7 +35,7 @@ const mockAssignments = [
     totalSessions: 12,
     hasRubric: true,
     hasTimeSlots: true,
-    hasExaminers: true,
+    resultsReleased: true,
     createdAt: "2025-01-15T10:00:00Z",
   },
   {
@@ -55,7 +55,7 @@ const mockAssignments = [
     totalSessions: 45,
     hasRubric: true,
     hasTimeSlots: false,
-    hasExaminers: false,
+    resultsReleased: false,
     createdAt: "2025-01-20T14:30:00Z",
   },
   {
@@ -75,7 +75,7 @@ const mockAssignments = [
     totalSessions: 60,
     hasRubric: false,
     hasTimeSlots: false,
-    hasExaminers: false,
+    resultsReleased: false,
     createdAt: "2025-01-25T09:15:00Z",
   },
 ];
@@ -106,7 +106,7 @@ const mockAssignmentService = {
       totalSessions: 0,
       hasRubric: false,
       hasTimeSlots: false,
-      hasExaminers: false,
+      resultsReleased: false,
       createdAt: new Date().toISOString(),
     };
     mockAssignments.push(newAssignment);

@@ -220,10 +220,12 @@ const mockRubricService = {
       errors.push('At least one criterion is required');
     }
     
-    // Check total weight
-    const totalWeight = rubricData.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
-    if (totalWeight !== 100) {
-      errors.push(`Total weight must equal 100% (current: ${totalWeight}%)`);
+    // Check total weight/points based on basis
+    const basis = rubricData.weightBasis || 'percentage';
+    const expected = basis === 'percentage' ? 100 : (rubricData.totalPoints || 0);
+    const total = rubricData.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+    if (total !== expected) {
+      errors.push(`Total ${basis === 'percentage' ? 'weight' : 'points'} must equal ${expected} (current: ${total})`);
     }
     
     // Validate each criterion
@@ -381,10 +383,12 @@ const realRubricService = {
       errors.push('At least one criterion is required');
     }
     
-    // Check total weight
-    const totalWeight = rubricData.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
-    if (totalWeight !== 100) {
-      errors.push(`Total weight must equal 100% (current: ${totalWeight}%)`);
+    // Check total weight/points based on basis
+    const basis = rubricData.weightBasis || 'percentage';
+    const expected = basis === 'percentage' ? 100 : (rubricData.totalPoints || 0);
+    const total = rubricData.criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
+    if (total !== expected) {
+      errors.push(`Total ${basis === 'percentage' ? 'weight' : 'points'} must equal ${expected} (current: ${total})`);
     }
     
     return {

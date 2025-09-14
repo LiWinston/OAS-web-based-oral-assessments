@@ -177,9 +177,34 @@ export function AssignmentList({
   };
 
   const getProgressPercentage = (assignment) => {
-    if (typeof assignment.progress === 'number') {
+    // Prefer explicit numeric progress if backend provides it
+    if (typeof assignment?.progress === 'number') {
       return Math.round(assignment.progress);
     }
+
+    // Otherwise derive from three setup steps per client feedback
+    const hasRubric = Boolean(
+      assignment?.hasRubric ||
+        assignment?.rubricConfigured ||
+        assignment?.rubricStatus === 'CONFIGURED'
+    );
+    const hasTimeSlots = Boolean(
+      assignment?.hasTimeSlots ||
+        assignment?.timeSlotsConfigured ||
+        assignment?.scheduleConfigured ||
+        assignment?.schedule?.configured
+    );
+    const resultsReleased = Boolean(
+      assignment?.resultsReleased ||
+        assignment?.results?.released ||
+        assignment?.resultStatus === 'RELEASED'
+    );
+
+    const completed = [hasRubric, hasTimeSlots, resultsReleased].filter(Boolean)
+      .length;
+    if (completed === 3) return 100;
+    if (completed === 2) return 66; // 33% increments rounded
+    if (completed === 1) return 33;
     return 0;
   };
 
@@ -589,54 +614,73 @@ export function AssignmentList({
                     {/* Configuration Status */}
                     <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                       <div className="flex items-center space-x-4 text-xs">
-                        <span
-                          className={`flex items-center transition-colors duration-300 ${
-                            assignment.hasRubric
-                              ? "text-green-600"
-                              : "text-gray-400 group-hover:text-gray-600"
-                          }`}
-                        >
-                          <i
-                            className={`fas ${
-                              assignment.hasRubric
-                                ? "fa-check-circle"
-                                : "fa-circle"
-                            } mr-1 group-hover:animate-pulse`}
-                          ></i>
-                          Rubric
-                        </span>
-                        <span
-                          className={`flex items-center transition-colors duration-300 ${
-                            assignment.hasTimeSlots
-                              ? "text-green-600"
-                              : "text-gray-400 group-hover:text-gray-600"
-                          }`}
-                        >
-                          <i
-                            className={`fas ${
-                              assignment.hasTimeSlots
-                                ? "fa-check-circle"
-                                : "fa-circle"
-                            } mr-1 group-hover:animate-pulse`}
-                          ></i>
-                          Time Slots
-                        </span>
-                        <span
-                          className={`flex items-center transition-colors duration-300 ${
-                            assignment.hasExaminers
-                              ? "text-green-600"
-                              : "text-gray-400 group-hover:text-gray-600"
-                          }`}
-                        >
-                          <i
-                            className={`fas ${
-                              assignment.hasExaminers
-                                ? "fa-check-circle"
-                                : "fa-circle"
-                            } mr-1 group-hover:animate-pulse`}
-                          ></i>
-                          Examiners
-                        </span>
+                        {(() => {
+                          const hasRubric = Boolean(
+                            assignment?.hasRubric ||
+                              assignment?.rubricConfigured ||
+                              assignment?.rubricStatus === 'CONFIGURED'
+                          );
+                          const hasTimeSlots = Boolean(
+                            assignment?.hasTimeSlots ||
+                              assignment?.timeSlotsConfigured ||
+                              assignment?.scheduleConfigured ||
+                              assignment?.schedule?.configured
+                          );
+                          const resultsReleased = Boolean(
+                            assignment?.resultsReleased ||
+                              assignment?.results?.released ||
+                              assignment?.resultStatus === 'RELEASED'
+                          );
+
+                          return (
+                            <>
+                              <span
+                                className={`flex items-center transition-colors duration-300 ${
+                                  hasRubric
+                                    ? 'text-green-600'
+                                    : 'text-gray-400 group-hover:text-gray-600'
+                                }`}
+                              >
+                                <i
+                                  className={`fas ${
+                                    hasRubric ? 'fa-check-circle' : 'fa-circle'
+                                  } mr-1 group-hover:animate-pulse`}
+                                ></i>
+                                Rubric
+                              </span>
+                              <span
+                                className={`flex items-center transition-colors duration-300 ${
+                                  hasTimeSlots
+                                    ? 'text-green-600'
+                                    : 'text-gray-400 group-hover:text-gray-600'
+                                }`}
+                              >
+                                <i
+                                  className={`fas ${
+                                    hasTimeSlots ? 'fa-check-circle' : 'fa-circle'
+                                  } mr-1 group-hover:animate-pulse`}
+                                ></i>
+                                Time Slots
+                              </span>
+                              <span
+                                className={`flex items-center transition-colors duration-300 ${
+                                  resultsReleased
+                                    ? 'text-green-600'
+                                    : 'text-gray-400 group-hover:text-gray-600'
+                                }`}
+                              >
+                                <i
+                                  className={`fas ${
+                                    resultsReleased
+                                      ? 'fa-check-circle'
+                                      : 'fa-circle'
+                                  } mr-1 group-hover:animate-pulse`}
+                                ></i>
+                                Results
+                              </span>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
 
