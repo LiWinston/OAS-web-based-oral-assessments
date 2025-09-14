@@ -65,7 +65,12 @@ public enum BusinessError implements Error {
     FORBIDDEN("6006", "Operation not allowed"),
 
     // User Management (Assignment Members)
-    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment");
+    ALREADY_IN_ASSIGNMENT("7001", "User already in this assignment"),
+
+    // Student Results domain
+    NOT_RELEASED("410", "Results for this assignment haven't been released yet."),
+    NOT_ASSESSED("423", "You weren't assessed for this assignment."),
+    RESULT_NOT_FOUND("404", "Result not found");
     
   
     private final String code;
