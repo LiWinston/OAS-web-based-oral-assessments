@@ -71,7 +71,7 @@ logging:
 
 token:
   secret: ${JWT_SECRET}
-  expireTime: 15
+  expireTime: 1500
   refreshExpireTime: 30
 
 # CORS Configuration
