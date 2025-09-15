@@ -503,17 +503,45 @@ export default function StudentGroups() {
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
                             <div className="flex -space-x-1">
-                              {Array.from({length: Math.min(group.memberCount, 3)}).map((_, index) => {
-                                const memberName = `Member ${index + 1}`;
-                                return (
+                              {(memberPreviews[group.groupId] || []).map((m) => (
+                                m.avatarUrl ? (
+                                  <img
+                                    key={m.studentId}
+                                    src={m.avatarUrl}
+                                    alt={m.name}
+                                    className="h-6 w-6 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                                  />
+                                ) : (
                                   <div
-                                    key={index}
-                                    className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${getInitialsColor(memberName)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                                    key={m.studentId}
+                                    className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${getInitialsColor(m.name)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
                                   >
-                                    {generateMemberInitials(memberName)}
+                                    {generateMemberInitials(m.name)}
                                   </div>
-                                );
-                              })}
+                                )
+                              ))}
+                              {(() => {
+                                const count = Math.min(group.memberCount, 3) - ((memberPreviews[group.groupId] || []).length);
+                                if (count <= 0) return null;
+                                return Array.from({ length: count }).map((_, i) => {
+                                  const placeholderName = `Member ${i + 1}`;
+                                  return (
+                                    <div
+                                      key={`tph-${i}`}
+                                      className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${getInitialsColor(placeholderName)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                                    >
+                                      {generateMemberInitials(placeholderName)}
+                                    </div>
+                                  );
+                                });
+                              })()}
+                              {group.memberCount > 3 && (
+                                <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
+                                  <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                                    +{group.memberCount - 3}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                             <span className="text-sm text-gray-600 dark:text-gray-400">
                               {group.memberCount} member{group.memberCount !== 1 ? 's' : ''}
