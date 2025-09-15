@@ -33,7 +33,6 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     private final AssignmentMapper assignmentMapper;
-    private final TimeSlotMapper timeSlotMapper;
     private final SlotSessionMapper slotSessionMapper;
     private final VenueMapper venueMapper;
     private final SysStudentMapper sysStudentMapper;
@@ -50,19 +49,12 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
-        // Validate student exists
-        SysStudent student = sysStudentMapper.selectById(studentId);
-        if (student == null) {
-            throw new BusinessException(BusinessError.USER_NOT_FOUND);
-        }
-
-        // Get time slots for the assignment and date
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, date.atStartOfDay(), date.atTime(23, 59, 59));
+        // Get sessions directly for the assignment and date
+        List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(
+            assignmentId, date.atStartOfDay(), date.atTime(23, 59, 59));
         
-        // Filter out understaffed slots
-        timeSlots = timeSlots.stream()
-                .filter(slot -> slot.getCurrentExaminers() >= slot.getRequiredExaminers())
-                .collect(Collectors.toList());
+        // Filter out understaffed sessions and group by slot
+        sessions = sessions.stream().collect(Collectors.toList());
 
         // Build response
         BookableSessionsResponseDTO response = new BookableSessionsResponseDTO();
@@ -79,13 +71,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         calendarInfo.setDate(date.format(DateTimeFormatter.ISO_LOCAL_DATE));
         response.setCalendar(calendarInfo);
 
-        // Build time slots with sessions
-        List<BookableSessionsResponseDTO.TimeSlotWithSessionsDTO> timeSlotDTOs = new ArrayList<>();
-        for (TimeSlot slot : timeSlots) {
-            BookableSessionsResponseDTO.TimeSlotWithSessionsDTO timeSlotDTO = buildTimeSlotWithSessions(slot, includeReasons);
-            timeSlotDTOs.add(timeSlotDTO);
-        }
-        response.setTimeSlots(timeSlotDTOs);
+        // Build session DTOs directly
+        List<BookableSessionsResponseDTO.SessionAvailabilityDTO> sessionDTOs = buildSessionDTOsFromSessions(sessions, includeReasons);
+        response.setSessions(sessionDTOs);
 
         return response;
     }
@@ -179,24 +167,63 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Transactional
     public RescheduleBookingResponseDTO rescheduleBooking(Long assignmentId, Long sessionId, 
                                                         RescheduleBookingRequestDTO request) {
-        // Validate current session is booked by the student
-        SlotSession currentSession = validateSessionOwnership(sessionId, request.getStudentId(), assignmentId);
-        
-        // Validate target session
-        SlotSession targetSession = validateSessionForBooking(request.getTargetSessionId());
+        // Validate current session exists
+        SlotSession currentSession = slotSessionMapper.selectById(sessionId);
+        if (currentSession == null) {
+            throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
+        }
         
         // Check if target session is available
         checkSessionAvailability(request.getTargetSessionId());
 
-        // 自减目标会话占用
-        slotSessionMapper.decrementBookedIfExists(currentSession.getSessionId());
+        // Find the existing booking record by sessionId to determine booking type
+        List<SessionStudent> sessionBookings = sessionStudentMapper.listBySession(sessionId);
+        if (sessionBookings.isEmpty()) {
+            throw new BusinessException(CommonError.NOT_FOUND);
+        }
+        
+        SessionStudent existingBooking = sessionBookings.get(0); // Should only be one booking per session
+        String bookingType = existingBooking.getType();
+        Long subjectId;
+        
+        if ("INDIVIDUAL".equals(bookingType)) {
+            // For individual bookings, use the existing subjectId directly
+            subjectId = existingBooking.getSubjectId();
+            
+            // Validate that the student making the request owns this individual booking
+            if (!request.getStudentId().equals(subjectId)) {
+                throw new BusinessException("Student does not own this booking");
+            }
+        } else if ("GROUP".equals(bookingType)) {
+            // For group bookings, find the group ID using studentId and assignmentId
+            Long studentGroupId = getStudentGroupId(request.getStudentId(), assignmentId);
+            if (studentGroupId == null) {
+                throw new BusinessException("Student is not part of any group for this assignment");
+            }
+            
+            // Validate that the existing booking belongs to the student's group
+            if (!studentGroupId.equals(existingBooking.getSubjectId())) {
+                throw new BusinessException("Student is not part of the group that owns this booking");
+            }
+            
+            subjectId = studentGroupId;
+        } else {
+            throw new BusinessException("Invalid booking type: " + bookingType);
+        }
 
-        // Update target session to booked
-        targetSession.setStatus(SessionStatus.BOOKED);
-        targetSession.setBookedSubjectId(currentSession.getBookedSubjectId());
-        targetSession.setBookedSubjectType(currentSession.getBookedSubjectType());
-        targetSession.setBookedAt(LocalDateTime.now());
-        slotSessionMapper.updateById(targetSession);
+        // Update the session_student record to point to the new session
+        existingBooking.setSessionId(request.getTargetSessionId());
+        existingBooking.setBookedTime(LocalDateTime.now());
+        sessionStudentMapper.updateById(existingBooking);
+
+        // Decrement current session count
+        slotSessionMapper.decrementBookedIfExists(sessionId);
+        
+        // Increment target session count
+        int updated = slotSessionMapper.incrementBookedIfAvailable(request.getTargetSessionId());
+        if (updated == 0) {
+            throw new BusinessException(BusinessError.SESSION_CONFLICT);
+        }
 
         // Build response
         RescheduleBookingResponseDTO response = new RescheduleBookingResponseDTO();
@@ -215,14 +242,37 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     @Transactional
     public Long cancelBooking(Long assignmentId, Long sessionId, Long studentId) {
-        // Find the booking record in session_student table
-        SessionStudent studentBooking = sessionStudentMapper.selectBySessionAndSubject(sessionId, "STUDENT", studentId);
-        if (studentBooking == null) {
+        // Find the existing booking record by sessionId to determine booking type
+        List<SessionStudent> sessionBookings = sessionStudentMapper.listBySession(sessionId);
+        if (sessionBookings.isEmpty()) {
             throw new BusinessException(CommonError.NOT_FOUND);
         }
         
+        SessionStudent existingBooking = sessionBookings.get(0); // Should only be one booking per session
+        String bookingType = existingBooking.getType();
+        
+        if ("INDIVIDUAL".equals(bookingType)) {
+            // For individual bookings, validate that the student making the request owns this booking
+            if (!studentId.equals(existingBooking.getSubjectId())) {
+                throw new BusinessException("Student does not own this booking");
+            }
+        } else if ("GROUP".equals(bookingType)) {
+            // For group bookings, find the group ID using studentId and assignmentId
+            Long studentGroupId = getStudentGroupId(studentId, assignmentId);
+            if (studentGroupId == null) {
+                throw new BusinessException("Student is not part of any group for this assignment");
+            }
+            
+            // Validate that the existing booking belongs to the student's group
+            if (!studentGroupId.equals(existingBooking.getSubjectId())) {
+                throw new BusinessException("Student is not part of the group that owns this booking");
+            }
+        } else {
+            throw new BusinessException("Invalid booking type: " + bookingType);
+        }
+        
         // Delete the booking record
-        sessionStudentMapper.deleteById(studentBooking.getId());
+        sessionStudentMapper.deleteById(existingBooking.getId());
         
         // Decrement enrolled_groups count in slot_sessions
         slotSessionMapper.decrementBookedIfExists(sessionId);
@@ -233,7 +283,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     public List<SlotSession> findActiveBookingByStudent(Long studentId, Long assignmentId) {
         // Find bookings from session_student table
-        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("STUDENT", studentId);
+        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("INDIVIDUAL", studentId);
         
         // Get the corresponding slot sessions
         List<SlotSession> sessions = new ArrayList<>();
@@ -277,10 +327,6 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             throw new BusinessException("Session not found");
         }
         
-        if (session.getStatus() != SessionStatus.AVAILABLE) {
-            throw new BusinessException("Session not available");
-        }
-        
         return session;
     }
 
@@ -288,55 +334,20 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     private void checkSessionAvailability(Long sessionId) {
         SlotSession session = slotSessionMapper.selectById(sessionId);
-        if (!session.getStatus().equals(SessionStatus.AVAILABLE)) {
-            throw new BusinessException("Session already booked");
-        }
-    }
-
-    private SlotSession validateSessionOwnership(Long sessionId, Long studentId, Long assignmentId) {
-        SlotSession session = slotSessionMapper.selectById(sessionId);
         if (session == null) {
             throw new BusinessException("Session not found");
         }
         
-        if (session.getStatus() != SessionStatus.BOOKED) {
-            throw new BusinessException("Session is not booked");
+        // Check if session has reached capacity
+        if (session.getEnrolledGroups() != null && session.getCapacityGroups() != null) {
+            if (session.getEnrolledGroups() >= session.getCapacityGroups()) {
+                throw new BusinessException("Session is full");
+            }
         }
-        
-        // Check if student owns this booking
-        if ("student".equals(session.getBookedSubjectType()) && 
-            !studentId.equals(session.getBookedSubjectId())) {
-            throw new BusinessException("Session does not belong to student");
-        }
-        
-        // For group bookings, we'd need to check if student is in the group
-        // This is simplified for now
-        
-        return session;
     }
 
-    private BookableSessionsResponseDTO.TimeSlotWithSessionsDTO buildTimeSlotWithSessions(TimeSlot slot, Boolean includeReasons) {
-        BookableSessionsResponseDTO.TimeSlotWithSessionsDTO timeSlotDTO = new BookableSessionsResponseDTO.TimeSlotWithSessionsDTO();
-        timeSlotDTO.setSlotId(slot.getSlotId());
-        timeSlotDTO.setStart(slot.getStartAt().toString());
-        timeSlotDTO.setEnd(slot.getEndAt().toString());
-        timeSlotDTO.setTimezone("Australia/Melbourne"); // Default timezone
-        timeSlotDTO.setRequiredExaminers(slot.getRequiredExaminers());
-        timeSlotDTO.setCurrentExaminers(slot.getCurrentExaminers());
-        timeSlotDTO.setIsFullyStaffed(slot.getCurrentExaminers() >= slot.getRequiredExaminers());
 
-        // Get venue info
-        Venue venue = venueMapper.selectById(slot.getVenueId());
-        if (venue != null) {
-            BookableSessionsResponseDTO.VenueInfoDTO venueDTO = new BookableSessionsResponseDTO.VenueInfoDTO();
-            venueDTO.setId(venue.getId());
-            venueDTO.setVenueName(venue.getRoomName());
-            venueDTO.setAssignmentId(venue.getAssignmentId());
-            timeSlotDTO.setVenue(venueDTO);
-        }
-
-        // Get sessions
-        List<SlotSession> sessions = slotSessionMapper.findBySlotId(slot.getSlotId());
+    private List<BookableSessionsResponseDTO.SessionAvailabilityDTO> buildSessionDTOsFromSessions(List<SlotSession> sessions, Boolean includeReasons) {
         List<BookableSessionsResponseDTO.SessionAvailabilityDTO> sessionDTOs = new ArrayList<>();
         
         for (SlotSession session : sessions) {
@@ -366,9 +377,12 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             sessionDTOs.add(sessionDTO);
         }
         
-        timeSlotDTO.setSessions(sessionDTOs);
-        return timeSlotDTO;
+        // Sort by start time
+        sessionDTOs.sort((a, b) -> a.getStart().compareTo(b.getStart()));
+        
+        return sessionDTOs;
     }
+
 
     private CreateBookingResponseDTO buildCreateBookingResponse(SlotSession session, Assignment assignment, CreateBookingRequestDTO request) {
         CreateBookingResponseDTO response = new CreateBookingResponseDTO();
@@ -389,10 +403,9 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         sessionInfo.setEnd(session.getEndAt().toString());
         sessionInfo.setTimezone("Australia/Melbourne");
 
-        // Get venue info
-        TimeSlot timeSlot = timeSlotMapper.selectById(session.getSlotId());
-        if (timeSlot != null) {
-            Venue venue = venueMapper.selectById(timeSlot.getVenueId());
+        // Get venue info directly from session's venueId
+        if (session.getVenueId() != null) {
+            Venue venue = venueMapper.selectById(session.getVenueId());
             if (venue != null) {
                 CreateBookingResponseDTO.VenueInfoDTO venueInfo = new CreateBookingResponseDTO.VenueInfoDTO();
                 venueInfo.setVenueId(venue.getId());
@@ -439,13 +452,11 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         sessionInfo.setStart(session.getStartAt().toString());
         sessionInfo.setEnd(session.getEndAt().toString());
         sessionInfo.setTimezone("Australia/Melbourne");
+        sessionInfo.setSlotId(session.getSlotId());
 
-        // Get slot and venue info
-        TimeSlot timeSlot = timeSlotMapper.selectById(session.getSlotId());
-        if (timeSlot != null) {
-            sessionInfo.setSlotId(timeSlot.getSlotId());
-            
-            Venue venue = venueMapper.selectById(timeSlot.getVenueId());
+        // Get venue info directly from session's venueId
+        if (session.getVenueId() != null) {
+            Venue venue = venueMapper.selectById(session.getVenueId());
             if (venue != null) {
                 CurrentBookingResponseDTO.VenueInfoDTO venueInfo = new CurrentBookingResponseDTO.VenueInfoDTO();
                 venueInfo.setVenueName(venue.getRoomName());
@@ -467,13 +478,34 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
      * @return the group ID if student belongs to a group, null otherwise
      */
     private Long getStudentGroupId(Long studentId, Long assignmentId) {
-        // TODO 加上assignmentid
-
-        // Check if student belongs to a group for this assignment
+        // Get all groups the student belongs to
         LambdaQueryWrapper<SysStudentGroup> studentGroupQuery = new LambdaQueryWrapper<>();
         studentGroupQuery.eq(SysStudentGroup::getUserId, studentId);
-        SysStudentGroup studentGroup = sysStudentGroupMapper.selectOne(studentGroupQuery);
+        List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(studentGroupQuery);
         
-        return studentGroup != null ? studentGroup.getGroupId() : null;
+        if (studentGroups.isEmpty()) {
+            return null;
+        }
+        
+        // For each group, check if it has any bookings for this assignment
+        for (SysStudentGroup studentGroup : studentGroups) {
+            boolean hasBookingForAssignment = slotSessionMapper.hasGroupBookedAssignment(
+                studentGroup.getGroupId(), assignmentId);
+            
+            if (hasBookingForAssignment) {
+                return studentGroup.getGroupId();
+            }
+        }
+        
+        // If no group has bookings for this assignment yet, check if any group is eligible
+        // by verifying if the assignment allows groups and return the first group found
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment != null && 
+            ("group".equals(assignment.getType()) || "mixed".equals(assignment.getType())) &&
+            !studentGroups.isEmpty()) {
+            return studentGroups.get(0).getGroupId();
+        }
+        
+        return null;
     }
 }
