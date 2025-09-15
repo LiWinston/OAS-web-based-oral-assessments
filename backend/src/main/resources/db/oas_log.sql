@@ -169,3 +169,23 @@ CREATE TABLE assignment (
     -- 索引
                             KEY idx_assignment_subject (subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';
+
+-- Session Student Booking Table
+DROP TABLE IF EXISTS session_student;
+CREATE TABLE session_student (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key ID',
+    session_id BIGINT NOT NULL COMMENT 'Session ID, foreign key to slot_session',
+    type VARCHAR(10) NOT NULL COMMENT 'Booking type: STUDENT or GROUP',
+    subject_id BIGINT NOT NULL COMMENT 'User ID (for STUDENT) or Group ID (for GROUP)',
+    booked_time DATETIME NOT NULL COMMENT 'Booking timestamp',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+
+    -- 索引
+    KEY idx_session_student_session (session_id),
+    KEY idx_session_student_subject (type, subject_id),
+    KEY idx_session_student_booked_time (booked_time),
+    
+    -- 唯一约束：同一个session不能被同一个subject重复预订
+    UNIQUE KEY uk_session_subject (session_id, type, subject_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Session student booking table';

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.dto.request.CreateBookingRequestDTO;
 import org.swen90017.oas.dto.request.RescheduleBookingRequestDTO;
 import org.swen90017.oas.dto.response.*;
@@ -36,8 +37,8 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     private final SlotSessionMapper slotSessionMapper;
     private final VenueMapper venueMapper;
     private final SysStudentMapper sysStudentMapper;
-    private final GroupMapper groupMapper;
     private final SysStudentGroupMapper sysStudentGroupMapper;
+    private final SessionStudentMapper sessionStudentMapper;
 
     @Override
     public BookableSessionsResponseDTO getBookableSessions(Long assignmentId, Long studentId, 
@@ -92,8 +93,11 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     @Transactional
     public CreateBookingResponseDTO createBooking(Long assignmentId, CreateBookingRequestDTO request) {
-        // Validate assignment exists and is released
-        Assignment assignment = validateAssignmentForBooking(assignmentId);
+        // Validate session exists
+        SlotSession session = slotSessionMapper.selectById(request.getSessionId());
+        if (session == null) {
+            throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
+        }
         
         // Validate student exists
         SysStudent student = sysStudentMapper.selectById(request.getStudentId());
@@ -101,27 +105,38 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             throw new BusinessException(BusinessError.USER_NOT_FOUND);
         }
 
-        // Validate session exists and is available
-        SlotSession session = validateSessionForBooking(request.getSessionId());
+        // Determine booking type and subject ID
+        String bookingType = "INDIVIDUAL";
+        Long subjectId = request.getStudentId();
         
-        // Validate group if required
-        if ("group".equals(assignment.getType()) || "mixed".equals(assignment.getType())) {
-            if (request.getGroupId() == null) {
-                throw new BusinessException("Group ID is required for GROUP/MIXED assignments");
-            }
-            validateGroupForStudent(request.getGroupId(), request.getStudentId());
+        if (request.getGroupId() != null) {
+            bookingType = "GROUP";
+            subjectId = request.getGroupId();
         }
 
-        // Check if student/group already has an active booking
-        checkExistingBooking(request.getStudentId(), assignmentId, request.getGroupId());
+        // Check if already booked
+        SessionStudent existingBooking = sessionStudentMapper.selectBySessionAndSubject(
+            request.getSessionId(), bookingType, subjectId);
+        if (existingBooking != null) {
+            throw new BusinessException(BusinessError.ALREADY_BOOKED);
+        }
 
-        // 并发容量控制：原子自增，否则报冲突
-        int ok = slotSessionMapper.incrementBookedIfAvailable(request.getSessionId());
-        if (ok == 0) {
+        // Create booking record in session_student table
+        SessionStudent sessionStudent = new SessionStudent();
+        sessionStudent.setSessionId(request.getSessionId());
+        sessionStudent.setType(bookingType);
+        sessionStudent.setSubjectId(subjectId);
+        sessionStudent.setBookedTime(LocalDateTime.now());
+        sessionStudentMapper.insert(sessionStudent);
+
+        // Update enrolled_groups count in slot_sessions
+        int updated = slotSessionMapper.incrementBookedIfAvailable(request.getSessionId());
+        if (updated == 0) {
             throw new BusinessException(BusinessError.SESSION_CONFLICT);
         }
 
         // Build response
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
         return buildCreateBookingResponse(session, assignment, request);
     }
 
@@ -144,7 +159,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         
         // If no group booking found, check for individual student booking
         if (activeBooking == null) {
-            List<SlotSession> studentBookings = slotSessionMapper.findActiveBookingsByStudent(studentId, assignmentId);
+            List<SlotSession> studentBookings = findActiveBookingByStudent(studentId, assignmentId);
             if (!studentBookings.isEmpty()) {
                 activeBooking = studentBookings.get(0);
             }
@@ -200,10 +215,16 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     @Transactional
     public Long cancelBooking(Long assignmentId, Long sessionId, Long studentId) {
-        // Validate session is booked by the student
-        SlotSession session = validateSessionOwnership(sessionId, studentId, assignmentId);
+        // Find the booking record in session_student table
+        SessionStudent studentBooking = sessionStudentMapper.selectBySessionAndSubject(sessionId, "STUDENT", studentId);
+        if (studentBooking == null) {
+            throw new BusinessException(CommonError.NOT_FOUND);
+        }
         
-        // 自减占用
+        // Delete the booking record
+        sessionStudentMapper.deleteById(studentBooking.getId());
+        
+        // Decrement enrolled_groups count in slot_sessions
         slotSessionMapper.decrementBookedIfExists(sessionId);
 
         return sessionId;
@@ -211,8 +232,19 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     @Override
     public List<SlotSession> findActiveBookingByStudent(Long studentId, Long assignmentId) {
-        // Use optimized query to find all active bookings for the student in the assignment
-        return slotSessionMapper.findActiveBookingsByStudent(studentId, assignmentId);
+        // Find bookings from session_student table
+        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("STUDENT", studentId);
+        
+        // Get the corresponding slot sessions
+        List<SlotSession> sessions = new ArrayList<>();
+        for (SessionStudent booking : bookings) {
+            SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
+            if (session != null && session.getAssignmentId().equals(assignmentId)) {
+                sessions.add(session);
+            }
+        }
+        
+        return sessions;
     }
 
     @Override
@@ -223,17 +255,14 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     @Override
     public SlotSession findActiveBookingByGroup(Long groupId, Long assignmentId) {
-        // Find sessions booked by this group in this assignment
-        List<TimeSlot> timeSlots = timeSlotMapper.selectByFilters(assignmentId, null, null, null);
+        // Find group bookings from session_student table
+        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("GROUP", groupId);
         
-        for (TimeSlot slot : timeSlots) {
-            List<SlotSession> slotSessions = slotSessionMapper.findBySlotId(slot.getSlotId());
-            for (SlotSession session : slotSessions) {
-                if (session.getStatus() == SessionStatus.BOOKED && 
-                    "GROUP".equals(session.getBookedSubjectType()) &&
-                    groupId.equals(session.getBookedSubjectId())) {
-                    return session;
-                }
+        // Get the corresponding slot session for this assignment
+        for (SessionStudent booking : bookings) {
+            SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
+            if (session != null && session.getAssignmentId().equals(assignmentId)) {
+                return session;
             }
         }
         
@@ -241,18 +270,6 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     }
 
     // Helper methods
-    private Assignment validateAssignmentForBooking(Long assignmentId) {
-        Assignment assignment = assignmentMapper.selectById(assignmentId);
-        if (assignment == null) {
-            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
-        }
-        
-        if (!Boolean.TRUE.equals(assignment.getIsReleased())) {
-            throw new BusinessException("Assignment schedule not released");
-        }
-        
-        return assignment;
-    }
 
     private SlotSession validateSessionForBooking(Long sessionId) {
         SlotSession session = slotSessionMapper.selectById(sessionId);
@@ -267,39 +284,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         return session;
     }
 
-    private void validateGroupForStudent(Long groupId, Long studentId) {
-        // This would need to be implemented based on how groups are associated with students
-        // For now, we'll assume the group exists
-        SysGroup group = groupMapper.selectById(groupId);
-        if (group == null) {
-            throw new BusinessException("Group not found");
-        }
-    }
 
-    private void checkExistingBooking(Long studentId, Long assignmentId, Long groupId) {
-        // 第一个检查：这个studentId有没有个人预定过
-        List<SlotSession> studentBookings = findActiveBookingByStudent(studentId, assignmentId);
-        if (!studentBookings.isEmpty()) {
-            throw new BusinessException("Student already has an individual booking for this assignment");
-        }
-        
-        // 第二个检查：studentId所在的全部组有没有预定过
-        Long studentGroupId = getStudentGroupId(studentId, assignmentId);
-        if (studentGroupId != null) {
-            SlotSession groupBooking = findActiveBookingByGroup(studentGroupId, assignmentId);
-            if (groupBooking != null) {
-                throw new BusinessException("Student's group already has a booking for this assignment");
-            }
-        }
-        
-        // 第三个检查：如果当前是组预定，检查该组是否已经预定过
-        if (groupId != null) {
-            boolean groupHasBooking = slotSessionMapper.hasGroupBookedAssignment(groupId, assignmentId);
-            if (groupHasBooking) {
-                throw new BusinessException("Group already has a booking for this assignment");
-            }
-        }
-    }
 
     private void checkSessionAvailability(Long sessionId) {
         SlotSession session = slotSessionMapper.selectById(sessionId);
