@@ -33,6 +33,8 @@ export default function StudentGroups() {
   const [pageSize, setPageSize] = useState(20);
   const [sort, setSort] = useState('semester_desc');
   const [total, setTotal] = useState(0);
+  // Cache of groupId -> preview members [{studentId,name,avatarUrl}]
+  const [memberPreviews, setMemberPreviews] = useState({});
 
   useEffect(() => {
     const { isAuthenticated, user } = useAuthStore.getState();
@@ -66,6 +68,28 @@ export default function StudentGroups() {
       const formattedGroups = list.map(group => studentGroupsService.formatGroupForUI(group));
       setGroups(formattedGroups);
       setTotal(page?.total || 0);
+
+      // Concurrently fetch small member previews for cards (up to 3 per group)
+      try {
+        const previews = {};
+        const promises = formattedGroups.map(async (g) => {
+          // Skip if we already have cached preview
+          if (memberPreviews[g.groupId]) return;
+          const detail = await studentGroupsService.getGroupDetails(studentId, g.groupId);
+          const members = detail?.data?.group?.members || [];
+          previews[g.groupId] = members.slice(0, 3).map(m => ({
+            studentId: m.studentId,
+            name: m.name,
+            avatarUrl: m.avatarUrl || m.photoUrl || m.avatar || undefined,
+          }));
+        });
+        await Promise.allSettled(promises);
+        if (Object.keys(previews).length > 0) {
+          setMemberPreviews(prev => ({ ...prev, ...previews }));
+        }
+      } catch (_e) {
+        // Swallow preview failures; main list still renders
+      }
     } catch (err) {
       console.error('Error loading groups:', err);
       setError(err.message || 'Failed to load groups');
@@ -355,18 +379,40 @@ export default function StudentGroups() {
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
                           <div className="flex -space-x-2">
-                            {/* Show first 3 member initials as preview */}
-                            {Array.from({length: Math.min(group.memberCount, 3)}).map((_, index) => {
-                              const memberName = `Member ${index + 1}`;
-                              return (
+                            {/* Show up to first 3 real avatars from details (fallback: initials) */}
+                            {(memberPreviews[group.groupId] || []).map((m) => (
+                              m.avatarUrl ? (
+                                <img
+                                  key={m.studentId}
+                                  src={m.avatarUrl}
+                                  alt={m.name}
+                                  className="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                                />
+                              ) : (
                                 <div
-                                  key={index}
-                                  className={`inline-flex items-center justify-center h-8 w-8 rounded-full ${getInitialsColor(memberName)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                                  key={m.studentId}
+                                  className={`inline-flex items-center justify-center h-8 w-8 rounded-full ${getInitialsColor(m.name)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
                                 >
-                                  {generateMemberInitials(memberName)}
+                                  {generateMemberInitials(m.name)}
                                 </div>
-                              );
-                            })}
+                              )
+                            ))}
+                            {/* If fewer than 3 previews, fill with placeholders to keep consistent look */}
+                            {(() => {
+                              const count = Math.min(group.memberCount, 3) - ((memberPreviews[group.groupId] || []).length);
+                              if (count <= 0) return null;
+                              return Array.from({ length: count }).map((_, i) => {
+                                const placeholderName = `Member ${i + 1}`;
+                                return (
+                                  <div
+                                    key={`ph-${i}`}
+                                    className={`inline-flex items-center justify-center h-8 w-8 rounded-full ${getInitialsColor(placeholderName)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                                  >
+                                    {generateMemberInitials(placeholderName)}
+                                  </div>
+                                );
+                              });
+                            })()}
                             {group.memberCount > 3 && (
                               <div className="inline-flex items-center justify-center h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
