@@ -3,7 +3,6 @@ package org.swen90017.oas.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +31,7 @@ import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysStudentGroup;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.AssignmentType;
+import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.GroupMapper;
@@ -43,7 +43,6 @@ import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.cache.AssignmentCacheSupport;
 import org.swen90017.oas.dto.response.StudentAssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
-import org.swen90017.oas.entity.TimeSlot;
 import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
@@ -575,12 +574,18 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             // Only assignments that are released and have available sessions
             queryWrapper.eq("is_released", true);
         } else if ("booked".equals(queryDTO.getStatus())) {
-            // Only assignments where student has active bookings
+            // Only assignments where student has active bookings (individual or group)
             queryWrapper.inSql("id",
-                "SELECT DISTINCT a.assignment_id FROM assignment_participant a " +
-                "JOIN slot_sessions s ON s.booked_subject_id = " + studentId + " " +
-                "JOIN time_slots ts ON s.slot_id = ts.slot_id " +
-                "WHERE a.user_id = " + studentId);
+                "SELECT DISTINCT ss.assignment_id FROM assignment_participant a " +
+                "JOIN session_student st ON (" +
+                    "(st.type = 'INDIVIDUAL' AND st.subject_id = " + studentId + ") " +
+                    "OR " +
+                    "(st.type = 'GROUP' AND st.subject_id IN (" +
+                        "SELECT sg.group_id FROM sys_student_group sg WHERE sg.user_id = " + studentId + 
+                    "))" +
+                ") " +
+                "JOIN slot_sessions ss ON st.session_id = ss.session_id " +
+                "WHERE a.user_id = " + studentId + " AND a.assignment_id = ss.assignment_id");
         }
         // "all" status - no additional filter needed
         
@@ -637,14 +642,14 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                     .collect(Collectors.toMap(Subject::getSubjectId, s -> s)));
         }
 
-        // Batch query 2: Get all time slots for all assignments in one SQL query using IN clause
-        final Map<Long, List<TimeSlot>> timeSlotMap = new HashMap<>();
+        // Batch query 2: Get all slot sessions for all assignments in one SQL query using IN clause
+        final Map<Long, List<SlotSession>> sessionMap = new HashMap<>();
         if (!assignmentIds.isEmpty()) {
-            QueryWrapper<TimeSlot> timeSlotQuery = new QueryWrapper<>();
-            timeSlotQuery.in("assignment_id", assignmentIds);
-            List<TimeSlot> allTimeSlots = timeSlotMapper.selectList(timeSlotQuery);
-            timeSlotMap.putAll(allTimeSlots.stream()
-                    .collect(Collectors.groupingBy(TimeSlot::getAssignmentId)));
+            QueryWrapper<SlotSession> sessionQuery = new QueryWrapper<>();
+            sessionQuery.in("assignment_id", assignmentIds);
+            List<SlotSession> allSessions = slotSessionMapper.selectList(sessionQuery);
+            sessionMap.putAll(allSessions.stream()
+                    .collect(Collectors.groupingBy(SlotSession::getAssignmentId)));
         }
 
         // Batch query 3: Check all bookings for the student in one optimized SQL query
@@ -662,7 +667,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                     assignment, 
                     studentId, 
                     subjectMap.get(assignment.getSubjectId()),
-                    timeSlotMap.getOrDefault(assignment.getId(), new ArrayList<>()),
+                    sessionMap.getOrDefault(assignment.getId(), new ArrayList<>()),
                     bookedAssignmentIds.contains(assignment.getId())
                 ))
                 .collect(Collectors.toList());
@@ -675,7 +680,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             Assignment assignment, 
             Long studentId, 
             Subject subject, 
-            List<TimeSlot> timeSlots, 
+            List<SlotSession> sessions, 
             boolean hasActiveBooking) {
         
         StudentAssignmentResponseDTO dto = new StudentAssignmentResponseDTO();
@@ -698,27 +703,26 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         StudentAssignmentResponseDTO.AvailabilityInfoDTO availabilityInfo = new StudentAssignmentResponseDTO.AvailabilityInfoDTO();
         availabilityInfo.setReleased(assignment.getIsReleased());
         
-        if (!timeSlots.isEmpty()) {
-            // Calculate available sessions
-            int totalSessions = timeSlots.stream()
-                    .mapToInt(ts -> ts.getSessionCount() != null ? ts.getSessionCount() : 0)
-                    .sum();
+        if (!sessions.isEmpty()) {
+            // Calculate available sessions from slot sessions
+            int totalSessions = sessions.size();
             
-            int bookedSessions = timeSlots.stream()
-                    .mapToInt(ts -> ts.getBookedSessions() != null ? ts.getBookedSessions() : 0)
-                    .sum();
+            // Count booked sessions by checking session_student table
+            int bookedSessions = (int) sessions.stream()
+                    .filter(session -> session.getEnrolledGroups() != null && session.getEnrolledGroups() > 0)
+                    .count();
             
             availabilityInfo.setAvailableSessions(totalSessions - bookedSessions);
             
             // Get earliest and latest session times
-            LocalDateTime earliest = timeSlots.stream()
-                    .map(TimeSlot::getStartAt)
+            LocalDateTime earliest = sessions.stream()
+                    .map(SlotSession::getStartAt)
                     .min(LocalDateTime::compareTo)
                     .orElse(null);
             availabilityInfo.setEarliestSession(earliest);
             
-            LocalDateTime latest = timeSlots.stream()
-                    .map(TimeSlot::getEndAt)
+            LocalDateTime latest = sessions.stream()
+                    .map(SlotSession::getEndAt)
                     .max(LocalDateTime::compareTo)
                     .orElse(null);
             availabilityInfo.setLatestSession(latest);
@@ -775,11 +779,11 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.FORBIDDEN);
         }
 
-        // Get all time slots for this assignment
-        List<TimeSlot> timeSlots = timeSlotMapper.listByAssignment(assignmentId);
+        // Get all slot sessions for this assignment directly
+        List<SlotSession> slotSessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
 
-        // Build availability summary
-        AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO summary = buildAvailabilitySummary(timeSlots);
+        // Build availability summary from slot sessions
+        AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO summary = buildAvailabilitySummaryFromSessions(slotSessions);
 
         // Build response DTO
         AssignmentAvailabilityResponseDTO response = new AssignmentAvailabilityResponseDTO();
@@ -798,12 +802,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     }
 
     /**
-     * Build availability summary from time slots
+     * Build availability summary from slot sessions
      */
-    private AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO buildAvailabilitySummary(List<TimeSlot> timeSlots) {
+    private AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO buildAvailabilitySummaryFromSessions(List<SlotSession> slotSessions) {
         AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO summary = new AssignmentAvailabilityResponseDTO.AvailabilitySummaryDTO();
         
-        if (timeSlots.isEmpty()) {
+        if (slotSessions.isEmpty()) {
             summary.setTotalSlots(0);
             summary.setTotalSessions(0);
             summary.setAvailableSessions(0);
@@ -811,25 +815,39 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             return summary;
         }
 
-        // Calculate total slots
-        summary.setTotalSlots(timeSlots.size());
-
         // Calculate total sessions
-        int totalSessions = timeSlots.stream()
-                .mapToInt(ts -> ts.getSessionCount() != null ? ts.getSessionCount() : 0)
-                .sum();
-        summary.setTotalSessions(totalSessions);
+        summary.setTotalSessions(slotSessions.size());
 
-        // Calculate available sessions
-        int bookedSessions = timeSlots.stream()
-                .mapToInt(ts -> ts.getBookedSessions() != null ? ts.getBookedSessions() : 0)
-                .sum();
-        summary.setAvailableSessions(totalSessions - bookedSessions);
+        // Calculate total slots (unique slot_ids)
+        long totalSlots = slotSessions.stream()
+                .map(SlotSession::getSlotId)
+                .distinct()
+                .count();
+        summary.setTotalSlots((int) totalSlots);
 
-        // Get unique dates with availability
-        Set<String> availableDates = timeSlots.stream()
-                .filter(ts -> ts.getSlotDate() != null)
-                .map(ts -> ts.getSlotDate().toString())
+        // Calculate available sessions (sessions that are not fully booked)
+        long availableSessions = slotSessions.stream()
+                .filter(session -> {
+                    // Session is available if enrolled_groups < capacity_groups
+                    if (session.getCapacityGroups() != null && session.getEnrolledGroups() != null) {
+                        return session.getEnrolledGroups() < session.getCapacityGroups();
+                    }
+                    return false;
+                })
+                .count();
+        summary.setAvailableSessions((int) availableSessions);
+
+        // Get unique dates with availability (only from available sessions)
+        Set<String> availableDates = slotSessions.stream()
+                .filter(session -> {
+                    // Same availability logic as above
+                    if (session.getCapacityGroups() != null && session.getEnrolledGroups() != null) {
+                        return session.getEnrolledGroups() < session.getCapacityGroups();
+                    }
+                    return false;
+                })
+                .filter(session -> session.getStartAt() != null)
+                .map(session -> session.getStartAt().toLocalDate().toString())
                 .collect(Collectors.toSet());
         summary.setDaysWithAvailability(new ArrayList<>(availableDates));
 
