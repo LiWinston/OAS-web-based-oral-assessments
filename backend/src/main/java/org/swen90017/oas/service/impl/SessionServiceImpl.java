@@ -8,9 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.dto.request.BatchCreateSessionsRequestDTO;
 import org.swen90017.oas.dto.response.CalendarResponseDTO;
-import org.swen90017.oas.entity.SessionExaminer;
-import org.swen90017.oas.entity.SlotSession;
-import org.swen90017.oas.entity.Venue;
+import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.AssignMode;
 import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.exception.BusinessException;
@@ -19,7 +17,6 @@ import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
-import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.service.SessionService;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.response.SessionDetailDTO;
@@ -439,7 +436,7 @@ public class SessionServiceImpl implements SessionService {
     public boolean publishAssignmentToStudent(Long assignmentId, boolean value) {
         // 发布给学生：true -> 校验所有 sessions 已配员；然后 assignment.status=RELEASED 且 isReleased=true, releasedAt=now
         // 取消发布：assignment.status=IN_PROGRESS, isReleased=false
-        org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
+        Assignment a = assignmentMapper.selectById(assignmentId);
         if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         if (value) {
             List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, null, null);
@@ -517,6 +514,21 @@ public class SessionServiceImpl implements SessionService {
         dto.setMonth(month);
         dto.setDates(map);
         return dto;
+    }
+
+    @Override
+    public Map<String, Object> getAssignmentPublishStatus(Long assignmentId) {
+        Assignment a = assignmentMapper.selectById(assignmentId);
+        if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        String st = a.getStatus();
+        boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
+        boolean toStudent = Boolean.TRUE.equals(a.getIsReleased()) || "RELEASED".equalsIgnoreCase(st);
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("status", st);
+        resp.put("publishedToExaminer", toExaminer);
+        resp.put("publishedToStudent", toStudent);
+        resp.put("releasedAt", a.getReleasedAt());
+        return resp;
     }
 
     @Override

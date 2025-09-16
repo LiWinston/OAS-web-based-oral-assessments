@@ -270,6 +270,14 @@ public class AdminSessionController {
             @Parameter(description = "Session ID") @PathVariable Long sessionId) {
         return Result.success(sessionService.getPublishStatus(sessionId));
     }
+
+    @Operation(summary = "Get assignment publish status")
+    @GetMapping("/assignments/{assignmentId}/publish/status")
+    @Log(module = "Session Management", businessType = BusinessType.QUERY)
+    public Result<Map<String, Object>> getAssignmentPublishStatus(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
+        return Result.success(sessionService.getAssignmentPublishStatus(assignmentId));
+    }
 }
 
 

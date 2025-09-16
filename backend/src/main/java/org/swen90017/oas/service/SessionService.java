@@ -36,6 +36,8 @@ public interface SessionService {
     boolean publishAssignmentToStudent(Long assignmentId, boolean value);
 
     CalendarResponseDTO getSessionCalendar(Long assignmentId, String month);
+
+    Map<String, Object> getAssignmentPublishStatus(Long assignmentId);
 }
 
 
