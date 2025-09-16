@@ -41,6 +41,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final AssignmentSessionConfigMapper configMapper;
     private final AssignmentParticipantMapper participantMapper;
     private final TimeSlotMapper timeSlotMapper;
+    private final SessionExaminerMapper sessionExaminerMapper;
     private final TimeSlotExaminersMapper tseMapper;
     private final SubjectService subjectService;
     private final VenueMapper venueMapper;
@@ -134,7 +135,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         }
         
         // 计算当前已分配的session数量
-        int currentAssigned = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+        int currentAssigned = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
         
         examinerInfo.setMaxSessions(maxSessions);
         examinerInfo.setCurrentAssignedSessions(currentAssigned);
@@ -263,7 +264,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         }
 
         // 3) 统计已分配 session 数
-        int currentSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+        int currentSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
 
         PartialAssignmentResultDTO result = new PartialAssignmentResultDTO();
 
@@ -411,7 +412,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         }
 
         // 计算更新后的总分配session数
-        int updatedAssignedSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+        int updatedAssignedSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
 
         // 构造响应DTO
         ExaminerUnassignResponseDTO response = new ExaminerUnassignResponseDTO();
