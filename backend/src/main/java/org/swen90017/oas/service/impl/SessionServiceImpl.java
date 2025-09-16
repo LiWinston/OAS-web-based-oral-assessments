@@ -16,6 +16,8 @@ import org.swen90017.oas.mapper.SessionExaminerMapper;
 import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
 import org.swen90017.oas.mapper.AssignmentMapper;
+import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
+import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.service.SessionService;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
@@ -40,6 +42,8 @@ public class SessionServiceImpl implements SessionService {
     private final VenueMapper venueMapper;
     private final SysUserMapper sysUserMapper;
     private final AssignmentMapper assignmentMapper;
+    private final ExaminerAssignmentLimitMapper limitMapper;
+    private final AssignmentSessionConfigMapper sessionConfigMapper;
 
     @Override
     public List<Long> listExaminerIds(Long sessionId) {
@@ -342,10 +346,26 @@ public class SessionServiceImpl implements SessionService {
             }
         }
 
-        // 校验：时间冲突（仅对 add/set 生效）。set 操作忽略与自身目标会话的“伪冲突”。
+        // 校验：时间冲突与上限（仅对 add/set 生效）。set 操作忽略与自身目标会话的“伪冲突”。
         if (action.equals("add") || action.equals("set")) {
             Set<Long> targetSessionIds = new HashSet<>(request.getSessionIds());
             for (Long examinerId : request.getExaminerIds()) {
+                // 上限校验（若配置了个性化上限）
+                ExaminerAssignmentLimit lim = limitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
+                Integer maxSessions = lim == null ? null : lim.getMaxSessions();
+                if (maxSessions != null && maxSessions > 0) {
+                    int current = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
+                    int toAssign = sessions.size();
+                    if (action.equals("set")) {
+                        int already = 0;
+                        for (SlotSession s : sessions) {
+                            List<Long> exist = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+                            if (exist != null && exist.contains(examinerId)) already++;
+                        }
+                        toAssign = toAssign - already;
+                    }
+                    if (current + toAssign > maxSessions) throw new BusinessException(BusinessError.EXCEEDS_MAX_SESSIONS);
+                }
                 for (SlotSession s : sessions) {
                     List<Long> conflicted = sessionExaminerMapper.findConflictedSessionsForExaminer(examinerId, s.getStartAt(), s.getEndAt());
                     if (conflicted != null && !conflicted.isEmpty()) {
@@ -423,8 +443,42 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean publishAssignmentToExaminer(Long assignmentId, boolean value) {
-        // 改为更新 assignment.status：true -> IN_PROGRESS；false -> PENDING
-        org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
+        // 要求：发布给考官前必须配置 examiner limit（默认上限）；若未配置则拒绝
+        if (value) {
+            AssignmentSessionConfig cfg = sessionConfigMapper.selectById(assignmentId);
+            if (cfg == null || cfg.getDefaultMaxSessionsPerExaminer() == null) {
+                throw new BusinessException(BusinessError.EXAMINER_LIMIT_NOT_SET);
+            }
+            // 总容量校验：仅统计“已设置个人上限”的考官上限之和，需要 >= 全部 sessions 的 requiredExaminers 之和
+            List<SlotSession> allSessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
+            int totalRequired = 0;
+            if (allSessions != null) {
+                for (SlotSession s : allSessions) {
+                    int req = (s.getRequiredExaminers() == null || s.getRequiredExaminers() <= 0) ? 1 : s.getRequiredExaminers();
+                    totalRequired += req;
+                }
+            }
+            int sumLimits = 0;
+            // 仅统计已设置个性化上限的考官，直接读取 examiner_assignment_limit 表
+            List<ExaminerAssignmentLimit> limits = limitMapper.selectList(
+                    new QueryWrapper<ExaminerAssignmentLimit>()
+                            .eq("assignment_id", assignmentId)
+                            .gt("max_sessions", 0)
+            );
+            if (limits != null) {
+                for (ExaminerAssignmentLimit l : limits) {
+                    Integer ms = l.getMaxSessions();
+                    if (ms != null && ms > 0) {
+                        sumLimits += ms;
+                    }
+                }
+            }
+            if (sumLimits < totalRequired) {
+                throw new BusinessException(BusinessError.TOTAL_EXAMINER_CAPACITY_INSUFFICIENT);
+            }
+        }
+        // 更新 assignment.status：true -> IN_PROGRESS；false -> PENDING
+        Assignment a = assignmentMapper.selectById(assignmentId);
         if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         a.setStatus(value ? "IN_PROGRESS" : "PENDING");
         a.setUpdateTime(LocalDateTime.now());
@@ -436,7 +490,7 @@ public class SessionServiceImpl implements SessionService {
     public boolean publishAssignmentToStudent(Long assignmentId, boolean value) {
         // 发布给学生：true -> 校验所有 sessions 已配员；然后 assignment.status=RELEASED 且 isReleased=true, releasedAt=now
         // 取消发布：assignment.status=IN_PROGRESS, isReleased=false
-        Assignment a = assignmentMapper.selectById(assignmentId);
+        org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
         if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         if (value) {
             List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, null, null);
