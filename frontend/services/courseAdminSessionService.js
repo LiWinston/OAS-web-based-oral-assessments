@@ -139,6 +139,83 @@ export const courseAdminSessionService = {
     const payload = extract(resp);
     return { success: true, data: Array.isArray(payload) ? payload : [] };
   },
+
+  // Assignment-level publish status
+  async getAssignmentPublishStatus(assignmentId) {
+    const resp = await apiClient.get(`/api/admin/sessions/assignments/${assignmentId}/publish/status`);
+    const data = extract(resp) || {};
+    const exam = Boolean(
+      data.publishedToExaminer ?? data.publishedToExaminers ?? data.examiner ?? data.examiners
+    );
+    const stu = Boolean(
+      data.publishedToStudent ?? data.publishedToStudents ?? data.student ?? data.students
+    );
+    return { success: true, data: { examiners: exam, students: stu } };
+  },
+
+  async updateSession(assignmentId, sessionId, body) {
+    const request = {
+      date: body?.date,
+      startTime: toTimeString(body?.startTime),
+      endTime: toTimeString(body?.endTime),
+      venueId: body?.venueId,
+      requiredExaminers: body?.requiredExaminers != null ? Number(body.requiredExaminers) : undefined,
+      capacity: body?.capacity != null ? Number(body.capacity) : undefined,
+    };
+    const resp = await apiClient.put(`${sessionsBase(assignmentId)}/sessions/${sessionId}`, request);
+    const payload = extract(resp);
+    const updated = payload?.session || payload || null;
+    const toHhMm = (t) => (typeof t === 'string' ? t.slice(0, 5) : t);
+    return { success: true, data: updated ? { ...updated, startTime: toHhMm(updated.startTime), endTime: toHhMm(updated.endTime) } : null };
+  },
+
+  // Publish / Visibility controls per session
+  async getSessionPublishStatus(sessionId) {
+    const resp = await apiClient.get(`/api/admin/sessions/sessions/${sessionId}/publish/status`);
+    // Expect shape like { examiner: boolean, student: boolean } or similar; normalize conservatively
+    const data = extract(resp) || {};
+    const exam = Boolean(
+      data.examiners ??
+      data.examiner ??
+      data.toExaminers ??
+      data.publishedToExaminers ??
+      data.publishedToExaminer ??
+      data.examinersPublished
+    );
+    const stu = Boolean(
+      data.students ??
+      data.student ??
+      data.toStudents ??
+      data.publishedToStudents ??
+      data.publishedToStudent ??
+      data.studentsPublished
+    );
+    return { success: true, data: { examiners: exam, students: stu } };
+  },
+  async setSessionPublishToStudents(sessionId, value) {
+    const resp = await apiClient.put(`/api/admin/sessions/sessions/${sessionId}/publish/student`, null, { params: { value: Boolean(value) } });
+    return { success: true, data: extract(resp) };
+  },
+  async setSessionPublishToExaminers(sessionId, value) {
+    const resp = await apiClient.put(`/api/admin/sessions/sessions/${sessionId}/publish/examiner`, null, { params: { value: Boolean(value) } });
+    return { success: true, data: extract(resp) };
+  },
+
+  // Sessions calendar (assignment-level, month in YYYY-MM)
+  async getSessionsCalendar(assignmentId, month) {
+    const resp = await apiClient.get(`/api/admin/sessions/assignments/${assignmentId}/calendar`, { params: { month } });
+    const raw = extract(resp) || {};
+    // Accept either { dates: {...} } or direct map { 'YYYY-MM-DD': {...} }
+    const dates = raw.dates || raw || {};
+    const map = {};
+    for (const [date, v] of Object.entries(dates)) {
+      const fully = Number(v.fullyStaffed ?? v.fully ?? v.full ?? 0) || 0;
+      const partial = Number(v.partialStaffed ?? v.partiallyStaffed ?? v.partial ?? 0) || 0;
+      const none = Number(v.noStaffed ?? v.unstaffed ?? v.none ?? 0) || 0;
+      map[date] = { fullyStaffed: fully, partialStaffed: partial, noStaffed: none };
+    }
+    return { success: true, data: map };
+  },
 };
 
 export default courseAdminSessionService;

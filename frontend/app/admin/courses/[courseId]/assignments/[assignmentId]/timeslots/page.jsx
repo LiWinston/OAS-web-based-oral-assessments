@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import CalendarMonth from '@/components/admin/schedule/CalendarMonth.jsx';
 import BatchCreateSessionsModal from '@/components/admin/schedule/BatchCreateSessionsModal.jsx';
 import SingleSessionModal from '@/components/admin/schedule/SingleSessionModal.jsx';
 import ExaminerLimitsStep from '@/components/admin/schedule/ExaminerLimitsStep.jsx';
-import { useScheduleRelease } from '@/hooks/useScheduleRelease.js';
+// removed useScheduleRelease
 import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
@@ -31,41 +31,94 @@ export default function AssignmentTimeSlotsPage() {
   const [selectedDate, setSelectedDate] = useState(null);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showSingleModal, setShowSingleModal] = useState(false);
+  const [singleMode, setSingleMode] = useState('create');
+  const [editingSession, setEditingSession] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
   const [showLimits, setShowLimits] = useState(false);
   const [openExaminerForSessionId, setOpenExaminerForSessionId] = useState(null);
   const [openBookedForSessionId, setOpenBookedForSessionId] = useState(null);
   const [availableExaminers, setAvailableExaminers] = useState([]);
+  const [publishMap, setPublishMap] = useState({}); // { [sessionId]: { examiners: bool, students: bool } }
+  const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false, loaded: false });
+
+  // Fetch/refresh sessions for the selected date
+  const refreshSessions = useCallback(async () => {
+    if (!selectedDate) return;
+    setIsLoadingSlots(true);
+    try {
+      const res = await courseAdminSessionService.getSessions(assignmentId, { date: selectedDate });
+      const list = Array.isArray(res?.data) ? res.data : [];
+      setSessions(list);
+      // Load publish status for each session (best-effort)
+      const entries = await Promise.all(
+        list.map(async (s) => {
+          try {
+            const st = await courseAdminSessionService.getSessionPublishStatus(s.id);
+            return [s.id, st?.data || { examiners: false, students: false }];
+          } catch {
+            return [s.id, { examiners: false, students: false }];
+          }
+        })
+      );
+      setPublishMap(Object.fromEntries(entries));
+    } catch (e) {
+      setSessions([]);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  }, [assignmentId, selectedDate]);
 
   // fetch sessions on date change
   useEffect(() => {
     let cancelled = false;
-    const fetchForDate = async () => {
-      if (!selectedDate) return;
-      setIsLoadingSlots(true);
-      try {
-        const res = await courseAdminSessionService.getSessions(assignmentId, { date: selectedDate });
-        if (!cancelled) {
-          const list = Array.isArray(res?.data) ? res.data : [];
-          setSessions(list);
-        }
-      } catch (e) {
-        if (!cancelled) setSessions([]);
-      } finally {
-        if (!cancelled) setIsLoadingSlots(false);
-      }
+    (async () => {
+      if (cancelled) return;
+      await refreshSessions();
+    })();
+    return () => {
+      cancelled = true;
     };
-    fetchForDate();
-    return () => { cancelled = true; };
-  }, [assignmentId, selectedDate]);
+  }, [refreshSessions]);
 
-  const { release, canRelease } = useScheduleRelease(assignmentId);
+  // Initialize selected date on client to avoid SSR/client timezone differences
+  useEffect(() => {
+    if (!selectedDate) {
+      const today = new Date();
+      // Use local date string in YYYY-MM-DD
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      setSelectedDate(`${yyyy}-${mm}-${dd}`);
+    }
+  }, [selectedDate]);
+
+  // Load assignment-level publish status once on entry
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+        if (!cancelled) setAssignmentPublish({ ...(res?.data || { examiners: false, students: false }), loaded: true });
+      } catch {
+        if (!cancelled) setAssignmentPublish((prev) => ({ ...prev, loaded: true }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [assignmentId]);
+
+  // Ensure publish status is fetched on first load (or when list changes)
+  // (placed after sessionsForSelectedDate is defined to avoid temporal dead zone)
+
+  // schedule-level release hook removed
 
   // Filter slots for selected date
   const sessionsForSelectedDate = selectedDate 
     ? sessions.filter(s => s.date === selectedDate)
     : [];
+
+  // Assignment-level publish status drives header; per-session map only updates after toggles
 
   const examinerLookup = useMemo(() => {
     const map = new Map();
@@ -94,7 +147,8 @@ export default function AssignmentTimeSlotsPage() {
     try {
       const res = await courseAdminSessionService.generateSessions(assignmentId, generator);
       const created = res?.data || [];
-      setSessions((prev) => mergeUnique(prev, created));
+      // Always refresh from server so list shows IDs and latest state
+      await refreshSessions();
     } catch (e) {
       showError('Failed to create sessions');
     }
@@ -104,7 +158,8 @@ export default function AssignmentTimeSlotsPage() {
     try {
       const res = await courseAdminSessionService.createSessionsBatch(assignmentId, { sessions: [session] });
       const created = res?.data || [];
-      setSessions((prev) => mergeUnique(prev, created.length ? created : [session]));
+      // Refresh to reflect backend-created session IDs and details
+      await refreshSessions();
     } catch (e) {
       showError('Failed to create session');
     }
@@ -115,6 +170,30 @@ export default function AssignmentTimeSlotsPage() {
     if (confirmed) {
       setSessions((prev) => prev.filter((s) => s.id !== id));
       queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+    }
+  };
+
+  // Duplicate/edit handlers for sessions
+  const handleDuplicateSession = (session) => {
+    setSingleMode('create');
+    setEditingSession({ ...session, id: undefined });
+    setShowSingleModal(true);
+  };
+
+  const handleEditSession = (session) => {
+    setSingleMode('edit');
+    setEditingSession(session);
+    setShowSingleModal(true);
+  };
+
+  const handleUpdateSingleSession = async (session) => {
+    if (!session?.id) return;
+    try {
+      await courseAdminSessionService.updateSession(assignmentId, session.id, session);
+      await refreshSessions();
+      showSuccess('Session updated');
+    } catch (e) {
+      showError('Failed to update session');
     }
   };
 
@@ -144,6 +223,24 @@ export default function AssignmentTimeSlotsPage() {
 
   const updateSessionLocal = (sessionId, updater) => {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? updater(s) : s)));
+  };
+  const handleTogglePublishExaminers = async (session, nextValue) => {
+    try {
+      await courseAdminSessionService.setSessionPublishToExaminers(session.id, nextValue);
+      setPublishMap((prev) => ({ ...prev, [session.id]: { ...(prev[session.id] || {}), examiners: nextValue } }));
+      showSuccess(nextValue ? 'Released to examiners' : 'Withdrawn from examiners');
+    } catch (e) {
+      showError('Failed to update examiner release');
+    }
+  };
+  const handleTogglePublishStudents = async (session, nextValue) => {
+    try {
+      await courseAdminSessionService.setSessionPublishToStudents(session.id, nextValue);
+      setPublishMap((prev) => ({ ...prev, [session.id]: { ...(prev[session.id] || {}), students: nextValue } }));
+      showSuccess(nextValue ? 'Released to students' : 'Withdrawn from students');
+    } catch (e) {
+      showError('Failed to update student release');
+    }
   };
   const handleAssignExaminer = async (session, examinerId) => {
     if (!session?.id || !examinerId) return;
@@ -178,13 +275,7 @@ export default function AssignmentTimeSlotsPage() {
 
   // Removed legacy examiner notifications and bulk operations (unused)
 
-  const handleReleaseSchedule = () => {
-    if (!canRelease) {
-      showError('Cannot release schedule: some sessions are not fully staffed');
-      return;
-    }
-    release({ audience: 'students' });
-  };
+  // Two-button release now handled inline in header buttons
 
   return (
     <div className="oas-schedule space-y-6">
@@ -206,16 +297,41 @@ export default function AssignmentTimeSlotsPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400">Manage assessment time slots and examiner assignments for Assignment {assignmentId}</p>
         </div>
         <div className="flex items-center space-x-2">
-          <button 
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              canRelease 
-                ? 'bg-green-600 hover:bg-green-700 text-white' 
-                : 'bg-gray-400 cursor-not-allowed text-gray-200'
-            }`}
-            onClick={handleReleaseSchedule}
-            disabled={!canRelease}
+          <button
+            className={`px-3 py-2 rounded-lg text-sm font-medium ${assignmentPublish.examiners ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+            onClick={async () => {
+              const next = !assignmentPublish.examiners;
+              try {
+                await Promise.all(sessionsForSelectedDate.map((s) => courseAdminSessionService.setSessionPublishToExaminers(s.id, next)));
+                const st = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+                setAssignmentPublish({ ...(st?.data || { examiners: next, students: assignmentPublish.students }), loaded: true });
+                showSuccess(next ? 'Released all to examiners' : 'Withdrew examiner release (all)');
+              } catch {
+                showError('Failed to update examiner release');
+              }
+            }}
+            disabled={!assignmentPublish.loaded}
+            title="Toggle release to examiners for all sessions on this date"
           >
-            Release Schedule
+            {assignmentPublish.examiners ? 'Withdraw Release to Examiners' : 'Release to Examiners'}
+          </button>
+          <button
+            className={`px-3 py-2 rounded-lg text-sm font-medium ${assignmentPublish.students ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+            onClick={async () => {
+              const next = !assignmentPublish.students;
+              try {
+                await Promise.all(sessionsForSelectedDate.map((s) => courseAdminSessionService.setSessionPublishToStudents(s.id, next)));
+                const st = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+                setAssignmentPublish({ ...(st?.data || { students: next, examiners: assignmentPublish.examiners }), loaded: true });
+                showSuccess(next ? 'Released all to students' : 'Withdrew student release (all)');
+              } catch {
+                showError('Failed to update student release');
+              }
+            }}
+            disabled={!assignmentPublish.loaded}
+            title="Toggle release to students for all sessions on this date"
+          >
+            {assignmentPublish.students ? 'Withdraw Release to Students' : 'Release to Students'}
           </button>
         </div>
       </div>
@@ -330,10 +446,32 @@ export default function AssignmentTimeSlotsPage() {
                       >
                         {(s.bookedCount || 0)}/{s.capacity || 1} booked
                       </button>
+                      <button className="action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleEditSession(s)} title="Edit session">
+                        <i className="fas fa-pen" />
+                      </button>
+                      <button className="action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDuplicateSession(s)} title="Duplicate session">
+                        <i className="fas fa-copy" />
+                      </button>
                       <button className="action-btn text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDeleteTimeSlot(s.id)}>
                         <i className="fas fa-trash-alt" />
                       </button>
                     </div>
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-600 dark:text-gray-300">
+                    <button
+                      className={`px-2 py-0.5 rounded ${publishMap[s.id]?.examiners ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800'}`}
+                      onClick={() => handleTogglePublishExaminers(s, !publishMap[s.id]?.examiners)}
+                      title={publishMap[s.id]?.examiners ? 'Withdraw examiner release' : 'Release to examiners'}
+                    >
+                      <i className="fas fa-user-tie mr-1"/> {publishMap[s.id]?.examiners ? 'Examiners: On' : 'Examiners: Off'}
+                    </button>
+                    <button
+                      className={`px-2 py-0.5 rounded ${publishMap[s.id]?.students ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800'}`}
+                      onClick={() => handleTogglePublishStudents(s, !publishMap[s.id]?.students)}
+                      title={publishMap[s.id]?.students ? 'Withdraw student release' : 'Release to students'}
+                    >
+                      <i className="fas fa-user-graduate mr-1"/> {publishMap[s.id]?.students ? 'Students: On' : 'Students: Off'}
+                    </button>
                   </div>
 
                   {openExaminerForSessionId === s.id && (
@@ -390,7 +528,16 @@ export default function AssignmentTimeSlotsPage() {
 
       {/* Batch Create & Single Session Modals */}
       <BatchCreateSessionsModal assignmentId={assignmentId} isOpen={showBatchModal} onClose={() => setShowBatchModal(false)} onGenerate={handleAddBatchSessions} defaultDate={selectedDate || undefined} />
-      <SingleSessionModal assignmentId={assignmentId} isOpen={showSingleModal} onClose={() => setShowSingleModal(false)} onCreate={handleAddSingleSession} defaultDate={selectedDate || undefined} />
+      <SingleSessionModal
+        assignmentId={assignmentId}
+        isOpen={showSingleModal}
+        onClose={() => setShowSingleModal(false)}
+        onCreate={handleAddSingleSession}
+        onUpdate={handleUpdateSingleSession}
+        defaultDate={selectedDate || undefined}
+        mode={singleMode}
+        initialSession={editingSession}
+      />
 
       {/* Examiner Limits Modal */}
       {showLimits && (
