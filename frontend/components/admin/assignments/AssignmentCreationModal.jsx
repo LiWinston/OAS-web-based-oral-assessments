@@ -1655,7 +1655,7 @@ export function AssignmentCreationModal({
                     onClick={() => {
                       if (createdAssignment?.id) {
                         router.push(
-                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/schedule`
+                          `/admin/courses/${courseId}/assignments/${createdAssignment.id}/timeslots`
                         );
                       } else {
                         showNotification(

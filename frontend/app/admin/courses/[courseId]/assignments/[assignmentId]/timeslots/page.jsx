@@ -27,7 +27,7 @@ export default function AssignmentTimeSlotsPage() {
   const params = useParams();
   const { courseId, assignmentId } = params;
   const queryClient = useQueryClient();
-  
+
   const [selectedDate, setSelectedDate] = useState(null);
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [showSingleModal, setShowSingleModal] = useState(false);
@@ -39,8 +39,19 @@ export default function AssignmentTimeSlotsPage() {
   const [openExaminerForSessionId, setOpenExaminerForSessionId] = useState(null);
   const [openBookedForSessionId, setOpenBookedForSessionId] = useState(null);
   const [availableExaminers, setAvailableExaminers] = useState([]);
-  const [publishMap, setPublishMap] = useState({}); // { [sessionId]: { examiners: bool, students: bool } }
-  const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false, loaded: false });
+  // Status API temporarily disabled per request; no publish status is fetched
+
+  const [calendarRefresh, setCalendarRefresh] = useState(0);
+  const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false });
+
+  const refreshAssignmentPublish = useCallback(async () => {
+    try {
+      const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+      setAssignmentPublish(res?.data || { examiners: false, students: false });
+    } catch (e) {
+      // ignore status errors
+    }
+  }, [assignmentId]);
 
   // Fetch/refresh sessions for the selected date
   const refreshSessions = useCallback(async () => {
@@ -50,18 +61,7 @@ export default function AssignmentTimeSlotsPage() {
       const res = await courseAdminSessionService.getSessions(assignmentId, { date: selectedDate });
       const list = Array.isArray(res?.data) ? res.data : [];
       setSessions(list);
-      // Load publish status for each session (best-effort)
-      const entries = await Promise.all(
-        list.map(async (s) => {
-          try {
-            const st = await courseAdminSessionService.getSessionPublishStatus(s.id);
-            return [s.id, st?.data || { examiners: false, students: false }];
-          } catch {
-            return [s.id, { examiners: false, students: false }];
-          }
-        })
-      );
-      setPublishMap(Object.fromEntries(entries));
+      // No per-session status loading
     } catch (e) {
       setSessions([]);
     } finally {
@@ -75,11 +75,12 @@ export default function AssignmentTimeSlotsPage() {
     (async () => {
       if (cancelled) return;
       await refreshSessions();
+      await refreshAssignmentPublish();
     })();
     return () => {
       cancelled = true;
     };
-  }, [refreshSessions]);
+  }, [refreshSessions, refreshAssignmentPublish]);
 
   // Initialize selected date on client to avoid SSR/client timezone differences
   useEffect(() => {
@@ -94,19 +95,7 @@ export default function AssignmentTimeSlotsPage() {
     }
   }, [selectedDate]);
 
-  // Load assignment-level publish status once on entry
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-        if (!cancelled) setAssignmentPublish({ ...(res?.data || { examiners: false, students: false }), loaded: true });
-      } catch {
-        if (!cancelled) setAssignmentPublish((prev) => ({ ...prev, loaded: true }));
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [assignmentId]);
+  // No assignment-level status fetch for now
 
   // Ensure publish status is fetched on first load (or when list changes)
   // (placed after sessionsForSelectedDate is defined to avoid temporal dead zone)
@@ -114,7 +103,7 @@ export default function AssignmentTimeSlotsPage() {
   // schedule-level release hook removed
 
   // Filter slots for selected date
-  const sessionsForSelectedDate = selectedDate 
+  const sessionsForSelectedDate = selectedDate
     ? sessions.filter(s => s.date === selectedDate)
     : [];
 
@@ -149,6 +138,7 @@ export default function AssignmentTimeSlotsPage() {
       const created = res?.data || [];
       // Always refresh from server so list shows IDs and latest state
       await refreshSessions();
+      setCalendarRefresh((v) => v + 1);
     } catch (e) {
       showError('Failed to create sessions');
     }
@@ -160,6 +150,7 @@ export default function AssignmentTimeSlotsPage() {
       const created = res?.data || [];
       // Refresh to reflect backend-created session IDs and details
       await refreshSessions();
+      setCalendarRefresh((v) => v + 1);
     } catch (e) {
       showError('Failed to create session');
     }
@@ -167,9 +158,14 @@ export default function AssignmentTimeSlotsPage() {
 
   const handleDeleteTimeSlot = async (id) => {
     const confirmed = await confirm('Delete this session?');
-    if (confirmed) {
-      setSessions((prev) => prev.filter((s) => s.id !== id));
-      queryClient.invalidateQueries({ queryKey: ['assignment', assignmentId, 'calendar'] });
+    if (!confirmed) return;
+    try {
+      await courseAdminSessionService.deleteSessions(assignmentId, [id]);
+      await refreshSessions();
+      setCalendarRefresh((v) => v + 1);
+      showSuccess('Session deleted');
+    } catch (e) {
+      showError('Failed to delete session');
     }
   };
 
@@ -252,9 +248,10 @@ export default function AssignmentTimeSlotsPage() {
         if (exists) return s;
         const ex = examinerLookup.get(Number(examinerId));
         const entry = ex ? { id: ex.id, name: ex.name } : { id: Number(examinerId) };
-        return { ...s, assignedExaminers: [ ...(s.assignedExaminers || []), entry ] };
+        return { ...s, assignedExaminers: [...(s.assignedExaminers || []), entry] };
       });
       showSuccess('Examiner assigned');
+      setCalendarRefresh((v) => v + 1);
     } catch (e) {
       showError('Failed to assign examiner');
     }
@@ -268,6 +265,7 @@ export default function AssignmentTimeSlotsPage() {
         assignedExaminers: (s.assignedExaminers || []).filter((e) => (e.id || e.examinerId) !== Number(examinerId)),
       }));
       showSuccess('Examiner removed');
+      setCalendarRefresh((v) => v + 1);
     } catch (e) {
       showError('Failed to remove examiner');
     }
@@ -298,40 +296,46 @@ export default function AssignmentTimeSlotsPage() {
         </div>
         <div className="flex items-center space-x-2">
           <button
-            className={`px-3 py-2 rounded-lg text-sm font-medium ${assignmentPublish.examiners ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium text-white ${assignmentPublish.examiners ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             onClick={async () => {
               const next = !assignmentPublish.examiners;
               try {
-                await Promise.all(sessionsForSelectedDate.map((s) => courseAdminSessionService.setSessionPublishToExaminers(s.id, next)));
-                const st = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-                setAssignmentPublish({ ...(st?.data || { examiners: next, students: assignmentPublish.students }), loaded: true });
-                showSuccess(next ? 'Released all to examiners' : 'Withdrew examiner release (all)');
-              } catch {
-                showError('Failed to update examiner release');
+                const res = await courseAdminSessionService.setAssignmentPublishToExaminers(assignmentId, next);
+                if (res?.success) {
+                  await refreshAssignmentPublish();
+                  showSuccess(next ? 'Released all sessions to examiners for this date' : 'Withdrawn release from examiners for this date');
+                } else {
+                  const reason = res?.message || res?.code || 'Unknown error';
+                  showError(`Unable to ${next ? 'release' : 'withdraw'} to examiners: ${reason}`);
+                }
+              } catch (e) {
+                showError(next ? 'Failed to release to examiners' : 'Failed to withdraw examiner release');
               }
             }}
-            disabled={!assignmentPublish.loaded}
-            title="Toggle release to examiners for all sessions on this date"
+            title={assignmentPublish.examiners ? 'Withdraw examiner release (this date)' : 'Release all sessions (this date) to examiners'}
           >
-            {assignmentPublish.examiners ? 'Withdraw Release to Examiners' : 'Release to Examiners'}
+            {assignmentPublish.examiners ? 'Withdraw from Examiners' : 'Release to Examiners'}
           </button>
           <button
-            className={`px-3 py-2 rounded-lg text-sm font-medium ${assignmentPublish.students ? 'bg-yellow-600 hover:bg-yellow-700 text-white' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+            className={`px-3 py-2 rounded-lg text-sm font-medium text-white ${assignmentPublish.students ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
             onClick={async () => {
               const next = !assignmentPublish.students;
               try {
-                await Promise.all(sessionsForSelectedDate.map((s) => courseAdminSessionService.setSessionPublishToStudents(s.id, next)));
-                const st = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-                setAssignmentPublish({ ...(st?.data || { students: next, examiners: assignmentPublish.examiners }), loaded: true });
-                showSuccess(next ? 'Released all to students' : 'Withdrew student release (all)');
-              } catch {
-                showError('Failed to update student release');
+                const res = await courseAdminSessionService.setAssignmentPublishToStudents(assignmentId, next);
+                if (res?.success) {
+                  await refreshAssignmentPublish();
+                  showSuccess(next ? 'Released all sessions to students for this date' : 'Withdrawn release from students for this date');
+                } else {
+                  const reason = res?.message || res?.code || 'Unknown error';
+                  showError(`Unable to ${next ? 'release' : 'withdraw'} to students: ${reason}`);
+                }
+              } catch (e) {
+                showError(next ? 'Failed to release to students' : 'Failed to withdraw student release');
               }
             }}
-            disabled={!assignmentPublish.loaded}
-            title="Toggle release to students for all sessions on this date"
+            title={assignmentPublish.students ? 'Withdraw student release (this date)' : 'Release all sessions (this date) to students'}
           >
-            {assignmentPublish.students ? 'Withdraw Release to Students' : 'Release to Students'}
+            {assignmentPublish.students ? 'Withdraw from Students' : 'Release to Students'}
           </button>
         </div>
       </div>
@@ -366,6 +370,7 @@ export default function AssignmentTimeSlotsPage() {
           assignmentId={assignmentId}
           selectedDate={selectedDate}
           onDateSelect={setSelectedDate}
+          refreshKey={calendarRefresh}
         />
 
         {/* Right - Time Slots List */}
@@ -434,18 +439,6 @@ export default function AssignmentTimeSlotsPage() {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5"><i className="fas fa-map-marker-alt mr-1.5" /> {s.venue || s.venueName || (s.venueId != null ? `Venue #${s.venueId}` : 'Venue')}</div>
                     </div>
                     <div className="flex items-center gap-2 text-right">
-                      <button
-                        className="inline-block px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
-                        onClick={() => toggleExaminers(s.id)}
-                      >
-                        {(s.assignedExaminers?.length || 0)}/{s.requiredExaminers || 1} examiners
-                      </button>
-                      <button
-                        className="text-xs text-gray-600 dark:text-gray-300 hover:underline"
-                        onClick={() => toggleBooked(s.id)}
-                      >
-                        {(s.bookedCount || 0)}/{s.capacity || 1} booked
-                      </button>
                       <button className="action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleEditSession(s)} title="Edit session">
                         <i className="fas fa-pen" />
                       </button>
@@ -457,25 +450,24 @@ export default function AssignmentTimeSlotsPage() {
                       </button>
                     </div>
                   </div>
-                  <div className="mt-1 flex items-center gap-3 text-[11px] text-gray-600 dark:text-gray-300">
-                    <button
-                      className={`px-2 py-0.5 rounded ${publishMap[s.id]?.examiners ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800'}`}
-                      onClick={() => handleTogglePublishExaminers(s, !publishMap[s.id]?.examiners)}
-                      title={publishMap[s.id]?.examiners ? 'Withdraw examiner release' : 'Release to examiners'}
-                    >
-                      <i className="fas fa-user-tie mr-1"/> {publishMap[s.id]?.examiners ? 'Examiners: On' : 'Examiners: Off'}
+                  <div className="mt-1 flex items-center gap-2 text-xs">
+                    <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                      onClick={() => toggleExaminers(s.id)}
+                      title="View/edit examiners for this session">
+                      <i className="fas fa-user-tie" /> {(s.assignedExaminers?.length || 0)}/{s.requiredExaminers || 1} examiners
                     </button>
-                    <button
-                      className={`px-2 py-0.5 rounded ${publishMap[s.id]?.students ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800'}`}
-                      onClick={() => handleTogglePublishStudents(s, !publishMap[s.id]?.students)}
-                      title={publishMap[s.id]?.students ? 'Withdraw student release' : 'Release to students'}
-                    >
-                      <i className="fas fa-user-graduate mr-1"/> {publishMap[s.id]?.students ? 'Students: On' : 'Students: Off'}
+                    <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                      onClick={() => toggleBooked(s.id)}
+                      title="View booked groups">
+                      <i className="fas fa-users" /> {(s.bookedCount || 0)}/{s.capacity || 1} booked
                     </button>
                   </div>
 
-                  {openExaminerForSessionId === s.id && (
-                    <div className="absolute right-3 z-20 mt-1 w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${openExaminerForSessionId === s.id ? 'mt-2 max-h-[480px] opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                  >
+                    <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Assign examiners</div>
                         <button className="text-gray-400 hover:text-gray-600" onClick={() => setOpenExaminerForSessionId(null)} aria-label="Close"><i className="fas fa-times" /></button>
@@ -507,10 +499,13 @@ export default function AssignmentTimeSlotsPage() {
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {openBookedForSessionId === s.id && (
-                    <div className="absolute right-3 z-20 mt-1 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
+                  <div
+                    className={`transition-all duration-300 ease-in-out overflow-hidden ${openBookedForSessionId === s.id ? 'mt-2 max-h-[320px] opacity-100' : 'max-h-0 opacity-0'
+                      }`}
+                  >
+                    <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Booked groups</div>
                         <button className="text-gray-400 hover:text-gray-600" onClick={() => setOpenBookedForSessionId(null)} aria-label="Close"><i className="fas fa-times" /></button>
@@ -518,7 +513,7 @@ export default function AssignmentTimeSlotsPage() {
                       <div className="text-xs text-gray-600 dark:text-gray-300">{s.bookedCount || 0} of {s.capacity || 1} booked.</div>
                       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Detailed list not available yet.</div>
                     </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

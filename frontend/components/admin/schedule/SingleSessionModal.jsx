@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 
 import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
 
-export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultDate, assignmentId }) {
+export default function SingleSessionModal({ isOpen, onClose, onCreate, onUpdate, defaultDate, assignmentId, mode = 'create', initialSession = null }) {
   const [date, setDate] = useState('');
   const [startTime, setStartTime] = useState('09:00');
   const [length, setLength] = useState(30);
@@ -13,17 +13,39 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultD
   const [requiredExaminers, setRequiredExaminers] = useState(2);
   const [capacity, setCapacity] = useState(1);
 
+  const minutesBetween = (s, e) => {
+    if (!s || !e) return 30;
+    const [sh, sm] = String(s).split(':').map((n) => parseInt(n, 10));
+    const [eh, em] = String(e).split(':').map((n) => parseInt(n, 10));
+    let smi = sh * 60 + sm;
+    let emi = eh * 60 + em;
+    let diff = emi - smi;
+    if (diff <= 0) diff += 24 * 60;
+    return diff;
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     const today = new Date();
-    setDate(defaultDate || today.toISOString().slice(0, 10));
-    setStartTime('09:00');
-    setLength(30);
-    setVenueName('');
-    setVenueId(null);
-    setRequiredExaminers(2);
-    setCapacity(1);
-  }, [isOpen, defaultDate]);
+    const baseDate = defaultDate || today.toISOString().slice(0, 10);
+    if (initialSession) {
+      setDate(initialSession.date || baseDate);
+      setStartTime((initialSession.startTime || '09:00').slice(0, 5));
+      setLength(minutesBetween(initialSession.startTime, initialSession.endTime));
+      setVenueName(initialSession.venue || initialSession.venueName || '');
+      setVenueId(initialSession.venueId || null);
+      setRequiredExaminers(Number(initialSession.requiredExaminers ?? 2));
+      setCapacity(Number(initialSession.capacity ?? 1));
+    } else {
+      setDate(baseDate);
+      setStartTime('09:00');
+      setLength(30);
+      setVenueName('');
+      setVenueId(null);
+      setRequiredExaminers(2);
+      setCapacity(1);
+    }
+  }, [isOpen, defaultDate, initialSession]);
 
   const addMinutes = (hhmm, minutes) => {
     const [hStr, mStr] = String(hhmm).split(':');
@@ -39,10 +61,9 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultD
     return addMinutes(startTime, Number(length));
   }, [startTime, length]);
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!date || !startTime || !length || !venueName) return;
-    const session = {
-      id: `${date}-${startTime}-${Math.random().toString(36).slice(2,7)}`,
+    const base = {
       date,
       startTime,
       endTime,
@@ -50,10 +71,12 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultD
       venueId,
       requiredExaminers: Number(requiredExaminers) || 1,
       capacity: Number(capacity) || 1,
-      assignedExaminers: [],
-      bookedCount: 0,
     };
-    onCreate?.(session);
+    if (mode === 'edit' && initialSession?.id != null) {
+      onUpdate?.({ ...base, id: initialSession.id });
+    } else {
+      onCreate?.({ ...base, id: `${date}-${startTime}-${Math.random().toString(36).slice(2,7)}` });
+    }
     onClose?.();
   };
 
@@ -64,7 +87,7 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultD
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
       <div className="relative w-full max-w-xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Single Session</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">{mode === 'edit' ? 'Edit Session' : 'Create Single Session'}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label="Close">
             <i className="fas fa-times" />
           </button>
@@ -122,8 +145,16 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, defaultD
         </div>
         <div className="mt-6 flex justify-end space-x-3">
           <button onClick={onClose} className="btn btn-secondary">Cancel</button>
-          <button onClick={handleCreate} className="btn btn-primary">
-            <i className="fas fa-plus mr-1.5" /> Create
+          <button onClick={handleSubmit} className="btn btn-primary">
+            {mode === 'edit' ? (
+              <>
+                <i className="fas fa-save mr-1.5" /> Save
+              </>
+            ) : (
+              <>
+                <i className="fas fa-plus mr-1.5" /> Create
+              </>
+            )}
           </button>
         </div>
       </div>

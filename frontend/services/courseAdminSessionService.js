@@ -35,11 +35,11 @@ export const courseAdminSessionService = {
     const list = Array.isArray(payload?.sessions)
       ? payload.sessions
       : Array.isArray(payload)
-      ? payload
-      : [];
+        ? payload
+        : [];
     const toTimeString = (t) => {
       if (!t) return t;
-      if (typeof t === 'string') return t.slice(0,5);
+      if (typeof t === 'string') return t.slice(0, 5);
       if (typeof t === 'object' && t.hour != null && t.minute != null) {
         const h = String(t.hour).padStart(2, '0');
         const m = String(t.minute).padStart(2, '0');
@@ -60,7 +60,7 @@ export const courseAdminSessionService = {
     const windows = Array.isArray(body?.windows)
       ? body.windows
       : Array.isArray(body?.sessions)
-      ? body.sessions.map((s) => ({
+        ? body.sessions.map((s) => ({
           date: s.date,
           startTime: s.startTime,
           endTime: s.endTime,
@@ -69,7 +69,7 @@ export const courseAdminSessionService = {
           requiredExaminers: s.requiredExaminers,
           capacity: s.capacity,
         }))
-      : [];
+        : [];
     const request = {
       windows: windows.map((w) => ({
         date: w.date,
@@ -151,6 +151,28 @@ export const courseAdminSessionService = {
       data.publishedToStudent ?? data.publishedToStudents ?? data.student ?? data.students
     );
     return { success: true, data: { examiners: exam, students: stu } };
+  },
+
+  async setAssignmentPublishToStudents(assignmentId, value) {
+    const resp = await apiClient.put(
+      `/api/admin/sessions/assignments/${assignmentId}/publish/student`,
+      null,
+      { params: { value: Boolean(value) } }
+    );
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: d.data };
+  },
+
+  async setAssignmentPublishToExaminers(assignmentId, value) {
+    const resp = await apiClient.put(
+      `/api/admin/sessions/assignments/${assignmentId}/publish/examiner`,
+      null,
+      { params: { value: Boolean(value) } }
+    );
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: d.data };
   },
 
   async updateSession(assignmentId, sessionId, body) {

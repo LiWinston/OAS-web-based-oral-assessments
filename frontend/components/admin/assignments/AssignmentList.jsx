@@ -402,7 +402,7 @@ export function AssignmentList({
                           </Link>
 
                           <Link
-                            href={`/admin/assignments/${assignment.id}/schedule`}
+                            href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/timeslots`}
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasTimeSlots ? "animate-pulse" : ""
                             }`}
@@ -717,7 +717,7 @@ export function AssignmentList({
                         </Link>
 
                         <Link
-                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/schedule`}
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/timeslots`}
                           className={`text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasTimeSlots ? "animate-pulse" : ""
                           }`}
