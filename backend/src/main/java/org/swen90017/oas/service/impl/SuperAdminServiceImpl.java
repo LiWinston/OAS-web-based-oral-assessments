@@ -25,6 +25,7 @@ import org.swen90017.oas.mapper.SysUserRoleMapper;
 import org.swen90017.oas.query.AdminListQuery;
 import org.swen90017.oas.service.SubjectService;
 import org.swen90017.oas.service.SuperAdminService;
+import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.utils.QueryWrapperUtil;
 import org.swen90017.oas.utils.StringUtils;
 import org.swen90017.oas.utils.Convert;
@@ -53,6 +54,8 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     private SysAdminMapper sysAdminMapper;
     @Autowired
     private  SubjectService subjectService;
+    @Autowired
+    private AssignmentService assignmentService;
     @Override
     /**
      * List administrator users with pagination and optional filters.
@@ -524,8 +527,20 @@ public class SuperAdminServiceImpl implements SuperAdminService {
                 }
             } catch (Exception ignored) {}
         }
-        dto.setAssignmentsCount(null);
-        dto.setStudentsCount(null);
+        
+        // Get assignments count for this subject
+        try {
+            Integer assignmentCount = assignmentService.getAssignmentCountBySubject(s.getSubjectId());
+            dto.setAssignmentsCount(assignmentCount);
+        } catch (Exception e) {
+            log.warn("Failed to get assignment count for subject {}: {}", s.getSubjectId(), e.getMessage());
+            dto.setAssignmentsCount(0);
+        }
+        
+        // TODO: Get students count - currently set to 0 as placeholder
+        // This would require a StudentService or enrollment service
+        dto.setStudentsCount(0);
+        
         return dto;
     }
 

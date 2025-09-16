@@ -51,12 +51,16 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         }
         if (StringUtils.hasText(subjectCode)) {
             // 在课程代码、课程名称、描述中进行模糊搜索
+            // 同时也支持通过管理员名字搜索
             queryWrapper.and(wrapper -> wrapper
                 .like(Subject::getSubjectCode, subjectCode)
                 .or()
                 .like(Subject::getSubjectName, subjectCode)  
                 .or()
                 .like(Subject::getDescription, subjectCode)
+                .or()
+                // 通过管理员名字搜索：使用EXISTS子查询
+                .exists("SELECT 1 FROM sys_user su WHERE su.user_id = subject.admin_user_id AND su.user_name LIKE '%" + subjectCode + "%'")
             );
         }
         if (adminUserId != null) {

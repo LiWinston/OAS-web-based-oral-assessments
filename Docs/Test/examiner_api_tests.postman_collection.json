@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "Examiner Timeslot Assignment API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "examiner-tests-001"
+  },
+  "item": [
+    {
+      "name": "1. 列出考官可参与的作业",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{examinerToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiners/{examinerId}/assignments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiners",
+            "{examinerId}",
+            "assignments"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回 assignmentId\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data.data[0]).to.have.property(\"assignmentId\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 列出作业下的可选时段",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{examinerToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/assignments/{assignmentId}/timeslots?examinerId={examinerId}&includeFullSlots=true",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "assignments",
+            "{assignmentId}",
+            "timeslots?examinerId={examinerId}&includeFullSlots=true"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回 timeSlots\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"timeSlots\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 批量分配考官到时段",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{examinerToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/assignments/{assignmentId}/timeslots/assign",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "assign"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"examinerId\": \"{{examinerId}}\",\n  \"slotAssignments\": [\n    {\n      \"slotId\": \"{{slotId1}}\"\n    },\n    {\n      \"slotId\": \"{{slotId2}}\"\n    }\n  ]\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回 assignedSlots 或 failedSlots\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"assignedSlots\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 获取考官个人排程",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{examinerToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiners/{examinerId}/schedule?assignmentId={assignmentId}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiners",
+            "{examinerId}",
+            "schedule?assignmentId={assignmentId}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回 assignments\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"assignments\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 撤销考官分配",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{examinerToken}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/assignments/{assignmentId}/timeslots/{slotId}/unassign?examinerId={examinerId}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "assignments",
+            "{assignmentId}",
+            "timeslots",
+            "{slotId}",
+            "unassign?examinerId={examinerId}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"应返回 slotId\", () => {",
+              "  let json = pm.response.json();",
+              "  pm.expect(json.data).to.have.property(\"slotId\");",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ]
+}

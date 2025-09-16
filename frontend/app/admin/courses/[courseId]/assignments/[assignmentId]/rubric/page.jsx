@@ -357,16 +357,6 @@ export default function RubricConfigurationPage() {
     
     console.log("Criteria validation passed:", rubric.criteria.length, "criteria found");
 
-    // Validate total weight equals 100%
-    const totalWeight = rubric.criteria.reduce(
-      (sum, c) => sum + (c.weight || 0),
-      0
-    );
-    if (totalWeight !== 100) {
-      showNotification("error", `Total weight must equal 100%. Current total: ${totalWeight}%`);
-      return;
-    }
-
     // Validate no score range overlap
     if (hasScoreRangeOverlap()) {
       showNotification("error", "Cannot save: Score ranges cannot overlap within criteria");

@@ -40,6 +40,8 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
     private final SysStudentMapper sysStudentMapper;
     private final EmailService emailService;
     private final StudentTimeSlotService studentTimeSlotService;
+    private final AssignmentMapper assignmentMapper;
+    private final SubjectMapper subjectMapper;
 
     @Override
     public AssignmentMemberListResponseDTO listMembers(Long assignmentId, String role, String q, Integer pageNum, Integer pageSize) {
@@ -183,7 +185,8 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 ex.setToken(generateToken());
                 ex.setSisUserId(localPart(request.getEmail()));
                 examinerMapper.insert(ex);
-                emailService.sendExaminerActivationEmail(Collections.singletonList(ex));
+                String reason = buildInviteReason(assignmentId);
+                emailService.sendExaminerActivationEmail(Collections.singletonList(ex), reason);
                 inviteSent = true;
             } else if (Objects.equals(normalizedRole, UserRole.STUDENT.code())) {
                 // create student row with token
@@ -196,7 +199,8 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 }
                 // direct insert via mapper
                 sysStudentMapper.insert(st);
-                emailService.sendActivationEmail(Collections.singletonList(st));
+                String reason = buildInviteReason(assignmentId);
+                emailService.sendActivationEmail(Collections.singletonList(st), reason);
                 inviteSent = true;
             }
         }
@@ -210,6 +214,18 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         resp.setRole(normalizedRole);
         resp.setInviteSent(inviteSent);
         return resp;
+    }
+
+    private String buildInviteReason(Long assignmentId) {
+        if (assignmentId == null) return null;
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) return null;
+        Subject subject = subjectMapper.selectById(assignment.getSubjectId());
+        String courseCode = subject != null && subject.getSubjectCode() != null ? subject.getSubjectCode() : "N/A";
+        String courseName = subject != null && subject.getSubjectName() != null ? subject.getSubjectName() : "N/A";
+        String assignmentCode = assignment.getId() != null ? String.valueOf(assignment.getId()) : "N/A";
+        String assignmentName = assignment.getName() != null ? assignment.getName() : "N/A";
+        return "Course " + courseCode + " " + courseName + " · Assignment " + assignmentCode + " " + assignmentName;
     }
 
     @Override

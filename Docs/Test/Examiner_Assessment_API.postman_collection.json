@@ -1,0 +1,143 @@
+{
+  "info": {
+    "name": "Examiner Assessment API Test",
+    "_postman_id": "e1a2b3c4-9876-1234-5678-abcdefabcdef",
+    "description": "Postman collection for testing Examiner Assessment API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Submit Assessment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiner/assessments/submit",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiner",
+            "assessments",
+            "submit"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"submissionId\": 1,\n  \"assignmentId\": 3001,\n  \"sessionId\": 55,\n  \"subjectType\": \"STUDENT\",\n  \"subjectId\": 2001\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Save Draft Assessment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiner/assessments/draft/save",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiner",
+            "assessments",
+            "draft",
+            "save"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"assignmentId\": 3001,\n  \"sessionId\": 55,\n  \"subjectType\": \"STUDENT\",\n  \"subjectId\": 2001,\n  \"overallFeedback\": \"Good work\",\n  \"adminNote\": \"Needs review\",\n  \"scores\": [\n    {\n      \"description\": \"Criterion 1\",\n      \"scaleType\": \"points\",\n      \"weight\": 0.5,\n      \"inputPoints\": 5,\n      \"selectedLevel\": {\n        \"description\": \"Meets expectations\",\n        \"startPoint\": 0,\n        \"endPoint\": 10\n      },\n      \"comment\": \"Well done\"\n    }\n  ]\n}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "List Assessments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiner/assessments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiner",
+            "assessments"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Assessment by SubmissionId",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiner/assessments/{{submissionId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiner",
+            "assessments",
+            "{{submissionId}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get Assessments Summary",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/examiner/assessments/summary",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "examiner",
+            "assessments",
+            "summary"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

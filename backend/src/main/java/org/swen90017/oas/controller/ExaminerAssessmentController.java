@@ -70,6 +70,7 @@ public class ExaminerAssessmentController {
 
     @PostMapping("/summary")
     @Operation(summary = "Assessments summary", description = "Return counts for draft/submitted, etc.")
+
     public Result<ExaminerSummaryDTO> summary(@RequestBody ExaminerAssessmentsQueryDTO query) {
         LoginUser user = SecurityUtils.getLoginUser();
         Long examinerId = user == null ? null : user.getUserId();
