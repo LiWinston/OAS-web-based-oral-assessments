@@ -8,6 +8,7 @@ import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.request.SubmitAssessmentRequestDTO;
 import org.swen90017.oas.dto.response.AssessmentSubmissionDTO;
 import org.swen90017.oas.dto.response.ExaminerSummaryDTO;
+import org.swen90017.oas.dto.response.ExaminerAssessmentsPageResponseDTO;
 import org.swen90017.oas.entity.LoginUser;
 import org.swen90017.oas.service.AssessmentService;
 import org.swen90017.oas.utils.SecurityUtils;
@@ -44,15 +45,22 @@ public class ExaminerAssessmentController {
         return Result.success(assessmentService.getMySubmission(submissionId, examinerId));
     }
 
-    @GetMapping
-    public Result<List<AssessmentSubmissionDTO>> list(ExaminerAssessmentsQueryDTO query) {
+    @PostMapping("/list")
+    public Result<List<AssessmentSubmissionDTO>> list(@RequestBody ExaminerAssessmentsQueryDTO query) {
         LoginUser user = SecurityUtils.getLoginUser();
         Long examinerId = user == null ? null : user.getUserId();
         return Result.success(assessmentService.listMySubmissions(query, examinerId));
     }
 
-    @GetMapping("/summary")
-    public Result<ExaminerSummaryDTO> summary(ExaminerAssessmentsQueryDTO query) {
+    @PostMapping("/page")
+    public Result<ExaminerAssessmentsPageResponseDTO> page(@RequestBody ExaminerAssessmentsQueryDTO query) {
+        LoginUser user = SecurityUtils.getLoginUser();
+        Long examinerId = user == null ? null : user.getUserId();
+        return Result.success(assessmentService.pageMySubmissions(query, examinerId));
+    }
+
+    @PostMapping("/summary")
+    public Result<ExaminerSummaryDTO> summary(@RequestBody ExaminerAssessmentsQueryDTO query) {
         LoginUser user = SecurityUtils.getLoginUser();
         Long examinerId = user == null ? null : user.getUserId();
         return Result.success(assessmentService.getMySummary(query, examinerId));
