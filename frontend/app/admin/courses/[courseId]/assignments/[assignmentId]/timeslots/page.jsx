@@ -241,7 +241,12 @@ export default function AssignmentTimeSlotsPage() {
   const handleAssignExaminer = async (session, examinerId) => {
     if (!session?.id || !examinerId) return;
     try {
-      await courseAdminSessionService.assignSessionExaminers(session.id, [Number(examinerId)]);
+      const res = await courseAdminSessionService.assignSessionExaminers(session.id, [Number(examinerId)]);
+      if (!res?.success) {
+        const reason = res?.message || res?.code || 'Assignment rejected';
+        showError(`Unable to assign examiner: ${reason}`);
+        return;
+      }
       // Update local state: append to assignedExaminers if not already present
       updateSessionLocal(session.id, (s) => {
         const exists = (s.assignedExaminers || []).some((e) => (e.id || e.examinerId) === Number(examinerId));
@@ -491,9 +496,14 @@ export default function AssignmentTimeSlotsPage() {
                           <Select onValueChange={(val) => handleAssignExaminer(s, val)}>
                             <SelectTrigger className="w-full"><SelectValue placeholder="Select examiner" /></SelectTrigger>
                             <SelectContent>
-                              {availableExaminers.map((ex) => (
-                                <SelectItem key={ex.id} value={String(ex.id)}>{ex.name} {ex.currentAssignments != null ? `(${ex.currentAssignments}/${ex.maxSessions || '∞'})` : ''}</SelectItem>
-                              ))}
+                              {availableExaminers.map((ex) => {
+                                const atLimit = ex.maxSessions != null && ex.currentAssignments != null && Number(ex.currentAssignments) >= Number(ex.maxSessions);
+                                return (
+                                  <SelectItem key={ex.id} value={String(ex.id)} disabled={atLimit}>
+                                    {ex.name} {ex.currentAssignments != null ? `(${ex.currentAssignments}/${ex.maxSessions || '∞'})` : ''} {atLimit ? ' — at limit' : ''}
+                                  </SelectItem>
+                                );
+                              })}
                             </SelectContent>
                           </Select>
                         </div>

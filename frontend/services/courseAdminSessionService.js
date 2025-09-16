@@ -128,7 +128,9 @@ export const courseAdminSessionService = {
   // Session examiners — single-session helpers
   async assignSessionExaminers(sessionId, examinerIds = []) {
     const resp = await apiClient.post(`/api/admin/sessions/${sessionId}/examiners`, { examinerIds });
-    return { success: true, data: extract(resp) };
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: extract(resp) };
   },
   async unassignSessionExaminer(sessionId, examinerId) {
     const resp = await apiClient.delete(`/api/admin/sessions/${sessionId}/examiners/${examinerId}`);
