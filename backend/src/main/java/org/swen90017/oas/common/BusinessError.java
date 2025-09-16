@@ -91,7 +91,11 @@ public enum BusinessError implements Error {
     NOT_ASSIGNED_TO_SESSION("9008", "Examiner not assigned to session"),
     ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted"),
     RUBRIC_CRITERION_INCOMPLETE("9010", "Rubric criterion not fully completed"),
-    INCOMPATIBLE_SCORE_FIELDS("9011", "Incompatible score fields for scaleType");
+    INCOMPATIBLE_SCORE_FIELDS("9011", "Incompatible score fields for scaleType"),
+    EXAMINER_LIMIT_NOT_SET("9012", "Examiner session limit not configured"),
+    TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient");
+    // 9013 预留：总限额不满足
+    // TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient")
     // add more below as needed
     
   
