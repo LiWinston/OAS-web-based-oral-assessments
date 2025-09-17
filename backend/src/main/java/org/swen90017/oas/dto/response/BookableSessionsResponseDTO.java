@@ -26,10 +26,10 @@ public class BookableSessionsResponseDTO {
     private CalendarInfoDTO calendar;
 
     /**
-     * Time slots with sessions
+     * Sessions for the day
      */
-    @Schema(description = "Time slots with sessions")
-    private List<TimeSlotWithSessionsDTO> timeSlots;
+    @Schema(description = "Sessions for the day")
+    private List<SessionAvailabilityDTO> sessions;
 
     /**
      * Assignment Information DTO

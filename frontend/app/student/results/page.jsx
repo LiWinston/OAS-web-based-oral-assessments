@@ -68,8 +68,14 @@ export default function StudentResults() {
     }
   };
 
-  // Initial load
+  // Initial load with student guard
   useEffect(() => {
+    const auth = useAuthStore.getState();
+    if (!auth?.isAuthenticated || !auth?.user || auth.user.role !== 'STUDENT') {
+      setError("You must be signed in as a student to view results.");
+      setLoading(false);
+      return;
+    }
     loadResults(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, filters.status, filters.semester, filters.sort]);

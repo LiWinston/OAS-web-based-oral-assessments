@@ -23,6 +23,14 @@ public interface AssessmentSubmissionMapper extends BaseMapper<AssessmentSubmiss
                                               @Param("from") LocalDateTime from,
                                               @Param("to") LocalDateTime to);
 
+    List<AssessmentSubmission> listByStudentAndAssignment(@Param("studentId") Long studentId,
+                                                          @Param("assignmentId") Long assignmentId,
+                                                          @Param("status") String status);
+
+    List<AssessmentSubmission> listByStudent(@Param("studentId") Long studentId,
+                                             @Param("assignmentId") Long assignmentId,
+                                             @Param("status") String status);
+
     List<AssessmentSubmission> pageByExaminer(@Param("examinerId") Long examinerId,
                                               @Param("assignmentId") Long assignmentId,
                                               @Param("sessionId") Long sessionId,

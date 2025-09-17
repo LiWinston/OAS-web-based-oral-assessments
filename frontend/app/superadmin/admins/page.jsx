@@ -1092,7 +1092,7 @@ export default function AdminManagementPage() {
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               Showing {filteredInvitations.length} of{" "}
               {adminData?.pendingInvitations?.length || 0} invitations
-            </div>
+          </div>
           
           <div className="overflow-x-auto">
             <table className="w-full">

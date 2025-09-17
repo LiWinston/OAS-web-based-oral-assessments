@@ -7,7 +7,16 @@ Version: 1.0 • Status: Proposed for Approval • Last updated: 2025‑08‑30
 - Auth: `Authorization: Bearer <accessToken>` (JWT)
 - Wrapper: `{ success: boolean, code: "OK"|"<ERROR>", data: <payload>, message?: string }`
 - Time: All datetimes are ISO‑8601 with explicit timezone
-- Conditional requests encouraged on read endpoints: `Last-Modified` + `If-Modified-Since`
+- Conditional read: servers SHOULD return `Last-Modified`; clients MAY send `If-Modified-Since`.
+- Errors: error responses MUST use the same wrapper with `success=false`, `code` in reason codes, and optional `message` for user‑facing copy.
+
+### Common HTTP headers
+- Request
+  - `Authorization: Bearer <accessToken>`
+  - `If-Modified-Since: <http-date>` (optional; for caching)
+- Response
+  - `Last-Modified: <http-date>` (when applicable)
+  - `Cache-Control: private, must-revalidate`
 
 ---
 
@@ -47,7 +56,10 @@ Version: 1.0 • Status: Proposed for Approval • Last updated: 2025‑08‑30
 
 Reason codes (align with Booking)
 
-- FORBIDDEN, NOT_FOUND, NOT_ELIGIBLE
+- `FORBIDDEN` — current user not allowed
+- `NOT_FOUND` — resource does not exist or is archived
+- `NOT_ELIGIBLE` — assignment is not group‑based (INDIVIDUAL)
+- `STALE_DATA` — server detected state changed since last read (optional use)
 
 ---
 
@@ -55,9 +67,27 @@ Reason codes (align with Booking)
 
 GET `/api/students/{studentId}/groups?status=active&pageNum=&pageSize=&sort=semester_desc`
 
-- Only current/active assignment groups returned. Past/archived groups are excluded by default.
+- Purpose: overview for the student’s current groups per assignment.
+- Visibility: only current/active assignment groups by default. Past/archived are excluded.
 
-200 OK
+### Path params
+- `studentId` (number) — required
+
+### Query params
+- `status` = `active` | `all` (default: `active`)
+- `pageNum` (number, default: 0)
+- `pageSize` (number, default: 20, max: 50)
+- `sort` (string, default: `semester_desc`)
+  - Allowed values: `semester_desc` | `semester_asc`
+
+### Request headers
+- `Authorization`
+- `If-Modified-Since` (optional)
+
+### Response headers
+- `Last-Modified` (present when result set is stable)
+
+### 200 OK
 
 ```json
 {
@@ -83,7 +113,22 @@ GET `/api/students/{studentId}/groups?status=active&pageNum=&pageSize=&sort=seme
 }
 ```
 
-304 Not Modified — when `If-Modified-Since` applies.
+### 304 Not Modified
+Returned when `If-Modified-Since` is provided and the data is unchanged.
+
+### Error responses
+- 403
+```json
+{ "success": false, "code": "FORBIDDEN", "data": null, "message": "You don’t have access to these groups." }
+```
+- 404
+```json
+{ "success": false, "code": "NOT_FOUND", "data": null, "message": "Student not found." }
+```
+- 200 with empty list (no active groups)
+```json
+{ "success": true, "code": "OK", "data": { "pageNum":0, "pageSize":20, "total":0, "data": [] } }
+```
 
 ---
 
@@ -91,9 +136,21 @@ GET `/api/students/{studentId}/groups?status=active&pageNum=&pageSize=&sort=seme
 
 GET `/api/students/{studentId}/groups/{groupId}`
 
-- Validates membership; 403 if the student is not a member.
+- Purpose: group members for a specific assignment‑level group.
+- Access: validates membership; 403 if requesting student is not a member.
 
-200 OK
+### Path params
+- `studentId` (number) — required
+- `groupId` (number) — required
+
+### Request headers
+- `Authorization`
+- `If-Modified-Since` (optional)
+
+### Response headers
+- `Last-Modified` (present when resource unchanged)
+
+### 200 OK
 
 ```json
 {
@@ -124,10 +181,37 @@ GET `/api/students/{studentId}/groups/{groupId}`
 }
 ```
 
-403 FORBIDDEN — not a member. 404 NOT_FOUND — group does not exist or is archived.
+### Error responses
+- 403
+```json
+{ "success": false, "code": "FORBIDDEN", "data": null, "message": "You don’t have access to this group." }
+```
+- 404
+```json
+{ "success": false, "code": "NOT_FOUND", "data": null, "message": "We couldn’t find this group." }
+```
+
+Notes:
+- Servers SHOULD exclude past/archived groups from the overview endpoint by default.
+- All date/time fields MUST be ISO‑8601 with timezone.
 
 ---
 
 ## Backend/DB Notes
 
 - Group membership is stored per assignment; queries must join via assignment roster.
+
+---
+
+## User‑facing error copy (for Frontend)
+
+Frontend copy should align with error codes (consistent with “Student‑View‑My‑Groups‑User‑Flow (Final)”):
+
+- `FORBIDDEN` → "You don’t have access to this group."
+- `NOT_FOUND` → "We couldn’t find this group."
+- `NOT_ELIGIBLE` → "This assignment doesn’t use group membership."
+- `STALE_DATA` → "This information changed. Please refresh."
+
+Notes:
+- All error responses MUST use the unified wrapper: `{ success:false, code:<REASON>, data:null, message }`
+- Copy SHOULD be localized via i18n as needed.

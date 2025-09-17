@@ -187,18 +187,17 @@
 
     <!-- 批量检查学生对多个assignment的预定状态（包括个人预定和组预定） -->
     <select id="getStudentBookedAssignmentIds" resultType="java.lang.Long">
-        SELECT DISTINCT ts.assignment_id
-        FROM slot_sessions ss
-        INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
-        WHERE ts.assignment_id IN 
+        SELECT DISTINCT ss.assignment_id
+        FROM session_student st
+        INNER JOIN slot_sessions ss ON st.session_id = ss.session_id
+        WHERE ss.assignment_id IN 
         <foreach collection="assignmentIds" item="assignmentId" open="(" separator="," close=")">
             #{assignmentId}
         </foreach>
-          AND ss.status = 'booked'
           AND (
-            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+            (st.type = 'INDIVIDUAL' AND st.subject_id = #{studentId})
             OR
-            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+            (st.type = 'GROUP' AND st.subject_id IN (
               SELECT sg.group_id 
               FROM sys_student_group sg 
               WHERE sg.user_id = #{studentId}

@@ -12,6 +12,7 @@ import ExaminerFeedback from '../../../../components/student/results/ExaminerFee
 import ResultsEmptyState from '../../../../components/student/results/ResultsEmptyState';
 import { studentResultsService } from '../../../../services/studentResultsService';
 import { useAuthStore } from '../../../../store/authStore';
+import useAuth from '../../../../hooks/useAuth';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -37,6 +38,7 @@ export default function StudentResultDetails() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuthStore();
+  const auth = useAuth();
   const assignmentId = params.assignmentId;
   
   const [assignment, setAssignment] = useState(null);
@@ -51,6 +53,12 @@ export default function StudentResultDetails() {
   const loadAssignmentData = async () => {
     try {
       if (!user?.id || !assignmentId) return;
+      // Guard: only authenticated students can view
+      if (!auth.isAuthenticated || auth.role !== 'STUDENT') {
+        setError("You don't have access to this result.");
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       setError(null);
@@ -95,7 +103,12 @@ export default function StudentResultDetails() {
 
     } catch (err) {
       console.error('Error loading assignment data:', err);
-      setError(err.message || 'Failed to load assignment data');
+      const msg = err?.message || 'Failed to load assignment data';
+      // Map some common API reason codes to user-facing copy (kept simple here; service returns message)
+      if (/not released/i.test(msg)) setError("Results for this assignment haven't been released yet.");
+      else if (/not found/i.test(msg)) setError("We couldn't find this result.");
+      else if (/access|forbidden|permission/i.test(msg)) setError("You don't have access to this result.");
+      else setError(msg);
     } finally {
       setLoading(false);
     }
