@@ -1,3 +1,66 @@
+# Student Booking — Sessions-Only Minimal Update
+This addendum applies minimal changes to use Sessions as the only bookable entity and avoid timeslot-level structures in student APIs.
+
+Endpoint usage (no new concepts added):
+- List bookable items by date → `GET /api/assignments/{assignmentId}/sessions?studentId={studentId}&date=YYYY-MM-DD`
+  - Return a flat `sessions[]` list for the date. Do not include `timeSlots[]` wrapper.
+  - Only include sessions that are actually bookable for the student (backend filters; no extra visibility rules here).
+- Create booking → `POST /api/assignments/{assignmentId}/bookings` (unchanged)
+- Cancel booking → `DELETE /api/assignments/{assignmentId}/bookings/{sessionId}?studentId={studentId}` (unchanged)
+- Reschedule (atomic) → `POST /api/assignments/{assignmentId}/bookings/{sessionId}/reschedule` (unchanged)
+
+Minimal response shape changes:
+- Remove any `timeSlots` section from list responses; return `sessions: [ { sessionId, start, end, venue, capacity { bookedCount, capacity } } ]`.
+- Coverage and capacity remain read‑only; UI simply shows sessions the student can book.
+
+Backend actions required (precise changes)
+- List bookable sessions
+  - Path: `GET /api/assignments/{assignmentId}/sessions`
+  - Query: `studentId` (required), `date` (YYYY-MM-DD), `pageNum`, `pageSize`, `includeReasons=true|false`
+  - Return: `{ success, code, data: { sessions: [ { sessionId, start, end, venue, capacity: { bookedCount, capacity }, availability: { canBook, reason? } } ], pollingHintSeconds? } }`
+  - Only return actually bookable sessions when `includeReasons=false` (recommended for student UI). When `includeReasons=true`, include disabled entries with `availability.reason`.
+
+- Create booking
+  - Path: `POST /api/assignments/{assignmentId}/bookings`
+  - Body (GROUP/MIXED): `{ studentId, sessionId, groupId }` — one booking per group per assignment
+  - Body (INDIVIDUAL): `{ studentId, sessionId }`
+  - Response: `{ success: true, data: { bookingId, assignmentId, entity, session: { sessionId, start, end, venue } } }`
+  - Enforce capacity: block when `bookedCount >= capacity` with `409 SESSION_TAKEN`
+
+- Cancel booking
+  - Path: `DELETE /api/assignments/{assignmentId}/bookings/{sessionId}`
+  - Query: `studentId` (required)
+  - Response: `{ success: true, code: 'OK' }`
+
+- Reschedule booking (atomic)
+  - Path: `POST /api/assignments/{assignmentId}/bookings/{sessionId}/reschedule`
+  - Body: `{ studentId, targetSessionId }`
+  - Behavior: Book target first; only release old on success; otherwise keep old booking
+  - Response: `{ success: true, data: { fromSessionId, toSessionId, bookingId } }`
+
+Example: bookable sessions
+```
+GET /api/assignments/42/sessions?studentId=12345&date=2025-04-15
+200 OK
+{
+  "success": true,
+  "code": "OK",
+  "data": {
+    "sessions": [
+      { "sessionId": 90011, "start": "2025-04-15T10:00:00+10:00", "end": "2025-04-15T10:30:00+10:00", "venue": { "venueId": 12, "name": "ENG 405" }, "capacity": { "bookedCount": 0, "capacity": 1 }, "availability": { "canBook": true } }
+    ],
+    "pollingHintSeconds": 30
+  }
+}
+```
+
+Student availability simplification:
+- No additional policy logic needed in the UI. Only render sessions returned by the backend as bookable.
+
+All other sections below remain valid where they reference session fields. Where “timeslot” groupings appear, treat them as deprecated in favor of the flat `sessions[]` list.
+
+---
+
 # Student Booking & Sessions API — Contracts (Final)
 Version: 1.0 • Status: Approved (Open Questions 1–10 resolved) • Last updated: 2025‑08‑28
 

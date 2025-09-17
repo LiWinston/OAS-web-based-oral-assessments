@@ -18,7 +18,7 @@ export default function OnboardingWelcome({
           icon: <UserCheck className="w-10 h-10 text-white" />,
           title: 'Welcome Course Administrator',
           subtitle: 'You have been invited to manage courses and assessments',
-          description: 'As a Course Admin, you will be able to create and manage oral assessments, configure rubrics, schedule time slots, and oversee the entire assessment process.',
+          description: 'As a Course Admin, you will be able to create and manage oral assessments, configure rubrics, schedule sessions, and oversee the entire assessment process.',
           color: 'from-blue-500 to-blue-600',
           emoji: '🎓'
         };
@@ -28,7 +28,7 @@ export default function OnboardingWelcome({
           icon: <Users className="w-10 h-10 text-white" />,
           title: 'Welcome Examiner',
           subtitle: courseContext ? `You've been assigned to ${courseContext.courseName}` : 'You have been invited as an examiner',
-          description: 'As an Examiner, you will be able to self-assign to time slots, conduct oral assessments, and provide marks and feedback to students.',
+          description: 'As an Examiner, you will be able to self-assign to sessions, conduct oral assessments, and provide marks and feedback to students.',
           color: 'from-purple-500 to-purple-600',
           emoji: '📋'
         };

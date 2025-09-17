@@ -155,11 +155,11 @@ const ExaminerCalendar = () => {
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
           : `Slot #${selectedEvent.slotId}`;
-        setResultProps({ status: 'success', title: 'Withdrawn from Time Slot', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setResultProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setResultOpen(true);
       }
     } catch (e) {
-      setResultProps({ status: 'error', title: 'Withdraw Failed', message: e?.message || 'Failed to withdraw from time slot', autoDismiss: false, primaryActionLabel: 'Close' });
+      setResultProps({ status: 'error', title: 'Withdraw Failed', message: e?.message || 'Failed to withdraw from session', autoDismiss: false, primaryActionLabel: 'Close' });
       setResultOpen(true);
     } finally {
       setIsWithdrawing(false);

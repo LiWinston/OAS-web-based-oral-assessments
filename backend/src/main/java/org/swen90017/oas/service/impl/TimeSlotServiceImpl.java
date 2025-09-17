@@ -807,8 +807,8 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 continue;
             }
 
-            // Get examiner's current assigned sessions in this assignment
-            int currentSessions = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, examinerId);
+            // Get examiner's current assigned sessions in this assignment (via session_examiners)
+            int currentSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
             
             // Check if copying this time slot would exceed the limit
             int newTotalSessions = currentSessions + (sessionCount == null ? 0 : sessionCount);

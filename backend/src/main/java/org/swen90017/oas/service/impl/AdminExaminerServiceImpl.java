@@ -38,6 +38,8 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
     @Autowired
     private SlotSessionMapper slotSessionMapper;
     @Autowired
+    private org.swen90017.oas.mapper.SessionExaminerMapper sessionExaminerMapper;
+    @Autowired
     private SysUserMapper sysUserMapper;
     @Autowired
     private ExaminerAssignmentLimitMapper limitMapper;
@@ -74,8 +76,8 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
             ExaminerAssignmentLimit lim = limitMapper.findByExaminerAndAssignment(u.getUserId(), assignmentId);
             int max = (lim != null && lim.getMaxSessions() != null) ? lim.getMaxSessions() : defaultMax;
             dto.setMaxSessions(max);
-            // 当前任务已分配的 session 总数
-            int assigned = timeSlotMapper.sumAssignedSessionsForExaminer(assignmentId, u.getUserId());
+            // 当前任务已分配的 session 总数（基于 session_examiners 按 assignment 统计）
+            int assigned = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, u.getUserId());
             dto.setCurrentAssignments(assigned);
             // 冲突检测：若提供 timeSlotId，则检查 examiner 在该时段是否与已分配 slot 冲突
             boolean hasConflict = false;

@@ -1,3 +1,26 @@
+# Sessions-Only Minimal Update (Student)
+
+This addendum applies the smallest changes necessary to move from TimeSlot to Session for student booking:
+
+- Browse: Calendar + list shows sessions directly for the selected date (no timeslot grouping).
+- Book: Click “Book” on a session row returned by the backend as bookable. One active booking per entity per assignment (unchanged).
+- Reschedule/Cancel: Behaviors unchanged; perform against sessions.
+- UI wording: Replace “time slot” with “session” in labels and messages.
+- Availability: No extra visibility policy in the UI — the backend only returns sessions that can be booked.
+
+All other UX (confirmation, success, email, iCal) remains the same.
+
+Backend changes summary for this flow
+- List sessions by date: `GET /api/assignments/{assignmentId}/sessions?studentId=...&date=YYYY-MM-DD`
+- Create booking: `POST /api/assignments/{assignmentId}/bookings` with `{ studentId, sessionId, groupId? }`
+- Cancel booking: `DELETE /api/assignments/{assignmentId}/bookings/{sessionId}?studentId=...`
+- Reschedule: `POST /api/assignments/{assignmentId}/bookings/{sessionId}/reschedule` with `{ studentId, targetSessionId }`
+UI data per session row
+- `sessionId`, `start`, `end`, `venue.name`
+- `capacity.bookedCount` and `capacity.capacity` → render remaining capacity
+- `availability.canBook` and optional `availability.reason` for disabled button copy
+---
+
 # Student Booking Timeslot — User Flow (Final)
 Version: 1.0 • Status: Approved by PM (Open Questions 1–10 resolved) • Owner: Frontend Architecture • Last updated: 2025‑08‑28
 

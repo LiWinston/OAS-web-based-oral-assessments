@@ -110,6 +110,17 @@ The system now uses a separated architecture:
 
 **✅ Integration Complete**: Mock Next.js API routes have been replaced with direct Spring Boot integration. Legacy routes remain for backward compatibility but return deprecation messages.
 
+### Sessions-Only Scheduling (Backend Pointers)
+
+- Examiner self-assignment now targets session endpoints. See:
+  - Docs/API/Examiner-Timeslot-Assignment-Contracts.md — “Sessions-Only Minimal Update” (endpoint mapping and required responses)
+  - Docs/Design/Examiner-Timeslot-Assignment-Flow.md — “Sessions-Only Minimal Update (Examiner)”
+- Student booking lists and books sessions directly. See:
+  - Docs/API/Student-Booking-and-Sessions-API-Contracts(Final).md — “Sessions-Only Minimal Update” (endpoint mapping and examples)
+  - Docs/Design/Student-Booking-Timeslot-User-Flow(Final).md — “Sessions-Only Minimal Update (Student)”
+
+Backend teams: implement the listed session endpoints and availability semantics. Frontend already adapts to flat `sessions[]` and maps to existing UI structures with minimal changes.
+
 ### Onboarding Flow (Docs)
 
 - Unified onboarding for Course Admins, Students, and Examiners begins from an email link and finishes at role dashboards.
