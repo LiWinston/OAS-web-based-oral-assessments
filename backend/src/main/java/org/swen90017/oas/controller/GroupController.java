@@ -21,7 +21,7 @@ public class GroupController {
 
     private final StudentGroupQueryService studentGroupQueryService;
 
-    @Operation(summary = "List student's active groups", description = "Overview of student's groups by assignment")
+    @Operation(summary = "List student's active groups", description = "Overview of student's groups by assignment. Only groups with active assignments (not ended) are returned.")
     @GetMapping("/{studentId}/groups")
     @Log(module = "Student Groups", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> listStudentGroups(
@@ -53,7 +53,7 @@ public class GroupController {
         return ResponseEntity.ok().headers(headers).body(Result.success(page));
     }
 
-    @Operation(summary = "Get group details (members)", description = "Group members for a specific assignment-level group")
+    @Operation(summary = "Get group details (members)", description = "Group members for a specific assignment-level group. Only returns details for groups with active assignments (not ended).")
     @GetMapping("/{studentId}/groups/{groupId}")
     @Log(module = "Student Groups", businessType = BusinessType.QUERY)
     public ResponseEntity<Result<Map<String, Object>>> getGroupDetails(

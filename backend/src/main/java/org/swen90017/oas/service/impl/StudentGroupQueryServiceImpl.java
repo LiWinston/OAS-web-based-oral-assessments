@@ -12,6 +12,7 @@ import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.StudentGroupQueryService;
 
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -63,9 +64,11 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
                         .eq("user_id", studentId));
         Set<Long> assignmentIds = participants.stream().map(AssignmentParticipant::getAssignmentId).collect(Collectors.toSet());
         List<Assignment> assignments = assignmentIds.isEmpty() ? new ArrayList<>() : assignmentMapper.selectBatchIds(assignmentIds);
+        LocalDateTime now = LocalDateTime.now();
         assignments = assignments.stream()
                 .filter(a -> Objects.equals(a.getIsReleased(), Boolean.TRUE))
                 .filter(a -> "group".equals(a.getType()) || "mixed".equals(a.getType()))
+                .filter(a -> isAssignmentActive(a, now)) // Only include active assignments
                 .collect(Collectors.toList());
 
         // 3) 批量查 subject 并建映射
@@ -94,14 +97,18 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
                 dto.setCourseCode(subject != null ? subject.getSubjectCode() : null);
                 dto.setSemester(subject != null ? subject.getAcademicYear() + " S" + subject.getSemester() : null);
                 dto.setMemberCount(memberCountByGroup.getOrDefault(gid, 0L).intValue());
+                // Since we've already filtered to only include active assignments, all groups here are ACTIVE
                 dto.setStatus("ACTIVE");
                 all.add(dto);
             }
         }
 
-        // Filter status
-        if (!"all".equalsIgnoreCase(status)) {
-            all = all.stream().filter(d -> "ACTIVE".equals(d.getStatus())).collect(Collectors.toList());
+        // Status filtering is now handled by assignment filtering above
+        // Only active groups (with active assignments) are included
+        if (!"all".equalsIgnoreCase(status) && !"active".equalsIgnoreCase(status)) {
+            // If status is something other than "all" or "active", return empty list
+            // since we only have active groups now
+            all = new ArrayList<>();
         }
 
         // Sort
@@ -154,9 +161,11 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
                         .eq("if_join", 1));
         Set<Long> aIds = parts.stream().map(AssignmentParticipant::getAssignmentId).collect(Collectors.toSet());
         List<Assignment> cand = aIds.isEmpty() ? new ArrayList<>() : assignmentMapper.selectBatchIds(aIds);
+        LocalDateTime now = LocalDateTime.now();
         Assignment assignment = cand.stream()
                 .filter(a -> Objects.equals(a.getIsReleased(), Boolean.TRUE))
                 .filter(a -> "group".equals(a.getType()) || "mixed".equals(a.getType()))
+                .filter(a -> isAssignmentActive(a, now)) // Only include active assignments
                 .findFirst().orElse(null);
         if (assignment != null) {
             dto.setAssignmentId(assignment.getId());
@@ -164,6 +173,10 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
             Subject subject = subjectMapper.selectById(assignment.getSubjectId());
             dto.setCourseCode(subject != null ? subject.getSubjectCode() : null);
             dto.setSemester(subject != null ? subject.getAcademicYear() + " S" + subject.getSemester() : null);
+        } else {
+            // No active assignment found for this group - the group might be inactive
+            // This means all assignments associated with this group have ended
+            throw new BusinessException(CommonError.NOT_FOUND);
         }
 
         List<GroupDetailDTO.Member> members = sysStudentGroupMapper.selectList(new LambdaQueryWrapper<SysStudentGroup>()
@@ -182,6 +195,21 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
         resp.setGroup(dto);
         resp.setLastModified(ZonedDateTime.now(ZoneId.of("UTC")));
         return resp;
+    }
+
+    /**
+     * Check if an assignment is active (not ended)
+     * @param assignment the assignment to check
+     * @param now current time
+     * @return true if assignment is active (end date is null or in the future)
+     */
+    private boolean isAssignmentActive(Assignment assignment, LocalDateTime now) {
+        // If end date is null, consider it active
+        if (assignment.getEndDate() == null) {
+            return true;
+        }
+        // Assignment is active if current time is before end date
+        return now.isBefore(assignment.getEndDate());
     }
 }
 
