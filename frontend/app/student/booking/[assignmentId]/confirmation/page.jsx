@@ -72,7 +72,7 @@ export default function BookingConfirmation() {
           Booking Confirmed!
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Your assessment slot has been successfully booked
+          Your assessment session has been successfully booked
         </p>
       </div>
 

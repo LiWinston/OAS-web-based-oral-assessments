@@ -30,7 +30,7 @@ export default function TimeslotList({
         <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
           <i className="fas fa-calendar-day text-gray-400 dark:text-gray-500 text-2xl"></i>
         </div>
-        <p className="text-gray-600 dark:text-gray-400">Select a date from the calendar to view available time slots</p>
+        <p className="text-gray-600 dark:text-gray-400">Select a date from the calendar to view available sessions</p>
       </div>
     );
   }
@@ -40,7 +40,7 @@ export default function TimeslotList({
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
           <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-          Available Slots - {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+          Available Sessions - {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </h2>
         {isLoading && <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>}
       </div>
@@ -55,14 +55,14 @@ export default function TimeslotList({
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600 dark:text-gray-400">Loading timeslots...</span>
+          <span className="ml-3 text-gray-600 dark:text-gray-400">Loading sessions...</span>
         </div>
       )}
 
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-800 dark:text-red-200 mb-6">
           <i className="fas fa-exclamation-triangle mr-2"></i>
-          Failed to load timeslots.
+          Failed to load sessions.
           {onRetry && (
             <button onClick={onRetry} className="underline hover:no-underline ml-1">Try again</button>
           )}
@@ -93,7 +93,7 @@ export default function TimeslotList({
                       <span className="font-medium text-sm">{formatTime(slot.start)} - {formatTime(slot.end)}</span>
                       {!canSelect && reason && (
                         <span className="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                          {reason === 'SLOT_FULL' ? 'Full' : reason === 'TIME_CONFLICT' ? 'Conflict' : reason}
+                          {reason === 'SLOT_FULL' || reason === 'SESSION_CLOSED' ? 'Full' : reason === 'TIME_CONFLICT' ? 'Conflict' : reason}
                         </span>
                       )}
                     </div>
@@ -104,6 +104,11 @@ export default function TimeslotList({
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {slot.currentExaminers}/{slot.requiredExaminers} examiners assigned
                     </div>
+                    {typeof slot.capacity !== 'undefined' && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {slot.bookingCount ?? 0}/{slot.capacity} bookings
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -131,7 +136,7 @@ export default function TimeslotList({
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-calendar-times text-gray-400 dark:text-gray-500 text-2xl"></i>
               </div>
-              <p className="text-gray-600 dark:text-gray-400">No timeslots available for this date</p>
+              <p className="text-gray-600 dark:text-gray-400">No sessions available for this date</p>
             </div>
           )}
         </div>

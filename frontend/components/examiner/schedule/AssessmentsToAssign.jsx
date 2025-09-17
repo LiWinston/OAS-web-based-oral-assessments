@@ -80,7 +80,7 @@ const AssessmentsToAssign = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assessments to Assign Time Slot
+            Assessments to Assign Sessions
           </h2>
         </div>
         <div className="p-8 text-center">
@@ -97,7 +97,7 @@ const AssessmentsToAssign = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assessments to Assign Time Slot
+            Assessments to Assign Sessions
           </h2>
         </div>
         <div className="p-8 text-center">
@@ -122,7 +122,7 @@ const AssessmentsToAssign = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assessments to Assign Time Slot
+            Assessments to Assign Sessions
           </h2>
         </div>
         <div className="p-8 text-center">
@@ -166,7 +166,7 @@ const AssessmentsToAssign = () => {
         <div className="flex items-center">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assessments to Assign Time Slot
+            Assessments to Assign Sessions
           </h2>
           <span className="ml-3 px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
             {renderAssignments.length} available
@@ -212,8 +212,8 @@ const AssessmentsToAssign = () => {
                   <span className="flex items-center">
                     <i className="fas fa-calendar-alt mr-1.5"></i>
                     {(() => {
-                      const start = assignment.earliestTimeslot || assignment.startDate;
-                      const end = assignment.latestTimeslot || assignment.endDate;
+                      const start = assignment.earliestSession || assignment.earliestTimeslot || assignment.startDate;
+                      const end = assignment.latestSession || assignment.latestTimeslot || assignment.endDate;
                       const fmt = (d) => d ? new Date(d).toLocaleDateString('en-AU', { month: 'short', day: 'numeric' }) : 'TBA';
                       return `${fmt(start)} - ${fmt(end)}`;
                     })()}
@@ -247,7 +247,7 @@ const AssessmentsToAssign = () => {
                       className="px-3 py-2 text-white rounded-lg text-sm font-medium transition-colors flex items-center shadow-sm bg-blue-600 hover:bg-blue-700"
                     >
                       <i className="fas fa-plus mr-1.5"></i>
-                      Select Time Slots
+                      Select Sessions
                     </button>
                   );
                 })()}
@@ -267,7 +267,7 @@ const AssessmentsToAssign = () => {
           </span>
           <div className="flex items-center">
             <i className="fas fa-info-circle mr-1"></i>
-            Click "Select Time Slots" to choose your examination times
+            Click "Select Sessions" to choose your examination times
           </div>
         </div>
       </div>

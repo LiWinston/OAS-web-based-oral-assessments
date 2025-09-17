@@ -83,7 +83,39 @@ export const studentBookingServiceReal = {
         includeReasons,
       },
     });
-    return res.data;
+    const body = res.data;
+    const payload = body?.data;
+    // If backend already returns timeSlots shape, pass through
+    if (Array.isArray(payload?.timeSlots)) return body;
+    // If backend returns flat sessions[], adapt to existing UI shape with synthetic one-to-one slot wrapping
+    if (Array.isArray(payload?.sessions)) {
+      const timeSlots = payload.sessions.map((s) => ({
+        slotId: s.sessionId ?? s.id,
+        start: s.start,
+        end: s.end,
+        venue: s.venue,
+        timezone: s.timezone,
+        requiredExaminers: s.coverage?.required,
+        currentExaminers: s.coverage?.assigned,
+        sessions: [
+          {
+            sessionId: s.sessionId ?? s.id,
+            start: s.start,
+            end: s.end,
+            availability: s.availability || { canBook: true },
+          },
+        ],
+      }));
+      return {
+        ...body,
+        data: {
+          assignment: payload.assignment,
+          timeSlots,
+          pollingHintSeconds: payload.pollingHintSeconds,
+        },
+      };
+    }
+    return body;
   },
 
   async createBooking(

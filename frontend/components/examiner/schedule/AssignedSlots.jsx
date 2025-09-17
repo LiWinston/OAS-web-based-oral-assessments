@@ -39,7 +39,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
   const { withdrawFromTimeslot, isSubmitting, canWithdraw } =
     useTimeslotAssignment();
 
-  // Fetch assigned timeslots from schedule
+  // Fetch assigned sessions from schedule
   const {
     data: scheduleData,
     isLoading,
@@ -71,7 +71,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
           : `Slot #${slot.slotId}`;
         setResultProps({
           status: 'success',
-          title: 'Withdrawn from Time Slot',
+          title: 'Withdrawn from Session',
           message: 'Your schedule has been updated.',
           details: [detail],
           autoDismiss: true,
@@ -83,7 +83,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
       setResultProps({
         status: 'error',
         title: 'Withdraw Failed',
-        message: error?.message || 'Unable to withdraw from this timeslot.',
+        message: error?.message || 'Unable to withdraw from this session.',
         autoDismiss: false,
         primaryActionLabel: 'Close',
       });
@@ -179,7 +179,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               My Assigned Slots
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Manage your assigned examination timeslots
+              Manage your assigned examination sessions
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -206,8 +206,8 @@ export default function AssignedSlots({ showDebugSection = false }) {
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {selectedCourse
-                ? `No assigned slots found for ${selectedCourse}. Try clearing the filter or assign yourself to some timeslots.`
-                : "You have no assigned timeslots yet. Visit the Assessments to Assign section above to get started."}
+                ? `No assigned sessions found for ${selectedCourse}. Try clearing the filter or assign yourself to some sessions.`
+                : "You have no assigned sessions yet. Visit the Assessments to Assign section above to get started."}
             </p>
             {selectedCourse && (
               <Button
@@ -319,7 +319,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                             title={
                               !canWithdraw(slot)
                                 ? "Cannot withdraw: Students are already booked for this session"
-                                : "Click to withdraw from this timeslot"
+                                : "Click to withdraw from this session"
                             }
                           >
                             {isSubmitting ? (
@@ -349,7 +349,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
                   <i className="fas fa-history text-gray-600 mr-2"></i>
-                  Past Slots ({pastSlots.length})
+                  Past Sessions ({pastSlots.length})
                 </h3>
                 <div className="space-y-3">
                   {pastSlots.slice(0, 5).map((slot) => (

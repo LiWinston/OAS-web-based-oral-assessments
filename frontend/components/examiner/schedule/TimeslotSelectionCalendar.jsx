@@ -110,7 +110,7 @@ export default function TimeslotSelectionCalendar({
       <div className="mt-4 space-y-2 text-xs">
         <div className="flex items-center">
           <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
-          <span>Available slots</span>
+          <span>Available sessions</span>
         </div>
         <div className="flex items-center">
           <div className="w-3 h-3 border border-blue-500 bg-blue-100 dark:bg-blue-900/30 rounded-full mr-2"></div>

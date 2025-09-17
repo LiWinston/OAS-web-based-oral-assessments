@@ -1,3 +1,31 @@
+## Sessions-Only Minimal Update (Examiner)
+
+This addendum makes the smallest possible changes to shift from TimeSlot to Session:
+
+- Selection list: show sessions (not timeslots) for the chosen date. Each selected session counts as 1 toward the examiner’s max sessions.
+- Fully staffed sessions are not selectable (no over‑cover); show reason.
+- Conflict detection moves to session granularity (time overlap across assigned and newly selected sessions).
+- Submit remains a single bulk action. Backend validates: membership → overlap → max sessions → session coverage. Atomic all‑or‑nothing.
+- Withdrawal: no time‑based cutoff needed. Keep existing “blocked if students booked” if currently enforced.
+- UI layout remains Calendar + List. Only item labeling changes from “timeslot” to “session”.
+
+All other steps and UX patterns remain the same.
+
+Backend changes summary for this flow
+- Replace Timeslot with Session in examiner-facing APIs.
+- Fully staffed sessions are disabled for self-assignment (no over-cover).
+- Bulk submit uses `POST /api/assignments/{assignmentId}/sessions/assign?examinerId=...` with `{ sessionIds: [...] }`.
+- Withdraw uses `DELETE /api/assignments/{assignmentId}/sessions/{sessionId}/unassign?examinerId=...`.
+- List uses `GET /api/assignments/{assignmentId}/sessions?examinerId=...&date=YYYY-MM-DD&status=available|all`.
+
+UI data requirements per session row
+- `sessionId`, `start`, `end`, `venue.name`
+- `coverage.assigned`, `coverage.required` → derive fully staffed state
+- Optional: `studentCapacity.bookedCount` and `studentCapacity.capacity` for context
+- `availability.canSelect` and `availability.reason` for disabled states
+
+---
+
 ## Examiner Timeslot Assignment — End-to-End Flow (MVP)
 
 This document details the examiner self‑assignment flow for MVP, aligned with the PRD and frontend architecture. It mirrors the structure and fidelity of other design docs while staying focused on what’s necessary for this flow.
