@@ -485,22 +485,22 @@ export function CourseOverviewTable() {
           <div className="flex-1">
             <div className="flex gap-2">
               <div className="relative group flex-1">
-                <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-200"></i>
-                <Input
-                  placeholder="Search courses, codes, or administrators..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+              <i className="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-200"></i>
+              <Input
+                placeholder="Search courses, codes, or administrators..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  className="pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
-                />
-                {searchTerm && (
-                  <button
+                className="pl-12 pr-4 py-3 border-2 border-gray-200 dark:border-gray-700 focus:border-orange-500 dark:focus:border-orange-400 rounded-xl shadow-sm transition-all duration-200 hover:shadow-md focus:shadow-lg h-12"
+              />
+              {searchTerm && (
+                <button
                     onClick={() => setSearchTerm("")}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
-                  >
-                    <i className="fas fa-times"></i>
-                  </button>
-                )}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                >
+                  <i className="fas fa-times"></i>
+                </button>
+              )}
               </div>
               <Button
                 onClick={handleSearch}

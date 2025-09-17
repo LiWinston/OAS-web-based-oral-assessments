@@ -32,12 +32,21 @@ export default function GroupDetails() {
 
   const loadGroupDetails = useCallback(async () => {
     if (!groupId) return;
+    const { isAuthenticated, user } = useAuthStore.getState();
+    if (!isAuthenticated || !user || user.role !== 'STUDENT') {
+      setError({ message: 'You must be signed in as a student to view this group.', type: 'forbidden' });
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
       setError(null);
       
-      const groupData = await studentGroupsService.getCurrentUserGroupDetails(parseInt(groupId));
+      const authState = useAuthStore.getState();
+      const studentId = authState?.user?.id ?? 205;
+      const res = await studentGroupsService.getGroupDetails(studentId, parseInt(groupId));
+      const groupData = res?.data?.group || res?.data || res; // support wrapper shape
       setGroup(groupData);
     } catch (err) {
       console.error('Error loading group details:', err);
@@ -333,6 +342,8 @@ export default function GroupDetails() {
                   <tbody role="rowgroup">
                     {group.members.map((member) => {
                       const formattedMember = studentGroupsService.formatMemberForUI(member);
+                      const authState = useAuthStore.getState();
+                      const isYou = member.isCurrentUser || (authState?.user?.id && authState.user.id === member.studentId);
                       return (
                         <tr 
                           key={member.studentId} 
@@ -345,7 +356,7 @@ export default function GroupDetails() {
                               <div className="ml-3">
                                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {member.name}
-                                  {member.isCurrentUser && (
+                                  {isYou && (
                                     <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                                       You
                                     </span>
@@ -376,6 +387,8 @@ export default function GroupDetails() {
               <div className="md:hidden space-y-3">
                 {group.members.map((member) => {
                   const formattedMember = studentGroupsService.formatMemberForUI(member);
+                  const authState = useAuthStore.getState();
+                  const isYou = member.isCurrentUser || (authState?.user?.id && authState.user.id === member.studentId);
                   return (
                     <div 
                       key={member.studentId}
@@ -387,7 +400,7 @@ export default function GroupDetails() {
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {member.name}
                           </div>
-                          {member.isCurrentUser && (
+                          {isYou && (
                             <span className="mt-1 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               You
                             </span>

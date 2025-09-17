@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import useAuthStore from '../../../store/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
 import { Spinner } from '../../../components/ui/spinner';
@@ -28,24 +29,43 @@ export default function StudentGroups() {
   const [error, setError] = useState(null);
   const [viewMode, setViewMode] = useState("card"); // 'table' or 'card'
   const [searchTerm, setSearchTerm] = useState("");
+  const [pageNum, setPageNum] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+  const [sort, setSort] = useState('semester_desc');
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    const { isAuthenticated, user } = useAuthStore.getState();
+    if (!isAuthenticated || !user || user.role !== 'STUDENT') {
+      setError('You must be signed in as a student to view groups.');
+      setLoading(false);
+      return;
+    }
     loadGroups();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageNum, pageSize, sort]);
 
   const loadGroups = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const groupsData = await studentGroupsService.getCurrentUserGroups();
-      
-      // Format groups for UI display
-      const formattedGroups = groupsData.map(group => 
-        studentGroupsService.formatGroupForUI(group)
-      );
-      
+      const authState = useAuthStore.getState();
+      const studentId = authState?.user?.id ?? 205; // fallback to mock current user id
+
+      const res = await studentGroupsService.getStudentGroups(studentId, {
+        status: 'active',
+        pageNum,
+        pageSize,
+        sort,
+      });
+
+      const page = res?.data;
+      const list = Array.isArray(page?.data) ? page.data : [];
+
+      const formattedGroups = list.map(group => studentGroupsService.formatGroupForUI(group));
       setGroups(formattedGroups);
+      setTotal(page?.total || 0);
     } catch (err) {
       console.error('Error loading groups:', err);
       setError(err.message || 'Failed to load groups');
@@ -254,6 +274,27 @@ export default function StudentGroups() {
                 className="pl-9 w-full sm:w-64 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent px-3 py-2 transition-all duration-200"
               />
             </div>
+
+            {/* Sort */}
+            <select
+              value={sort}
+              onChange={(e) => { setPageNum(0); setSort(e.target.value); }}
+              className="text-sm rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="semester_desc">Newest semester</option>
+              <option value="semester_asc">Oldest semester</option>
+            </select>
+
+            {/* Page size */}
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageNum(0); setPageSize(parseInt(e.target.value, 10)); }}
+              className="text-sm rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2 border border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value={10}>10 / page</option>
+              <option value={20}>20 / page</option>
+              <option value={50}>50 / page</option>
+            </select>
           </div>
         </div>
 
@@ -460,9 +501,28 @@ export default function StudentGroups() {
         )}
       </div>
 
-      {/* Refresh option */}
-      {groups.length > 0 && (
-        <div className="flex justify-center pt-4">
+      {/* Pagination & Refresh */}
+      <div className="flex items-center justify-between pt-4">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          Total: {total} • Page {total === 0 ? 0 : pageNum + 1}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setPageNum((p) => Math.max(0, p - 1))}
+            disabled={loading || pageNum === 0}
+          >
+            <i className="fas fa-chevron-left mr-2"></i>
+            Prev
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setPageNum((p) => p + 1)}
+            disabled={loading || (pageNum + 1) * pageSize >= total}
+          >
+            Next
+            <i className="fas fa-chevron-right ml-2"></i>
+          </Button>
           <Button 
             variant="outline" 
             onClick={loadGroups}
@@ -477,12 +537,12 @@ export default function StudentGroups() {
             ) : (
               <>
                 <i className="fas fa-sync-alt mr-2"></i>
-                Refresh Groups
+                Refresh
               </>
             )}
           </Button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

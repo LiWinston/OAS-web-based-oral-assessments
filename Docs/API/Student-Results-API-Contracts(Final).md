@@ -8,6 +8,14 @@ Version: 1.0 • Status: Proposed for Approval • Last updated: 2025‑08‑30
 - **Conditional requests**: `Last-Modified` + `If-Modified-Since` on result lists and details.
 - **Caching hint**: `cachingHintSeconds: 3600` may be returned in result responses (results are static once released).
 
+### Common HTTP headers
+- Request
+  - `Authorization: Bearer <accessToken>`
+  - `If-Modified-Since: <http-date>` (optional)
+- Response
+  - `Last-Modified: <http-date>` (when applicable)
+  - `Cache-Control: private, must-revalidate`
+
 ---
 
 ## Data Models (excerpt)
@@ -19,6 +27,13 @@ Version: 1.0 • Status: Proposed for Approval • Last updated: 2025‑08‑30
 
 **Reason codes**
 - Visibility/access: `NOT_RELEASED`, `NOT_ASSESSED`, `FORBIDDEN`, `NOT_FOUND`, `NO_RESULTS_AVAILABLE`
+
+### User-facing error copy (for Frontend)
+- `FORBIDDEN` — "You don't have access to this result."
+- `NOT_FOUND` — "We couldn't find this result."
+- `NOT_RELEASED` — "Results for this assignment haven't been released yet."
+- `NOT_ASSESSED` — "You weren't assessed for this assignment."
+- `STALE_DATA` — "This information may have changed. Please refresh."
 
 ---
 
@@ -170,6 +185,36 @@ Version: 1.0 • Status: Proposed for Approval • Last updated: 2025‑08‑30
 ```
 
 ---
+
+## 3b) Get rubric scale (levels per criterion)
+Used by Canvas-style rubric grid to render rating levels/labels. Optional; when not implemented, clients SHOULD infer scale from rubric breakdown if present.
+
+**GET** `/api/students/{studentId}/assignments/{assignmentId}/result/rubric/scale`
+
+**200 OK**
+```json
+{
+  "success": true,
+  "code": "OK",
+  "data": {
+    "criteria": [
+      {
+        "criterionId": 1,
+        "levels": [
+          { "label": "Excellent", "points": 10 },
+          { "label": "Good", "points": 8 },
+          { "label": "Fair", "points": 6 },
+          { "label": "Poor", "points": 4 }
+        ]
+      }
+    ]
+  }
+}
+```
+
+Notes:
+- Response MAY be derived from rubric definition; does not include student scores.
+- Clients MAY cache aggressively; include `Last-Modified` for conditional GETs.
 
 ## 4) Get examiner feedback
 **GET** `/api/students/{studentId}/assignments/{assignmentId}/result/feedback`

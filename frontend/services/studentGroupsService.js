@@ -6,7 +6,7 @@
  * with mock data that matches the expected response format.
  */
 
-import { apiClient } from './apiClient';
+import apiClient, { api } from './apiClient';
 
 // Mock data following the API contract data models
 const mockGroupsData = {
@@ -119,6 +119,27 @@ const MOCK_CURRENT_USER_ID = 205;
  * Implements the API contracts defined in Student-Groups-API-Contracts(Final).md
  */
 class StudentGroupsService {
+  constructor() {
+    this.useMock = process.env.NEXT_PUBLIC_USE_MOCK_GROUPS === 'true';
+    // simple in-memory Last-Modified cache keyed by request signature
+    this.lastModifiedCache = new Map();
+    // cache last successful wrapped responses keyed by request signature
+    this.responseBodyCache = new Map();
+  }
+
+  // Internal: build config with conditional GET headers
+  buildConfigWithIMS(key, extra = {}) {
+    const headers = { ...(extra.headers || {}) };
+    const last = this.lastModifiedCache.get(key);
+    if (last) headers['If-Modified-Since'] = last;
+    return { ...extra, headers };
+  }
+
+  // Internal: process response and update Last-Modified cache
+  handleConditionalResponse(key, response) {
+    const lm = response?.headers?.['last-modified'] || response?.headers?.['Last-Modified'];
+    if (lm) this.lastModifiedCache.set(key, lm);
+  }
   /**
    * List student's active groups (assignment-level)
    * GET /api/students/{studentId}/groups?status=active&pageNum=&pageSize=&sort=semester_desc
@@ -140,36 +161,49 @@ class StudentGroupsService {
         sort = 'semester_desc'
       } = options;
 
-      // TODO: Replace with real API call
-      // const response = await apiClient.get(
-      //   `/api/students/${studentId}/groups`,
-      //   {
-      //     params: { status, pageNum, pageSize, sort }
-      //   }
-      // );
-      // return response.data;
-      
-      // Mock implementation with realistic delay
-      return new Promise((resolve) => {
-        setTimeout(() => {
-          const response = {
-            success: true,
-            code: "OK",
-            data: mockGroupsData.groupsOverview
-          };
-          resolve(response);
-        }, 300);
-      });
+      if (this.useMock) {
+        // Mock path
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve({ success: true, code: 'OK', data: mockGroupsData.groupsOverview });
+          }, 200);
+        });
+      }
+
+      // Real API path
+      const key = `GET:/api/students/${studentId}/groups?${status}|${pageNum}|${pageSize}|${sort}`;
+      const config = this.buildConfigWithIMS(key, { params: { status, pageNum, pageSize, sort } });
+      const response = await api.get(`/api/students/${studentId}/groups`, config);
+      if (response.status === 304) {
+        // Return last successful REAL response if cached; otherwise fallback to previous behavior
+        const cached = this.responseBodyCache.get(key);
+        if (cached) return cached;
+        return { success: true, code: 'OK', data: mockGroupsData.groupsOverview };
+      }
+      this.handleConditionalResponse(key, response);
+
+      const wrapped = response.data;
+      if (wrapped?.success === false) {
+        const reason = wrapped?.code || 'UNKNOWN_ERROR';
+        const msg = wrapped?.message || 'Failed to load groups';
+        const err = new Error(msg);
+        err.code = reason;
+        throw err;
+      }
+      // cache successful wrapped response for 304 reuse
+      this.responseBodyCache.set(key, wrapped);
+      return wrapped;
     } catch (error) {
       console.error('Error fetching student groups:', error);
       
-      // Handle different error scenarios based on API contract
-      if (error.response?.status === 403) {
-        throw new Error('Access forbidden - not authorized to view groups');
-      } else if (error.response?.status === 404) {
-        throw new Error('Student not found or no groups available');
+      // Normalize errors according to API contract
+      const code = error.code || error.response?.data?.code;
+      if (code === 'FORBIDDEN' || error.response?.status === 403) {
+        throw new Error("You don’t have access to these groups.");
       }
-      
+      if (code === 'NOT_FOUND' || error.response?.status === 404) {
+        throw new Error("Student not found.");
+      }
       throw error;
     }
   }
@@ -186,61 +220,67 @@ class StudentGroupsService {
    */
   async getGroupDetails(studentId, groupId) {
     try {
-      // TODO: Replace with real API call
-      // const response = await apiClient.get(`/api/students/${studentId}/groups/${groupId}`);
-      // return response.data;
-      
-      // Mock implementation with membership validation
-      return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          // Simulate membership validation
-          const groupDetails = mockGroupsData.groupDetails[groupId];
-          
-          if (!groupDetails) {
-            const error = new Error('Group not found or archived');
-            error.response = { status: 404 };
-            error.code = 'NOT_FOUND';
-            reject(error);
-            return;
-          }
-          
-          // Check if current user is a member of this group
-          const isMember = groupDetails.members.some(
-            member => member.studentId === MOCK_CURRENT_USER_ID
-          );
-          
-          if (!isMember) {
-            const error = new Error('Access forbidden - not a member of this group');
-            error.response = { status: 403 };
-            error.code = 'FORBIDDEN';
-            reject(error);
-            return;
-          }
-          
-          const response = {
-            success: true,
-            code: "OK",
-            data: {
-              group: groupDetails
+      if (this.useMock) {
+        // Mock implementation with membership validation
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            const groupDetails = mockGroupsData.groupDetails[groupId];
+            if (!groupDetails) {
+              const error = new Error('Group not found or archived');
+              error.response = { status: 404 };
+              error.code = 'NOT_FOUND';
+              reject(error);
+              return;
             }
-          };
-          resolve(response);
-        }, 400);
-      });
+            const isMember = groupDetails.members.some(m => m.studentId === MOCK_CURRENT_USER_ID);
+            if (!isMember) {
+              const error = new Error('Access forbidden - not a member of this group');
+              error.response = { status: 403 };
+              error.code = 'FORBIDDEN';
+              reject(error);
+              return;
+            }
+            resolve({ success: true, code: 'OK', data: { group: groupDetails } });
+          }, 250);
+        });
+      }
+
+      // Real API path
+      const key = `GET:/api/students/${studentId}/groups/${groupId}`;
+      const config = this.buildConfigWithIMS(key);
+      const response = await api.get(`/api/students/${studentId}/groups/${groupId}`, config);
+      if (response.status === 304) {
+        const cached = this.responseBodyCache.get(key);
+        if (cached) return cached;
+        return { success: true, code: 'OK', data: { group: mockGroupsData.groupDetails[groupId] } };
+      }
+      this.handleConditionalResponse(key, response);
+      const wrapped = response.data;
+      if (wrapped?.success === false) {
+        const reason = wrapped?.code || 'UNKNOWN_ERROR';
+        const msg = wrapped?.message || 'Failed to load group';
+        const err = new Error(msg);
+        err.code = reason;
+        throw err;
+      }
+      this.responseBodyCache.set(key, wrapped);
+      return wrapped;
     } catch (error) {
       console.error('Error fetching group details:', error);
       
-      // Handle different error scenarios based on API contract
-      if (error.code === 'FORBIDDEN') {
-        throw new Error("You don't have access to this group.");
-      } else if (error.code === 'NOT_FOUND') {
-        throw new Error("We couldn't find this group.");
-      } else if (error.code === 'NOT_ELIGIBLE') {
-        throw new Error("This assignment doesn't use group membership.");
-      } else if (error.code === 'STALE_DATA') {
+      const code = error.code || error.response?.data?.code;
+      if (code === 'FORBIDDEN' || error.response?.status === 403) {
+        throw new Error("You don’t have access to this group.");
+      }
+      if (code === 'NOT_FOUND' || error.response?.status === 404) {
+        throw new Error("We couldn’t find this group.");
+      }
+      if (code === 'NOT_ELIGIBLE') {
+        throw new Error("This assignment doesn’t use group membership.");
+      }
+      if (code === 'STALE_DATA') {
         throw new Error("This information changed. Please refresh.");
       }
-      
       throw error;
     }
   }

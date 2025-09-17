@@ -90,11 +90,16 @@ public enum BusinessError implements Error {
     RUBRIC_PARSE_ERROR("9007", "Rubric parse error"),
     NOT_ASSIGNED_TO_SESSION("9008", "Examiner not assigned to session"),
     ASSESSMENT_ALREADY_SUBMITTED("9009", "Assessment already submitted"),
+
+    // Student Results domain
+    NOT_RELEASED("410", "Results for this assignment haven't been released yet."),
+    NOT_ASSESSED("423", "You weren't assessed for this assignment."),
+    RESULT_NOT_FOUND("404", "Result not found"),
     RUBRIC_CRITERION_INCOMPLETE("9010", "Rubric criterion not fully completed"),
     INCOMPATIBLE_SCORE_FIELDS("9011", "Incompatible score fields for scaleType");
     // add more below as needed
-    
-  
+
+
     private final String code;
     private final String message;
     
