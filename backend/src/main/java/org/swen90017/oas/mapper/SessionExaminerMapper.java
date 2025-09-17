@@ -19,6 +19,12 @@ public interface SessionExaminerMapper extends BaseMapper<SessionExaminer> {
 
     int countAssignedSessionsByExaminer(@Param("assignmentId") Long assignmentId,
                                         @Param("examinerId") Long examinerId);
+    
+    /**
+     * List sessions assigned to an examiner, optionally filtered by assignmentId
+     */
+    List<org.swen90017.oas.entity.SlotSession> listSessionsByExaminer(@Param("examinerId") Long examinerId,
+                                                                       @Param("assignmentId") Long assignmentId);
 }
 
 
