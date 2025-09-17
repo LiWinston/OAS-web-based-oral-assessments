@@ -162,6 +162,7 @@ export default function AssignmentTimeSlotsPage() {
     try {
       await courseAdminSessionService.deleteSessions(assignmentId, [id]);
       await refreshSessions();
+      await reloadAvailableExaminers();
       setCalendarRefresh((v) => v + 1);
       showSuccess('Session deleted');
     } catch (e) {
@@ -203,6 +204,14 @@ export default function AssignmentTimeSlotsPage() {
       // ignore
     }
   };
+  const reloadAvailableExaminers = useCallback(async () => {
+    try {
+      const res = await courseAdminSessionService.getAvailableExaminers(assignmentId);
+      setAvailableExaminers(Array.isArray(res?.data) ? res.data : []);
+    } catch (e) {
+      // ignore
+    }
+  }, [assignmentId]);
   const toggleExaminers = async (sessionId) => {
     if (openExaminerForSessionId === sessionId) {
       setOpenExaminerForSessionId(null);
@@ -257,6 +266,7 @@ export default function AssignmentTimeSlotsPage() {
       });
       showSuccess('Examiner assigned');
       setCalendarRefresh((v) => v + 1);
+      await reloadAvailableExaminers();
     } catch (e) {
       showError('Failed to assign examiner');
     }
@@ -271,6 +281,7 @@ export default function AssignmentTimeSlotsPage() {
       }));
       showSuccess('Examiner removed');
       setCalendarRefresh((v) => v + 1);
+      await reloadAvailableExaminers();
     } catch (e) {
       showError('Failed to remove examiner');
     }
