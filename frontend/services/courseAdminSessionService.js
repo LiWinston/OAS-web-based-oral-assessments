@@ -83,12 +83,14 @@ export const courseAdminSessionService = {
     };
     const resp = await apiClient.post(`${sessionsBase(assignmentId)}/sessions/batch`, request);
     const payload = extract(resp);
+    const raw = resp?.data ?? {};
     const createdRaw = payload?.sessions || payload || [];
     const toHhMm = (t) => (typeof t === 'string' ? t.slice(0, 5) : t);
     const created = Array.isArray(createdRaw)
       ? createdRaw.map((s) => ({ ...s, startTime: toHhMm(s.startTime), endTime: toHhMm(s.endTime) }))
       : [];
-    return { success: true, data: created };
+    const message = raw.message || (typeof raw.data === 'string' ? raw.data : undefined);
+    return { success: Boolean(raw.success ?? true), code: raw.code, message, data: created };
   },
 
   async generateSessions(assignmentId, body) {
@@ -104,17 +106,21 @@ export const courseAdminSessionService = {
     };
     const resp = await apiClient.post(`${sessionsBase(assignmentId)}/sessions/generate`, request);
     const payload = extract(resp);
+    const raw = resp?.data ?? {};
     const toHhMm = (t) => (typeof t === 'string' ? t.slice(0, 5) : t);
     const generatedRaw = payload?.sessions || payload || [];
     const generated = Array.isArray(generatedRaw)
       ? generatedRaw.map((s) => ({ ...s, startTime: toHhMm(s.startTime), endTime: toHhMm(s.endTime) }))
       : [];
-    return { success: true, data: generated };
+    const message = raw.message || (typeof raw.data === 'string' ? raw.data : undefined);
+    return { success: Boolean(raw.success ?? true), code: raw.code, message, data: generated };
   },
 
   async deleteSessions(assignmentId, sessionIds = []) {
     const resp = await apiClient.delete(`${sessionsBase(assignmentId)}/sessions`, { data: { sessionIds } });
-    return { success: true, data: extract(resp) };
+    const raw = resp?.data ?? {};
+    const message = raw.message || (typeof raw.data === 'string' ? raw.data : undefined);
+    return { success: Boolean(raw.success ?? true), code: raw.code, message, data: extract(resp) };
   },
 
   // Examiners — list available within an assignment (session-aware filtering TBD on backend)
@@ -134,7 +140,9 @@ export const courseAdminSessionService = {
   },
   async unassignSessionExaminer(sessionId, examinerId) {
     const resp = await apiClient.delete(`/api/admin/sessions/${sessionId}/examiners/${examinerId}`);
-    return { success: true, data: extract(resp) };
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: extract(resp) };
   },
   async getSessionExaminerIds(sessionId) {
     const resp = await apiClient.get(`/api/admin/sessions/${sessionId}/examiners`);
@@ -188,9 +196,11 @@ export const courseAdminSessionService = {
     };
     const resp = await apiClient.put(`${sessionsBase(assignmentId)}/sessions/${sessionId}`, request);
     const payload = extract(resp);
+    const raw = resp?.data ?? {};
     const updated = payload?.session || payload || null;
     const toHhMm = (t) => (typeof t === 'string' ? t.slice(0, 5) : t);
-    return { success: true, data: updated ? { ...updated, startTime: toHhMm(updated.startTime), endTime: toHhMm(updated.endTime) } : null };
+    const message = raw.message || (typeof raw.data === 'string' ? raw.data : undefined);
+    return { success: Boolean(raw.success ?? true), code: raw.code, message, data: updated ? { ...updated, startTime: toHhMm(updated.startTime), endTime: toHhMm(updated.endTime) } : null };
   },
 
   // Publish / Visibility controls per session
@@ -218,11 +228,15 @@ export const courseAdminSessionService = {
   },
   async setSessionPublishToStudents(sessionId, value) {
     const resp = await apiClient.put(`/api/admin/sessions/sessions/${sessionId}/publish/student`, null, { params: { value: Boolean(value) } });
-    return { success: true, data: extract(resp) };
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: extract(resp) };
   },
   async setSessionPublishToExaminers(sessionId, value) {
     const resp = await apiClient.put(`/api/admin/sessions/sessions/${sessionId}/publish/examiner`, null, { params: { value: Boolean(value) } });
-    return { success: true, data: extract(resp) };
+    const d = resp?.data ?? {};
+    const message = d.message ?? (typeof d.data === 'string' ? d.data : undefined);
+    return { success: Boolean(d.success ?? true), code: d.code, message, data: extract(resp) };
   },
 
   // Sessions calendar (assignment-level, month in YYYY-MM)

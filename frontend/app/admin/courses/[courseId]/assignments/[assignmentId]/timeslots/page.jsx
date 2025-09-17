@@ -135,7 +135,10 @@ export default function AssignmentTimeSlotsPage() {
     if (!generator || !generator.date || !generator.startTime) return;
     try {
       const res = await courseAdminSessionService.generateSessions(assignmentId, generator);
-      const created = res?.data || [];
+      if (!res?.success) {
+        showError(res?.message || res?.code || 'Operation failed');
+        return;
+      }
       // Always refresh from server so list shows IDs and latest state
       await refreshSessions();
       setCalendarRefresh((v) => v + 1);
@@ -147,7 +150,10 @@ export default function AssignmentTimeSlotsPage() {
     if (!session) return;
     try {
       const res = await courseAdminSessionService.createSessionsBatch(assignmentId, { sessions: [session] });
-      const created = res?.data || [];
+      if (!res?.success) {
+        showError(res?.message || res?.code || 'Operation failed');
+        return;
+      }
       // Refresh to reflect backend-created session IDs and details
       await refreshSessions();
       setCalendarRefresh((v) => v + 1);
@@ -160,7 +166,11 @@ export default function AssignmentTimeSlotsPage() {
     const confirmed = await confirm('Delete this session?');
     if (!confirmed) return;
     try {
-      await courseAdminSessionService.deleteSessions(assignmentId, [id]);
+      const res = await courseAdminSessionService.deleteSessions(assignmentId, [id]);
+      if (!res?.success) {
+        showError(res?.message || res?.code || 'Operation failed');
+        return;
+      }
       await refreshSessions();
       await reloadAvailableExaminers();
       setCalendarRefresh((v) => v + 1);
@@ -186,7 +196,11 @@ export default function AssignmentTimeSlotsPage() {
   const handleUpdateSingleSession = async (session) => {
     if (!session?.id) return;
     try {
-      await courseAdminSessionService.updateSession(assignmentId, session.id, session);
+      const res = await courseAdminSessionService.updateSession(assignmentId, session.id, session);
+      if (!res?.success) {
+        showError(res?.message || res?.code || 'Operation failed');
+        return;
+      }
       await refreshSessions();
       showSuccess('Session updated');
     } catch (e) {
