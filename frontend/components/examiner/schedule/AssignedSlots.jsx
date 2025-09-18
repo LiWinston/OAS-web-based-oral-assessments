@@ -8,7 +8,7 @@ import { useTimeslotAssignment } from "../../../hooks/useTimeslotAssignment";
 import { Button } from "../../ui/button";
 import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
 import ConfirmWithdrawDialog from "@/components/examiner/schedule/ConfirmWithdrawDialog";
-import { formatVenue } from '@/utils/formatVenue';
+import { formatVenue } from "@/utils/formatVenue";
 import useScheduleFilterStore from "../../../store/scheduleFilterStore";
 
 function formatTime(isoString, timezone = "Australia/Melbourne") {
@@ -36,7 +36,7 @@ function formatDate(isoString) {
 export default function AssignedSlots({ showDebugSection = false }) {
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse } = useScheduleFilterStore();
-  const { withdrawFromTimeslot, isSubmitting, canWithdraw } =
+  const { withdrawFromSession, isSubmitting, canWithdraw } =
     useTimeslotAssignment();
 
   // Fetch assigned sessions from schedule
@@ -60,19 +60,29 @@ export default function AssignedSlots({ showDebugSection = false }) {
 
   const doWithdraw = async (slot) => {
     try {
-      const res = await withdrawFromTimeslot(slot, () => {
+      const res = await withdrawFromSession(slot, () => {
         refetch();
       });
       if (res?.success) {
         const start = slot.start ? new Date(slot.start) : null;
         const end = slot.end ? new Date(slot.end) : null;
-        const detail = start && end
-          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
-          : `Slot #${slot.slotId}`;
+        const detail =
+          start && end
+            ? `${start.toLocaleDateString("en-AU", {
+                month: "short",
+                day: "numeric",
+              })} ${start.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+              })} – ${end.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+              })}`
+            : `Session #${slot.sessionId ?? slot.slotId}`;
         setResultProps({
-          status: 'success',
-          title: 'Withdrawn from Session',
-          message: 'Your schedule has been updated.',
+          status: "success",
+          title: "Withdrawn from Session",
+          message: "Your schedule has been updated.",
           details: [detail],
           autoDismiss: true,
           autoDismissMs: 1300,
@@ -81,11 +91,11 @@ export default function AssignedSlots({ showDebugSection = false }) {
       }
     } catch (error) {
       setResultProps({
-        status: 'error',
-        title: 'Withdraw Failed',
-        message: error?.message || 'Unable to withdraw from this session.',
+        status: "error",
+        title: "Withdraw Failed",
+        message: error?.message || "Unable to withdraw from this session.",
         autoDismiss: false,
-        primaryActionLabel: 'Close',
+        primaryActionLabel: "Close",
       });
       setResultOpen(true);
     }
@@ -105,7 +115,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
           !selectedCourse || assignment.courseCode === selectedCourse
       )
       .flatMap((assignment) =>
-        assignment.slots.map((slot) => ({
+        (assignment.sessions || assignment.slots || []).map((slot) => ({
           ...slot,
           assignmentId: assignment.assignmentId,
           assignmentName: assignment.assignmentName,
@@ -134,7 +144,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-gray-600 dark:text-gray-400">
-              Loading assigned slots...
+              Loading assigned sessions...
             </span>
           </div>
         </div>
@@ -148,7 +158,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
         <div className="p-6">
           <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-800 dark:text-red-200">
             <i className="fas fa-exclamation-triangle mr-2"></i>
-            Failed to load assigned slots.
+            Failed to load assigned sessions.
             <button
               onClick={() => refetch()}
               className="underline hover:no-underline ml-1"
@@ -164,7 +174,11 @@ export default function AssignedSlots({ showDebugSection = false }) {
   return (
     <div className="dashboard-card">
       <div className="p-6">
-        <OperationResultDialog open={resultOpen} onOpenChange={setResultOpen} {...resultProps} />
+        <OperationResultDialog
+          open={resultOpen}
+          onOpenChange={setResultOpen}
+          {...resultProps}
+        />
         <ConfirmWithdrawDialog
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
@@ -176,7 +190,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
           <div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-calendar-check text-blue-600 dark:text-blue-400 mr-2"></i>
-              My Assigned Slots
+              My Assigned Sessions
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Manage your assigned examination sessions
@@ -202,7 +216,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               <i className="fas fa-calendar-times text-gray-400 dark:text-gray-500 text-3xl"></i>
             </div>
             <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
-              No Assigned Slots
+              No Assigned Sessions
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {selectedCourse
@@ -225,12 +239,12 @@ export default function AssignedSlots({ showDebugSection = false }) {
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Upcoming Slots */}
+            {/* Upcoming Sessions */}
             {upcomingSlots.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
                   <i className="fas fa-arrow-right text-green-600 mr-2"></i>
-                  Upcoming Slots ({upcomingSlots.length})
+                  Upcoming Sessions ({upcomingSlots.length})
                 </h3>
                 <div className="space-y-3">
                   {upcomingSlots.map((slot) => (
@@ -303,7 +317,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                               Start Assessment
                             </Button>
                           )}
-                          
+
                           <Button
                             onClick={() => handleWithdraw(slot)}
                             disabled={!canWithdraw(slot) || isSubmitting}
@@ -344,7 +358,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               </div>
             )}
 
-            {/* Past Slots */}
+            {/* Past Sessions */}
             {pastSlots.length > 0 && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
@@ -385,7 +399,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                               )}
                           </div>
                         </div>
-                        
+
                         <div className="flex items-end">
                           <Button
                             onClick={() => {
@@ -405,7 +419,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
 
                   {pastSlots.length > 5 && (
                     <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">
-                      ... and {pastSlots.length - 5} more past slots
+                      ... and {pastSlots.length - 5} more past sessions
                     </div>
                   )}
                 </div>

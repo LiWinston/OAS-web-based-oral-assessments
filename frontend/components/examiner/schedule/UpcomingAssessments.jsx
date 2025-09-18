@@ -29,7 +29,7 @@ const UpcomingAssessments = () => {
   });
 
   const allSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment => 
-    assignment.slots.map(slot => ({
+    (assignment.sessions || assignment.slots || []).map(slot => ({
       ...slot,
       assignmentId: assignment.assignmentId,
       assignmentName: assignment.assignmentName,

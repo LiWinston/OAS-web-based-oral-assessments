@@ -21,7 +21,7 @@ const ExaminerCalendar = () => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showNotification } = useNotification();
   
-  const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
+  const { withdrawFromSession, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const [resultOpen, setResultOpen] = useState(false);
   const [resultProps, setResultProps] = useState({});
 
@@ -40,19 +40,22 @@ const ExaminerCalendar = () => {
     staleTime: 60 * 1000 // 1 minute stale time
   });
 
-  const scheduleSlotsRaw = useMemo(() => scheduleData?.data?.assignments?.flatMap(assignment =>
-    assignment.slots.map(slot => ({
-      ...slot,
-      assignmentId: assignment.assignmentId,
-      assignmentName: assignment.assignmentName,
-      courseCode: assignment.courseCode,
-      courseName: assignment.courseName,
-      assessmentType: (slot.requiredExaminers === 1) ? 'INDIVIDUAL' : 'GROUP'
-    }))
-  ) || [], [scheduleData]);
+  const scheduleSessionsRaw = useMemo(() => (
+    (scheduleData?.data?.assignments ?? []).flatMap((assignment) =>
+      (assignment.sessions || assignment.slots || []).map((slot) => ({
+        ...slot,
+        assignmentId: assignment.assignmentId,
+        assignmentName: assignment.assignmentName,
+        courseCode: assignment.courseCode,
+        courseName: assignment.courseName,
+        assessmentType:
+          (slot.requiredExaminers === 1 ? 'INDIVIDUAL' : 'GROUP'),
+      }))
+    )
+  ), [scheduleData]);
 
   const scheduleSlots = useMemo(() => {
-    let filtered = scheduleSlotsRaw;
+    let filtered = scheduleSessionsRaw;
     if (selectedCourse) filtered = filtered.filter(s => s.courseCode === selectedCourse);
     if (assessmentType && assessmentType !== 'ALL') filtered = filtered.filter(s => s.assessmentType === assessmentType);
     if (searchText && searchText.trim()) {
@@ -65,7 +68,7 @@ const ExaminerCalendar = () => {
       );
     }
     return filtered;
-  }, [scheduleSlotsRaw, selectedCourse, assessmentType, searchText]);
+  }, [scheduleSessionsRaw, selectedCourse, assessmentType, searchText]);
   
 
   const navigateMonth = (direction) => {
@@ -144,7 +147,7 @@ const ExaminerCalendar = () => {
     if (!selectedEvent) return;
     setIsWithdrawing(true);
     try {
-      const res = await withdrawFromTimeslot(selectedEvent, async () => {
+      const res = await withdrawFromSession(selectedEvent, async () => {
         setConfirmOpen(false);
         setShowEventModal(false);
         await refetch();
@@ -154,7 +157,7 @@ const ExaminerCalendar = () => {
         const end = selectedEvent.end ? new Date(selectedEvent.end) : null;
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
-          : `Slot #${selectedEvent.slotId}`;
+          : `Session #${selectedEvent.sessionId ?? selectedEvent.slotId}`;
         setResultProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setResultOpen(true);
       }
