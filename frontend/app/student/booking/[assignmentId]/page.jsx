@@ -166,10 +166,11 @@ export default function StudentBookingSteps() {
   }, [timeSlots, venueFilter]);
 
   const sessionIsBookable = (s) => {
-    const canBook = s?.availability?.canBook;
-    const status = (s?.status || "").toString().toLowerCase();
-    if (typeof canBook === "boolean") return canBook;
-    return status === "available"; // fallback to status when canBook not provided
+    const avail = s?.availability || {};
+    if (typeof avail.canBook === "boolean") return avail.canBook;
+    if (typeof avail.reason === "string" && avail.reason) return false;
+    // If backend omits availability, by contract it returns only bookable sessions (student flow)
+    return true;
   };
 
   const bookMutation = useMutation({

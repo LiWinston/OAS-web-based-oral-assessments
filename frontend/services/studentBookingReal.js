@@ -89,23 +89,26 @@ export const studentBookingServiceReal = {
     if (Array.isArray(payload?.timeSlots)) return body;
     // If backend returns flat sessions[], adapt to existing UI shape with synthetic one-to-one slot wrapping
     if (Array.isArray(payload?.sessions)) {
-      const timeSlots = payload.sessions.map((s) => ({
-        slotId: s.sessionId ?? s.id,
-        start: s.start,
-        end: s.end,
-        venue: s.venue,
-        timezone: s.timezone,
-        requiredExaminers: s.coverage?.required,
-        currentExaminers: s.coverage?.assigned,
-        sessions: [
-          {
-            sessionId: s.sessionId ?? s.id,
-            start: s.start,
-            end: s.end,
-            availability: s.availability || { canBook: true },
-          },
-        ],
-      }));
+      const timeSlots = payload.sessions.map((s) => {
+        const venue = s.venue || ((s.venueId || s.venueName) ? { venueId: s.venueId, name: s.venueName } : undefined);
+        return {
+          slotId: s.sessionId ?? s.id,
+          start: s.start,
+          end: s.end,
+          venue,
+          timezone: s.timezone,
+          requiredExaminers: s.coverage?.required,
+          currentExaminers: s.coverage?.assigned,
+          sessions: [
+            {
+              sessionId: s.sessionId ?? s.id,
+              start: s.start,
+              end: s.end,
+              availability: s.availability || { canBook: true },
+            },
+          ],
+        };
+      });
       return {
         ...body,
         data: {
@@ -151,6 +154,14 @@ export const studentBookingServiceReal = {
       }
       throw err;
     }
+  },
+
+  async rescheduleBooking(assignmentId, currentSessionId, studentId, targetSessionId) {
+    const res = await api.post(
+      `/api/assignments/${assignmentId}/bookings/${currentSessionId}/reschedule`,
+      { studentId, targetSessionId }
+    );
+    return res.data;
   },
 
   async getMyBookings(
