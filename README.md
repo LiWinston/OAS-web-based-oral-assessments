@@ -49,7 +49,7 @@ By implementing this solution, the project will improve the overall efficiency, 
 - Project: ADVANCED MASTERS SOFTWARE ENGINEERING PROJECT SUBJECT SWEN90017
 - Semester: 2025 Semester 1
 - Subject Coordinator: Mansooreh Zahedi
-- Client: Hasti Samadi, CIS Melbourne 
+- Client: Hasti Samadi, CIS Melbourne
 - Supervisor: Geela Chee
 
 ## Tech Stack
@@ -134,42 +134,6 @@ By implementing this solution, the project will improve the overall efficiency, 
     </td>
   </tr>
 </table>
-
-## Admin Results — Folder & Component Structure
-
-- Routes under `frontend/app/admin/courses/[courseId]/assignments/[assignmentId]/results`
-  - `results/page.jsx` — consolidated list
-  - `results/[sessionId]/[kind]/[entityId]/page.jsx` — entity detail
-  - `results/aggregation/page.jsx` — aggregation method
-  - `results/schedule/page.jsx` — publication schedule
-
-- Services
-  - `frontend/services/adminResultsService.js` — mock/real toggle wrapper
-  - `frontend/services/adminResultsService.mock.js` — mock implementation (envelope preserved)
-  - `frontend/services/adminResultsService.real.js` — real API calls (envelope preserved)
-
-- Hooks
-  - `frontend/hooks/admin/useAdminResults.js` — React Query hooks
-    - `useConsolidatedResults`, `useEntityDetail`
-    - `useAggregation`, `useSetAggregation`
-    - `useReleaseResults`, `useWithdrawResults`
-    - `useSchedule`, `useSetSchedule`
-    - `useSetOverride`, `useClearOverride`
-
-- Components under `frontend/components/admin/results`
-  - list
-    - `ResultsConsolidatedList.jsx`
-    - `ResultsFilterBar.jsx`
-  - detail
-    - `EntityDetailView.jsx`
-    - `RubricReadOnly.jsx`
-    - `SubmissionsList.jsx`
-    - `CommentsPanel.jsx`
-  - dialogs
-    - `ReleaseDialog.jsx`, `WithdrawDialog.jsx`, `ReviewDialog.jsx`, `ScheduleDialog.jsx`
-  - shared
-    - `StatusChip.jsx`, `DivergenceIndicator.jsx`, `shared/keyUtils.js`
-
 
 ### Backend Dev Team
 
@@ -286,6 +250,7 @@ By implementing this solution, the project will improve the overall efficiency, 
 </table>
 
 ### Testing Team (From Semester 2)
+
 <table>
   <tr>
     <td width="150" align="center">
@@ -315,10 +280,10 @@ By implementing this solution, the project will improve the overall efficiency, 
   </tr>
 </table>
 
-
 ## Project Structure
 
 We will use monorepo structure for this project. The project will be divided into multiple packages, each responsible for a specific functionality. The main packages include:
+
 - **frontend**: Contains the source code for the frontend application.
 - **backend**: Contains the source code for the backend application.
 
@@ -438,17 +403,20 @@ cd OAS-web-based-oral-assessments
 ### Sprint 1 (2025-03-10 - 2025-03-30)
 
 - **Project Setup and Documentation**
+
   - Established project repository and documentation structure
   - Created [README](README.md) with project overview and team information
   - Set up organizational structure for [documentation](Docs/README.md)
   - Implemented documentation standards
 
 - **Requirements Engineering**
+
   - Created detailed [user stories](Docs/Requirement/user_stories.md) and [acceptance criteria](Docs/Requirement/acceptance_criteria.md)
   - Completed initial [stakeholder analysis](Docs/Stakeholder_Analysis.md)
   - Documented [project scope and constraints](Docs/Project_Background.md)
 
 - **Team Organization**
+
   - Established team roles and responsibilities
   - Set up [weekly reporting process](Docs/Weekly%20Reports/README.md)
   - Conducted initial [client](Docs/Meetings/Week%203/Week%203%20ClientMeeting%2020.03.2025.md) and [mentor](Docs/Meetings/Week%203/Week%203%20MentorMeeting%2020.03.2025.md) meetings
@@ -461,21 +429,25 @@ cd OAS-web-based-oral-assessments
 ### Sprint 2 (2025-03-31 - 2025-04-20) [In Progress]
 
 - **Architecture and Design**
+
   - Created initial [class diagram](Docs/Architecture/Class%20Diagram.svg)
   - Developed [database schema diagram](Docs/Architecture/Database%20Diagram.svg)
   - Designed [use case diagrams](Docs/Architecture/Use%20case%20diagram.svg)
   - Established [technical documentation structure](Docs/Architecture/README.md)
 
 - **Technology Planning**
+
   - Documented [main technology stack decisions](Docs/Design%20Concept/main_technology.md)
   - Created [reuse plan](Docs/Design%20Concept/reuse_plan.md) for existing components and libraries
   - Compiled [learning resources](Docs/Design%20Concept/References_to_learning_resources.md) for team development
 
 - **Research and Development**
+
   - Developed [R&D plan](Docs/Sprints/Sprint%202/Discussing%20Collabration%20Documents/Research%20and%20Development%20Plan.md) with development strategy and timeline
   - Documented technical approach and implementation methodology
 
 - **Documentation Enhancement**
+
   - Added README files to all project directories
   - Reorganized project documentation for better navigation
   - Standardized naming conventions across documentation
@@ -485,4 +457,4 @@ cd OAS-web-based-oral-assessments
   - [Weekly progress reports](Docs/Weekly%20Reports/Week%204/README.md)
   - Continuous refinement of requirements and architecture
 
-*Note: Sprint 2 is currently in progress, with completion scheduled for April 20, 2025.*
+_Note: Sprint 2 is currently in progress, with completion scheduled for April 20, 2025._
