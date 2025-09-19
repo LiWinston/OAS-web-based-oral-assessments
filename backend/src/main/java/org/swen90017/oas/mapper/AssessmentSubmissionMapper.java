@@ -17,6 +17,12 @@ public interface AssessmentSubmissionMapper extends BaseMapper<AssessmentSubmiss
                                               @Param("subjectId") Long subjectId,
                                               @Param("examinerId") Long examinerId);
 
+    /**
+     * Find assessment by enrollment ID and examiner ID (new approach)
+     */
+    AssessmentSubmission selectByEnrollmentAndExaminer(@Param("enrollmentId") Long enrollmentId,
+                                                       @Param("examinerId") Long examinerId);
+
     List<AssessmentSubmission> listByExaminer(@Param("examinerId") Long examinerId,
                                               @Param("assignmentId") Long assignmentId,
                                               @Param("status") String status,

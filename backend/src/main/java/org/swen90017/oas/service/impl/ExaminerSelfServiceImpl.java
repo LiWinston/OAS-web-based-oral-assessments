@@ -17,7 +17,9 @@ import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
 import org.swen90017.oas.dto.response.SessionStudentsResponseDTO;
+import org.swen90017.oas.dto.response.SessionStudentsSimpleResponseDTO;
 import org.swen90017.oas.entity.*;
+import org.swen90017.oas.enums.AssessmentStatus;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
@@ -52,6 +54,8 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final SysStudentMapper sysStudentMapper;
     private final GroupMapper groupMapper;
     private final SysStudentGroupMapper sysStudentGroupMapper;
+    private final AssessmentSubmissionMapper assessmentSubmissionMapper;
+    private final SlotSessionMapper slotSessionMapper;
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId, Long courseId, String sort) {
@@ -520,10 +524,21 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     }
 
     @Override
-    public SessionStudentsResponseDTO getSessionStudents(Long sessionId) {
-        // 验证sessionId不为空
-        if (sessionId == null) {
+    public SessionStudentsResponseDTO getSessionStudents(Long sessionId, Long examinerId) {
+        // 验证参数不为空
+        if (sessionId == null || examinerId == null) {
             throw new BusinessException(BusinessError.INVALID_PARAM);
+        }
+
+        // 验证examiner是否有效
+        if (!isValidExaminer(examinerId)) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+
+        // 获取session信息以获取assignmentId
+        SlotSession session = slotSessionMapper.selectById(sessionId);
+        if (session == null) {
+            throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         }
 
         // 1. 获取该session的所有预定记录
@@ -538,14 +553,231 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         
         for (SessionStudent sessionStudent : sessionStudents) {
             if ("INDIVIDUAL".equals(sessionStudent.getType())) {
-                // 处理个人学生类型
-                SessionStudentsResponseDTO.StudentInfoDTO studentInfo = buildStudentInfo(sessionStudent);
+                // Handle individual student type
+                SessionStudentsResponseDTO.StudentInfoDTO studentInfo = buildStudentInfo(sessionStudent, session.getAssignmentId(), examinerId);
+                if (studentInfo != null && shouldIncludeInResponse(studentInfo.getAssessmentStatus())) {
+                    students.add(studentInfo);
+                }
+            } else if ("GROUP".equals(sessionStudent.getType())) {
+                // Handle group type
+                SessionStudentsResponseDTO.GroupInfoDTO groupInfo = buildGroupInfo(sessionStudent, session.getAssignmentId(), examinerId);
+                if (groupInfo != null && shouldIncludeInResponse(groupInfo.getAssessmentStatus())) {
+                    groups.add(groupInfo);
+                }
+            }
+        }
+        
+        response.setStudents(students);
+        response.setGroups(groups);
+        
+        // Update total count to actual returned quantity (after filtering)
+        response.setTotalCount(students.size() + groups.size());
+        
+        return response;
+    }
+
+    /**
+     * Build student information DTO
+     */
+    private SessionStudentsResponseDTO.StudentInfoDTO buildStudentInfo(SessionStudent sessionStudent, Long assignmentId, Long examinerId) {
+        try {
+            // Get user basic information from sys_user table
+            SysUser user = sysUserMapper.selectById(sessionStudent.getSubjectId());
+            if (user == null) {
+                return null;
+            }
+
+            // Get student specific information from sys_student table
+            SysStudent student = sysStudentMapper.selectById(sessionStudent.getSubjectId());
+            
+            SessionStudentsResponseDTO.StudentInfoDTO studentInfo = new SessionStudentsResponseDTO.StudentInfoDTO();
+            studentInfo.setUserId(user.getUserId());
+            studentInfo.setStudentName(user.getUserName());
+            studentInfo.setEmail(user.getEmail());
+            studentInfo.setStudentNumber(student != null ? student.getStudentNumber() : null);
+            studentInfo.setBookedTime(sessionStudent.getBookedTime());
+            studentInfo.setType(sessionStudent.getType());
+            
+            // Build assessment status information
+            SessionStudentsResponseDTO.AssessmentStatusDTO assessmentStatus = buildAssessmentStatus(
+                sessionStudent.getId(), examinerId);
+            studentInfo.setAssessmentStatus(assessmentStatus);
+            
+            return studentInfo;
+        } catch (Exception e) {
+            // Log error but don't interrupt the entire process
+            return null;
+        }
+    }
+
+    /**
+     * Build group information DTO
+     */
+    private SessionStudentsResponseDTO.GroupInfoDTO buildGroupInfo(SessionStudent sessionStudent, Long assignmentId, Long examinerId) {
+        try {
+            // Get group basic information
+            SysGroup group = groupMapper.selectById(sessionStudent.getSubjectId());
+            if (group == null) {
+                return null;
+            }
+
+            SessionStudentsResponseDTO.GroupInfoDTO groupInfo = new SessionStudentsResponseDTO.GroupInfoDTO();
+            groupInfo.setGroupId(group.getGroupId());
+            groupInfo.setGroupName(group.getGroupName());
+            groupInfo.setCanvasGroupId(group.getCanvasGroupId());
+            groupInfo.setBookedTime(sessionStudent.getBookedTime());
+            groupInfo.setType(sessionStudent.getType());
+            
+            // Get group members information
+            List<SessionStudentsResponseDTO.GroupMemberDTO> members = buildGroupMembers(group.getGroupId());
+            groupInfo.setMembers(members);
+            
+            // Build assessment status information
+            SessionStudentsResponseDTO.AssessmentStatusDTO assessmentStatus = buildAssessmentStatus(
+                sessionStudent.getId(), examinerId);
+            groupInfo.setAssessmentStatus(assessmentStatus);
+            
+            return groupInfo;
+        } catch (Exception e) {
+            // Log error but don't interrupt the entire process
+            return null;
+        }
+    }
+
+    /**
+     * Build group members information list
+     */
+    private List<SessionStudentsResponseDTO.GroupMemberDTO> buildGroupMembers(Long groupId) {
+        List<SessionStudentsResponseDTO.GroupMemberDTO> members = new ArrayList<>();
+        
+        try {
+            // Get group member relationships
+            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
+            wrapper.eq("group_id", groupId);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
+            
+            for (SysStudentGroup studentGroup : studentGroups) {
+                // Get user basic information
+                SysUser user = sysUserMapper.selectById(studentGroup.getUserId());
+                if (user == null) continue;
+                
+                // Get student specific information
+                SysStudent student = sysStudentMapper.selectById(studentGroup.getUserId());
+                
+                SessionStudentsResponseDTO.GroupMemberDTO member = new SessionStudentsResponseDTO.GroupMemberDTO();
+                member.setUserId(user.getUserId());
+                member.setStudentName(user.getUserName());
+                member.setEmail(user.getEmail());
+                member.setStudentNumber(student != null ? student.getStudentNumber() : null);
+                
+                members.add(member);
+            }
+        } catch (Exception e) {
+            // Log error but return empty list
+        }
+        
+        return members;
+    }
+
+    /**
+     * Check if the assessment status should be included in response (only NO_MARK, DRAFT, REOPEN statuses)
+     */
+    private boolean shouldIncludeInResponse(SessionStudentsResponseDTO.AssessmentStatusDTO assessmentStatus) {
+        if (assessmentStatus == null) return false;
+        
+        AssessmentStatus status = assessmentStatus.getStatus();
+        return status == AssessmentStatus.NO_MARK || 
+               status == AssessmentStatus.DRAFT || 
+               status == AssessmentStatus.REOPEN;
+    }
+
+    /**
+     * Build assessment status information using enrollment ID
+     */
+    private SessionStudentsResponseDTO.AssessmentStatusDTO buildAssessmentStatus(
+            Long enrollmentId, Long examinerId) {
+        
+        SessionStudentsResponseDTO.AssessmentStatusDTO status = new SessionStudentsResponseDTO.AssessmentStatusDTO();
+        
+        try {
+            // Query if there exists assessment record for this examiner and enrollment
+            AssessmentSubmission submission = assessmentSubmissionMapper.selectByEnrollmentAndExaminer(
+                enrollmentId, examinerId);
+            
+            if (submission != null) {
+                // Assessment record exists, set enum status based on database status
+                status.setSubmissionId(submission.getId());
+                status.setUpdatedAt(submission.getUpdatedAt());
+                
+                String dbStatus = submission.getStatus();
+                if ("DRAFT".equals(dbStatus)) {
+                    status.setStatus(AssessmentStatus.DRAFT);
+                    // Fill detailed information for DRAFT status
+                    status.setTotalScore(submission.getTotalScore());
+                    status.setOverallFeedback(submission.getOverallFeedback());
+                    status.setSubmittedAt(submission.getSubmittedAt());
+                    status.setScoresJson(submission.getScoresJson());
+                } else if ("RETURNED".equals(dbStatus)) {
+                    status.setStatus(AssessmentStatus.REOPEN);
+                    // Fill detailed information for REOPEN status
+                    status.setTotalScore(submission.getTotalScore());
+                    status.setOverallFeedback(submission.getOverallFeedback());
+                    status.setAdminNote(submission.getAdminNote());
+                    status.setSubmittedAt(submission.getSubmittedAt());
+                    status.setScoresJson(submission.getScoresJson());
+                } else if ("SUBMITTED".equals(dbStatus)) {
+                    // SUBMITTED status is not returned in this interface, return null to exclude from results
+                    return null;
+                } else {
+                    // Unknown status, exclude from results
+                    return null;
+                }
+            } else {
+                // No assessment record exists, indicates NO_MARK status
+                status.setSubmissionId(null);
+                status.setStatus(AssessmentStatus.NO_MARK);
+                status.setTotalScore(null);
+                status.setOverallFeedback(null);
+                status.setAdminNote(null);
+                status.setSubmittedAt(null);
+                status.setUpdatedAt(null);
+                status.setScoresJson(null);
+            }
+        } catch (Exception e) {
+            // Return null when error occurs, exclude from results
+            return null;
+        }
+        
+        return status;
+    }
+
+    @Override
+    public SessionStudentsSimpleResponseDTO getSessionStudentsSimple(Long sessionId) {
+        // Validate sessionId is not null
+        if (sessionId == null) {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
+        }
+
+        // Get all enrollment records for this session
+        List<SessionStudent> sessionStudents = sessionStudentMapper.listBySession(sessionId);
+        
+        SessionStudentsSimpleResponseDTO response = new SessionStudentsSimpleResponseDTO();
+        response.setSessionId(sessionId);
+        response.setTotalCount(sessionStudents.size());
+        
+        List<SessionStudentsSimpleResponseDTO.StudentInfoDTO> students = new ArrayList<>();
+        List<SessionStudentsSimpleResponseDTO.GroupInfoDTO> groups = new ArrayList<>();
+        
+        for (SessionStudent sessionStudent : sessionStudents) {
+            if ("INDIVIDUAL".equals(sessionStudent.getType())) {
+                // Handle individual student type
+                SessionStudentsSimpleResponseDTO.StudentInfoDTO studentInfo = buildSimpleStudentInfo(sessionStudent);
                 if (studentInfo != null) {
                     students.add(studentInfo);
                 }
             } else if ("GROUP".equals(sessionStudent.getType())) {
-                // 处理组类型
-                SessionStudentsResponseDTO.GroupInfoDTO groupInfo = buildGroupInfo(sessionStudent);
+                // Handle group type
+                SessionStudentsSimpleResponseDTO.GroupInfoDTO groupInfo = buildSimpleGroupInfo(sessionStudent);
                 if (groupInfo != null) {
                     groups.add(groupInfo);
                 }
@@ -559,20 +791,20 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     }
 
     /**
-     * 构建学生信息DTO
+     * Build simple student information DTO without assessment status
      */
-    private SessionStudentsResponseDTO.StudentInfoDTO buildStudentInfo(SessionStudent sessionStudent) {
+    private SessionStudentsSimpleResponseDTO.StudentInfoDTO buildSimpleStudentInfo(SessionStudent sessionStudent) {
         try {
-            // 从sys_user表获取用户基本信息
+            // Get user basic information from sys_user table
             SysUser user = sysUserMapper.selectById(sessionStudent.getSubjectId());
             if (user == null) {
                 return null;
             }
 
-            // 从sys_student表获取学生特定信息
+            // Get student specific information from sys_student table
             SysStudent student = sysStudentMapper.selectById(sessionStudent.getSubjectId());
             
-            SessionStudentsResponseDTO.StudentInfoDTO studentInfo = new SessionStudentsResponseDTO.StudentInfoDTO();
+            SessionStudentsSimpleResponseDTO.StudentInfoDTO studentInfo = new SessionStudentsSimpleResponseDTO.StudentInfoDTO();
             studentInfo.setUserId(user.getUserId());
             studentInfo.setStudentName(user.getUserName());
             studentInfo.setEmail(user.getEmail());
@@ -582,73 +814,49 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             
             return studentInfo;
         } catch (Exception e) {
-            // 记录错误但不中断整个流程
+            // Log error but don't interrupt the entire process
             return null;
         }
     }
 
     /**
-     * 构建组信息DTO
+     * Build simple group information DTO without assessment status
      */
-    private SessionStudentsResponseDTO.GroupInfoDTO buildGroupInfo(SessionStudent sessionStudent) {
+    private SessionStudentsSimpleResponseDTO.GroupInfoDTO buildSimpleGroupInfo(SessionStudent sessionStudent) {
         try {
-            // 获取组基本信息
+            // Get group basic information
             SysGroup group = groupMapper.selectById(sessionStudent.getSubjectId());
             if (group == null) {
                 return null;
             }
 
-            SessionStudentsResponseDTO.GroupInfoDTO groupInfo = new SessionStudentsResponseDTO.GroupInfoDTO();
+            SessionStudentsSimpleResponseDTO.GroupInfoDTO groupInfo = new SessionStudentsSimpleResponseDTO.GroupInfoDTO();
             groupInfo.setGroupId(group.getGroupId());
             groupInfo.setGroupName(group.getGroupName());
             groupInfo.setCanvasGroupId(group.getCanvasGroupId());
             groupInfo.setBookedTime(sessionStudent.getBookedTime());
             groupInfo.setType(sessionStudent.getType());
             
-            // 获取组成员信息
-            List<SessionStudentsResponseDTO.GroupMemberDTO> members = buildGroupMembers(group.getGroupId());
-            groupInfo.setMembers(members);
+            // Get group members information (reuse existing method)
+            List<SessionStudentsResponseDTO.GroupMemberDTO> existingMembers = buildGroupMembers(group.getGroupId());
+            List<SessionStudentsSimpleResponseDTO.GroupMemberDTO> simpleMembers = new ArrayList<>();
+            
+            for (SessionStudentsResponseDTO.GroupMemberDTO existingMember : existingMembers) {
+                SessionStudentsSimpleResponseDTO.GroupMemberDTO simpleMember = new SessionStudentsSimpleResponseDTO.GroupMemberDTO();
+                simpleMember.setUserId(existingMember.getUserId());
+                simpleMember.setStudentName(existingMember.getStudentName());
+                simpleMember.setEmail(existingMember.getEmail());
+                simpleMember.setStudentNumber(existingMember.getStudentNumber());
+                simpleMembers.add(simpleMember);
+            }
+            
+            groupInfo.setMembers(simpleMembers);
             
             return groupInfo;
         } catch (Exception e) {
-            // 记录错误但不中断整个流程
+            // Log error but don't interrupt the entire process
             return null;
         }
-    }
-
-    /**
-     * 构建组成员信息列表
-     */
-    private List<SessionStudentsResponseDTO.GroupMemberDTO> buildGroupMembers(Long groupId) {
-        List<SessionStudentsResponseDTO.GroupMemberDTO> members = new ArrayList<>();
-        
-        try {
-            // 获取组成员关系
-            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
-            wrapper.eq("group_id", groupId);
-            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
-            
-            for (SysStudentGroup studentGroup : studentGroups) {
-                // 获取用户基本信息
-                SysUser user = sysUserMapper.selectById(studentGroup.getUserId());
-                if (user == null) continue;
-                
-                // 获取学生特定信息
-                SysStudent student = sysStudentMapper.selectById(studentGroup.getUserId());
-                
-                SessionStudentsResponseDTO.GroupMemberDTO member = new SessionStudentsResponseDTO.GroupMemberDTO();
-                member.setUserId(user.getUserId());
-                member.setStudentName(user.getUserName());
-                member.setEmail(user.getEmail());
-                member.setStudentNumber(student != null ? student.getStudentNumber() : null);
-                
-                members.add(member);
-            }
-        } catch (Exception e) {
-            // 记录错误但返回空列表
-        }
-        
-        return members;
     }
 }
 

@@ -27,7 +27,21 @@ public class ExaminerAssessmentController {
     private final AssessmentService assessmentService;
 
     @PostMapping("/draft/save")
-    @Operation(summary = "Save assessment draft", description = "Create or update draft; validate rubric and scores")
+    @Operation(
+        summary = "Save Assessment Draft",
+        description = "Save or update an assessment draft for a student or group. " +
+            "This endpoint allows examiners to create new draft assessments or update existing ones, " +
+            "save partial assessments and continue later, validate rubric scores against assignment configuration, " +
+            "support both individual student and group assessments, and handle both points-based and descriptive scoring scales. " +
+            "Requires valid JWT token with EXAMINER role. Examiner ID is automatically extracted from JWT token. " +
+            "Validation Rules: Assignment must exist and be accessible to the examiner, " +
+            "if sessionId is provided examiner must be assigned to that session, " +
+            "subject type must be 'INDIVIDUAL' or 'GROUP', " +
+            "score items must align with assignment's rubric configuration, " +
+            "for points scale inputPoints must be between 0-100, " +
+            "for descriptive scale selectedLevel must be provided with valid range. " +
+            "Returns the complete assessment submission DTO with generated/updated fields including submission ID, timestamps, and calculated total score."
+    )
     public Result<AssessmentSubmissionDTO> saveDraft(@RequestBody SaveAssessmentDraftRequestDTO request) {
         LoginUser user = SecurityUtils.getLoginUser();
         Long examinerId = user == null ? null : user.getUserId();
