@@ -508,17 +508,9 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TYPE);
         }
 
-        // Find the group for this student
-        LambdaQueryWrapper<SysStudentGroup> studentGroupQuery = new LambdaQueryWrapper<>();
-        studentGroupQuery.eq(SysStudentGroup::getUserId, studentId);
-        SysStudentGroup studentGroup = sysStudentGroupMapper.selectOne(studentGroupQuery);
+        // Find the group for this student in this specific assignment
+        SysGroup group = groupMapper.selectByStudentIdAndAssignmentId(studentId, assignmentId);
         
-        if (studentGroup == null) {
-            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
-        }
-
-        // Get group information
-        SysGroup group = groupMapper.selectById(studentGroup.getGroupId());
         if (group == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
@@ -548,6 +540,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         GroupContextResponseDTO response = new GroupContextResponseDTO();
         response.setGroupId(group.getGroupId());
         response.setGroupName(group.getGroupName());
+        response.setAssignmentId(group.getAssignmentId());
         response.setMembers(members);
 
         return response;
@@ -568,8 +561,6 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         queryWrapper.inSql("id", 
             "SELECT assignment_id FROM assignment_participant WHERE user_id = " + studentId);
 
-        //TODO 状态判断
-        // Apply status filter
         if ("bookable".equals(queryDTO.getStatus())) {
             // Only assignments that are released and have available sessions
             queryWrapper.eq("is_released", true);

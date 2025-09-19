@@ -38,6 +38,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     private final SysStudentMapper sysStudentMapper;
     private final SysStudentGroupMapper sysStudentGroupMapper;
     private final SessionStudentMapper sessionStudentMapper;
+    private final GroupMapper groupMapper;
 
     @Override
     public BookableSessionsResponseDTO getBookableSessions(Long assignmentId, Long studentId, 
@@ -282,15 +283,30 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     @Override
     public List<SlotSession> findActiveBookingByStudent(Long studentId, Long assignmentId) {
-        // Find bookings from session_student table
-        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("INDIVIDUAL", studentId);
-        
-        // Get the corresponding slot sessions
         List<SlotSession> sessions = new ArrayList<>();
-        for (SessionStudent booking : bookings) {
+        
+        // 1. Find individual bookings from session_student table
+        List<SessionStudent> individualBookings = sessionStudentMapper.listBySubject("INDIVIDUAL", studentId);
+        
+        // Get the corresponding slot sessions for individual bookings
+        for (SessionStudent booking : individualBookings) {
             SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
             if (session != null && session.getAssignmentId().equals(assignmentId)) {
                 sessions.add(session);
+            }
+        }
+        
+        // 2. Find group bookings - check if student belongs to a group for this assignment
+        Long groupId = getStudentGroupId(studentId, assignmentId);
+        if (groupId != null) {
+            List<SessionStudent> groupBookings = sessionStudentMapper.listBySubject("GROUP", groupId);
+            
+            // Get the corresponding slot sessions for group bookings
+            for (SessionStudent booking : groupBookings) {
+                SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
+                if (session != null && session.getAssignmentId().equals(assignmentId)) {
+                    sessions.add(session);
+                }
             }
         }
         
@@ -478,16 +494,17 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
      * @return the group ID if student belongs to a group, null otherwise
      */
     private Long getStudentGroupId(Long studentId, Long assignmentId) {
-        // Get all groups the student belongs to
+        // Directly query for the group that matches both student ID and assignment ID
+        SysGroup group = groupMapper.selectByStudentIdAndAssignmentId(studentId, assignmentId);
+        if (group != null) {
+            return group.getGroupId();
+        }
+        
+        // For backward compatibility, check if any group has bookings for this assignment
         LambdaQueryWrapper<SysStudentGroup> studentGroupQuery = new LambdaQueryWrapper<>();
         studentGroupQuery.eq(SysStudentGroup::getUserId, studentId);
         List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(studentGroupQuery);
         
-        if (studentGroups.isEmpty()) {
-            return null;
-        }
-        
-        // For each group, check if it has any bookings for this assignment
         for (SysStudentGroup studentGroup : studentGroups) {
             boolean hasBookingForAssignment = slotSessionMapper.hasGroupBookedAssignment(
                 studentGroup.getGroupId(), assignmentId);
@@ -495,15 +512,6 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             if (hasBookingForAssignment) {
                 return studentGroup.getGroupId();
             }
-        }
-        
-        // If no group has bookings for this assignment yet, check if any group is eligible
-        // by verifying if the assignment allows groups and return the first group found
-        Assignment assignment = assignmentMapper.selectById(assignmentId);
-        if (assignment != null && 
-            ("group".equals(assignment.getType()) || "mixed".equals(assignment.getType())) &&
-            !studentGroups.isEmpty()) {
-            return studentGroups.get(0).getGroupId();
         }
         
         return null;
