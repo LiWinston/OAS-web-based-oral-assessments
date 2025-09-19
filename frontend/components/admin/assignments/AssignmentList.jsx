@@ -735,6 +735,23 @@ export function AssignmentList({
                           <i className="fas fa-calendar-week hover:animate-wiggle"></i>
                         </Link>
 
+                        <Link
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/results`}
+                          className={`text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 transform hover:scale-110`}
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Results & Marking',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                        >
+                          <i className="fas fa-chart-bar hover:animate-wiggle"></i>
+                        </Link>
+
                         <button
                           onClick={() => setShowDeleteConfirm(assignment.id)}
                           className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-all duration-200 transform hover:scale-110 cursor-pointer"
