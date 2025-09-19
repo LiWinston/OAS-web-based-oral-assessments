@@ -7,6 +7,7 @@ import org.swen90017.oas.dto.response.ExaminerScheduleResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
 import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
+import org.swen90017.oas.dto.response.SessionStudentsResponseDTO;
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public interface ExaminerSelfService {
 
     ExaminerScheduleResponseDTO getScheduleV2(Long examinerId, Long assignmentId);
     ExaminerUnassignResponseDTO unassign(Long assignmentId, Long slotId, Long examinerId);
+    SessionStudentsResponseDTO getSessionStudents(Long sessionId);
 }
 
 

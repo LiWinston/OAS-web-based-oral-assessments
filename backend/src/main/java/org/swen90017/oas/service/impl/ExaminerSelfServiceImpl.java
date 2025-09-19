@@ -16,6 +16,7 @@ import org.swen90017.oas.dto.response.ExaminerUnassignResponseDTO;
 import org.swen90017.oas.dto.response.PartialAssignmentResultDTO;
 import org.swen90017.oas.dto.response.SelectableTimeSlotDTO;
 import org.swen90017.oas.dto.response.TimeSlotsSelectionResponseDTO;
+import org.swen90017.oas.dto.response.SessionStudentsResponseDTO;
 import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.exception.BusinessException;
@@ -47,6 +48,10 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     private final VenueMapper venueMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
     private final SysUserMapper sysUserMapper;
+    private final SessionStudentMapper sessionStudentMapper;
+    private final SysStudentMapper sysStudentMapper;
+    private final GroupMapper groupMapper;
+    private final SysStudentGroupMapper sysStudentGroupMapper;
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId, Long courseId, String sort) {
@@ -512,6 +517,138 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         f.setSlotId(slotId);
         f.setReason(reason);
         result.getFailures().add(f);
+    }
+
+    @Override
+    public SessionStudentsResponseDTO getSessionStudents(Long sessionId) {
+        // 验证sessionId不为空
+        if (sessionId == null) {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
+        }
+
+        // 1. 获取该session的所有预定记录
+        List<SessionStudent> sessionStudents = sessionStudentMapper.listBySession(sessionId);
+        
+        SessionStudentsResponseDTO response = new SessionStudentsResponseDTO();
+        response.setSessionId(sessionId);
+        response.setTotalCount(sessionStudents.size());
+        
+        List<SessionStudentsResponseDTO.StudentInfoDTO> students = new ArrayList<>();
+        List<SessionStudentsResponseDTO.GroupInfoDTO> groups = new ArrayList<>();
+        
+        for (SessionStudent sessionStudent : sessionStudents) {
+            if ("INDIVIDUAL".equals(sessionStudent.getType())) {
+                // 处理个人学生类型
+                SessionStudentsResponseDTO.StudentInfoDTO studentInfo = buildStudentInfo(sessionStudent);
+                if (studentInfo != null) {
+                    students.add(studentInfo);
+                }
+            } else if ("GROUP".equals(sessionStudent.getType())) {
+                // 处理组类型
+                SessionStudentsResponseDTO.GroupInfoDTO groupInfo = buildGroupInfo(sessionStudent);
+                if (groupInfo != null) {
+                    groups.add(groupInfo);
+                }
+            }
+        }
+        
+        response.setStudents(students);
+        response.setGroups(groups);
+        
+        return response;
+    }
+
+    /**
+     * 构建学生信息DTO
+     */
+    private SessionStudentsResponseDTO.StudentInfoDTO buildStudentInfo(SessionStudent sessionStudent) {
+        try {
+            // 从sys_user表获取用户基本信息
+            SysUser user = sysUserMapper.selectById(sessionStudent.getSubjectId());
+            if (user == null) {
+                return null;
+            }
+
+            // 从sys_student表获取学生特定信息
+            SysStudent student = sysStudentMapper.selectById(sessionStudent.getSubjectId());
+            
+            SessionStudentsResponseDTO.StudentInfoDTO studentInfo = new SessionStudentsResponseDTO.StudentInfoDTO();
+            studentInfo.setUserId(user.getUserId());
+            studentInfo.setStudentName(user.getUserName());
+            studentInfo.setEmail(user.getEmail());
+            studentInfo.setStudentNumber(student != null ? student.getStudentNumber() : null);
+            studentInfo.setBookedTime(sessionStudent.getBookedTime());
+            studentInfo.setType(sessionStudent.getType());
+            
+            return studentInfo;
+        } catch (Exception e) {
+            // 记录错误但不中断整个流程
+            return null;
+        }
+    }
+
+    /**
+     * 构建组信息DTO
+     */
+    private SessionStudentsResponseDTO.GroupInfoDTO buildGroupInfo(SessionStudent sessionStudent) {
+        try {
+            // 获取组基本信息
+            SysGroup group = groupMapper.selectById(sessionStudent.getSubjectId());
+            if (group == null) {
+                return null;
+            }
+
+            SessionStudentsResponseDTO.GroupInfoDTO groupInfo = new SessionStudentsResponseDTO.GroupInfoDTO();
+            groupInfo.setGroupId(group.getGroupId());
+            groupInfo.setGroupName(group.getGroupName());
+            groupInfo.setCanvasGroupId(group.getCanvasGroupId());
+            groupInfo.setBookedTime(sessionStudent.getBookedTime());
+            groupInfo.setType(sessionStudent.getType());
+            
+            // 获取组成员信息
+            List<SessionStudentsResponseDTO.GroupMemberDTO> members = buildGroupMembers(group.getGroupId());
+            groupInfo.setMembers(members);
+            
+            return groupInfo;
+        } catch (Exception e) {
+            // 记录错误但不中断整个流程
+            return null;
+        }
+    }
+
+    /**
+     * 构建组成员信息列表
+     */
+    private List<SessionStudentsResponseDTO.GroupMemberDTO> buildGroupMembers(Long groupId) {
+        List<SessionStudentsResponseDTO.GroupMemberDTO> members = new ArrayList<>();
+        
+        try {
+            // 获取组成员关系
+            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
+            wrapper.eq("group_id", groupId);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
+            
+            for (SysStudentGroup studentGroup : studentGroups) {
+                // 获取用户基本信息
+                SysUser user = sysUserMapper.selectById(studentGroup.getUserId());
+                if (user == null) continue;
+                
+                // 获取学生特定信息
+                SysStudent student = sysStudentMapper.selectById(studentGroup.getUserId());
+                
+                SessionStudentsResponseDTO.GroupMemberDTO member = new SessionStudentsResponseDTO.GroupMemberDTO();
+                member.setUserId(user.getUserId());
+                member.setStudentName(user.getUserName());
+                member.setEmail(user.getEmail());
+                member.setStudentNumber(student != null ? student.getStudentNumber() : null);
+                
+                members.add(member);
+            }
+        } catch (Exception e) {
+            // 记录错误但返回空列表
+        }
+        
+        return members;
     }
 }
 
