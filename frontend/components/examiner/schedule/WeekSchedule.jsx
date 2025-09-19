@@ -91,11 +91,11 @@ export default function WeekSchedule() {
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
           : `Slot #${slot.slotId}`;
-        setDialogProps({ status: 'success', title: 'Withdrawn from Time Slot', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setDialogProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setDialogOpen(true);
       }
     } catch (error) {
-      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this timeslot.', autoDismiss: false, primaryActionLabel: 'Close' });
+      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this session.', autoDismiss: false, primaryActionLabel: 'Close' });
       setDialogOpen(true);
     }
   };
@@ -169,7 +169,7 @@ export default function WeekSchedule() {
                           title={
                             !canWithdraw(slot) 
                               ? 'Cannot withdraw: Students are already booked'
-                              : 'Click to withdraw from this timeslot'
+                              : 'Click to withdraw from this session'
                           }
                         >
                           {isSubmitting ? (

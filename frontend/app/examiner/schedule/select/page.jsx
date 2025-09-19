@@ -14,11 +14,11 @@ import OperationResultDialog from "@/components/examiner/schedule/OperationResul
 import { toLocalDateKey } from "@/utils/dateUtils";
 
 /**
- * TimeslotSelection Component
+ * SessionSelection Component (name retained in files for compatibility)
  *
- * Two-step wizard for examiner timeslot self-assignment:
+ * Two-step wizard for examiner session self-assignment:
  * Step 1: Assessment Selection
- * Step 2: Timeslot Selection
+ * Step 2: Session Selection
  */
 function TimeslotSelectionContent() {
   const router = useRouter();
@@ -92,7 +92,7 @@ function TimeslotSelectionContent() {
     }
   }, [assignmentsData, assignmentsError]);
 
-  // Fetch available timeslots when assignment is selected and on step 2
+  // Fetch available sessions when assignment is selected and on step 2
   const { 
     data: timeslotsData, 
     isLoading: isLoadingTimeslots, 
@@ -102,7 +102,7 @@ function TimeslotSelectionContent() {
     queryKey: ['availableTimeslots', selectedAssignment?.assignmentId, examinerId],
     queryFn: async () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🌐 API Call - Getting available timeslots:', {
+        console.log('🌐 API Call - Getting available sessions:', {
           assignmentId: selectedAssignment.assignmentId,
           examinerId: examinerId
         });
@@ -113,12 +113,12 @@ function TimeslotSelectionContent() {
           { examinerId }
         );
         if (process.env.NODE_ENV === 'development') {
-          console.log('📦 API Response - Available timeslots:', result);
+          console.log('📦 API Response - Available sessions:', result);
         }
         return result;
       } catch (error) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('❌ API Error - Failed to fetch timeslots:', error);
+          console.error('❌ API Error - Failed to fetch sessions:', error);
         }
         throw error;
       }
@@ -169,7 +169,7 @@ function TimeslotSelectionContent() {
     }
   }, [searchParams, assignmentsData]);
 
-  // Prefer assignment and examiner info from timeslot API payload when available
+  // Prefer assignment and examiner info from sessions API payload when available
   const maxSessions = useMemo(() => (
     timeslotsData?.data?.examinerInfo?.maxSessions ?? selectedAssignment?.examinerInfo?.maxSessions ?? 12
   ), [timeslotsData, selectedAssignment]);
@@ -220,7 +220,7 @@ function TimeslotSelectionContent() {
       }
       const conflict = allocatedSlots.find((s) => hasConflict(s, slot));
       if (conflict) {
-        setSelectionMessage({ type: 'error', text: 'This time slot conflicts with another selected slot. Please choose a different time.' });
+        setSelectionMessage({ type: 'error', text: 'This session conflicts with another selected session. Please choose a different time.' });
         return;
       }
       setAllocatedSlots([...allocatedSlots, slot]);
@@ -260,7 +260,7 @@ function TimeslotSelectionContent() {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      // Clear timeslot selections when going back
+      // Clear session selections when going back
       setAllocatedSlots([]);
       setCurrentAllocation(0);
       setSelectedDate(null);
@@ -310,10 +310,10 @@ function TimeslotSelectionContent() {
         });
         setResultDialogProps({
           status: result.data?.partial ? 'warning' : 'success',
-          title: result.data?.partial ? 'Partial Assignment Completed' : 'Time Slots Assigned',
+          title: result.data?.partial ? 'Partial Assignment Completed' : 'Sessions Assigned',
           message: result.data?.partial
-            ? `Assigned ${result.data.assignedSlots.length} slot(s), ${result.data.failedSlots.length} failed.`
-            : `Successfully assigned ${result.data.assignedSlots.length} slot(s).`,
+            ? `Assigned ${result.data.assignedSlots.length} session(s), ${result.data.failedSlots.length} failed.`
+            : `Successfully assigned ${result.data.assignedSlots.length} session(s).`,
           details,
           autoDismiss: true,
           autoDismissMs: 5000,
@@ -383,7 +383,7 @@ function TimeslotSelectionContent() {
             <li className="flex items-center">
               <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
               <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Time Slot Selection
+                Session Selection
               </span>
             </li>
           </ol>
@@ -393,10 +393,10 @@ function TimeslotSelectionContent() {
       {/* Page Title */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-          Time Slot Selection
+          Session Selection
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Browse and select time slots for upcoming assessments within your
+          Browse and select sessions for upcoming assessments within your
           allocation limits.
         </p>
       </div>
@@ -461,7 +461,7 @@ function TimeslotSelectionContent() {
             </div>
             <div>
               <span className="text-xs font-semibold inline-block text-gray-700 dark:text-gray-300">
-                Choose Time Slots
+                Choose Sessions
               </span>
             </div>
           </div>
@@ -483,7 +483,7 @@ function TimeslotSelectionContent() {
         />
       )}
 
-      {/* Step 2: Timeslot Selection */}
+      {/* Step 2: Session Selection */}
       {currentStep === 2 && (
         <div className="space-y-6">
           {/* Assessment Summary */}
@@ -534,7 +534,7 @@ function TimeslotSelectionContent() {
                   <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                     {availabilitySummary.primaryReason === 'SLOT_FULL' && 'Please wait for the course admin to add more slots or for capacity to become available.'}
                     {availabilitySummary.primaryReason === 'TIME_CONFLICT' && 'Try a different time range, or withdraw from conflicting slots in your schedule.'}
-                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You are already assigned across the current timeslots.'}
+                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You are already assigned across the current sessions.'}
                     {!availabilitySummary.primaryReason && (
                       availabilitySummary.hasAny ? 'All current slots are unavailable for selection.' : 'Course admin has not configured any slots for this assessment yet.'
                     )}
@@ -544,7 +544,7 @@ function TimeslotSelectionContent() {
             </div>
           )}
 
-          {/* Timeslot Selection Interface */}
+          {/* Session Selection Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <TimeslotSelectionCalendar
               currentMonth={currentMonth}
@@ -557,7 +557,7 @@ function TimeslotSelectionContent() {
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   <i className="fas fa-info-circle text-gray-500 mr-2"></i>
-                  Click on time slots to select them. Your selections will be shown in the summary below.
+                  Click on sessions to select them. Your selections will be shown in the summary below.
                   {isLoadingTimeslots && <span className="text-blue-600 dark:text-blue-400"> Updating...</span>}
                 </p>
               </div>

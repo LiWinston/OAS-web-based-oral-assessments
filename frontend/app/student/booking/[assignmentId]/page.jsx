@@ -220,7 +220,8 @@ export default function StudentBookingSteps() {
       case "ALREADY_BOOKED":
         return "You already have an active booking for this assessment.";
       case "SLOT_UNSTAFFED":
-        return "This timeslot no longer has enough examiners.";
+      case "SESSION_CLOSED":
+        return "This session is not available.";
       case "LOCKOUT_WINDOW":
         return "Bookings are closed within the final hours before the session.";
       case "DEADLINE_PASSED":
@@ -293,7 +294,7 @@ export default function StudentBookingSteps() {
       <div className="flex flex-col md:flex-row md:items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            Book Assessment Slot
+            Book Assessment Session
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {displayAssignmentName}

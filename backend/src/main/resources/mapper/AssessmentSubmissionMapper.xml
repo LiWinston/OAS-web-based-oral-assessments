@@ -72,6 +72,49 @@
             AND status = #{status}
         </if>
         ORDER BY submitted_at DESC
+    <sql id="ExaminerAssessmentsWhere">
+        WHERE examiner_id = #{examinerId}
+        <if test="assignmentId != null"> AND assignment_id = #{assignmentId} </if>
+        <if test="sessionId != null"> AND session_id = #{sessionId} </if>
+        <if test="subjectType != null and subjectType != ''"> AND subject_type = #{subjectType} </if>
+        <if test="subjectId != null"> AND subject_id = #{subjectId} </if>
+        <if test="statuses != null and statuses.size() &gt; 0">
+            AND status IN
+            <foreach collection="statuses" item="st" open="(" close=")" separator=",">
+                #{st}
+            </foreach>
+        </if>
+        <if test="(statuses == null || statuses.size() == 0) and status != null and status != ''">
+            AND status = #{status}
+        </if>
+        <if test="createdFrom != null"> AND created_at &gt;= #{createdFrom} </if>
+        <if test="createdTo != null"> AND created_at &lt;= #{createdTo} </if>
+        <if test="submittedFrom != null"> AND submitted_at &gt;= #{submittedFrom} </if>
+        <if test="submittedTo != null"> AND submitted_at &lt;= #{submittedTo} </if>
+        <if test="minScore != null"> AND total_score &gt;= #{minScore} </if>
+        <if test="maxScore != null"> AND total_score &lt;= #{maxScore} </if>
+        <if test="keyword != null and keyword != ''">
+            AND (overall_feedback LIKE CONCAT('%', #{keyword}, '%') OR admin_note LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </sql>
+
+    <select id="pageByExaminer" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        <include refid="ExaminerAssessmentsWhere"/>
+        <choose>
+            <when test="sortBy != null and sortBy != ''">
+                ORDER BY ${sortBy} ${sortOrder}
+            </when>
+            <otherwise>
+                ORDER BY updated_at DESC
+            </otherwise>
+        </choose>
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByExaminer" resultType="long">
+        SELECT COUNT(1) FROM assessment_submission
+        <include refid="ExaminerAssessmentsWhere"/>
     </select>
 
 </mapper>

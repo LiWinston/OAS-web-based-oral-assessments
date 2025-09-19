@@ -77,40 +77,42 @@ export const examinerTimeslotServiceReal = {
     }
   },
 
-  // GET /api/assignments/{assignmentId}/timeslots?examinerId=...
+  // GET /api/assignments/{assignmentId}/sessions?examinerId=...
   async getAvailableTimeslots(assignmentId, options = {}) {
     const { examinerId, date, includeFullSlots, pageNum, pageSize } = options || {};
     try {
-      const res = await apiClient.get(`/api/assignments/${assignmentId}/timeslots`, {
-        params: { examinerId, date, includeFullSlots, pageNum, pageSize },
+      const res = await apiClient.get(`/api/assignments/${assignmentId}/sessions`, {
+        params: { examinerId, date, status: includeFullSlots ? 'all' : 'available', pageNum, pageSize },
       });
       // Contract doc wraps assignment + examinerInfo + timeSlots; some backends may return array directly
       const payload = res?.data?.data;
       const items = Array.isArray(payload)
         ? payload
-        : Array.isArray(payload?.timeSlots)
-          ? payload.timeSlots
+        : Array.isArray(payload?.sessions)
+          ? payload.sessions
           : [];
       const timeSlots = items.map((t) => {
         // Support both shapes: explicit start/end or date + LocalTime
         const start = t.start || toIsoFromDateAndLocalTime(t.date, t.startTime);
         const end = t.end || toIsoFromDateAndLocalTime(t.date, t.endTime);
-        const full = t.isFull ?? t.full ?? false;
+        const coverage = t.coverage || {};
+        const isFullyStaffed = (coverage.isFullyStaffed === true) || (coverage.required != null && coverage.assigned >= coverage.required);
+        const full = t.isFull ?? t.full ?? isFullyStaffed;
         const conflict = t.conflict ?? false;
         const assigned = t.assigned ?? false;
         const availability = t.availability || {
           canSelect: !full && !conflict && !assigned,
-          reason: full ? 'SLOT_FULL' : conflict ? 'TIME_CONFLICT' : assigned ? 'ALREADY_ASSIGNED' : null,
+          reason: full ? 'SESSION_CLOSED' : conflict ? 'TIME_CONFLICT' : assigned ? 'ALREADY_ASSIGNED' : null,
         };
         return {
-          slotId: t.slotId ?? t.id,
+          slotId: t.slotId ?? t.sessionId ?? t.id,
           start,
           end,
           timezone: t.timezone || 'Australia/Melbourne',
           venue: t.venue || (t.venueId ? { venueId: t.venueId } : null),
-          sessionCount: t.sessionCount ?? 1,
-          requiredExaminers: t.requiredExaminers,
-          currentExaminers: t.currentExaminers,
+          sessionCount: 1,
+          requiredExaminers: t.requiredExaminers ?? coverage.required,
+          currentExaminers: t.currentExaminers ?? coverage.assigned ?? (Array.isArray(t.assignedExaminers) ? t.assignedExaminers.length : undefined),
           isFull: full,
           availability,
         };
@@ -127,19 +129,23 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to fetch available timeslots',
+        message: error.response?.data?.message || 'Failed to fetch available sessions',
       };
     }
   },
 
-  // POST /api/assignments/{assignmentId}/timeslots/assign
+  // POST /api/assignments/{assignmentId}/sessions/assign
   async assignExaminerToTimeslots(assignmentId, data) {
     try {
-      const slotIds = (data?.slotAssignments || []).map((s) => s.slotId);
-      const payload = { examinerId: data?.examinerId, slotIds };
-      const res = await apiClient.post(`/api/assignments/${assignmentId}/timeslots/assign`, payload);
+      const sessionIds = (data?.slotAssignments || []).map((s) => s.slotId);
+      const payload = { sessionIds };
+      const res = await apiClient.post(
+        `/api/assignments/${assignmentId}/sessions/assign`,
+        payload,
+        { params: { examinerId: data?.examinerId } }
+      );
       const result = res?.data?.data || {};
-      const successIds = Array.isArray(result.success) ? result.success : [];
+      const successIds = Array.isArray(result.success) ? result.success : (Array.isArray(result.addedSessionIds) ? result.addedSessionIds : []);
       const failures = Array.isArray(result.failures) ? result.failures : [];
 
       const assignedSlots = successIds.map((id) => ({ slotId: id, sessionCount: 1 }));
@@ -164,7 +170,7 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to assign timeslots',
+        message: error.response?.data?.message || 'Failed to assign sessions',
       };
     }
   },
@@ -213,10 +219,10 @@ export const examinerTimeslotServiceReal = {
     }
   },
 
-  // DELETE /api/assignments/{assignmentId}/timeslots/{slotId}/unassign?examinerId=...
+  // DELETE /api/assignments/{assignmentId}/sessions/{sessionId}/unassign?examinerId=...
   async unassignExaminerFromTimeslot(assignmentId, slotId, examinerId) {
     try {
-      const res = await apiClient.delete(`/api/assignments/${assignmentId}/timeslots/${slotId}/unassign`, { params: { examinerId } });
+      const res = await apiClient.delete(`/api/assignments/${assignmentId}/sessions/${slotId}/unassign`, { params: { examinerId } });
       const ok = res?.data?.success === true || res?.data === true;
       return {
         success: ok,
@@ -224,14 +230,14 @@ export const examinerTimeslotServiceReal = {
         data: ok
           ? { assignmentId: Number(assignmentId), slotId: Number(slotId), examinerId }
           : null,
-        message: ok ? undefined : 'Failed to unassign from timeslot',
+        message: ok ? undefined : 'Failed to unassign from session',
       };
     } catch (error) {
       return {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to unassign from timeslot',
+        message: error.response?.data?.message || 'Failed to unassign from session',
       };
     }
   },

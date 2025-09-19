@@ -6,7 +6,7 @@ import { useNotification } from './useNotification';
 import { useExaminerAuth } from './useExaminerAuth';
 
 /**
- * Custom hook for timeslot assignment operations
+ * Custom hook for session assignment operations (backward-compatible naming)
  * Handles assignment, withdrawal, and conflict detection
  */
 export function useTimeslotAssignment() {
@@ -44,10 +44,10 @@ export function useTimeslotAssignment() {
     return { valid: true };
   }, [hasConflict]);
 
-  // Assign examiner to selected timeslots
+  // Assign examiner to selected sessions (kept function name for compatibility)
   const assignToTimeslots = useCallback(async (assignmentId, selectedSlots) => {
     try {
-      requireAuth('assign timeslots');
+      requireAuth('assign sessions');
       setIsSubmitting(true);
       setSubmitError(null);
       setSubmitResult(null);
@@ -70,7 +70,7 @@ export function useTimeslotAssignment() {
           );
         } else {
           showNotification('success', 
-            `Assigned ${result.data.assignedSlots.length} time slot(s) successfully`
+            `Assigned ${result.data.assignedSlots.length} session(s) successfully`
           );
         }
         
@@ -97,10 +97,10 @@ export function useTimeslotAssignment() {
     }
   }, [examinerId, requireAuth, showNotification, router]);
 
-  // Withdraw from a timeslot
+  // Withdraw from a session
   const withdrawFromTimeslot = useCallback(async (slotInput, onSuccess) => {
     try {
-      requireAuth('withdraw from timeslot');
+      requireAuth('withdraw from session');
       setIsSubmitting(true);
       // Support legacy signature (slotId) and new signature (slot object)
       const slotId = typeof slotInput === 'object' ? slotInput?.slotId : slotInput;
@@ -121,7 +121,7 @@ export function useTimeslotAssignment() {
         return result;
       } else {
         // Handle specific withdrawal failure reasons
-        let errorMsg = result.message || 'Failed to withdraw from timeslot';
+        let errorMsg = result.message || 'Failed to withdraw from session';
         
         if (result.reason === 'STUDENT_BOOKED') {
           errorMsg = 'Cannot withdraw: Students are already booked for this session';
@@ -134,7 +134,7 @@ export function useTimeslotAssignment() {
       }
     } catch (error) {
       console.error('Withdrawal error:', error);
-      const errorMsg = error.message || 'Failed to withdraw from timeslot';
+      const errorMsg = error.message || 'Failed to withdraw from session';
       showNotification('error', errorMsg);
       throw error;
     } finally {

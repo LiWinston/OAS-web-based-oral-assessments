@@ -68,11 +68,11 @@ export default function DaySchedule() {
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
           : `Slot #${slot.slotId}`;
-        setDialogProps({ status: 'success', title: 'Withdrawn from Time Slot', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setDialogProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setDialogOpen(true);
       }
     } catch (error) {
-      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this timeslot.', autoDismiss: false, primaryActionLabel: 'Close' });
+      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this session.', autoDismiss: false, primaryActionLabel: 'Close' });
       setDialogOpen(true);
     }
   };
@@ -177,7 +177,7 @@ export default function DaySchedule() {
                       title={
                         !canWithdraw(slot) 
                           ? 'Cannot withdraw: Students are already booked'
-                          : 'Click to withdraw from this timeslot'
+                          : 'Click to withdraw from this session'
                       }
                     >
                       {isSubmitting ? (
@@ -192,11 +192,11 @@ export default function DaySchedule() {
               </div>
           ))}
 
-          {/* Past Slots */}
+          {/* Past Sessions */}
           {slots.filter(s => new Date(s.start) <= new Date()).length > 0 && (
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-history text-gray-600 mr-2"></i>
-              Past Slots ({slots.filter(s => new Date(s.start) <= new Date()).length})
+              Past Sessions ({slots.filter(s => new Date(s.start) <= new Date()).length})
             </h3>
           )}
           {slots.filter(s => new Date(s.start) <= new Date()).map(slot => (

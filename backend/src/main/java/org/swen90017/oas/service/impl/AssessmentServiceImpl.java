@@ -13,6 +13,7 @@ import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.request.SubmitAssessmentRequestDTO;
 import org.swen90017.oas.dto.response.AssessmentSubmissionDTO;
 import org.swen90017.oas.dto.response.ExaminerSummaryDTO;
+import org.swen90017.oas.dto.response.ExaminerAssessmentsPageResponseDTO;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.exception.BusinessException;
@@ -151,11 +152,80 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     @Override
     public List<AssessmentSubmissionDTO> listMySubmissions(ExaminerAssessmentsQueryDTO query, Long examinerId) {
-        LocalDateTime from = query.getFrom() == null ? null : query.getFrom().atStartOfDay();
-        LocalDateTime to = query.getTo() == null ? null : query.getTo().atTime(23,59,59);
+        LocalDateTime from = query.getCreatedFrom() == null ? null : query.getCreatedFrom().atStartOfDay();
+        LocalDateTime to = query.getCreatedTo() == null ? null : query.getCreatedTo().atTime(23,59,59);
         List<AssessmentSubmission> list = submissionMapper.listByExaminer(examinerId, query.getAssignmentId(), query.getStatus(), from, to);
         List<AssessmentSubmissionDTO> resp = new ArrayList<>();
         for (AssessmentSubmission r : list) resp.add(toDTO(r));
+        return resp;
+    }
+
+    @Override
+    public ExaminerAssessmentsPageResponseDTO pageMySubmissions(ExaminerAssessmentsQueryDTO query, Long examinerId) {
+        int page = query.getPage() == null || query.getPage() < 1 ? 1 : query.getPage();
+        int limit = query.getLimit() == null ? 20 : Math.min(Math.max(query.getLimit(), 1), 100);
+        int offset = (page - 1) * limit;
+
+        LocalDateTime createdFrom = query.getCreatedFrom() == null ? null : query.getCreatedFrom().atStartOfDay();
+        LocalDateTime createdTo = query.getCreatedTo() == null ? null : query.getCreatedTo().atTime(23,59,59);
+        LocalDateTime submittedFrom = query.getSubmittedFrom() == null ? null : query.getSubmittedFrom().atStartOfDay();
+        LocalDateTime submittedTo = query.getSubmittedTo() == null ? null : query.getSubmittedTo().atTime(23,59,59);
+
+        String sortBy = normalizeSortBy(query.getSortBy());
+        String sortOrder = normalizeSortOrder(query.getSortOrder());
+
+        List<AssessmentSubmission> rows = submissionMapper.pageByExaminer(
+                examinerId,
+                query.getAssignmentId(),
+                query.getSessionId(),
+                normalizeSubjectType(query.getSubjectType()),
+                query.getSubjectId(),
+                query.getStatus(),
+                query.getStatuses(),
+                createdFrom,
+                createdTo,
+                submittedFrom,
+                submittedTo,
+                query.getMinScore(),
+                query.getMaxScore(),
+                emptyToNull(query.getKeyword()),
+                offset,
+                limit,
+                sortBy,
+                sortOrder
+        );
+        Long total = submissionMapper.countByExaminer(
+                examinerId,
+                query.getAssignmentId(),
+                query.getSessionId(),
+                normalizeSubjectType(query.getSubjectType()),
+                query.getSubjectId(),
+                query.getStatus(),
+                query.getStatuses(),
+                createdFrom,
+                createdTo,
+                submittedFrom,
+                submittedTo,
+                query.getMinScore(),
+                query.getMaxScore(),
+                emptyToNull(query.getKeyword())
+        );
+
+        List<AssessmentSubmissionDTO> items = new ArrayList<>();
+        for (AssessmentSubmission r : rows) items.add(toDTO(r));
+
+        org.swen90017.oas.dto.response.PaginationDTO p = new org.swen90017.oas.dto.response.PaginationDTO();
+        p.setCurrentPage(page);
+        p.setItemsPerPage(limit);
+        p.setTotalItems(total == null ? 0L : total);
+        int totalPages = (int) Math.ceil((total == null ? 0.0 : total.doubleValue()) / Math.max(1, limit));
+        p.setTotalPages(totalPages);
+        p.setHasPrev(page > 1);
+        p.setHasNext(page < totalPages);
+
+        ExaminerAssessmentsPageResponseDTO resp = new ExaminerAssessmentsPageResponseDTO();
+        resp.setItems(items);
+        resp.setPagination(p);
         return resp;
     }
 
@@ -409,6 +479,24 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (subjectType.equalsIgnoreCase("INDIVIDUAL") || subjectType.equalsIgnoreCase("STUDENT") || subjectType.equalsIgnoreCase("PERSONAL")) return "INDIVIDUAL";
         if (subjectType.equalsIgnoreCase("GROUP")) return "GROUP";
         return subjectType;
+    }
+
+    private String emptyToNull(String s) { return (s == null || s.trim().isEmpty()) ? null : s.trim(); }
+
+    private String normalizeSortBy(String sortBy) {
+        if (sortBy == null || sortBy.trim().isEmpty()) return "updated_at";
+        String col = sortBy.trim().toLowerCase();
+        // 允许的排序列白名单，避免注入
+        if (col.equals("updated_at") || col.equals("created_at") || col.equals("submitted_at") || col.equals("total_score")) {
+            return col;
+        }
+        return "updated_at";
+    }
+
+    private String normalizeSortOrder(String sortOrder) {
+        if (sortOrder == null) return "desc";
+        String o = sortOrder.trim().toLowerCase();
+        return ("asc".equals(o) || "desc".equals(o)) ? o : "desc";
     }
 }
 

@@ -26,7 +26,7 @@ export default function AssessmentSelectionStep({
 
         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-800 dark:text-blue-200 mb-6">
           <i className="fas fa-info-circle mr-2"></i>
-          Select an assessment to view available time slots. You can select as many sessions as you'd like up to your maximum allocation limit.
+          Select an assessment to view available sessions. You can select as many sessions as you'd like up to your maximum allocation limit.
         </div>
 
         {isLoading && (
@@ -82,7 +82,7 @@ export default function AssessmentSelectionStep({
                       </span>
                     </div>
                     <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 flex flex-wrap gap-4">
-                      <span>Available slots: <span className="font-medium text-blue-600 dark:text-blue-400">{assignment.availableTimeslots}</span></span>
+                      <span>Available sessions: <span className="font-medium text-blue-600 dark:text-blue-400">{assignment.availableTimeslots}</span></span>
                       <span>Capacity: <span className="font-medium text-green-600 dark:text-green-400">{assignment.examinerInfo.remainingCapacity}/{assignment.examinerInfo.maxSessions}</span></span>
                     </div>
                   </div>
@@ -108,7 +108,7 @@ export default function AssessmentSelectionStep({
             disabled={!selectedAssignment || isLoading}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded disabled:opacity-50"
           >
-            Continue to Time Slot Selection
+            Continue to Session Selection
             <i className="fas fa-arrow-right ml-2"></i>
           </button>
         </div>
@@ -116,4 +116,3 @@ export default function AssessmentSelectionStep({
     </div>
   );
 }
-

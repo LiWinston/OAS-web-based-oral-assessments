@@ -1,3 +1,76 @@
+## Examiner Self-Assignment — Sessions-Only Minimal Update
+
+This section documents the minimal changes to move from TimeSlot to Session while keeping behavior the same. All other content below remains valid unless explicitly superseded here.
+
+Endpoint renames (use these instead of the timeslot ones):
+- List selectable items → `GET /api/assignments/{assignmentId}/sessions?examinerId={examinerId}&date=YYYY-MM-DD` (replaces `GET /api/assignments/{assignmentId}/timeslots`)
+- Bulk self‑assign → `POST /api/assignments/{assignmentId}/sessions/assign?examinerId={examinerId}` with body `{ "sessionIds": [..] }` (replaces `POST /api/assignments/{assignmentId}/timeslots/assign`)
+- Self‑unassign → `DELETE /api/assignments/{assignmentId}/sessions/{sessionId}/unassign?examinerId={examinerId}` (replaces `DELETE /api/assignments/{assignmentId}/timeslots/{slotId}/unassign`)
+- My schedule (unchanged path if already present) → `GET /api/examiners/{examinerId}/schedule` now returns session rows instead of timeslots.
+
+Minimal response shape changes:
+- Replace `slotId` with `sessionId`; remove `sessionCount` (each session counts as 1 toward limits).
+- Include coverage per session: `{ assigned, required, isFullyStaffed }`.
+- Optionally include student capacity info: `{ bookedCount, capacity }` (read‑only).
+
+Rules unchanged except where noted:
+- Fully staffed blocks further assignment (no over‑cover): if `isFullyStaffed=true`, `availability.canSelect=false` with reason `SESSION_CLOSED`.
+- Overlap and max‑sessions limits remain enforced at session level.
+- Withdrawal: no time‑based cutoff window; keep existing “blocked if students have booked” behavior if currently enforced.
+
+Error codes (no change in semantics, only entity naming):
+- `TIME_CONFLICT`, `LIMIT_EXCEEDED`, `SESSION_CLOSED`, `ALREADY_ASSIGNED`, `NOT_ELIGIBLE`, `NOT_FOUND`.
+
+Discover assignments endpoint:
+- Keep using the existing endpoint your frontend already calls to list examiner’s assignments. No contract change required here; surfaces uncovered counts should now be session‑based.
+
+The remainder of this file (Timeslot sections below) is superseded only where endpoint names and identifiers differ. Prefer the session endpoints listed above.
+
+Backend actions required (precise changes)
+- Implement session-aware list for examiners
+  - Path: `GET /api/assignments/{assignmentId}/sessions`
+  - Query: `examinerId` (required), `date` (YYYY-MM-DD), `status=available|all` (optional), `pageNum`, `pageSize`
+  - Return: `{ success, code, data: { sessions: [ { sessionId, start, end, venue, coverage: { assigned, required, isFullyStaffed }, availability: { canSelect, reason? } } ] } }`
+  - Behavior: When `status=available`, include only sessions where `availability.canSelect=true` (i.e., not fully staffed and within policy). When `status=all`, include all and provide reasons for disabled ones.
+
+- Implement batch self-assign
+  - Path: `POST /api/assignments/{assignmentId}/sessions/assign`
+  - Query: `examinerId` (required)
+  - Body: `{ sessionIds: number[] }`
+  - Validate (in order): membership → overlap (session windows) → per-assignment max sessions → coverage (block if fully staffed) → other policy checks
+  - Transaction: all-or-nothing; on any conflict, return `409` with reasons and no changes applied
+  - Response (success): `{ success: true, code: 'OK', data: { addedSessionIds: [101,102] } }`
+  - Response (conflict): `{ success: false, code: 'TIME_CONFLICT' | 'LIMIT_EXCEEDED' | 'SESSION_CLOSED' | 'ALREADY_ASSIGNED', data: { conflicts?: [ { sessionId, reason } ] } }`
+
+- Implement self-unassign
+  - Path: `DELETE /api/assignments/{assignmentId}/sessions/{sessionId}/unassign`
+  - Query: `examinerId` (required)
+  - Block when students have booked or session started (if enforced); no time-based cutoff required otherwise
+  - Response: `{ success: true, code: 'OK' }` or `{ success: false, code: 'STUDENT_BOOKED' | 'SESSION_STARTED' }`
+
+- Examiner schedule returns sessions
+  - Path: `GET /api/examiners/{examinerId}/schedule`
+  - Query: `assignmentId?`, `date?`, `dateFrom?`, `dateTo?`
+  - For each returned session include: `{ sessionId, start, end, venue, coverage, studentCapacity: { bookedCount, capacity }, canWithdraw, cannotWithdrawReason? }`
+
+Example: list assignable sessions
+```
+GET /api/assignments/42/sessions?examinerId=601&date=2025-04-15&status=all
+200 OK
+{
+  "success": true,
+  "code": "OK",
+  "data": {
+    "sessions": [
+      { "sessionId": 101, "start": "2025-04-15T09:00:00+10:00", "end": "2025-04-15T09:30:00+10:00", "venue": { "venueId": 12, "name": "ENG 405" }, "coverage": { "assigned": 1, "required": 2, "isFullyStaffed": false }, "availability": { "canSelect": true } },
+      { "sessionId": 102, "start": "2025-04-15T09:30:00+10:00", "end": "2025-04-15T10:00:00+10:00", "venue": { "venueId": 12, "name": "ENG 405" }, "coverage": { "assigned": 2, "required": 2, "isFullyStaffed": true }, "availability": { "canSelect": false, "reason": "SESSION_CLOSED" } }
+    ]
+  }
+}
+```
+
+---
+
 ## Examiner Timeslot Assignment — API Contracts (MVP)
 
 This contract aligns with existing API patterns and wrappers. It includes per‑endpoint requests, responses, and error examples.

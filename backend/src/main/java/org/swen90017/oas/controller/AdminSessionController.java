@@ -88,11 +88,11 @@ public class AdminSessionController {
     @Operation(summary = "Batch create sessions (no timeslot)")
     @PostMapping("/assignments/{assignmentId}/sessions/batch")
     @Log(module = "Session Management", businessType = BusinessType.INSERT)
-    public Result<org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO> batchCreate(
+    public Result<ResultBatchCreateSessionsResponseDTO> batchCreate(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody BatchCreateSessionsRequestDTO request) {
         int created = sessionService.batchCreateSessions(assignmentId, request.getWindows());
-        org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
+        ResultBatchCreateSessionsResponseDTO dto = new ResultBatchCreateSessionsResponseDTO();
         dto.setCreatedCount(created);
 
         // 汇总本次各 window 对应日期/场地下、时间落在窗口内的会话
@@ -107,7 +107,7 @@ public class AdminSessionController {
                     s.setId(it.getId());
                     s.setStartTime(it.getStartTime());
                     s.setEndTime(it.getEndTime());
-                    s.setStatus(org.swen90017.oas.enums.SessionStatus.valueOf(it.getStatus().toUpperCase()));
+                    s.setStatus(SessionStatus.valueOf(it.getStatus().toUpperCase()));
                     s.setSessionNumber(null);
                     s.setBookedBy(null);
                     details.add(s);
@@ -227,24 +227,6 @@ public class AdminSessionController {
         return Result.success(sessionService.updateSessionsExaminers(assignmentId, request));
     }
 
-    @Operation(summary = "Publish/unpublish session to examiner")
-    @PutMapping("/sessions/{sessionId}/publish/examiner")
-    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
-    public Result<Boolean> publishToExaminer(
-            @Parameter(description = "Session ID") @PathVariable Long sessionId,
-            @RequestParam("value") Boolean value) {
-        return Result.success(sessionService.publishSessionToExaminer(sessionId, Boolean.TRUE.equals(value)));
-    }
-
-    @Operation(summary = "Publish/unpublish session to student (requires staffed)")
-    @PutMapping("/sessions/{sessionId}/publish/student")
-    @Log(module = "Session Management", businessType = BusinessType.UPDATE)
-    public Result<Boolean> publishToStudent(
-            @Parameter(description = "Session ID") @PathVariable Long sessionId,
-            @RequestParam("value") Boolean value) {
-        return Result.success(sessionService.publishSessionToStudent(sessionId, Boolean.TRUE.equals(value)));
-    }
-
     @Operation(summary = "Publish/unpublish ALL sessions of an assignment to examiner")
     @PutMapping("/assignments/{assignmentId}/publish/examiner")
     @Log(module = "Session Management", businessType = BusinessType.UPDATE)
@@ -269,6 +251,14 @@ public class AdminSessionController {
     public Result<Map<String, Boolean>> getPublishStatus(
             @Parameter(description = "Session ID") @PathVariable Long sessionId) {
         return Result.success(sessionService.getPublishStatus(sessionId));
+    }
+
+    @Operation(summary = "Get assignment publish status")
+    @GetMapping("/assignments/{assignmentId}/publish/status")
+    @Log(module = "Session Management", businessType = BusinessType.QUERY)
+    public Result<Map<String, Object>> getAssignmentPublishStatus(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
+        return Result.success(sessionService.getAssignmentPublishStatus(assignmentId));
     }
 }
 
