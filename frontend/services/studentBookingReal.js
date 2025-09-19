@@ -73,6 +73,11 @@ export const studentBookingServiceReal = {
     studentId,
     { date, pageNum = 0, pageSize = 50, includeReasons = true } = {}
   ) {
+    // Date is required by the backend API
+    if (!date) {
+      throw new Error("Date parameter is required for fetching bookable sessions");
+    }
+
     // Backend defaults pageNum=1; use 1-based and larger page size by default
     const res = await api.get(`/api/assignments/${assignmentId}/sessions`, {
       params: {
@@ -85,27 +90,44 @@ export const studentBookingServiceReal = {
     });
     const body = res.data;
     const payload = body?.data;
+
+    // Helper function to normalize datetime format
+    const normalizeDateTime = (dt) => {
+      if (!dt) return dt;
+      // If datetime is missing seconds/timezone, add them
+      if (dt.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+        return dt + ":00+10:00"; // Add seconds and Melbourne timezone
+      }
+      if (dt.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)) {
+        return dt + "+10:00"; // Add Melbourne timezone
+      }
+      return dt;
+    };
+
     // If backend already returns timeSlots shape, pass through
     if (Array.isArray(payload?.timeSlots)) return body;
     // If backend returns flat sessions[], adapt to existing UI shape with synthetic one-to-one slot wrapping
     if (Array.isArray(payload?.sessions)) {
-      const timeSlots = payload.sessions.map((s) => ({
-        slotId: s.sessionId ?? s.id,
-        start: s.start,
-        end: s.end,
-        venue: s.venue,
-        timezone: s.timezone,
-        requiredExaminers: s.coverage?.required,
-        currentExaminers: s.coverage?.assigned,
-        sessions: [
-          {
-            sessionId: s.sessionId ?? s.id,
-            start: s.start,
-            end: s.end,
-            availability: s.availability || { canBook: true },
-          },
-        ],
-      }));
+      const timeSlots = payload.sessions.map((s) => {
+        const venue = s.venue || ((s.venueId || s.venueName) ? { venueId: s.venueId, name: s.venueName } : undefined);
+        return {
+          slotId: s.sessionId ?? s.id,
+          start: normalizeDateTime(s.start),
+          end: normalizeDateTime(s.end),
+          venue,
+          timezone: s.timezone || "Australia/Melbourne",
+          requiredExaminers: s.coverage?.required,
+          currentExaminers: s.coverage?.assigned,
+          sessions: [
+            {
+              sessionId: s.sessionId ?? s.id,
+              start: normalizeDateTime(s.start),
+              end: normalizeDateTime(s.end),
+              availability: s.availability || { canBook: true },
+            },
+          ],
+        };
+      });
       return {
         ...body,
         data: {
@@ -153,9 +175,17 @@ export const studentBookingServiceReal = {
     }
   },
 
+  async rescheduleBooking(assignmentId, currentSessionId, studentId, targetSessionId) {
+    const res = await api.post(
+      `/api/assignments/${assignmentId}/bookings/${currentSessionId}/reschedule`,
+      { studentId, targetSessionId }
+    );
+    return res.data;
+  },
+
   async getMyBookings(
     studentId,
-    { status = "upcoming", pageNum = 0, pageSize = 20 } = {}
+    { pageNum = 0, pageSize = 20 } = {}
   ) {
     // Aggregate from assignments + current booking; fallback if backend 'booked' filter is not up-to-date
     const fetchAssignments = async (flt) => {
@@ -248,14 +278,58 @@ export const studentBookingServiceReal = {
     const res = await api.get(
       `/api/students/${studentId}/assignments/${assignmentId}/booking`
     );
-    return res.data;
+
+    // Normalize the response to handle inconsistent venue structure
+    const data = res.data;
+    if (data?.data?.booking?.session) {
+      const session = data.data.booking.session;
+      const venue = session.venue;
+
+      // Normalize venue structure
+      if (venue) {
+        const normalizedVenue = {
+          venueId: venue.id || venue.venueId,
+          name: venue.venueName || venue.name || '',
+          building: venue.building,
+          room: venue.room
+        };
+        session.venue = normalizedVenue;
+      }
+
+      // Normalize datetime format
+      if (session.start && session.start.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+        session.start = session.start + ":00+10:00";
+      }
+      if (session.end && session.end.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
+        session.end = session.end + ":00+10:00";
+      }
+
+      // Ensure timezone is set
+      if (!session.timezone) {
+        session.timezone = "Australia/Melbourne";
+      }
+    }
+
+    return data;
   },
 
   async getGroupContext(studentId, assignmentId) {
-    const res = await api.get(
-      `/api/students/${studentId}/assignments/${assignmentId}/group`
-    );
-    return res.data;
+    try {
+      const res = await api.get(
+        `/api/students/${studentId}/assignments/${assignmentId}/group`
+      );
+      return res.data;
+    } catch (error) {
+      // If the API fails (500 error), return null data instead of throwing
+      // This allows the booking to continue even if group context is unavailable
+      console.warn("Group context API failed:", error);
+
+      return {
+        success: false,
+        code: "GROUP_CONTEXT_UNAVAILABLE",
+        data: null
+      };
+    }
   },
 };
 

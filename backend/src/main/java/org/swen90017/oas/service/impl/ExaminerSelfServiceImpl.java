@@ -333,11 +333,11 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        List<TimeSlot> slots = tseMapper.listSlotsByExaminer(examinerId, assignmentId);
-        Map<Long, List<TimeSlot>> byAssignment = slots.stream().collect(Collectors.groupingBy(TimeSlot::getAssignmentId));
+        List<SlotSession> sessions = sessionExaminerMapper.listSessionsByExaminer(examinerId, assignmentId);
+        Map<Long, List<SlotSession>> byAssignment = sessions.stream().collect(Collectors.groupingBy(SlotSession::getAssignmentId));
 
         List<ExaminerScheduleResponseDTO.AssignmentScheduleDTO> assignments = new ArrayList<>();
-        for (Map.Entry<Long, List<TimeSlot>> e : byAssignment.entrySet()) {
+        for (Map.Entry<Long, List<SlotSession>> e : byAssignment.entrySet()) {
             Long aId = e.getKey();
             Assignment a = assignmentMapper.selectById(aId);
             ExaminerScheduleResponseDTO.AssignmentScheduleDTO as = new ExaminerScheduleResponseDTO.AssignmentScheduleDTO();
@@ -359,30 +359,29 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 }
             }
 
-            List<ExaminerScheduleResponseDTO.SlotScheduleDTO> slotDtos = new ArrayList<>();
-            for (TimeSlot ts : e.getValue()) {
-                ExaminerScheduleResponseDTO.SlotScheduleDTO sd = new ExaminerScheduleResponseDTO.SlotScheduleDTO();
-                sd.setSlotId(ts.getSlotId());
-                sd.setStart(ts.getStartAt().toString());
-                sd.setEnd(ts.getEndAt().toString());
+            List<ExaminerScheduleResponseDTO.SessionScheduleDTO> sessionDtos = new ArrayList<>();
+            for (SlotSession ss : e.getValue()) {
+                ExaminerScheduleResponseDTO.SessionScheduleDTO sd = new ExaminerScheduleResponseDTO.SessionScheduleDTO();
+                sd.setSessionId(ss.getSessionId());
+                sd.setStart(ss.getStartAt().toString());
+                sd.setEnd(ss.getEndAt().toString());
                 ExaminerScheduleResponseDTO.VenueInfo v = new ExaminerScheduleResponseDTO.VenueInfo();
-                Venue venue = venueMapper.selectById(ts.getVenueId());
+                Venue venue = venueMapper.selectById(ss.getVenueId());
                 if (venue != null) {
                     v.setId(venue.getId());
                     v.setVenueName(venue.getRoomName());
                     v.setAssignmentId(venue.getAssignmentId());
                 }
                 sd.setVenue(v);
-                sd.setSessionCount(ts.getSessionCount());
-                sd.setRequiredExaminers(ts.getRequiredExaminers());
-                sd.setCurrentExaminers(ts.getCurrentExaminers());
-                sd.setIsBooked((ts.getBookedSessions() != null) && ts.getBookedSessions() > 0);
-                sd.setBookingCount(ts.getBookedSessions());
+                sd.setRequiredExaminers(ss.getRequiredExaminers());
+                sd.setCurrentExaminers(sessionExaminerMapper.listExaminerIdsBySession(ss.getSessionId()).size());
+                sd.setIsBooked((ss.getEnrolledGroups() != null) && ss.getEnrolledGroups() > 0);
+                sd.setBookingCount(ss.getEnrolledGroups());
                 sd.setCanWithdraw(false);
                 sd.setCannotWithdrawReason(sd.getIsBooked() ? "STUDENT BOOKED" : null);
-                slotDtos.add(sd);
+                sessionDtos.add(sd);
             }
-            as.setSlots(slotDtos);
+            as.setSessions(sessionDtos);
             assignments.add(as);
         }
 

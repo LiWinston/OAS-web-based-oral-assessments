@@ -99,7 +99,7 @@ function TimeslotSelectionContent() {
     error: timeslotsError,
     refetch: refetchTimeslots
   } = useQuery({
-    queryKey: ['availableTimeslots', selectedAssignment?.assignmentId, examinerId],
+    queryKey: ['availableSessions', selectedAssignment?.assignmentId, examinerId],
     queryFn: async () => {
       if (process.env.NODE_ENV === 'development') {
         console.log('🌐 API Call - Getting available sessions:', {
@@ -108,7 +108,7 @@ function TimeslotSelectionContent() {
         });
       }
       try {
-        const result = await examinerTimeslotService.getAvailableTimeslots(
+        const result = await examinerTimeslotService.getAvailableSessions(
           selectedAssignment.assignmentId, 
           { examinerId }
         );
@@ -132,10 +132,11 @@ function TimeslotSelectionContent() {
 
   // Availability summary for step 2 banner
   const availabilitySummary = useMemo(() => {
-    if (!timeslotsData?.success || !timeslotsData.data?.timeSlots) return null;
-    const slots = timeslotsData.data.timeSlots;
-    const selectable = slots.filter(s => s?.availability?.canSelect);
-    const reasonsMap = slots
+    if (!timeslotsData?.success) return null;
+    const sessions = timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
+    if (!Array.isArray(sessions)) return null;
+    const selectable = sessions.filter((s) => s?.availability?.canSelect);
+    const reasonsMap = sessions
       .filter(s => !s?.availability?.canSelect && s?.availability?.reason)
       .reduce((acc, s) => {
         const r = s.availability.reason;
@@ -148,7 +149,7 @@ function TimeslotSelectionContent() {
       if (arr.length > 0) primaryReason = arr[0][0];
     }
     return {
-      hasAny: slots.length > 0,
+      hasAny: sessions.length > 0,
       hasSelectable: selectable.length > 0,
       primaryReason,
       reasonsMap
@@ -180,15 +181,17 @@ function TimeslotSelectionContent() {
 
   // Get available dates from API data
   const getAvailableDates = () => {
-    if (!timeslotsData?.success || !timeslotsData.data.timeSlots) {
+    if (!timeslotsData?.success) {
       return [];
     }
-    
+    const sessions = timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
+    if (!Array.isArray(sessions)) return [];
+
     const dates = new Set();
-    timeslotsData.data.timeSlots.forEach(slot => {
+    sessions.forEach((slot) => {
       dates.add(toLocalDateKey(new Date(slot.start)));
     });
-    
+
     return Array.from(dates);
   };
 
@@ -296,7 +299,7 @@ function TimeslotSelectionContent() {
         queryClient.invalidateQueries({ queryKey: ['examinerDay'] });
         queryClient.invalidateQueries({ queryKey: ['examinerWeek'] });
         queryClient.invalidateQueries({ queryKey: ['availableAssignments'] });
-        queryClient.invalidateQueries({ queryKey: ['availableTimeslots', selectedAssignment?.assignmentId] });
+    queryClient.invalidateQueries({ queryKey: ['availableSessions', selectedAssignment?.assignmentId] });
 
         // Show modal dialog in the center with summary
         const details = (result.data?.assignedSlots || []).slice(0, 5).map((s) => {
@@ -566,7 +569,11 @@ function TimeslotSelectionContent() {
                 isLoading={isLoadingTimeslots}
                 error={timeslotsError}
                 onRetry={() => refetchTimeslots()}
-                timeSlots={timeslotsData?.data?.timeSlots || []}
+                timeSlots={
+                  timeslotsData?.data?.sessions ||
+                  timeslotsData?.data?.timeSlots ||
+                  []
+                }
                 selectedDate={selectedDate}
                 onToggleSlot={selectSlot}
                 isSlotSelected={isSlotSelected}

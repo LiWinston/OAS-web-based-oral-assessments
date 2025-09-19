@@ -14,7 +14,7 @@ function formatRange(slot) {
     const e = end.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
     return `${d} • ${s} – ${e}`;
   } catch {
-    return `Slot #${slot.slotId}`;
+    return `Session #${slot.sessionId ?? slot.slotId}`;
   }
 }
 

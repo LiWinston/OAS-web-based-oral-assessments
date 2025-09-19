@@ -166,10 +166,11 @@ export default function StudentBookingSteps() {
   }, [timeSlots, venueFilter]);
 
   const sessionIsBookable = (s) => {
-    const canBook = s?.availability?.canBook;
-    const status = (s?.status || "").toString().toLowerCase();
-    if (typeof canBook === "boolean") return canBook;
-    return status === "available"; // fallback to status when canBook not provided
+    const avail = s?.availability || {};
+    if (typeof avail.canBook === "boolean") return avail.canBook;
+    if (typeof avail.reason === "string" && avail.reason) return false;
+    // If backend omits availability, by contract it returns only bookable sessions (student flow)
+    return true;
   };
 
   const bookMutation = useMutation({
@@ -210,6 +211,7 @@ export default function StudentBookingSteps() {
       Boolean(studentId) &&
       Boolean(assignmentId),
     staleTime: 60 * 1000,
+    retry: 1, // Only retry once if it fails
   });
   const groupContext = groupData?.data || null;
 
@@ -258,6 +260,8 @@ export default function StudentBookingSteps() {
     const idempotencyKey = (typeof crypto !== "undefined" && crypto.randomUUID)
       ? crypto.randomUUID()
       : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    // For GROUP assignments, try to include groupId if available
+    // If group context is unavailable, backend might handle it differently
     const payload = {
       studentId,
       sessionId: selectedSession.sessionId,
@@ -303,16 +307,25 @@ export default function StudentBookingSteps() {
       </div>
 
       {/* Group banner */}
-      {isGroupType && groupContext && (
+      {isGroupType && (
         <div className="dashboard-card p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800">
-          <div className="text-sm text-blue-900 dark:text-blue-100">
-            You are booking on behalf of <span className="font-semibold">{groupContext.groupName || `Group ${groupContext.groupId}`}</span>.
-          </div>
-          {groupContext.members?.length ? (
-            <div className="text-xs text-blue-800 dark:text-blue-200 mt-1">
-              Members: {groupContext.members.map(m => m.name || m.email || m.studentId).join(', ')}
+          {groupContext ? (
+            <>
+              <div className="text-sm text-blue-900 dark:text-blue-100">
+                You are booking on behalf of <span className="font-semibold">{groupContext.groupName || `Group ${groupContext.groupId}`}</span>.
+              </div>
+              {groupContext.members?.length ? (
+                <div className="text-xs text-blue-800 dark:text-blue-200 mt-1">
+                  Members: {groupContext.members.map(m => m.name || m.email || m.studentId).join(', ')}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="text-sm text-blue-900 dark:text-blue-100">
+              <i className="fas fa-users mr-2"></i>
+              This is a group assessment. You are booking for your group.
             </div>
-          ) : null}
+          )}
         </div>
       )}
 

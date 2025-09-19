@@ -18,12 +18,13 @@ export default function TimeslotSelectionCalendar({
 
     const days = [];
 
-    // Previous month's trailing days
-    const prevMonth = new Date(year, month - 1, 0);
+    // Previous month's trailing days (correct previous month last date)
+    const prevMonthLastDate = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-      const d = new Date(year, month - 1, prevMonth.getDate() - i);
+      const dayNum = prevMonthLastDate - i;
+      const d = new Date(year, month - 1, dayNum);
       days.push({
-        date: prevMonth.getDate() - i,
+        date: dayNum,
         isCurrentMonth: false,
         fullDate: d,
         dateString: toLocalDateKey(d),
@@ -98,7 +99,7 @@ export default function TimeslotSelectionCalendar({
               } ${hasSlots ? 'border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700' : ''} ${
                 isSelected ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700' : ''
               } ${isToday ? 'font-bold text-blue-600 dark:text-blue-400' : ''}`}
-              onClick={() => hasSlots && onSelectDate(day.dateString)}
+              onClick={() => day.isCurrentMonth && hasSlots && onSelectDate(day.dateString)}
             >
               <span>{day.date}</span>
               {hasSlots && <div className="w-1 h-1 bg-blue-500 rounded-full mt-1"></div>}

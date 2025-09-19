@@ -39,6 +39,18 @@
         WHERE ss.assignment_id = #{assignmentId}
           AND se.examiner_id = #{examinerId}
     </select>
+    
+    <!-- 查询考官被分配的sessions，可选按assignmentId过滤 -->
+    <select id="listSessionsByExaminer" resultType="org.swen90017.oas.entity.SlotSession">
+        SELECT ss.*
+        FROM session_examiners se
+                 JOIN slot_sessions ss ON ss.session_id = se.session_id
+        WHERE se.examiner_id = #{examinerId}
+        <if test="assignmentId != null">
+            AND ss.assignment_id = #{assignmentId}
+        </if>
+        ORDER BY ss.start_at ASC, ss.session_id ASC
+    </select>
 
 </mapper>
 

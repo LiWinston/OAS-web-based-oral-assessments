@@ -18,16 +18,15 @@ public class ExaminerScheduleResponseDTO {
         private String assignmentName;
         private String courseCode;
         private String courseName;
-        private List<SlotScheduleDTO> slots;
+        private List<SessionScheduleDTO> sessions;
     }
 
     @Data
-    public static class SlotScheduleDTO {
-        private Long slotId;
+    public static class SessionScheduleDTO {
+        private Long sessionId;
         private String start; // ISO string with timezone
         private String end;   // ISO string with timezone
         private VenueInfo venue;
-        private Integer sessionCount;
         private Integer requiredExaminers;
         private Integer currentExaminers;
         private Boolean isBooked;

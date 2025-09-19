@@ -44,7 +44,6 @@ export default function ExaminerSchedule() {
   const [availableCourses, setAvailableCourses] = useState([]);
   const { showNotification } = useNotification();
 
-
   // Fetch available assignments to extract course list
   const { data: assignmentsData } = useQuery({
     queryKey: ["availableAssignments", examinerId],
@@ -82,55 +81,82 @@ export default function ExaminerSchedule() {
     try {
       // Export current month range
       const now = new Date();
-      const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const from = new Date(now.getFullYear(), now.getMonth(), 1)
+        .toISOString()
+        .split("T")[0];
+      const to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        .toISOString()
+        .split("T")[0];
       if (!isValidExaminer) {
-        showNotification('error', 'Please log in to export schedule');
+        showNotification("error", "Please log in to export schedule");
         return;
       }
-      
-      const res = await examinerTimeslotService.getExaminerSchedule(examinerId, { dateFrom: from, dateTo: to });
+
+      const res = await examinerTimeslotService.getExaminerSchedule(
+        examinerId,
+        { dateFrom: from, dateTo: to }
+      );
       const assignments = res?.data?.assignments || [];
-      const events = assignments.flatMap(a => a.slots.map(s => ({
-        assignmentId: a.assignmentId,
-        assignmentName: a.assignmentName,
-        courseCode: a.courseCode,
-        courseName: a.courseName,
-        start: s.start,
-        end: s.end,
-        venue: s.venue,
-        participants: s.participants || []
-      })));
+      const events = assignments.flatMap((a) =>
+        a.slots.map((s) => ({
+          assignmentId: a.assignmentId,
+          assignmentName: a.assignmentName,
+          courseCode: a.courseCode,
+          courseName: a.courseName,
+          start: s.start,
+          end: s.end,
+          venue: s.venue,
+          participants: s.participants || [],
+        }))
+      );
       // Apply filters
-      const filtered = events.filter(e => {
+      const filtered = events.filter((e) => {
         if (selectedCourse && e.courseCode !== selectedCourse) return false;
         // assessmentType not available in export mock events, skip type filtering here
         if (searchText && searchText.trim()) {
           const q = searchText.trim().toLowerCase();
-          const hit = e.assignmentName.toLowerCase().includes(q) || e.courseName.toLowerCase().includes(q) || e.courseCode.toLowerCase().includes(q) || (e.participants && e.participants.some(p => p.toLowerCase().includes(q)));
+          const hit =
+            e.assignmentName.toLowerCase().includes(q) ||
+            e.courseName.toLowerCase().includes(q) ||
+            e.courseCode.toLowerCase().includes(q) ||
+            (e.participants &&
+              e.participants.some((p) => p.toLowerCase().includes(q)));
           if (!hit) return false;
         }
         return true;
       });
-      const pad = (n) => String(n).padStart(2, '0');
+      const pad = (n) => String(n).padStart(2, "0");
       const toICSDate = (d) => {
         const dt = new Date(d);
-        return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth()+1)}${pad(dt.getUTCDate())}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(dt.getUTCSeconds())}Z`;
+        return `${dt.getUTCFullYear()}${pad(dt.getUTCMonth() + 1)}${pad(
+          dt.getUTCDate()
+        )}T${pad(dt.getUTCHours())}${pad(dt.getUTCMinutes())}${pad(
+          dt.getUTCSeconds()
+        )}Z`;
       };
-      const escapeICS = (s) => (s || '').replace(/,/g, '\\,').replace(/;/g, '\\;').replace(/\n/g, '\\n');
+      const escapeICS = (s) =>
+        (s || "")
+          .replace(/,/g, "\\,")
+          .replace(/;/g, "\\;")
+          .replace(/\n/g, "\\n");
       const icsLines = [
-        'BEGIN:VCALENDAR',
-        'VERSION:2.0',
-        'PRODID:-//OAS//Examiner Schedule//EN'
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//OAS//Examiner Schedule//EN",
       ];
-      filtered.forEach(e => {
+      filtered.forEach((e) => {
         const uid = `${e.assignmentId}-${e.start}-${e.end}@oas`;
         const dtStart = toICSDate(e.start);
         const dtEnd = toICSDate(e.end);
         const summary = `${e.courseCode} ${e.assignmentName}`;
-        const location = e.venue ? `${e.venue.name} ${e.venue.building} ${e.venue.room}` : '';
-        const desc = e.participants && e.participants.length ? `Participants: ${e.participants.join(', ')}` : '';
-        icsLines.push('BEGIN:VEVENT');
+        const location = e.venue
+          ? `${e.venue.name} ${e.venue.building} ${e.venue.room}`
+          : "";
+        const desc =
+          e.participants && e.participants.length
+            ? `Participants: ${e.participants.join(", ")}`
+            : "";
+        icsLines.push("BEGIN:VEVENT");
         icsLines.push(`UID:${uid}`);
         icsLines.push(`DTSTAMP:${toICSDate(new Date())}`);
         icsLines.push(`DTSTART:${dtStart}`);
@@ -138,21 +164,23 @@ export default function ExaminerSchedule() {
         icsLines.push(`SUMMARY:${escapeICS(summary)}`);
         if (location) icsLines.push(`LOCATION:${escapeICS(location)}`);
         if (desc) icsLines.push(`DESCRIPTION:${escapeICS(desc)}`);
-        icsLines.push('END:VEVENT');
+        icsLines.push("END:VEVENT");
       });
-      icsLines.push('END:VCALENDAR');
-      const blob = new Blob([icsLines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+      icsLines.push("END:VCALENDAR");
+      const blob = new Blob([icsLines.join("\r\n")], {
+        type: "text/calendar;charset=utf-8",
+      });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = 'examiner-schedule.ics';
+      a.download = "examiner-schedule.ics";
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      showNotification('success', 'Exported schedule as .ics file');
+      showNotification("success", "Exported schedule as .ics file");
     } catch (e) {
-      showNotification('error', 'Failed to export schedule');
+      showNotification("error", "Failed to export schedule");
     }
   };
 
@@ -192,14 +220,14 @@ export default function ExaminerSchedule() {
       {/* Schedule Management Tools */}
       <div className="dashboard-card">
         <div className="p-4 flex flex-col lg:flex-row lg:items-center justify-between">
-        <div className="mb-4 lg:mb-0">
-          <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
-            Assessment Schedule
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Manage and view your upcoming assessment sessions
-          </p>
-        </div>
+          <div className="mb-4 lg:mb-0">
+            <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
+              Assessment Schedule
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Manage and view your upcoming assessment sessions
+            </p>
+          </div>
 
           <ScheduleFilters courseOptions={availableCourses} />
 
@@ -312,7 +340,9 @@ export default function ExaminerSchedule() {
       {viewMode === "month" ? (
         <>
           <AssessmentsToAssign />
-          <AssignedSlots showDebugSection={process.env.NODE_ENV === 'development'} />
+          <AssignedSlots
+            showDebugSection={process.env.NODE_ENV === "development"}
+          />
           <ExaminerCalendar />
         </>
       ) : viewMode === "week" ? (
@@ -334,7 +364,7 @@ export default function ExaminerSchedule() {
           </div>
           <div className="flex items-center">
             <i className="fas fa-times-circle mr-2"></i>
-            Use "My Assigned Slots" to withdraw from unbooked sessions
+            Use "My Assigned Sessions" to withdraw from unbooked sessions
           </div>
           {selectedCourse && (
             <div className="flex items-center text-blue-600 dark:text-blue-400">

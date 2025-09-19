@@ -38,7 +38,7 @@ export default function OnboardingWelcome({
           icon: <GraduationCap className="w-10 h-10 text-white" />,
           title: 'Welcome Student',
           subtitle: courseContext ? `New assessment in ${courseContext.courseName}` : 'You have been invited to an assessment',
-          description: 'As a Student, you will be able to book your oral exam slot, view assessment details, and receive your results and feedback.',
+          description: 'As a Student, you will be able to book your oral exam session, view assessment details, and receive your results and feedback.',
           color: 'from-green-500 to-green-600',
           emoji: '📚'
         };

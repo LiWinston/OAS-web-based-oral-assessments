@@ -72,6 +72,7 @@
             AND status = #{status}
         </if>
         ORDER BY submitted_at DESC
+    </select>
     <sql id="ExaminerAssessmentsWhere">
         WHERE examiner_id = #{examinerId}
         <if test="assignmentId != null"> AND assignment_id = #{assignmentId} </if>

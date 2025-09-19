@@ -22,7 +22,7 @@ function startOfWeek(date) {
 export default function WeekSchedule() {
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
-  const { withdrawFromTimeslot, isSubmitting, canWithdraw } = useTimeslotAssignment();
+  const { withdrawFromSession, isSubmitting, canWithdraw } = useTimeslotAssignment();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogProps, setDialogProps] = useState({});
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -43,7 +43,7 @@ export default function WeekSchedule() {
     staleTime: 60 * 1000 // 1 minute stale time
   });
 
-  const slotsRaw = useMemo(() => data?.data?.assignments?.flatMap(a => a.slots.map(s => ({
+  const slotsRaw = useMemo(() => data?.data?.assignments?.flatMap(a => (a.sessions || a.slots || []).map(s => ({
     ...s,
     assignmentId: a.assignmentId,
     assignmentName: a.assignmentName,
@@ -84,13 +84,13 @@ export default function WeekSchedule() {
 
   const doWithdraw = async (slot) => {
     try {
-      const res = await withdrawFromTimeslot(slot, () => { refetch(); });
+      const res = await withdrawFromSession(slot, () => { refetch(); });
       if (res?.success) {
         const start = slot.start ? new Date(slot.start) : null;
         const end = slot.end ? new Date(slot.end) : null;
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
-          : `Slot #${slot.slotId}`;
+          : `Session #${slot.sessionId ?? slot.slotId}`;
         setDialogProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setDialogOpen(true);
       }

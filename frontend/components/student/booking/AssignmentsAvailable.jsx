@@ -20,12 +20,16 @@ export default function AssignmentsAvailable() {
   });
 
   const assignmentsRaw = data?.data?.data || [];
-  // Apply client-side filters and guard against backend delay in reflecting status
+  // Apply client-side filters
   const assignments = assignmentsRaw.filter((a) => {
-    // Exclude anything already booked just in case backend status cache is stale
-    if (a?.booking?.hasActiveBooking) return false;
-    // Only show released assignments with remaining availability
+    // We trust the backend's "bookable" filter - if backend returns it with status=bookable,
+    // then it's available to book, regardless of the hasActiveBooking field value
+    // The hasActiveBooking field may have sync issues between different backend services
+
+    // Only apply client-side filters for display preferences and additional safety checks
+    // Check if assignment is released (safety check)
     if (!a?.availability?.released) return false;
+    // Check if there are available sessions (safety check)
     if (typeof a?.availability?.availableSessions === 'number' && a.availability.availableSessions <= 0) return false;
     if (selectedCourse && a.courseCode !== selectedCourse) return false;
     if (assessmentType && assessmentType !== "ALL" && a.assessmentType !== assessmentType) return false;

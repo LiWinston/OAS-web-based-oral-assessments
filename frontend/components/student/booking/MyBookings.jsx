@@ -100,9 +100,17 @@ export default function MyBookings() {
     
     setIsProcessingCancel(true);
     try {
+      // Backend requires sessionId, not bookingId
+      const sessionId = selectedBooking.session?.sessionId;
+      if (!sessionId) {
+        showNotification("error", "Cannot cancel booking: Session information missing");
+        setIsProcessingCancel(false);
+        return;
+      }
+
       const res = await studentBookingService.cancelBooking(
-        selectedBooking.assignmentId, 
-        selectedBooking.session?.sessionId || selectedBooking.bookingId, 
+        selectedBooking.assignmentId,
+        sessionId,
         studentId
       );
       if (res?.success) {
@@ -200,7 +208,7 @@ export default function MyBookings() {
             <i className="fas fa-calendar text-gray-400 dark:text-gray-500 text-2xl"></i>
           </div>
           <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No upcoming bookings</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">Book your assessment slots from the list above.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">Book your assessment sessions from the list above.</p>
         </div>
       </div>
     );
