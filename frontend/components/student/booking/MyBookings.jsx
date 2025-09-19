@@ -100,9 +100,17 @@ export default function MyBookings() {
     
     setIsProcessingCancel(true);
     try {
+      // Backend requires sessionId, not bookingId
+      const sessionId = selectedBooking.session?.sessionId;
+      if (!sessionId) {
+        showNotification("error", "Cannot cancel booking: Session information missing");
+        setIsProcessingCancel(false);
+        return;
+      }
+
       const res = await studentBookingService.cancelBooking(
-        selectedBooking.assignmentId, 
-        selectedBooking.session?.sessionId || selectedBooking.bookingId, 
+        selectedBooking.assignmentId,
+        sessionId,
         studentId
       );
       if (res?.success) {

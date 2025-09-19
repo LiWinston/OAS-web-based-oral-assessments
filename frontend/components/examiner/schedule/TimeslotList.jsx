@@ -75,25 +75,40 @@ export default function TimeslotList({
             const canSelect = slot.availability?.canSelect;
             const reason = slot.availability?.reason;
             const selected = isSlotSelected(slot.slotId);
+            const needsMoreExaminers = slot.currentExaminers < slot.requiredExaminers;
             return (
               <div
                 key={slot.slotId}
                 className={`p-3 border rounded-lg transition-colors ${
-                  !canSelect
+                  slot.isExaminerAlreadyAssigned
+                    ? 'border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/10 cursor-not-allowed'
+                    : !canSelect
                     ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 opacity-60 cursor-not-allowed'
                     : selected
                     ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 cursor-pointer'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
                 }`}
-                onClick={() => canSelect && onToggleSlot(slot)}
+                onClick={() => canSelect && !slot.isExaminerAlreadyAssigned && onToggleSlot(slot)}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-sm">{formatTime(slot.start)} - {formatTime(slot.end)}</span>
-                      {!canSelect && reason && (
+                      {slot.isExaminerAlreadyAssigned && (
+                        <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                          <i className="fas fa-check-circle mr-1"></i>
+                          You're Assigned
+                        </span>
+                      )}
+                      {needsMoreExaminers && !slot.isExaminerAlreadyAssigned && canSelect && (
+                        <span className="px-2 py-1 text-xs rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                          <i className="fas fa-exclamation-circle mr-1"></i>
+                          Needs Examiner
+                        </span>
+                      )}
+                      {!canSelect && reason && !slot.isExaminerAlreadyAssigned && (
                         <span className="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                          {reason === 'SLOT_FULL' || reason === 'SESSION_CLOSED' ? 'Full' : reason === 'TIME_CONFLICT' ? 'Conflict' : reason}
+                          {reason === 'SLOT_FULL' || reason === 'SESSION_CLOSED' ? 'Full' : reason === 'TIME_CONFLICT' ? 'Conflict' : reason === 'ALREADY_ASSIGNED' ? 'Assigned' : reason}
                         </span>
                       )}
                     </div>
@@ -102,7 +117,13 @@ export default function TimeslotList({
                       {formatVenue(slot.venue)}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
+                      <i className="fas fa-user-check mr-1"></i>
                       {slot.currentExaminers}/{slot.requiredExaminers} examiners assigned
+                      {slot.assignedExaminers && slot.assignedExaminers.length > 0 && (
+                        <span className="ml-1">
+                          ({slot.assignedExaminers.map(e => e.name || 'Examiner').join(', ')})
+                        </span>
+                      )}
                     </div>
                     {typeof slot.capacity !== 'undefined' && (
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">

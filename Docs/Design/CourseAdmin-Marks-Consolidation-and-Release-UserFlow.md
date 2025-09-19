@@ -133,5 +133,5 @@
 - **Totals logic**: mirror `TotalsPanel` math for mixed weighting.  
 - **Routes**:  
   - List: `/admin/courses/[courseId]/assignments/[assignmentId]/results`  
-  - Detail: `/admin/courses/[courseId]/assignments/[assignmentId]/results/[entityKey]`  
+  - Detail: `/admin/courses/[courseId]/assignments/[assignmentId]/results/[sessionId]/[kind]/[entityId]`  
 These follow the App Router and service patterns described in the repository README. fileciteturn1file12 fileciteturn1file3

@@ -17,7 +17,7 @@ function toIsoFromDateAndLocalTime(dateStr, timeVal) {
   return local.toISOString();
 }
 
-function normalizeSession(session) {
+function normalizeSession(session, examinerId) {
   if (!session) return null;
 
   const sessionId = session.sessionId ?? session.id ?? session.slotId;
@@ -29,24 +29,46 @@ function normalizeSession(session) {
       : null);
 
   const required = session.requiredExaminers ?? session.coverage?.required ?? session.required ?? null;
+
+  // Get assigned examiners array and count
+  const assignedExaminers = session.assignedExaminers || [];
   const assigned = session.currentExaminers
     ?? session.coverage?.assigned
-    ?? (Array.isArray(session.assignedExaminers) ? session.assignedExaminers.length : null);
+    ?? assignedExaminers.length;
+
+  // Check if current examiner is already assigned to this session
+  const isExaminerAlreadyAssigned = examinerId && Array.isArray(assignedExaminers)
+    ? assignedExaminers.some(examiner =>
+        examiner.id === examinerId ||
+        examiner.examinerId === examinerId ||
+        examiner === examinerId
+      )
+    : false;
+
+  // Session is fully staffed when assigned count meets or exceeds required
   const isFullyStaffed = session.coverage?.isFullyStaffed
     ?? (required != null && assigned != null ? assigned >= required : false);
 
   const conflict = session.conflict ?? false;
-  const alreadyAssigned = session.assigned ?? false;
+
+  // Use the calculated isExaminerAlreadyAssigned instead of generic alreadyAssigned
+  const alreadyAssigned = session.assigned ?? isExaminerAlreadyAssigned;
+
   const rawAvailability = session.availability || {};
+
+  // Determine if session can be selected:
+  // - Cannot select if already assigned to this examiner
+  // - Cannot select if fully staffed (no over-cover)
+  // - Cannot select if there's a time conflict
   const availability = {
     canSelect: rawAvailability.canSelect ?? (!isFullyStaffed && !conflict && !alreadyAssigned),
     reason: rawAvailability.reason
-      ?? (isFullyStaffed
-        ? 'SESSION_CLOSED'
-        : conflict
-          ? 'TIME_CONFLICT'
-          : alreadyAssigned
-            ? 'ALREADY_ASSIGNED'
+      ?? (alreadyAssigned
+        ? 'ALREADY_ASSIGNED'
+        : isFullyStaffed
+          ? 'SESSION_CLOSED'
+          : conflict
+            ? 'TIME_CONFLICT'
             : null),
   };
 
@@ -68,6 +90,7 @@ function normalizeSession(session) {
     venue,
     requiredExaminers: required,
     currentExaminers: assigned,
+    assignedExaminers, // Include the actual examiners list for UI display
     coverage: session.coverage || {
       required,
       assigned,
@@ -82,6 +105,7 @@ function normalizeSession(session) {
     cannotWithdrawReason: session.cannotWithdrawReason ?? null,
     participants: session.participants ?? session.students ?? [],
     sessionCount: 1,
+    isExaminerAlreadyAssigned, // Add flag for UI to show "You're already assigned"
   };
 }
 
@@ -190,7 +214,7 @@ export const examinerTimeslotServiceReal = {
             : [];
 
       const sessions = items
-        .map((session) => normalizeSession(session))
+        .map((session) => normalizeSession(session, examinerId))
         .filter(Boolean);
 
       const assignmentInfo = Array.isArray(payload)
@@ -301,7 +325,7 @@ export const examinerTimeslotServiceReal = {
         const assignments = body.assignments.map((assignment) => {
           const rawSessions = assignment.sessions ?? assignment.slots ?? [];
           const normalizedSessions = rawSessions
-            .map((session) => normalizeSession(session))
+            .map((session) => normalizeSession(session, examinerId))
             .filter(Boolean);
           return {
             ...assignment,
@@ -315,7 +339,7 @@ export const examinerTimeslotServiceReal = {
       // Otherwise map from a flat schedule structure
       const slots = Array.isArray(body.slots) ? body.slots : [];
       const fallbackSessions = slots
-        .map((slot) => normalizeSession(slot))
+        .map((slot) => normalizeSession(slot, examinerId))
         .filter(Boolean);
 
       return {

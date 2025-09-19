@@ -180,11 +180,15 @@ The common error envelope mirrors the success envelope with `success=false` and 
 ### 3.4 Release results (immediate) — **US 6.2**
 `POST /api/admin/assignments/{assignmentId}/results/release` body `ReleaseRequestDTO` → `{ releasedCount, notifiedStudents }`
 
+- Only the `notify` option is processed by the backend at present; any other release options shown in UI are client-only and not part of the contract.
+
 - Scope can be **ALL** eligible or **SELECTION** via `EntityKey[]`. Block entities with zero submitted examiner assessments (configurable policy). fileciteturn1file10
 
 ### 3.5 Schedule results publication — **US 6.3**
 `PUT /api/admin/assignments/{assignmentId}/results/publication` body `PublicationScheduleDTO` → `200 OK`  
 `GET /api/admin/assignments/{assignmentId}/results/publication` → `PublicationScheduleDTO`
+
+- Only `status`, `at`, and `notify` are accepted fields in the request body.
 
 - Assignment‑level schedule with TZ‑aware timestamp; can be updated/canceled prior to execution. fileciteturn1file13
 
