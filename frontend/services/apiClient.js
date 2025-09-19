@@ -34,6 +34,31 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
 
+    // Debug: log outgoing request details on client side only
+    if (typeof window !== "undefined") {
+      try {
+        const method = (config.method || 'get').toUpperCase();
+        const baseURL = apiClient.defaults.baseURL;
+        const url = `${baseURL || ''}${config.url || ''}`;
+        // Avoid logging sensitive tokens fully
+        const authHeader = config.headers?.Authorization ? `${String(config.headers.Authorization).slice(0, 16)}...` : undefined;
+        // eslint-disable-next-line no-console
+        console.debug('[apiClient][request]', {
+          method,
+          url,
+          baseURL,
+          withCredentials: config.withCredentials,
+          headers: {
+            'Content-Type': config.headers?.['Content-Type'] || config.headers?.contentType,
+            Authorization: authHeader,
+            'If-Modified-Since': config.headers?.['If-Modified-Since'],
+          },
+          params: config.params,
+        });
+      } catch (_e) {
+        // noop
+      }
+    }
     return config;
   },
   (error) => {
@@ -56,6 +81,21 @@ apiClient.interceptors.response.use(
 
     // Handle different error scenarios
     if (response) {
+      if (typeof window !== "undefined") {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[apiClient][response][error]', {
+            status: response.status,
+            url: response.config?.url,
+            baseURL: response.config?.baseURL || apiClient.defaults.baseURL,
+            withCredentials: response.config?.withCredentials,
+            message: response.data?.message,
+            code: response.data?.code,
+          });
+        } catch (_e) {
+          // noop
+        }
+      }
       switch (response.status) {
         case 401:
           // Unauthorized - clear auth and redirect to login
@@ -88,6 +128,29 @@ apiClient.interceptors.response.use(
       }
     } else if (error.request) {
       // Network error - no response received
+      if (typeof window !== "undefined") {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[apiClient][network-error]', {
+            message: error.message,
+            code: error.code,
+            config: {
+              url: error.config?.url,
+              baseURL: error.config?.baseURL || apiClient.defaults.baseURL,
+              withCredentials: error.config?.withCredentials,
+              method: error.config?.method,
+              headers: error.config?.headers && {
+                'Content-Type': error.config.headers['Content-Type'] || error.config.headers.contentType,
+                Authorization: error.config.headers.Authorization ? `${String(error.config.headers.Authorization).slice(0, 16)}...` : undefined,
+                'If-Modified-Since': error.config.headers['If-Modified-Since'],
+              },
+              params: error.config?.params,
+            }
+          });
+        } catch (_e) {
+          // noop
+        }
+      }
       console.error("Network error:", error.message);
     } else {
       // Other error - request setup failed
