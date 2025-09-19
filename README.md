@@ -135,6 +135,42 @@ By implementing this solution, the project will improve the overall efficiency, 
   </tr>
 </table>
 
+## Admin Results — Folder & Component Structure
+
+- Routes under `frontend/app/admin/courses/[courseId]/assignments/[assignmentId]/results`
+  - `results/page.jsx` — consolidated list
+  - `results/[sessionId]/[kind]/[entityId]/page.jsx` — entity detail
+  - `results/aggregation/page.jsx` — aggregation method
+  - `results/schedule/page.jsx` — publication schedule
+
+- Services
+  - `frontend/services/adminResultsService.js` — mock/real toggle wrapper
+  - `frontend/services/adminResultsService.mock.js` — mock implementation (envelope preserved)
+  - `frontend/services/adminResultsService.real.js` — real API calls (envelope preserved)
+
+- Hooks
+  - `frontend/hooks/admin/useAdminResults.js` — React Query hooks
+    - `useConsolidatedResults`, `useEntityDetail`
+    - `useAggregation`, `useSetAggregation`
+    - `useReleaseResults`, `useWithdrawResults`
+    - `useSchedule`, `useSetSchedule`
+    - `useSetOverride`, `useClearOverride`
+
+- Components under `frontend/components/admin/results`
+  - list
+    - `ResultsConsolidatedList.jsx`
+    - `ResultsFilterBar.jsx`
+  - detail
+    - `EntityDetailView.jsx`
+    - `RubricReadOnly.jsx`
+    - `SubmissionsList.jsx`
+    - `CommentsPanel.jsx`
+  - dialogs
+    - `ReleaseDialog.jsx`, `WithdrawDialog.jsx`, `ReviewDialog.jsx`, `ScheduleDialog.jsx`
+  - shared
+    - `StatusChip.jsx`, `DivergenceIndicator.jsx`, `shared/keyUtils.js`
+
+
 ### Backend Dev Team
 
 <table>

@@ -9,6 +9,13 @@ import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.ExaminerBulkAssignRequestDTO;
+import org.swen90017.oas.dto.request.ExaminerBatchSelfAssignRequestDTO;
+import org.swen90017.oas.dto.request.ExaminerListSessionsRequestDTO;
+import org.swen90017.oas.dto.request.ExaminerListSelectableRequestDTO;
+import org.swen90017.oas.dto.request.ExaminerScheduleQueryDTO;
+import org.swen90017.oas.dto.request.ExaminerSelfUnassignRequestDTO;
+import org.swen90017.oas.dto.request.ExaminerSessionStudentsRequestDTO;
+import org.swen90017.oas.dto.request.ListAssignmentsRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.enums.BusinessType;
@@ -18,7 +25,6 @@ import org.swen90017.oas.service.SessionService;
 
 import javax.validation.Valid;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,70 +36,67 @@ public class ExaminerController {
     private ExaminerSelfService examinerSelfService;
     @Autowired
     private SessionService sessionService;
-    @Operation(summary = "List sessions for examiner")
-    @GetMapping("/api/examiners/{examinerId}/assignments/{assignmentId}/sessions")
+    @Operation(summary = "List sessions for examiner", description = "Query with filters via DTO")
+    @PostMapping("/api/examiners/{examinerId}/assignments/{assignmentId}/sessions/query")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
     public Result<AdminSessionsListResponseDTO> listForExaminer(
             @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @RequestParam(value = "date", required = false) String date,
-            @RequestParam(value = "venueId", required = false) Long venueId,
-            @RequestParam(value = "status", required = false) String status) {
-        // 最小校验与日志
+            @RequestBody ExaminerListSessionsRequestDTO request) {
         try {
-            return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId));
+            return Result.success(sessionService.listAdminSessions(assignmentId, request.getDate(), request.getStatus(), request.getVenueId()));
         } catch (Exception e) {
             throw new BusinessException(BusinessError.INVALID_PARAM);
         }
     }
 
-    @Operation(summary = "Batch self-assign sessions")
+    @Operation(summary = "Batch self-assign sessions", description = "Assign examiner to multiple sessions using DTO")
     @PostMapping("/api/assignments/{assignmentId}/sessions/assign")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.UPDATE)
-    public Result<Map<String,Object>> batchSelfAssign(
+    public Result<UpdateSessionsResultDTO> batchSelfAssign(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @RequestBody Map<String, List<Long>> body,
-            @RequestParam("examinerId") Long examinerId) {
+            @Valid @RequestBody ExaminerBatchSelfAssignRequestDTO body) {
         UpdateSessionsExaminersRequestDTO req = new UpdateSessionsExaminersRequestDTO();
-        req.setSessionIds(body.getOrDefault("sessionIds", Collections.emptyList()));
-        req.setExaminerIds(Collections.singletonList(examinerId));
+        req.setSessionIds(body.getSessionIds() == null ? Collections.emptyList() : body.getSessionIds());
+        req.setExaminerIds(Collections.singletonList(body.getExaminerId()));
         req.setAction("add");
-        return Result.success(sessionService.updateSessionsExaminers(assignmentId, req));
-    }
-
-    @Operation(summary = "Self unassign a session")
-    @DeleteMapping("/api/assignments/{assignmentId}/sessions/{sessionId}/unassign")
-    @Log(module = "Examiner Self Assignment", businessType = BusinessType.DELETE)
-    public Result<Map<String,Object>> selfUnassign(
-            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @Parameter(description = "Session ID") @PathVariable Long sessionId,
-            @RequestParam("examinerId") Long examinerId) {
-        boolean ok = sessionService.unassignExaminer(sessionId, examinerId);
-        Map<String,Object> resp = new HashMap<>();
-        resp.put("sessionId", sessionId);
-        resp.put("success", ok);
+        Map<String,Object> map = sessionService.updateSessionsExaminers(assignmentId, req);
+        UpdateSessionsResultDTO resp = new UpdateSessionsResultDTO();
+        Object ids = map == null ? null : map.get("updatedSessionIds");
+        if (ids instanceof List) {
+            @SuppressWarnings("unchecked") List<Long> list = (List<Long>) ids;
+            resp.setUpdatedSessionIds(list);
+        }
         return Result.success(resp);
     }
 
-    @Operation(summary = "List assignments available to examiner")
-    @GetMapping("/api/examiners/{examinerId}/assignments")
-    @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
-    public Result<List<AssignmentResponseDTO>> listAssignments(
-            @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
-            @Parameter(description = "Course ID filter") @RequestParam(value = "courseId", required = false) Long courseId,
-            @Parameter(description = "Sort order") @RequestParam(value = "sort", required = false, defaultValue = "date_desc") String sort) {
-        return Result.success(examinerSelfService.listAssignmentsAvailable(examinerId, courseId, sort));
+    @Operation(summary = "Self unassign a session", description = "Use DTO and POST to unassign")
+    @PostMapping("/api/assignments/{assignmentId}/sessions/unassign")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.DELETE)
+    public Result<SelfUnassignResultDTO> selfUnassign(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Valid @RequestBody ExaminerSelfUnassignRequestDTO request) {
+        boolean ok = sessionService.unassignExaminer(request.getSessionId(), request.getExaminerId());
+        SelfUnassignResultDTO resp = new SelfUnassignResultDTO();
+        resp.setSessionId(request.getSessionId());
+        resp.setSuccess(ok);
+        return Result.success(resp);
     }
 
-    @Operation(summary = "List time slots for selection")
-    @GetMapping("/api/assignments/{assignmentId}/timeslots")
+    @Operation(summary = "List assignments available to examiner", description = "Query via DTO")
+    @PostMapping("/api/examiners/assignments/list")
+    @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
+    public Result<List<AssignmentResponseDTO>> listAssignments(@Valid @RequestBody ListAssignmentsRequestDTO request) {
+        return Result.success(examinerSelfService.listAssignmentsAvailable(request.getExaminerId(), request.getCourseId(), request.getSort()));
+    }
+
+    @Operation(summary = "List time slots for selection", description = "Query via DTO")
+    @PostMapping("/api/assignments/{assignmentId}/timeslots/query")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
     public Result<TimeSlotsSelectionResponseDTO> listSelectable(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @RequestParam("examinerId") Long examinerId,
-            @Parameter(description = "Filter by date (YYYY-MM-DD)") @RequestParam(value = "date", required = false) String date,
-            @Parameter(description = "Include full slots") @RequestParam(value = "includeFullSlots", required = false, defaultValue = "true") Boolean includeFullSlots) {
-        return Result.success(examinerSelfService.listSelectableTimeSlots(assignmentId, examinerId, date, includeFullSlots));
+            @Valid @RequestBody ExaminerListSelectableRequestDTO request) {
+        return Result.success(examinerSelfService.listSelectableTimeSlots(assignmentId, request.getExaminerId(), request.getDate(), request.getIncludeFullSlots()));
     }
 
     @Operation(summary = "Assign examiner to time slots in bulk (partial success supported)")
@@ -105,13 +108,13 @@ public class ExaminerController {
         return Result.success(examinerSelfService.bulkAssign(assignmentId, request));
     }
 
-    @Operation(summary = "Get examiner schedule")
-    @GetMapping("/api/examiners/{examinerId}/schedule")
+    @Operation(summary = "Get examiner schedule", description = "Query via DTO")
+    @PostMapping("/api/examiners/{examinerId}/schedule")
     @Log(module = "Examiner Self Assignment", businessType = BusinessType.QUERY)
     public Result<ExaminerScheduleResponseDTO> schedule(
             @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
-            @RequestParam(value = "assignmentId", required = false) Long assignmentId) {
-        return Result.success(examinerSelfService.getScheduleV2(examinerId, assignmentId));
+            @Valid @RequestBody ExaminerScheduleQueryDTO request) {
+        return Result.success(examinerSelfService.getScheduleV2(examinerId, request.getAssignmentId()));
     }
 
     @Operation(summary = "Unassign examiner from time slot")
@@ -143,6 +146,19 @@ public class ExaminerController {
             @Parameter(description = "Session ID") @PathVariable Long sessionId) {
         Boolean ok = sessionService.unassignExaminer(sessionId, examinerId);
         return Result.success(ok);
+    }
+
+    @Operation(summary = "Get session students and groups", description = "Get all students and groups enrolled in a specific session")
+    @PostMapping("/api/sessions/students")
+    @Log(module = "Examiner Session Management", businessType = BusinessType.QUERY)
+    public Result<SessionStudentsResponseDTO> getSessionStudents(
+            @Valid @RequestBody ExaminerSessionStudentsRequestDTO request) {
+        try {
+            SessionStudentsResponseDTO response = examinerSelfService.getSessionStudents(request.getSessionId());
+            return Result.success(response);
+        } catch (Exception e) {
+            throw new BusinessException(BusinessError.INVALID_PARAM);
+        }
     }
 }
 

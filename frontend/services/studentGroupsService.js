@@ -131,7 +131,20 @@ class StudentGroupsService {
   buildConfigWithIMS(key, extra = {}) {
     const headers = { ...(extra.headers || {}) };
     const last = this.lastModifiedCache.get(key);
-    if (last) headers['If-Modified-Since'] = last;
+
+    // Only attach If-Modified-Since for同源请求，避免跨域预检因CORS未允许该头而失败
+    let allowIMS = true;
+    try {
+      if (typeof window !== 'undefined') {
+        const baseURL = apiClient.defaults.baseURL;
+        if (baseURL && /^https?:/i.test(baseURL)) {
+          const apiOrigin = new URL(baseURL).origin;
+          allowIMS = apiOrigin === window.location.origin;
+        }
+      }
+    } catch (_e) { /* noop */ }
+
+    if (last && allowIMS) headers['If-Modified-Since'] = last;
     return { ...extra, headers };
   }
 
@@ -173,6 +186,18 @@ class StudentGroupsService {
       // Real API path
       const key = `GET:/api/students/${studentId}/groups?${status}|${pageNum}|${pageSize}|${sort}`;
       const config = this.buildConfigWithIMS(key, { params: { status, pageNum, pageSize, sort } });
+      if (typeof window !== 'undefined') {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[studentGroupsService][getStudentGroups] about to request', {
+            baseURL: apiClient.defaults.baseURL,
+            url: `/api/students/${studentId}/groups`,
+            params: config.params,
+            ims: config.headers && config.headers['If-Modified-Since'],
+            withCredentials: apiClient.defaults.withCredentials,
+          });
+        } catch (_e) {}
+      }
       const response = await api.get(`/api/students/${studentId}/groups`, config);
       if (response.status === 304) {
         // Return last successful REAL response if cached; otherwise fallback to previous behavior
@@ -195,6 +220,15 @@ class StudentGroupsService {
       return wrapped;
     } catch (error) {
       console.error('Error fetching student groups:', error);
+      if (typeof window !== 'undefined') {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[studentGroupsService][getStudentGroups][catch]', {
+            message: error.message,
+            code: error.code,
+          });
+        } catch (_e) {}
+      }
       
       // Normalize errors according to API contract
       const code = error.code || error.response?.data?.code;
@@ -248,6 +282,17 @@ class StudentGroupsService {
       // Real API path
       const key = `GET:/api/students/${studentId}/groups/${groupId}`;
       const config = this.buildConfigWithIMS(key);
+      if (typeof window !== 'undefined') {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[studentGroupsService][getGroupDetails] about to request', {
+            baseURL: apiClient.defaults.baseURL,
+            url: `/api/students/${studentId}/groups/${groupId}`,
+            ims: config.headers && config.headers['If-Modified-Since'],
+            withCredentials: apiClient.defaults.withCredentials,
+          });
+        } catch (_e) {}
+      }
       const response = await api.get(`/api/students/${studentId}/groups/${groupId}`, config);
       if (response.status === 304) {
         const cached = this.responseBodyCache.get(key);
@@ -267,6 +312,15 @@ class StudentGroupsService {
       return wrapped;
     } catch (error) {
       console.error('Error fetching group details:', error);
+      if (typeof window !== 'undefined') {
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[studentGroupsService][getGroupDetails][catch]', {
+            message: error.message,
+            code: error.code,
+          });
+        } catch (_e) {}
+      }
       
       const code = error.code || error.response?.data?.code;
       if (code === 'FORBIDDEN' || error.response?.status === 403) {

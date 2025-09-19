@@ -7,6 +7,7 @@ import { Button } from '../../../../components/ui/button';
 import { Spinner } from '../../../../components/ui/spinner';
 import { studentGroupsService } from '../../../../services/studentGroupsService';
 import Link from 'next/link';
+import useAuthStore from '../../../../store/authStore';
 
 /**
  * Student Group Details Page
