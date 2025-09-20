@@ -56,7 +56,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                     Assignment assignment = assignmentMapper.selectById(sub.getAssignmentId());
                     return assignment != null;
                 })
-                .map(this::convertToOverviewItem)
+                .map(sub -> convertToOverviewItem(sub, studentId))
                 .collect(Collectors.toList());
 
         StudentResultOverviewDTO dto = new StudentResultOverviewDTO();
@@ -80,7 +80,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         }
 
         // Get submitted assessments for this student and assignment
-        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignment(studentId, assignmentId, "SUBMITTED");
+        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(studentId, assignmentId, "SUBMITTED");
         if (submissions.isEmpty()) {
             throw new BusinessException("423", "You weren't assessed for this assignment.");
         }
@@ -141,17 +141,14 @@ public class StudentResultsServiceImpl implements StudentResultsService {
     @Override
     public StudentRubricBreakdownDTO getRubricBreakdown(Long studentId, Long assignmentId) {
         ensureUserExists(studentId);
-        ensureAssignmentParticipation(studentId, assignmentId);
+        //ensureAssignmentParticipation(studentId, assignmentId);
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
-        if (Boolean.FALSE.equals(assignment.getIsReleased())) {
-            throw new BusinessException("410", "Results for this assignment haven't been released yet.");
-        }
 
         // Get submitted assessments for this student and assignment
-        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignment(studentId, assignmentId, "SUBMITTED");
+        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(studentId, assignmentId, "SUBMITTED");
         if (submissions.isEmpty()) {
             throw new BusinessException("423", "You weren't assessed for this assignment.");
         }
@@ -218,14 +215,14 @@ public class StudentResultsServiceImpl implements StudentResultsService {
     @Override
     public StudentRubricScaleDTO getRubricScale(Long studentId, Long assignmentId) {
         ensureUserExists(studentId);
-        ensureAssignmentParticipation(studentId, assignmentId);
+        //ensureAssignmentParticipation(studentId, assignmentId);
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
-        if (Boolean.FALSE.equals(assignment.getIsReleased())) {
-            throw new BusinessException("410", "Results for this assignment haven't been released yet.");
-        }
+//        if (Boolean.FALSE.equals(assignment.getIsReleased())) {
+//            throw new BusinessException("410", "Results for this assignment haven't been released yet.");
+//        }
 
         // Parse rubrics info from assignment
         RubricInfo rubricInfo = parseRubricInfo(assignment);
@@ -266,17 +263,17 @@ public class StudentResultsServiceImpl implements StudentResultsService {
     @Override
     public StudentExaminerFeedbackDTO getExaminerFeedback(Long studentId, Long assignmentId) {
         ensureUserExists(studentId);
-        ensureAssignmentParticipation(studentId, assignmentId);
+        //ensureAssignmentParticipation(studentId, assignmentId);
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
-        if (Boolean.FALSE.equals(assignment.getIsReleased())) {
-            throw new BusinessException("410", "Results for this assignment haven't been released yet.");
-        }
+//        if (Boolean.FALSE.equals(assignment.getIsReleased())) {
+//            throw new BusinessException("410", "Results for this assignment haven't been released yet.");
+//        }
 
         // Get submitted assessments for this student and assignment
-        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignment(studentId, assignmentId, "SUBMITTED");
+        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(studentId, assignmentId, "SUBMITTED");
         if (submissions.isEmpty()) {
             throw new BusinessException("423", "You weren't assessed for this assignment.");
         }
@@ -318,7 +315,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         }
     }
 
-    private StudentResultOverviewDTO.Item convertToOverviewItem(AssessmentSubmission submission) {
+    private StudentResultOverviewDTO.Item convertToOverviewItem(AssessmentSubmission submission, Long studentId) {
         Assignment assignment = assignmentMapper.selectById(submission.getAssignmentId());
         
         // Get course information
@@ -333,8 +330,8 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         item.setAssessmentType(assignment != null ? assignment.getType() : "UNKNOWN");
         
         // Get all submissions for this assignment and student to calculate aggregated scores
-        List<AssessmentSubmission> allSubmissions = assessmentSubmissionMapper.listByStudentAndAssignment(
-            submission.getSubjectId(), submission.getAssignmentId(), "SUBMITTED");
+        List<AssessmentSubmission> allSubmissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(
+            studentId, submission.getAssignmentId(), "SUBMITTED");
         
         // Parse rubrics to get correct max points
         Double maxPoints = 100.0;
