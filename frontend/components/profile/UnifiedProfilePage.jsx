@@ -96,13 +96,17 @@ export default function UnifiedProfilePage() {
   const handlePrimaryAction = () => {
     if (!profileData?.user?.role) return;
 
-    switch (profileData.user.role) {
+    // Normalize role format (remove ROLE_ prefix if present)
+    const normalizedRole = profileData.user.role.replace('ROLE_', '');
+
+    switch (normalizedRole) {
       case 'STUDENT':
         router.push('/student/booking');
         break;
       case 'EXAMINER':
         router.push('/examiner/schedule');
         break;
+      case 'ADMIN':
       case 'COURSE_ADMIN':
         router.push('/admin/courses');
         break;
@@ -117,7 +121,9 @@ export default function UnifiedProfilePage() {
   const handleWidgetAction = (action, data) => {
     if (!profileData?.user?.role) return;
 
-    const baseRoute = `/${profileData.user.role.toLowerCase().replace('_', '')}`;
+    // Normalize role format (remove ROLE_ prefix if present)
+    const normalizedRole = profileData.user.role.replace('ROLE_', '');
+    const baseRoute = `/${normalizedRole.toLowerCase().replace('_', '')}`;
 
     switch (action) {
       case 'booking':

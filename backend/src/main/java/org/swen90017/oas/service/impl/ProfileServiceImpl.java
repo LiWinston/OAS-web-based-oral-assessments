@@ -25,11 +25,9 @@ import org.swen90017.oas.mapper.UserProfileMapper;
 import org.swen90017.oas.service.ProfileService;
 import org.swen90017.oas.utils.PasswordPolicyUtils;
 import org.swen90017.oas.service.ProfileWidgetService;
-import org.swen90017.oas.service.ProfileWidgetService;
 import org.swen90017.oas.utils.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.List;
 
@@ -180,7 +178,7 @@ public class ProfileServiceImpl implements ProfileService {
 
         ProfileUserDto userDto = ProfileUserDto.builder()
                 .userId(user.getUserId())
-                .email(user.getEmail())
+                .email(email)
                 .name(displayName)
                 .role(roleKey)
                 .department(profile.getDepartment())
@@ -205,7 +203,7 @@ public class ProfileServiceImpl implements ProfileService {
         return ProfileResponse.builder()
                 .user(userDto)
                 .preferences(preferencesDto)
-                .widgets(Collections.<RoleWidgetItem>emptyList())
+                .widgets(widgets)
                 .generatedAt(LocalDateTime.now())
                 .build();
     }

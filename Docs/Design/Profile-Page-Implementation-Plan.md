@@ -34,6 +34,11 @@ Translate the Profile Page specification into actionable engineering work across
 - Extend widget aggregation for group bookings and mixed assignments where applicable.
 - Capture audit events / metrics once observability stack ready.
 
+#### 2.5.1 Widget Integration Plan _(Updated 2025-09-20)_
+- **Wire ProfileWidgetService output into ProfileResponse**: ensure /api/profile/me returns widgets[] for the new UI (implemented 2025-09-20).
+- **Harden widget aggregation**: add null-safe defaults, surface graceful empty states, and extend queries for group bookings before QA.
+- **Testing & telemetry**: add mapper/service coverage for widget queries and hook audit counters once the observability stack is ready.
+
 ## 3. Frontend Workstream (updated post-backend delivery)
 
 ### 3.1 Routing & Layout

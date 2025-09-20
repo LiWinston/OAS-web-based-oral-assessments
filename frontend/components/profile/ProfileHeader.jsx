@@ -24,11 +24,15 @@ export default function ProfileHeader({ user, onPrimaryAction, isLoading = false
   };
 
   const getRoleBadgeColor = (role) => {
-    switch (role) {
+    // Handle both frontend and backend role formats
+    const normalizedRole = role?.replace('ROLE_', '');
+
+    switch (normalizedRole) {
       case 'STUDENT':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
       case 'EXAMINER':
         return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      case 'ADMIN':
       case 'COURSE_ADMIN':
         return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
       case 'SUPER_ADMIN':
@@ -39,17 +43,21 @@ export default function ProfileHeader({ user, onPrimaryAction, isLoading = false
   };
 
   const getRoleDisplayName = (role) => {
-    switch (role) {
+    // Handle both frontend and backend role formats
+    const normalizedRole = role?.replace('ROLE_', '');
+
+    switch (normalizedRole) {
       case 'STUDENT':
         return 'Student';
       case 'EXAMINER':
         return 'Examiner';
+      case 'ADMIN':
       case 'COURSE_ADMIN':
         return 'Course Administrator';
       case 'SUPER_ADMIN':
         return 'Super Administrator';
       default:
-        return role;
+        return normalizedRole || 'User';
     }
   };
 

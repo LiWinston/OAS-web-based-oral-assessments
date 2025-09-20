@@ -209,6 +209,12 @@ export default function ProfileInfoCard({ user, onSave, isLoading = false }) {
               <option value="Australia/Perth">Australia/Perth</option>
               <option value="UTC">UTC</option>
             </select>
+            {isEditing && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 flex items-center">
+                <i className="fas fa-exclamation-triangle mr-1"></i>
+                Timezone changes will be implemented in a future update
+              </p>
+            )}
           </div>
 
           <div>
@@ -223,6 +229,12 @@ export default function ProfileInfoCard({ user, onSave, isLoading = false }) {
               <option value="English">English</option>
               <option value="Chinese">中文</option>
             </select>
+            {isEditing && (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 flex items-center">
+                <i className="fas fa-exclamation-triangle mr-1"></i>
+                Language changes will be implemented in a future update
+              </p>
+            )}
           </div>
         </div>
 
