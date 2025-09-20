@@ -23,6 +23,7 @@ import org.swen90017.oas.service.ExaminerService;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -77,6 +78,7 @@ public class ExaminerServiceImpl implements ExaminerService {
                 user.setEmail(dto.getSisLoginId() + "@unimelb.edu.au");
                 user.setStatus(UserStatus.INACTIVE.code());
                 user.setRegistrationStatus(RegistrationStatus.Pending.code());
+                user.setInvitedAt(new Date()); // 设置邀请时间
                 sysUserMapper.insert(user);
             }
 
@@ -124,7 +126,24 @@ public class ExaminerServiceImpl implements ExaminerService {
     public PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS) {
         // 简化：仅返回计数等占位信息（该 DTO 为学生预览结构，这里仅设置计数）
         PreviewCSVResponseDTO preview = new PreviewCSVResponseDTO();
-        int total = examinerCSVRequestDTOS == null ? 0 : examinerCSVRequestDTOS.size();
+        if (examinerCSVRequestDTOS == null || examinerCSVRequestDTOS.isEmpty()) {
+            preview.setTotalCount(0);
+            preview.setNewCount(0);
+            preview.setExistingCount(0);
+            return preview;
+        }
+        
+        // 过滤掉空行（与ExaminerCsvHandler.validate()逻辑一致）
+        // 只有当Name、ID和SisUserId都为空时才认为是空行
+        long validCount = examinerCSVRequestDTOS.stream()
+                .filter(dto -> dto != null && !(
+                    (dto.getName() == null || dto.getName().trim().isEmpty()) &&
+                    (dto.getId() == null || dto.getId().trim().isEmpty()) &&
+                    (dto.getSisUserId() == null || dto.getSisUserId().trim().isEmpty())
+                ))
+                .count();
+        
+        int total = (int) validCount;
         preview.setTotalCount(total);
         preview.setNewCount(total);
         preview.setExistingCount(0);

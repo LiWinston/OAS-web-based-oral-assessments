@@ -21,6 +21,7 @@ import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.StudentTimeSlotService;
 
 import java.security.SecureRandom;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -110,8 +111,17 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
             if (u != null) {
                 dto.setEmail(u.getEmail());
                 dto.setFullName(u.getUserName());
+                // 使用用户的邀请时间作为Added At时间
+                if (u.getInvitedAt() != null) {
+                    dto.setAddedAt(u.getInvitedAt().toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime());
+                } else {
+                    dto.setAddedAt(null);
+                }
+            } else {
+                dto.setAddedAt(null);
             }
-            dto.setAddedAt(null);
 
             if (r == UserRole.STUDENT) {
                 dto.setBookingsCount(studentBookings.getOrDefault(ap.getUserId(), 0));
