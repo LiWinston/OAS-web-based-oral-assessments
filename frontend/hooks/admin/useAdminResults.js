@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminResultsService } from '@/services/adminResultsService.js';
+import { showSuccess, showError } from '@/lib/notifications.js';
 
 export const adminResultsKeys = {
   list: (subjectId, assignmentId, params) => ['admin-results', subjectId, assignmentId, params],
@@ -29,3 +30,97 @@ export function useAssessmentDetail(subjectId, assignmentId, submissionId) {
   });
 }
 
+export function useReviewExaminer(subjectId, assignmentId, submissionId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ examinerId, reason }) => {
+      const resp = await adminResultsService.reviewExaminer(
+        subjectId,
+        assignmentId,
+        submissionId,
+        examinerId,
+        { reason }
+      );
+      return resp?.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+      });
+      showSuccess('Review request sent successfully');
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to request review';
+      showError(message);
+    }
+  });
+}
+
+export function useSetFinalScore(subjectId, assignmentId, submissionId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body) => {
+      const resp = await adminResultsService.setFinalScore(
+        subjectId,
+        assignmentId,
+        submissionId,
+        body
+      );
+      return resp?.data;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+        data
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+      showSuccess('Final score updated successfully');
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to update final score';
+      showError(message);
+    }
+  });
+}
+
+export function useReleaseAssessment(subjectId, assignmentId, submissionId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body) => {
+      const resp = await adminResultsService.releaseAssessment(
+        subjectId,
+        assignmentId,
+        submissionId,
+        body
+      );
+      return resp?.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+
+      const notified = data?.notifiedStudents || 0;
+      if (notified > 0) {
+        showSuccess(`Results released and ${notified} student(s) notified`);
+      } else {
+        showSuccess('Results released successfully');
+      }
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to release results';
+      showError(message);
+    }
+  });
+}

@@ -317,6 +317,13 @@ frontend/
 │   │       ├── TimeslotSelectionCalendar.jsx # Calendar interface for date browsing
 │   │       ├── SelectionSummary.jsx         # Session allocation summary with validation
 │   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
+│   ├── admin/results/         # Course Admin results moderation & release UI
+│   │   ├── ResultsFilterBar.jsx      # Search/status/session filters for assessment list
+│   │   ├── ScoreSummaryPanel.jsx     # Average vs final score with override/release actions
+│   │   ├── ExaminerPanel.jsx         # Read-only examiner cards with rubric snapshots
+│   │   ├── ReviewDialog.jsx          # Reason capture for reopening examiner markings
+│   │   ├── FinalScoreEditor.jsx      # Manual final score override dialog
+│   │   └── ReleaseDialog.jsx         # Release confirmation with notification toggle
 │   └── student/                 # Student components
 │       ├── dashboard/           # Student dashboard components
 │       │   ├── MyGroups.jsx              # Group membership display with avatars
@@ -337,6 +344,7 @@ frontend/
 │   ├── studentGroupsService.js  # Student groups and collaboration management
 │   ├── examinerTimeslotService.js   # Examiner self-assignment and schedule management
 │   ├── examinerAssessmentService.js # Examiner marking APIs (mock/real switch, contract-aligned)
+│   ├── adminResultsService.js   # Course Admin results moderation/release (mock-first)
 │   └── schedulingService.js     # Booking and scheduling
 │
 ├── store/                       # State management
@@ -348,7 +356,8 @@ frontend/
 │   ├── useAuth.js               # Authentication helpers
 │   ├── useDarkMode.js           # Theme management
 │   ├── useExaminerAuth.js       # Examiner authentication and role validation
-│   └── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
+│   ├── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
+│   └── admin/useAdminResults.js # Results list/detail queries + review/override/release mutations
 │
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
@@ -558,7 +567,7 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 3. Configure CORS and security policies between frontend (localhost:3000) and backend (localhost:8081)
 4. Set up deployment pipelines for separate frontend and backend services
 
-- Course Admin interface: 85% complete (missing reports, results release control, Canvas export UI)
+- Course Admin interface: 90% complete (results moderation + release UI live; reports and Canvas export pending)
 - Super Admin interface: 95% complete (fully functional)
 - Student interface: 90% complete (booking and results implemented, missing notification preferences)
 - Examiner interface: 85% complete (dashboard, scheduling, marking UI with mocks; backend integration pending)
@@ -597,6 +606,7 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - ✅ Examiner self-assignment to timeslots with conflict detection
 - ✅ Student groups display and collaboration features
 - ✅ Student results viewing with detailed rubric breakdown
+- ✅ Course Admin results moderation & release flow (mock data aligned with API contract)
 - ✅ CSV import for student/group data
 - ✅ Course Admin and Super Admin management systems
 
@@ -604,7 +614,7 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - ❌ **Examiner Marking Interface**: No actual assessment execution interface
 - ❌ **Reporting System**: Three required reports not implemented
 - ❌ **Email Notifications**: System specified in PRD not functional
-- ❌ **Results Release Control**: Admin control over result timing missing
+- 🚧 **Results Release Control**: Course Admin moderation & release UI implemented (mock-driven); backend integration pending
 - ❌ **Mark Aggregation**: Multiple examiner score combination not implemented
 - ❌ **Canvas Export**: Results export to LMS not complete
 
@@ -719,12 +729,12 @@ The following reflects the current state of the frontend implementation against 
 - Target: Build three key reports specified in PRD - Scheduling Overview, Mark Results & Aggregation, Examiner Trends.
 - User can: View basic statistics on dashboards only; formal reports not available yet.
 
-### Results Release Control — ❌ Not Started
+### Results Release Control — 🚧 Frontend Ready (mock-backed)
 
-- Current: No results release controls in Course Admin interface.
-- Implementation: Students can view results but no admin control over release timing.
-- Target: Implement Course Admin controls to review marks before release, manual release trigger, and student notifications.
-- User can: Students can view results (if available); admins cannot control release timing yet.
+- Current: Course Admin can review examiner submissions, set manual overrides, request rework, and release/re-release results (mock data aligned with API contract).
+- Implementation: Results list with filters, detail page with rubric snapshots, manual override editor, review dialog, and release confirmation (with notify toggle).
+- Target: Wire up Spring Boot endpoints and add reporting/export workflows; maintain optimistic updates and notifications.
+- User can: Moderate and release results when using `NEXT_PUBLIC_USE_MOCK_API=true`; backend integration required for production.
 
 ### Canvas LMS Integration — ⏳ Partial (CSV import ready)
 
