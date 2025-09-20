@@ -60,7 +60,8 @@ public class StudentServiceImpl implements StudentService {
                 studentDTOs,
                 StudentCSVRequestDTO::getStudentId,    // Student ID extractor
                 StudentCSVRequestDTO::getStudent,      // Username extractor
-                StudentCSVRequestDTO::getSisLoginId    // SIS user ID extractor
+                StudentCSVRequestDTO::getSisLoginId,   // SIS user ID extractor
+                StudentCSVRequestDTO::getEmail         // Email extractor
         );
 
         Map<String, SysStudent> studentIdToStudent = invitedStudents.stream()

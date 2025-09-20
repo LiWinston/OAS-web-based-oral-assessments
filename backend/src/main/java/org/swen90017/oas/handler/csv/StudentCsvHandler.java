@@ -35,7 +35,7 @@ public class StudentCsvHandler implements CsvHandler<StudentCSVRequestDTO,Studen
                 CsvData data = csvReader.read(headerReader);
                 List<String> header = data.getHeader();
 
-                List<String> expected = Arrays.asList(
+                List<String> required = Arrays.asList(
                         "Student",
                         "ID",
                         "SIS User ID",
@@ -44,15 +44,22 @@ public class StudentCsvHandler implements CsvHandler<StudentCSVRequestDTO,Studen
                         "Student Id"
                 );
 
-                if (header == null || header.size() != expected.size()) {
+                if (header == null || header.isEmpty()) {
                     throw new BusinessException(BusinessError.INVALID_CSV_TYPE);
                 }
-                for (int i = 0; i < expected.size(); i++) {
-                    String h = header.get(i) == null ? "" : header.get(i).replace("\uFEFF", "").trim();
-                    if (!expected.get(i).equals(h)) {
+
+                List<String> cleanedHeader = new ArrayList<>();
+                for (String h : header) {
+                    cleanedHeader.add((h == null ? "" : h.replace("\uFEFF", "").trim()));
+                }
+
+                // 必须包含 required 中的所有列；可选包含 Email 列
+                for (String req : required) {
+                    if (!cleanedHeader.contains(req)) {
                         throw new BusinessException(BusinessError.INVALID_CSV_TYPE);
                     }
                 }
+                // 允许多出 "Email" 列或其他列，无需报错
             }
 
             // Parse after validation

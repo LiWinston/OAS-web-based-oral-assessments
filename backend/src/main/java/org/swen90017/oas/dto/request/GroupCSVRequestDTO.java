@@ -12,4 +12,5 @@ public class GroupCSVRequestDTO {
     private String groupName;
     private String canvasGroupId;
     private String groupId;
+    private String email;
 }

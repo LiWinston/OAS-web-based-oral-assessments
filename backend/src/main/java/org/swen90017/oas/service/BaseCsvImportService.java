@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.enums.UserStatus;
+import org.swen90017.oas.utils.StringUtils;
 import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.mapper.SysStudentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
@@ -35,6 +37,9 @@ public class BaseCsvImportService {
     @Autowired
     private SysRoleMapper sysRoleMapper;
 
+    @Value("${csv.import.use-email-column:false}")
+    private boolean useEmailColumn;
+
     /**
      * Generic student import logic
      * 
@@ -48,7 +53,8 @@ public class BaseCsvImportService {
     public <T> List<SysStudent> importStudents(List<T> csvData,
                                               Function<T, String> studentIdExtractor,
                                               Function<T, String> userNameExtractor,
-                                              Function<T, String> sisUserIdExtractor) {
+                                              Function<T, String> sisUserIdExtractor,
+                                              Function<T, String> emailExtractor) {
         log.info("Processing {} records from CSV data", csvData.size());
         // Extract and deduplicate student IDs
         List<String> studentIds = csvData.stream()
@@ -75,7 +81,7 @@ public class BaseCsvImportService {
         }
 
         // Create users
-        List<SysUser> users = createUsers(toInsert, userNameExtractor, sisUserIdExtractor);
+        List<SysUser> users = createUsers(toInsert, userNameExtractor, sisUserIdExtractor, emailExtractor);
         
         // Create user role relationships
         createUserRoles(users);
@@ -111,7 +117,10 @@ public class BaseCsvImportService {
     /**
      * Create user records
      */
-    private <T> List<SysUser> createUsers(List<T> toInsert, Function<T, String> userNameExtractor,Function<T, String> sisUserIdExtractor) {
+    private <T> List<SysUser> createUsers(List<T> toInsert,
+                                          Function<T, String> userNameExtractor,
+                                          Function<T, String> sisUserIdExtractor,
+                                          Function<T, String> emailExtractor) {
         List<SysUser> users = new ArrayList<>();
         for (T dto : toInsert) {
             SysUser user = new SysUser();
@@ -120,7 +129,18 @@ public class BaseCsvImportService {
             user.setRegistrationStatus(RegistrationStatus.Pending.code());
             user.setInvitedAt(new Date());
             user.setPassword("123456");
-            user.setEmail(sisUserIdExtractor.apply(dto)+"@student.unimelb.edu.au"); // Assuming SIS User ID is used as email
+            // Prefer CSV email column when enabled and present; fallback to sisUserId@domain
+            String resolvedEmail = null;
+            if (useEmailColumn && emailExtractor != null) {
+                String csvEmail = emailExtractor.apply(dto);
+                if (StringUtils.isNotEmpty(csvEmail)) {
+                    resolvedEmail = csvEmail.trim();
+                }
+            }
+            if (StringUtils.isEmpty(resolvedEmail)) {
+                resolvedEmail = sisUserIdExtractor.apply(dto) + "@student.unimelb.edu.au";
+            }
+            user.setEmail(resolvedEmail);
             users.add(user);
             log.info("Prepared SysUser object for user: {}", user);
         }

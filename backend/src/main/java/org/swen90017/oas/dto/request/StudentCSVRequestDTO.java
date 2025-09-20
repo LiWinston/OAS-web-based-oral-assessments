@@ -12,4 +12,5 @@ public class StudentCSVRequestDTO {
     private String studentId;
     private String courseId;
     private String assignmentId;
+    private String email;
 }

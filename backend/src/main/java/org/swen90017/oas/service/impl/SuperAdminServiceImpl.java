@@ -267,7 +267,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         if (emailDomainValidationEnabled) {
             if (email == null || (!email.toLowerCase().endsWith("@unimelb.edu.au")
                     && !email.toLowerCase().endsWith("@student.unimelb.edu.au")
-                    && !email.toLowerCase().endsWith("@gmail.com"))) {
+                    )) {
                 throw new BusinessException("Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
             }
         }

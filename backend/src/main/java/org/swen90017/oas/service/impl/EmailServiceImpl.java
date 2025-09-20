@@ -38,7 +38,16 @@ public class EmailServiceImpl implements EmailService {
             }
 
             try {
-                String to = s.getSisUserId() + "@student.unimelb.edu.au";
+                String to = null;
+                try {
+                    SysUser user = sysUserMapper.selectById(s.getUserId());
+                    if (user != null && user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
+                        to = user.getEmail();
+                    }
+                } catch (Exception ignored) {}
+                if (to == null || to.trim().isEmpty()) {
+                    to = s.getSisUserId() + "@student.unimelb.edu.au";
+                }
                 String activationLink = "https://frontend-oas1.anzupop.com/onboarding?token=" + s.getToken();
                 String reasonText = (reason == null || reason.trim().isEmpty())
                         ? "You have been invited to join an assessment."
