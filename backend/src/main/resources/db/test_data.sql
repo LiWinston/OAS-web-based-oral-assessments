@@ -53,3 +53,19 @@ VALUES
     -- 2024 historical data (archived)
     ('INFO20003', 'Database Systems', 'Database design and implementation.', 2024, '2', 1, 0, 'archived', NOW(), 1, NOW(), 1),
     ('COMP30024', 'Machine Learning', 'Introduction to machine learning concepts and applications.', 2024, '1', 1, 0, 'archived', NOW(), 1, NOW(), 1);
+-- Seed profile + preferences for default users
+INSERT INTO user_profile (user_id, full_name, department, phone, timezone, language, completeness, created_at, updated_at) VALUES
+    (1, 'Alice Admin', 'Computer Science', '+61 3 8344 0000', 'Australia/Melbourne', 'en', 100, NOW(), NOW()),
+    (2, 'Bob Student', 'Information Systems', '+61 4 1234 5678', 'Australia/Melbourne', 'en', 80, NOW(), NOW()),
+    (4, 'Dave Examiner', 'School of Engineering', NULL, 'Australia/Melbourne', 'en', 60, NOW(), NOW()),
+    (5, 'Eve Examiner', 'School of Engineering', NULL, 'Australia/Melbourne', 'en', 60, NOW(), NOW())
+ON DUPLICATE KEY UPDATE
+    full_name = VALUES(full_name);
+
+INSERT INTO user_notification_preferences (user_id, email_enabled, desktop_enabled, booking_updates, examiner_updates, assignment_updates, result_updates, group_updates, system_alerts, updated_at) VALUES
+    (1, 1, 0, 1, 1, 1, 1, 1, 1, NOW()),
+    (2, 1, 0, 1, 0, 1, 1, 1, 1, NOW()),
+    (4, 1, 1, 1, 1, 1, 1, 0, 1, NOW()),
+    (5, 1, 1, 1, 1, 1, 1, 0, 1, NOW())
+ON DUPLICATE KEY UPDATE
+    email_enabled = VALUES(email_enabled);

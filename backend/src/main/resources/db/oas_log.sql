@@ -189,3 +189,35 @@ CREATE TABLE session_student (
     -- 唯一约束：同一个session不能被同一个subject重复预订
     UNIQUE KEY uk_session_subject (session_id, type, subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Session student booking table';
+
+-- ----------------------------
+-- User profile & preferences for Profile Page v2
+-- ----------------------------
+DROP TABLE IF EXISTS `user_profile`;
+CREATE TABLE user_profile (
+    user_id BIGINT PRIMARY KEY,
+    full_name VARCHAR(120) NULL,
+    department VARCHAR(120) NULL,
+    phone VARCHAR(32) NULL,
+    timezone VARCHAR(60) NOT NULL DEFAULT 'Australia/Melbourne',
+    language VARCHAR(10) NOT NULL DEFAULT 'en',
+    completeness INT NOT NULL DEFAULT 0,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_profile_user FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
+);
+
+DROP TABLE IF EXISTS `user_notification_preferences`;
+CREATE TABLE user_notification_preferences (
+    user_id BIGINT PRIMARY KEY,
+    email_enabled TINYINT(1) NOT NULL DEFAULT 1,
+    desktop_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    booking_updates TINYINT(1) NOT NULL DEFAULT 1,
+    examiner_updates TINYINT(1) NOT NULL DEFAULT 1,
+    assignment_updates TINYINT(1) NOT NULL DEFAULT 1,
+    result_updates TINYINT(1) NOT NULL DEFAULT 1,
+    group_updates TINYINT(1) NOT NULL DEFAULT 1,
+    system_alerts TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_prefs_user FOREIGN KEY (user_id) REFERENCES sys_user(user_id) ON DELETE CASCADE
+);
