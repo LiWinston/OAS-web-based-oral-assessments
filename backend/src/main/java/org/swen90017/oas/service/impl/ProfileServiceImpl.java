@@ -47,7 +47,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final PasswordEncoder passwordEncoder;
     private final ProfileWidgetService profileWidgetService;
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ProfileResponse getCurrentProfile(Long userId) {
         SysUser user = sysUserMapper.selectById(userId);
         if (user == null) {

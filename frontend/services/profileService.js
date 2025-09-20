@@ -12,7 +12,7 @@ export const profileService = {
    * @returns {Promise<{user: Object, preferences: Object, widgets: Array, generatedAt: string}>}
    */
   async getProfile() {
-    const response = await apiClient.get('/profile/me');
+    const response = await apiClient.get('/api/profile/me');
     return response.data.data;
   },
 
@@ -22,7 +22,7 @@ export const profileService = {
    * @returns {Promise<ProfileResponse>}
    */
   async updateProfile(updates = {}) {
-    const response = await apiClient.put('/profile', updates);
+    const response = await apiClient.put('/api/profile', updates);
     return response.data.data;
   },
 
@@ -32,7 +32,7 @@ export const profileService = {
    * @returns {Promise<ProfileResponse>}
    */
   async updatePreferences(preferences = {}) {
-    const response = await apiClient.put('/profile/preferences', preferences);
+    const response = await apiClient.put('/api/profile/preferences', preferences);
     return response.data.data;
   },
 
@@ -43,7 +43,7 @@ export const profileService = {
    * @returns {Promise<void>}
    */
   async changePassword(currentPassword, newPassword) {
-    const response = await apiClient.post('/auth/change-password', {
+    const response = await apiClient.post('/api/auth/change-password', {
       currentPassword,
       newPassword,
     });
