@@ -2,21 +2,12 @@ package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.swen90017.oas.common.BusinessError;
-import org.swen90017.oas.dto.request.RegisterRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
-import org.swen90017.oas.entity.SysAdmin;
-import org.swen90017.oas.entity.AssignmentParticipant;
-import org.swen90017.oas.entity.SysStudent;
-import org.swen90017.oas.entity.SysUser;
+import org.swen90017.oas.entity.*;
 import org.swen90017.oas.enums.UserRole;
-import org.swen90017.oas.enums.RegistrationStatus;
-import org.swen90017.oas.enums.UserStatus;
-import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.BaseCsvImportService;
 import org.swen90017.oas.service.StudentService;
@@ -28,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,19 +29,17 @@ public class StudentServiceImpl implements StudentService {
     @Autowired
     private SysUserMapper userMapper;
     @Autowired
-    private SysRoleMapper sysRoleMapper;
-    @Autowired
     private SysStudentMapper studentMapper;
-    @Autowired
-    private SysUserRoleMapper sysUserRoleMapper;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
     @Autowired
     private BaseCsvImportService baseCsvImportService;
     @Autowired
-    private SysAdminMapper adminMapper;
-    @Autowired
     private AssignmentParticipantMapper assignmentParticipantMapper;
+    @Autowired
+    private org.swen90017.oas.mapper.AssignmentMapper assignmentMapper;
+    @Autowired
+    private org.swen90017.oas.mapper.SubjectMapper subjectMapper;
+    @Autowired
+    private org.swen90017.oas.service.EmailService emailService;
 
     @Override
     @Transactional
@@ -202,7 +192,8 @@ public class StudentServiceImpl implements StudentService {
 
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 studentDTOs,
-                StudentCSVRequestDTO::getStudentId
+                StudentCSVRequestDTO::getStudentId,
+                StudentCSVRequestDTO::getSisLoginId
         );
 
         // Build preview response
@@ -214,5 +205,69 @@ public class StudentServiceImpl implements StudentService {
         previewResponse.setExistingCount((Integer) previewData.get("existingCount"));
 
         return previewResponse;
+    }
+    
+    @Override
+    public void sendCourseJoinNotificationForExistingStudents(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId) {
+
+        
+        if (studentDTOs == null || studentDTOs.isEmpty() || assignmentId == null) {
+            return;
+        }
+        
+        // 获取课程和作业信息
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            return;
+        }
+        
+        Subject subject = subjectMapper.selectById(assignment.getSubjectId());
+        String courseName = subject != null ? subject.getSubjectName() : null;
+        String assignmentName = assignment.getName();
+
+        // 查找已注册的现有用户
+        List<String> studentIds = studentDTOs.stream()
+                .map(StudentCSVRequestDTO::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        
+        if (studentIds.isEmpty()) {
+            return;
+        }
+        
+        // 查询现有学生
+        QueryWrapper<SysStudent> wrapper = new QueryWrapper<>();
+        wrapper.in("student_number", studentIds);
+        List<SysStudent> existingStudents = studentMapper.selectList(wrapper);
+        
+        if (existingStudents.isEmpty()) {
+            return;
+        }
+        
+        // 获取这些学生的用户信息
+        List<Long> userIds = existingStudents.stream()
+                .map(SysStudent::getUserId)
+                .collect(Collectors.toList());
+        
+        List<SysUser> users = userMapper.selectBatchIds(userIds);
+
+        // 筛选出已注册的用户
+        List<SysUser> registeredUsers = users.stream()
+                .filter(user -> {
+                    boolean isActive = org.swen90017.oas.enums.UserStatus.ACTIVE.code().equals(user.getStatus());
+                    boolean isRegistered = org.swen90017.oas.enums.RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus());
+                    return isActive && isRegistered;
+                })
+                .collect(Collectors.toList());
+        
+        log.info("符合条件的已注册用户数量: {}", registeredUsers.size());
+        if (!registeredUsers.isEmpty()) {
+            log.info("准备发送课程加入通知给用户: {}", 
+                    registeredUsers.stream().map(SysUser::getEmail).collect(Collectors.toList()));
+            emailService.sendCourseJoinNotification(registeredUsers, courseName, assignmentName);
+            log.info("课程加入通知发送完成");
+        } else {
+            log.info("没有符合条件的已注册用户，跳过发送通知");
+        }
     }
 }

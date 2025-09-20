@@ -11,4 +11,9 @@ import java.util.List;
 public interface ExaminerService {
     List<SysExaminer> inviteExaminer(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS, Long assignmentId);
     PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS);
+    
+    /**
+     * 为CSV导入中已注册的现有考官发送课程加入通知
+     */
+    void sendCourseJoinNotificationForExistingExaminers(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId);
 }

@@ -117,7 +117,8 @@ public class GroupServiceImpl implements GroupService {
 
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 groupDTOs,
-                GroupCSVRequestDTO::getUserId
+                GroupCSVRequestDTO::getUserId,
+                GroupCSVRequestDTO::getLoginId
         );
 
         // Calculate unique group count

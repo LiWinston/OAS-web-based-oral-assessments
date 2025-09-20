@@ -68,10 +68,30 @@ public class BaseCsvImportService {
         // Query existing students
         Set<String> existingStudentIds = getExistingStudentIds(studentIds);
         log.debug("Found {} existing student numbers in the database", existingStudentIds.size());
+        
+        // Check existing user emails
+        Set<String> existingEmails = getExistingUserEmails(csvData, sisUserIdExtractor);
+        log.debug("Found {} existing user emails in the database", existingEmails.size());
 
-        // Filter out new students to be inserted
+        // Filter out new students to be inserted (both student ID and email must not exist)
         List<T> toInsert = csvData.stream()
-                .filter(dto -> !existingStudentIds.contains(studentIdExtractor.apply(dto)))
+                .filter(dto -> {
+                    String studentId = studentIdExtractor.apply(dto);
+                    String sisUserId = sisUserIdExtractor.apply(dto);
+                    String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                    
+                    boolean studentExists = existingStudentIds.contains(studentId);
+                    boolean emailExists = email != null && existingEmails.contains(email);
+                    
+                    if (studentExists) {
+                        log.debug("Student {} already exists in sys_student table", studentId);
+                    }
+                    if (emailExists) {
+                        log.debug("Email {} already exists in sys_user table", email);
+                    }
+                    
+                    return !studentExists && !emailExists;
+                })
                 .collect(Collectors.toList());
 
         log.info("{} students are new and will be inserted", toInsert.size());
@@ -110,6 +130,35 @@ public class BaseCsvImportService {
         
         return matchedStudents.stream()
                 .map(SysStudent::getStudentNumber)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+    }
+    
+    /**
+     * 检查是否存在重复的邮箱地址
+     */
+    private <T> Set<String> getExistingUserEmails(List<T> csvData, Function<T, String> sisUserIdExtractor) {
+        // 构建邮箱地址列表
+        List<String> emails = csvData.stream()
+                .map(dto -> {
+                    String sisUserId = sisUserIdExtractor.apply(dto);
+                    return sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                })
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        if (emails.isEmpty()) {
+            return new HashSet<>();
+        }
+        
+        // 查询数据库中已存在的邮箱
+        QueryWrapper<SysUser> wrapper = new QueryWrapper<>();
+        wrapper.in("email", emails);
+        List<SysUser> existingUsers = sysUserMapper.selectList(wrapper);
+        
+        return existingUsers.stream()
+                .map(SysUser::getEmail)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
     }
@@ -220,7 +269,7 @@ public class BaseCsvImportService {
     /**
      * Generic preview functionality
      */
-    public <T> Map<String, Object> previewImport(List<T> csvData, Function<T, String> studentIdExtractor) {
+    public <T> Map<String, Object> previewImport(List<T> csvData, Function<T, String> studentIdExtractor, Function<T, String> sisUserIdExtractor) {
         List<String> studentIds = csvData.stream()
                 .map(studentIdExtractor)
                 .filter(Objects::nonNull)
@@ -228,13 +277,32 @@ public class BaseCsvImportService {
                 .collect(Collectors.toList());
 
         Set<String> existingStudentIds = getExistingStudentIds(studentIds);
+        Set<String> existingEmails = getExistingUserEmails(csvData, sisUserIdExtractor);
 
         List<T> newStudents = csvData.stream()
-                .filter(dto -> !existingStudentIds.contains(studentIdExtractor.apply(dto)))
+                .filter(dto -> {
+                    String studentId = studentIdExtractor.apply(dto);
+                    String sisUserId = sisUserIdExtractor.apply(dto);
+                    String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                    
+                    boolean studentExists = existingStudentIds.contains(studentId);
+                    boolean emailExists = email != null && existingEmails.contains(email);
+                    
+                    return !studentExists && !emailExists;
+                })
                 .collect(Collectors.toList());
 
         List<T> existingStudents = csvData.stream()
-                .filter(dto -> existingStudentIds.contains(studentIdExtractor.apply(dto)))
+                .filter(dto -> {
+                    String studentId = studentIdExtractor.apply(dto);
+                    String sisUserId = sisUserIdExtractor.apply(dto);
+                    String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                    
+                    boolean studentExists = existingStudentIds.contains(studentId);
+                    boolean emailExists = email != null && existingEmails.contains(email);
+                    
+                    return studentExists || emailExists;
+                })
                 .collect(Collectors.toList());
 
         Map<String, Object> result = new HashMap<>();

@@ -318,6 +318,172 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendCourseJoinNotification(List<SysUser> registeredStudents, String courseName, String assignmentName) {
+        if (registeredStudents == null || registeredStudents.isEmpty()) {
+            log.info("No registered students to notify for course join");
+            return;
+        }
+        
+        int batchSize = 30;
+        List<MimeMessage> batch = new ArrayList<>(batchSize);
+        log.info("Preparing to send course join notifications to {} registered students", registeredStudents.size());
+        
+        for (SysUser student : registeredStudents) {
+            if (student.getEmail() == null || student.getEmail().trim().isEmpty()) {
+                log.warn("Skip student with missing email: userId={}", student.getUserId());
+                continue;
+            }
+            
+            try {
+                String to = student.getEmail();
+                String loginLink = "https://frontend-oas1.anzupop.com/login";
+                
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setTo(to);
+                helper.setSubject("Course Assignment Notification");
+                
+                String plain = "Hi " + (student.getUserName() != null ? student.getUserName() : "there") + ",\n\n"
+                        + "You have been added to a new course assignment:\n"
+                        + "Course: " + (courseName != null ? courseName : "N/A") + "\n"
+                        + "Assignment: " + (assignmentName != null ? assignmentName : "N/A") + "\n\n"
+                        + "Please log in to view your assignment details: " + loginLink + "\n\n"
+                        + "Best regards,\nOAS Team";
+                
+                String html = buildCourseJoinHtml(student.getUserName(), courseName, assignmentName, loginLink);
+                helper.setText(plain, html);
+                
+                batch.add(mimeMessage);
+            } catch (Exception e) {
+                log.error("Failed to build course join email for student {}: {}", student.getUserId(), e.getMessage());
+            }
+            
+            if (batch.size() >= batchSize) {
+                sendHtmlBatch(batch);
+                batch.clear();
+            }
+        }
+        
+        if (!batch.isEmpty()) {
+            sendHtmlBatch(batch);
+        }
+    }
+    
+    @Override
+    public void sendExaminerCourseJoinNotification(List<SysUser> registeredExaminers, String courseName, String assignmentName) {
+        if (registeredExaminers == null || registeredExaminers.isEmpty()) {
+            log.info("No registered examiners to notify for course join");
+            return;
+        }
+        
+        int batchSize = 30;
+        List<MimeMessage> batch = new ArrayList<>(batchSize);
+        log.info("Preparing to send course join notifications to {} registered examiners", registeredExaminers.size());
+        
+        for (SysUser examiner : registeredExaminers) {
+            if (examiner.getEmail() == null || examiner.getEmail().trim().isEmpty()) {
+                log.warn("Skip examiner with missing email: userId={}", examiner.getUserId());
+                continue;
+            }
+            
+            try {
+                String to = examiner.getEmail();
+                String loginLink = "https://frontend-oas1.anzupop.com/login";
+                
+                MimeMessage mimeMessage = mailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+                helper.setTo(to);
+                helper.setSubject("Examiner Assignment Notification");
+                
+                String plain = "Hi " + (examiner.getUserName() != null ? examiner.getUserName() : "there") + ",\n\n"
+                        + "You have been assigned as an examiner for a new course assignment:\n"
+                        + "Course: " + (courseName != null ? courseName : "N/A") + "\n"
+                        + "Assignment: " + (assignmentName != null ? assignmentName : "N/A") + "\n\n"
+                        + "Please log in to view your assignment details: " + loginLink + "\n\n"
+                        + "Best regards,\nOAS Team";
+                
+                String html = buildExaminerCourseJoinHtml(examiner.getUserName(), courseName, assignmentName, loginLink);
+                helper.setText(plain, html);
+                
+                batch.add(mimeMessage);
+            } catch (Exception e) {
+                log.error("Failed to build course join email for examiner {}: {}", examiner.getUserId(), e.getMessage());
+            }
+            
+            if (batch.size() >= batchSize) {
+                sendHtmlBatch(batch);
+                batch.clear();
+            }
+        }
+        
+        if (!batch.isEmpty()) {
+            sendHtmlBatch(batch);
+        }
+    }
+    
+    private String buildCourseJoinHtml(String userName, String courseName, String assignmentName, String loginLink) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Course Assignment Notification</title></head><body style=\"margin:0;padding:0;background-color:#f9fafb;font-family:Arial,sans-serif;\">")
+          .append("<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f9fafb;padding:20px 0;\">")
+          .append("<tr><td align=\"center\">")
+          .append("<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);\">")
+          .append("<tr><td style=\"padding:32px 32px 0 32px;text-align:center;\">")
+          .append("<h1 style=\"margin:0 0 8px 0;color:#1f2937;font-size:28px;font-weight:700;\">Course Assignment</h1>")
+          .append("<p style=\"margin:0;color:#6b7280;font-size:16px;\">You've been added to a new assignment</p>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:8px 32px 0 32px;\">")
+          .append("<p style=\"margin:6px 0 10px 0;color:#374151;font-size:15px;line-height:1.6;\">Hi ").append(escapeHtml(userName != null ? userName : "there")).append(",</p>")
+          .append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">You have been added to a new course assignment:</p>")
+          .append("<div style=\"background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;\">")
+          .append("<p style=\"margin:0 0 8px 0;color:#374151;font-size:15px;\"><strong>Course:</strong> ").append(escapeHtml(courseName != null ? courseName : "N/A")).append("</p>")
+          .append("<p style=\"margin:0;color:#374151;font-size:15px;\"><strong>Assignment:</strong> ").append(escapeHtml(assignmentName != null ? assignmentName : "N/A")).append("</p>")
+          .append("</div>")
+          .append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">Please log in to view your assignment details and any upcoming booking opportunities.</p>")
+          .append("<div style=\"text-align:center;margin:24px 0;\">")
+          .append("<a href=\"" + loginLink + "\" style=\"display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;\">Log In to OAS</a>")
+          .append("</div>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:16px 32px 28px 32px;border-top:1px solid #f3f4f6;\">")
+          .append("<p style=\"margin:0;color:#9ca3af;font-size:12px;\">This notification was sent by the OAS system. If you have any questions, please contact your course administrator.</p>")
+          .append("</td></tr>")
+          .append("</table>")
+          .append("</td></tr></table>")
+          .append("</body></html>");
+        return sb.toString();
+    }
+    
+    private String buildExaminerCourseJoinHtml(String examinerName, String courseName, String assignmentName, String loginLink) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Examiner Assignment Notification</title></head><body style=\"margin:0;padding:0;background-color:#f9fafb;font-family:Arial,sans-serif;\">")
+          .append("<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f9fafb;padding:20px 0;\">")
+          .append("<tr><td align=\"center\">")
+          .append("<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);\">")
+          .append("<tr><td style=\"padding:32px 32px 0 32px;text-align:center;\">")
+          .append("<h1 style=\"margin:0 0 8px 0;color:#1f2937;font-size:28px;font-weight:700;\">Examiner Assignment</h1>")
+          .append("<p style=\"margin:0;color:#6b7280;font-size:16px;\">You've been assigned to a new examination</p>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:8px 32px 0 32px;\">")
+          .append("<p style=\"margin:6px 0 10px 0;color:#374151;font-size:15px;line-height:1.6;\">Hi ").append(escapeHtml(examinerName != null ? examinerName : "there")).append(",</p>")
+          .append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">You have been assigned as an examiner for a new course assignment:</p>")
+          .append("<div style=\"background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;\">")
+          .append("<p style=\"margin:0 0 8px 0;color:#374151;font-size:15px;\"><strong>Course:</strong> ").append(escapeHtml(courseName != null ? courseName : "N/A")).append("</p>")
+          .append("<p style=\"margin:0;color:#374151;font-size:15px;\"><strong>Assignment:</strong> ").append(escapeHtml(assignmentName != null ? assignmentName : "N/A")).append("</p>")
+          .append("</div>")
+          .append("<p style=\"margin:16px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">Please log in to view your examination schedule and assignment details.</p>")
+          .append("<div style=\"text-align:center;margin:24px 0;\">")
+          .append("<a href=\"" + loginLink + "\" style=\"display:inline-block;background:#059669;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;\">Log In to OAS</a>")
+          .append("</div>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:16px 32px 28px 32px;border-top:1px solid #f3f4f6;\">")
+          .append("<p style=\"margin:0;color:#9ca3af;font-size:12px;\">This notification was sent by the OAS system. If you have any questions, please contact the course administrator.</p>")
+          .append("</td></tr>")
+          .append("</table>")
+          .append("</td></tr></table>")
+          .append("</body></html>");
+        return sb.toString();
+    }
+
     @Async
     protected void sendBatch(List<SimpleMailMessage> batch) {
         try {
