@@ -1,25 +1,52 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useCalendar } from '@/hooks/useCalendar.js';
+import { useEffect, useMemo, useState } from 'react';
+import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 
 /**
  * CalendarMonth - Dynamic calendar component for timeslot management
  * Consumes useCalendar hook, not hard-coded month or fixed "today"
  */
 
-export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect }) {
+export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect, disableFetch = false, refreshKey = 0 }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  const {
-    data: calendarData,
-    isLoading,
-    getStatusForDate,
-    getSlotCountForDate
-  } = useCalendar(assignmentId, currentMonth);
+  const [calendarData, setCalendarData] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const getStatusForDate = (date) => {
+    const d = calendarData?.[date];
+    if (!d) return null;
+    if (d.fullyStaffed > 0) return 'full';
+    if (d.partialStaffed > 0) return 'partial';
+    if (d.noStaffed > 0) return 'empty';
+    return null;
+  };
+  const getSlotCountForDate = (date) => {
+    const d = calendarData?.[date];
+    if (!d) return 0;
+    return Number(d.fullyStaffed || 0) + Number(d.partialStaffed || 0) + Number(d.noStaffed || 0);
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (disableFetch || !assignmentId || !currentMonth) return;
+      setIsLoading(true);
+      try {
+        const res = await courseAdminSessionService.getSessionsCalendar(assignmentId, currentMonth);
+        if (!cancelled) setCalendarData(res?.data || {});
+      } catch {
+        if (!cancelled) setCalendarData({});
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [assignmentId, currentMonth, disableFetch, refreshKey]);
 
   // Calculate today for highlighting
   const today = useMemo(() => {
@@ -29,7 +56,11 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
 
   // Parse current month for display and calendar generation
   const [year, month] = currentMonth.split('-').map(Number);
-  const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long', year: 'numeric' });
+  // Avoid locale-dependent formatting to prevent hydration mismatch
+  const MONTH_NAMES = [
+    'January','February','March','April','May','June','July','August','September','October','November','December'
+  ];
+  const monthName = `${MONTH_NAMES[(month - 1 + 12) % 12]} ${year}`;
 
   // Generate calendar days
   const daysInMonth = new Date(year, month, 0).getDate();
@@ -79,23 +110,19 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="dashboard-card p-5">
-        <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="dashboard-card p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+        <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
           <i className="fas fa-calendar-alt text-blue-600 dark:text-blue-400 mr-2" />
           {monthName}
+          {isLoading && (
+            <span className="inline-flex items-center text-xs text-gray-500">
+              <span className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-1"></span>
+              Updating
+            </span>
+          )}
         </h2>
         <div className="flex items-center space-x-2">
           <button 

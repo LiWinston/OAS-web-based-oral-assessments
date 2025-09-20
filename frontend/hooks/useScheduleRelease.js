@@ -3,6 +3,7 @@
  * Handles schedule status validation and release functionality
  */
 
+import { useMemo, useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { courseAdminTimeslotService } from '@/services/courseAdminTimeslotService.js';
 import { showSuccess, showError, showWarning } from '@/lib/notifications.js';
@@ -26,6 +27,16 @@ export const scheduleReleaseKeys = {
  */
 export function useScheduleRelease(assignmentId, options = {}) {
   const queryClient = useQueryClient();
+  const STORAGE_KEY = assignmentId ? `oas_release_examiners_${assignmentId}` : null;
+  const [examinerReleasedLocal, setExaminerReleasedLocal] = useState(false);
+  useEffect(() => {
+    if (!STORAGE_KEY) return;
+    try {
+      const v = localStorage.getItem(STORAGE_KEY);
+      setExaminerReleasedLocal(v === 'true');
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [STORAGE_KEY]);
 
   // Query for schedule status (validation for release)
   const scheduleStatusQuery = useQuery({
@@ -79,12 +90,24 @@ export function useScheduleRelease(assignmentId, options = {}) {
         queryKey: ['assignment', assignmentId, 'calendar']
       });
 
-      const studentsNotified = data.notifiedStudents || 0;
-      const timeSlotsCount = data.totalTimeSlots || 0;
-      
-      showSuccess(
-        `Schedule released successfully! ${studentsNotified} students have been notified via email about ${timeSlotsCount} available time slots.`
-      );
+      try {
+        const audience = variables?.audience;
+        const msg = data?.data?.message || 'Schedule released successfully';
+        const notified = data?.data?.notificationsSent || {};
+        if (audience === 'examiners') {
+          setExaminerReleasedLocal(true);
+          try { if (STORAGE_KEY) localStorage.setItem(STORAGE_KEY, 'true'); } catch {}
+          const count = notified.examiners ?? 0;
+          showSuccess(`${msg}${count ? ` — notified ${count} examiners` : ''}`);
+        } else if (audience === 'students') {
+          const count = notified.students ?? 0;
+          showSuccess(`${msg}${count ? ` — notified ${count} students` : ''}`);
+        } else {
+          showSuccess(msg);
+        }
+      } catch (e) {
+        showSuccess('Schedule released successfully');
+      }
     },
     onError: (error) => {
       showError(`Failed to release schedule: ${error.message}`);
@@ -92,8 +115,33 @@ export function useScheduleRelease(assignmentId, options = {}) {
   });
 
   // Helper functions
-  const canRelease = () => {
-    return scheduleStatusQuery.data?.data?.readyForRelease || false;
+  const canRelease = () => scheduleStatusQuery.data?.data?.readyForRelease || false;
+
+  const studentsReleased = useMemo(() => {
+    const d = scheduleStatusQuery.data?.data;
+    return Boolean(d?.isReleased || d?.scheduleStatus === 'released');
+  }, [scheduleStatusQuery.data]);
+
+  const examinersReleased = useMemo(() => {
+    const d = scheduleStatusQuery.data?.data || {};
+    // Try to infer from backend status if available; otherwise local
+    const server = d.examinersReleased ?? d.examinerReleased ?? d.releasedToExaminers ?? d.examinersPublished;
+    if (typeof server === 'boolean') return server;
+    return examinerReleasedLocal;
+  }, [scheduleStatusQuery.data, examinerReleasedLocal]);
+
+  const releaseToExaminers = (extra = {}) =>
+    releaseSchedule.mutate({ audience: 'examiners', notifyExaminers: true, releaseMessage: 'Schedule released to examiners', ...extra });
+  const releaseToStudents = (extra = {}) =>
+    releaseSchedule.mutate({ audience: 'students', notifyStudents: true, releaseMessage: 'Schedule released to students', ...extra });
+
+  // Withdraw is not supported by the schedule/release endpoint per Swagger.
+  // Placeholder implementation to keep UI behavior consistent.
+  const withdrawFromExaminers = () => {
+    showWarning('Withdraw to examiners is not supported by backend yet.');
+  };
+  const withdrawFromStudents = () => {
+    showWarning('Withdraw to students is not supported by backend yet.');
   };
 
   const getValidationIssues = () => {
@@ -146,11 +194,18 @@ export function useScheduleRelease(assignmentId, options = {}) {
     // Mutation
     release: releaseSchedule.mutate,
     releaseAsync: releaseSchedule.mutateAsync,
+    releaseToExaminers,
+    releaseToStudents,
+    withdrawFromExaminers,
+    withdrawFromStudents,
     isReleasing: releaseSchedule.isPending,
     releaseError: releaseSchedule.error,
 
     // Helper functions and computed properties
     canRelease: canRelease(),
+    canReleaseStudents: canRelease(),
+    studentsReleased,
+    examinersReleased,
     validationIssues: getValidationIssues(),
     // statusSummary: getStatusSummary(),
     hasUnstaffedSlots: hasUnstaffedSlots(),

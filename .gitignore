@@ -203,3 +203,5 @@ CLAUDE.md
 .claude/settings.local.json
 frontend/.env.example
 frontend/.claude/settings.local.json
+.api-docs.json
+.api-docs.pretty.json

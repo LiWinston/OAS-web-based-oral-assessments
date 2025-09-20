@@ -2,7 +2,7 @@
 
 This document defines the backend endpoints for the Course Administrator's time slot management and schedule creation workflow. The system supports a 3-step process: session configuration, time slot creation, and examiner assignment limits.
 
-Base URL: `/admin/assignments/{assignmentId}`
+Base URL: `/api/admin/assignments/{assignmentId}`
 
 ## 1) Assignment Session Configuration
 
@@ -10,7 +10,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Get Session Configuration
 
-- **Endpoint**: `GET /admin/assignments/{assignmentId}/session-config`
+- **Endpoint**: `GET /api/admin/assignments/{assignmentId}/session-config`
 - **Auth**: Course Admin JWT required
 - **Response** (success): `200 OK`
 ```json
@@ -29,7 +29,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Update Session Configuration
 
-- **Endpoint**: `PUT /admin/assignments/{assignmentId}/session-config`
+- **Endpoint**: `PUT /api/admin/assignments/{assignmentId}/session-config`
 - **Auth**: Course Admin JWT required
 - **Body**:
 ```json
@@ -58,7 +58,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Get Time Slots
 
-- **Endpoint**: `GET /admin/assignments/{assignmentId}/timeslots`
+- **Endpoint**: `GET /api/admin/assignments/{assignmentId}/timeslots`
 - **Auth**: Course Admin JWT required
 - **Query Parameters**:
   - `date` (optional): Filter by specific date (YYYY-MM-DD format)
@@ -136,7 +136,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 **Purpose**: Creates multiple time slots when "Done" is clicked in the schedule wizard. Backend automatically generates individual sessions within each time slot based on the session configuration.
 
-- **Endpoint**: `POST /admin/assignments/{assignmentId}/timeslots/batch`
+- **Endpoint**: `POST /api/admin/assignments/{assignmentId}/timeslots/batch`
 - **Auth**: Course Admin JWT required
 - **Body**:
 ```json
@@ -210,14 +210,75 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Update Time Slot
 
-- **Endpoint**: `PUT /admin/assignments/{assignmentId}/timeslots/{timeSlotId}`
+- **Endpoint**: `PUT /api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}`
 - **Auth**: Course Admin JWT required
-- **Body**: Same as create time slot
-- **Response**: Same structure as create time slot with `200 OK`
+- **Path Params**:
+  - `assignmentId` (int64, required)
+  - `timeSlotId` (int64, required)
+- **Body** (`TimeSlotRequestDTO`, required):
+  - `date` (string, format `date`, required) — e.g. `2025-04-15`
+  - `startTime` (LocalTime, required) — e.g. `"09:00"`
+  - `endTime` (LocalTime, required) — e.g. `"10:30"`
+  - `sessionCount` (int32 >= 1, required)
+  - `venueId` (int64, required)
+  
+  Example:
+  ```json
+  {
+    "date": "2025-04-15",
+    "startTime": "09:00",
+    "endTime": "10:30",
+    "sessionCount": 3,
+    "venueId": 12
+  }
+  ```
+- **Response** `200 OK` (`ResultUpdateTimeSlotResponseDTO`):
+  - `success` (boolean)
+  - `code` (string)
+  - `data` (`UpdateTimeSlotResponseDTO`):
+    - `timeSlot` (`TimeSlotDetailDTO`): updated time slot detail
+    - `deletedSessions` (`SessionDetailDTO[]`): sessions removed due to new time range
+    - `deletedCount` (int32): number of deleted sessions
+
+  Example:
+  ```json
+  {
+    "success": true,
+    "code": "OK",
+    "data": {
+      "timeSlot": {
+        "id": 1,
+        "date": "2025-04-15",
+        "startTime": "09:00",
+        "endTime": "10:30",
+        "venueId": 12,
+        "requiredExaminers": 2,
+        "sessionCount": 3,
+        "status": "empty",
+        "assignedExaminers": [],
+        "sessions": [
+          { "id": 101, "startTime": "09:00", "endTime": "09:30", "status": "available", "bookedBy": null, "sessionNumber": 1 },
+          { "id": 102, "startTime": "09:35", "endTime": "10:05", "status": "available", "bookedBy": null, "sessionNumber": 2 },
+          { "id": 103, "startTime": "10:10", "endTime": "10:40", "status": "available", "bookedBy": null, "sessionNumber": 3 }
+        ],
+        "bookedSessions": 0,
+        "createdAt": "2025-08-26T09:00:00Z",
+        "lastModified": "2025-08-26T10:30:00Z"
+      },
+      "deletedSessions": [
+        { "id": 99, "startTime": "08:30", "endTime": "09:00", "status": "available", "bookedBy": null, "sessionNumber": 0 }
+      ],
+      "deletedCount": 1
+    }
+  }
+  ```
+- **Errors**:
+  - `400 Bad Request`: Validation errors (shape: `ResultObject`)
+  - `405 Method Not Allowed`: (shape: `ResultObject`)
 
 ### Duplicate Time Slot
 
-- **Endpoint**: `POST /admin/assignments/{assignmentId}/timeslots/{timeSlotId}/duplicate`
+- **Endpoint**: `POST /api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/duplicate`
 - **Auth**: Course Admin JWT required
 - **Body** (optional):
 ```json
@@ -231,7 +292,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Delete Time Slot(s)
 
-- **Endpoint**: `DELETE /admin/assignments/{assignmentId}/timeslots`
+- **Endpoint**: `DELETE /api/admin/assignments/{assignmentId}/timeslots`
 - **Auth**: Course Admin JWT required
 - **Body**:
 ```json
@@ -252,7 +313,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Get Available Examiners
 
-- **Endpoint**: `GET /admin/assignments/{assignmentId}/examiners`
+- **Endpoint**: `GET /api/admin/assignments/{assignmentId}/examiners`
 - **Auth**: Course Admin JWT required
 - **Response** (success): `200 OK`
 ```json
@@ -275,7 +336,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 ### Update Examiner Session Limits
 
-- **Endpoint**: `PUT /admin/assignments/{assignmentId}/examiners/session-limits`
+- **Endpoint**: `PUT /api/admin/assignments/{assignmentId}/examiners/session-limits`
 - **Auth**: Course Admin JWT required
 - **Body**:
 ```json
@@ -304,7 +365,7 @@ Base URL: `/admin/assignments/{assignmentId}`
 
 **Purpose**: Assigns examiners to a time slot. Examiners are assigned at the time slot level and will be responsible for all sessions within that time slot.
 
-- **Endpoint**: `PUT /admin/assignments/{assignmentId}/timeslots/{timeSlotId}/examiners`
+- **Endpoint**: `PUT /api/admin/assignments/{assignmentId}/timeslots/{timeSlotId}/examiners`
 - **Auth**: Course Admin JWT required
 - **Body**:
 ```json
