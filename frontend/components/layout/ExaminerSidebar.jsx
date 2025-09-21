@@ -31,12 +31,12 @@ const navigationItems = [
     ],
   },
   {
-    section: "TOOLS",
+    section: "CONFIGURATION",
     items: [
       {
-        href: "/examiner/comments",
-        icon: "fas fa-comment-dots",
-        label: "Comment Library",
+        href: "/examiner/settings",
+        icon: "fas fa-cog",
+        label: "Settings",
       },
     ],
   },

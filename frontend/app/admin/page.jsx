@@ -147,48 +147,6 @@ export default function AdminDashboard() {
             <QuickActions />
           </div>
 
-          {/* Enhanced Onboarding reminder with new styling */}
-          <div
-            className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-fadeInUp"
-            style={{ animationDelay: "1000ms" }}
-          >
-            <div className="flex items-start">
-              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-800 flex items-center justify-center mr-4 flex-shrink-0 transform hover:scale-110 transition-all duration-300">
-                <i className="fas fa-graduation-cap text-blue-600 dark:text-blue-400 text-lg"></i>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2 text-lg">
-                  🚀 Getting Started Guide
-                </h4>
-                <p className="text-blue-800 dark:text-blue-200 text-sm mb-4 leading-relaxed">
-                  New to OAS? Our interactive onboarding will guide you through
-                  key features, best practices, and help you set up your first
-                  assessment in minutes.
-                </p>
-                <div className="space-y-2 mb-4">
-                  <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
-                    <i className="fas fa-check-circle text-blue-600 mr-2"></i>
-                    <span>Learn essential features and workflows</span>
-                  </div>
-                  <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
-                    <i className="fas fa-check-circle text-blue-600 mr-2"></i>
-                    <span>Discover time-saving tips and shortcuts</span>
-                  </div>
-                  <div className="flex items-center text-xs text-blue-700 dark:text-blue-300">
-                    <i className="fas fa-check-circle text-blue-600 mr-2"></i>
-                    <span>Set up your first course and assignment</span>
-                  </div>
-                </div>
-                <Link href="/admin/onboarding">
-                  <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white transform hover:scale-105 transition-all duration-200 btn-magic">
-                    <i className="fas fa-rocket mr-2"></i>
-                    Start Onboarding Journey
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-
           {/* Enhanced Documentation Quick Access */}
           <div
             className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 animate-fadeInUp"

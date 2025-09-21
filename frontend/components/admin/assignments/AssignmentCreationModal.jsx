@@ -6,6 +6,47 @@ import { Button } from "../../ui/button";
 import { useNotification } from "../../../hooks/useNotification";
 import { assignmentService } from "../../../services/assignmentService";
 
+function formatDateTimeForInput(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const hours = String(d.getHours()).padStart(2, "0");
+  const minutes = String(d.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function getDefaultDateRange() {
+  const now = new Date();
+  const startOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    0,
+    0,
+    0,
+    0
+  );
+  const endOfDay = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    0,
+    0
+  );
+
+  return {
+    start: formatDateTimeForInput(startOfDay),
+    end: formatDateTimeForInput(endOfDay),
+  };
+}
+
 export function AssignmentCreationModal({
   isOpen,
   onClose,
@@ -22,30 +63,18 @@ export function AssignmentCreationModal({
   uploadExaminerCsv,
 }) {
   const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    courseId,
-    name: "",
-    description: "",
-    type: "individual",
-    startDate: "",
-    endDate: "",
-    weight: 25,
+  const [formData, setFormData] = useState(() => {
+    const { start, end } = getDefaultDateRange();
+    return {
+      courseId,
+      name: "",
+      description: "",
+      type: "individual",
+      startDate: start,
+      endDate: end,
+      weight: 25,
+    };
   });
-
-  // Helper function to format datetime for input[type="datetime-local"]
-  const formatDateTimeForInput = (date) => {
-    if (!date) return "";
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return "";
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    const hours = String(d.getHours()).padStart(2, "0");
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-  };
 
   // CSV upload data - independent structure
   const [csvData, setCsvData] = useState({
@@ -82,14 +111,15 @@ export function AssignmentCreationModal({
   // Reset form when modal opens
   useEffect(() => {
     if (isOpen) {
+      const { start, end } = getDefaultDateRange();
       setStep(1);
       setFormData({
         courseId,
         name: "",
         description: "",
         type: "individual",
-        startDate: "",
-        endDate: "",
+        startDate: start,
+        endDate: end,
         weight: 25,
       });
       setCsvData({
@@ -98,6 +128,7 @@ export function AssignmentCreationModal({
       });
       setValidationErrors({});
       setShowSuccess(false);
+      setCreatedAssignment(null);
       // Fetch course stats for weight total
       (async () => {
         try {
@@ -566,6 +597,7 @@ export function AssignmentCreationModal({
   if (!isOpen) return null;
 
   const stepCompletion = getStepCompletion();
+  const isAssignmentCreated = Boolean(createdAssignment?.id);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -908,6 +940,10 @@ export function AssignmentCreationModal({
                               handleInputChange("weight", numValue);
                             }
                           }
+                        }}
+                        onWheel={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.blur();
                         }}
                         min="0"
                         max="100"
@@ -1588,6 +1624,8 @@ export function AssignmentCreationModal({
                 <div className="space-y-3">
                   <button
                     type="button"
+                    aria-disabled={!isAssignmentCreated}
+                    disabled={!isAssignmentCreated}
                     onClick={() => {
                       if (createdAssignment?.id) {
                         router.push(
@@ -1600,7 +1638,7 @@ export function AssignmentCreationModal({
                         );
                       }
                     }}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-400 hover:shadow-md transition-all duration-200 group"
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-amber-400 hover:shadow-md transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                   >
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
@@ -1620,6 +1658,8 @@ export function AssignmentCreationModal({
 
                   <button
                     type="button"
+                    aria-disabled={!isAssignmentCreated}
+                    disabled={!isAssignmentCreated}
                     onClick={() => {
                       if (createdAssignment?.id) {
                         router.push(
@@ -1628,11 +1668,11 @@ export function AssignmentCreationModal({
                       } else {
                         showNotification(
                           "info",
-                          "Create the assignment first to set up time slots"
+                          "Create the assignment first to schedule sessions"
                         );
                       }
                     }}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cyan-400 hover:shadow-md transition-all duration-200 group"
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-cyan-400 hover:shadow-md transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                   >
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
@@ -1640,7 +1680,7 @@ export function AssignmentCreationModal({
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-gray-900 dark:text-white">
-                          Set Up Time Slots
+                          Schedule Sessions
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           Schedule assessment sessions
@@ -1652,6 +1692,8 @@ export function AssignmentCreationModal({
 
                   <button
                     type="button"
+                    aria-disabled={!isAssignmentCreated}
+                    disabled={!isAssignmentCreated}
                     onClick={() => {
                       if (createdAssignment?.id) {
                         router.push(
@@ -1664,7 +1706,7 @@ export function AssignmentCreationModal({
                         );
                       }
                     }}
-                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-lime-400 hover:shadow-md transition-all duration-200 group"
+                    className="w-full flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-lime-400 hover:shadow-md transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none"
                   >
                     <div className="flex items-center">
                       <div className="w-10 h-10 rounded-lg bg-lime-100 dark:bg-lime-900/50 flex items-center justify-center mr-3 group-hover:scale-110 transition-transform">
