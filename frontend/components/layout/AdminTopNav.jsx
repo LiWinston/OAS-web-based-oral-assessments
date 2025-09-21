@@ -5,40 +5,9 @@ import { useAuthStore } from '../../store/authStore';
 import { Button } from '../ui/button';
 
 export function AdminTopNav({ onSidebarToggle }) {
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const { user, smartLogout } = useAuthStore();
-
-  const mockNotifications = [
-    {
-      id: 1,
-      type: 'warning',
-      title: 'Deadline Approaching',
-      message: 'Final marks for COMP101 due in 24 hours',
-      time: '10 min ago',
-      icon: 'fas fa-exclamation-circle',
-      color: 'text-red-500'
-    },
-    {
-      id: 2,
-      type: 'success',
-      title: 'New Examiner Added',
-      message: 'Dr. Jane Smith added to BIOL200',
-      time: '1 hour ago',
-      icon: 'fas fa-user-plus',
-      color: 'text-green-500'
-    },
-    {
-      id: 3,
-      type: 'info',
-      title: 'Schedule Updated',
-      message: 'ECON315 assessment schedule modified',
-      time: '3 hours ago',
-      icon: 'fas fa-calendar-check',
-      color: 'text-blue-500'
-    }
-  ];
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -71,7 +40,7 @@ export function AdminTopNav({ onSidebarToggle }) {
         </div>
       </div>
 
-      {/* Right side - user profile, notifications, etc. */}
+      {/* Right side - user profile */}
       <div className="flex items-center space-x-4">
         {/* Dark mode toggle */}
         <button
@@ -81,68 +50,6 @@ export function AdminTopNav({ onSidebarToggle }) {
         >
           <i className={`fas ${darkMode ? 'fa-sun text-yellow-400' : 'fa-moon text-gray-600'}`}></i>
         </button>
-
-        {/* Notifications */}
-        <div className="relative">
-          <button
-            onClick={() => setNotificationsOpen(!notificationsOpen)}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none relative"
-            aria-label="Notifications"
-          >
-            <i className="fas fa-bell text-gray-600 dark:text-gray-300"></i>
-            <span className="absolute -top-0.5 -right-0.5 bg-red-500 rounded-full w-4 h-4 text-xs flex items-center justify-center text-white animate-pulse">
-              {mockNotifications.length}
-            </span>
-          </button>
-
-          {/* Notifications dropdown */}
-          {notificationsOpen && (
-            <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={() => setNotificationsOpen(false)}
-              />
-              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-2 z-20 max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700">
-                <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Notifications</h3>
-                  <button className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                    Mark all as read
-                  </button>
-                </div>
-
-                {mockNotifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                  >
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0 pt-0.5">
-                        <i className={`${notification.icon} ${notification.color}`}></i>
-                      </div>
-                      <div className="ml-3 w-0 flex-1">
-                        <p className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                          {notification.title}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300 mt-0.5">
-                          {notification.message}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {notification.time}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                <div className="px-4 py-2 text-center">
-                  <button className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-                    View all notifications
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
 
         {/* User profile dropdown */}
         <div className="relative">
