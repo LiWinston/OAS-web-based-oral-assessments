@@ -17,10 +17,11 @@ function toIsoFromDateAndLocalTime(dateStr, timeVal) {
   return local.toISOString();
 }
 
-function normalizeSession(session, examinerId) {
+function normalizeSession(session, examinerId, assignmentIdHint) {
   if (!session) return null;
 
   const sessionId = session.sessionId ?? session.id ?? session.slotId;
+  const assignmentId = session.assignmentId ?? assignmentIdHint ?? null;
   const start = session.start ?? toIsoFromDateAndLocalTime(session.date, session.startTime);
   const end = session.end ?? toIsoFromDateAndLocalTime(session.date, session.endTime);
   const venue = session.venue
@@ -46,8 +47,14 @@ function normalizeSession(session, examinerId) {
     : false;
 
   // Session is fully staffed when assigned count meets or exceeds required
+  const remainingCapacity = typeof session.remainingCapacity === 'number' ? session.remainingCapacity : null;
+  const status = (session.status || '').toString().toUpperCase();
+  const publishedToExaminer = session.publishedToExaminer;
+
   const isFullyStaffed = session.coverage?.isFullyStaffed
-    ?? (required != null && assigned != null ? assigned >= required : false);
+    ?? (remainingCapacity != null
+      ? remainingCapacity <= 0
+      : (required != null && assigned != null ? assigned >= required : false));
 
   const conflict = session.conflict ?? false;
 
@@ -60,16 +67,27 @@ function normalizeSession(session, examinerId) {
   // - Cannot select if already assigned to this examiner
   // - Cannot select if fully staffed (no over-cover)
   // - Cannot select if there's a time conflict
+  let derivedReason = null;
+  if (alreadyAssigned) {
+    derivedReason = 'ALREADY_ASSIGNED';
+  } else if (conflict) {
+    derivedReason = 'TIME_CONFLICT';
+  } else if (!rawAvailability?.canSelect) {
+    derivedReason = rawAvailability?.reason ?? null;
+  } else if (publishedToExaminer === false) {
+    derivedReason = 'NOT_PUBLISHED';
+  } else if (status === 'CANCELLED') {
+    derivedReason = 'SESSION_CANCELLED';
+  } else if (status === 'DRAFT' || status === 'CREATED' || status === 'PENDING') {
+    derivedReason = 'SESSION_NOT_OPEN';
+  } else if (isFullyStaffed) {
+    derivedReason = 'SESSION_CLOSED';
+  }
+
   const availability = {
-    canSelect: rawAvailability.canSelect ?? (!isFullyStaffed && !conflict && !alreadyAssigned),
-    reason: rawAvailability.reason
-      ?? (alreadyAssigned
-        ? 'ALREADY_ASSIGNED'
-        : isFullyStaffed
-          ? 'SESSION_CLOSED'
-          : conflict
-            ? 'TIME_CONFLICT'
-            : null),
+    canSelect: rawAvailability.canSelect
+      ?? (derivedReason === null),
+    reason: rawAvailability.reason ?? derivedReason,
   };
 
   const bookingCount = session.bookingCount
@@ -81,6 +99,17 @@ function normalizeSession(session, examinerId) {
     ?? session.studentCapacity?.total
     ?? null;
 
+  const rawAssessmentType = session.assessmentType
+    || session.assignmentType
+    || session.type
+    || null;
+  const normalizedAssessmentType = (() => {
+    if (rawAssessmentType) return rawAssessmentType.toString().toUpperCase();
+    if (required === 1) return 'INDIVIDUAL';
+    if (required === 0 || required == null) return 'MIX';
+    return 'GROUP';
+  })();
+
   return {
     sessionId,
     slotId: sessionId,
@@ -88,6 +117,7 @@ function normalizeSession(session, examinerId) {
     end,
     timezone: session.timezone || 'Australia/Melbourne',
     venue,
+    assignmentId,
     requiredExaminers: required,
     currentExaminers: assigned,
     assignedExaminers, // Include the actual examiners list for UI display
@@ -106,6 +136,7 @@ function normalizeSession(session, examinerId) {
     participants: session.participants ?? session.students ?? [],
     sessionCount: 1,
     isExaminerAlreadyAssigned, // Add flag for UI to show "You're already assigned"
+    assessmentType: normalizedAssessmentType,
   };
 }
 
@@ -114,19 +145,30 @@ export const examinerTimeslotServiceReal = {
   async getAvailableAssignments(examinerId, options = {}) {
     try {
       const { courseId, subjectCode, subjectId, pageNum, pageSize, sort } = options || {};
-      const params = {};
-      // Backend expects subject filters; map our UI's courseId (code) to subjectCode
-      if (subjectCode || courseId) params.subjectCode = subjectCode || courseId;
-      if (typeof subjectId !== 'undefined') params.subjectId = subjectId;
-      if (typeof pageNum !== 'undefined') params.pageNum = pageNum;
-      if (typeof pageSize !== 'undefined') params.pageSize = pageSize;
-      if (sort) params.sort = sort;
+      const payload = {};
 
-      const res = await apiClient.get(`/api/examiners/${examinerId}/assignments`, { params });
-      // Backend returns ResultListAssignmentResponseDTO with data as array of AssignmentResponseDTO
-      const list = res?.data?.data || [];
-      // Map to UI-expected minimal shape
-      const mapped = list.map((a) => {
+      if (typeof examinerId === 'undefined' || examinerId === null) {
+        throw new Error('examinerId is required to list assignments');
+      }
+
+      payload.examinerId = examinerId;
+
+      const numericCourseFilter = [subjectId, courseId]
+        .map((value) => (value === '' || value === null || typeof value === 'undefined' ? undefined : Number(value)))
+        .find((value) => Number.isInteger(value));
+      if (Number.isInteger(numericCourseFilter)) payload.courseId = numericCourseFilter;
+
+      if (sort) payload.sort = sort;
+
+      const res = await apiClient.post('/api/examiners/assignments/list', payload);
+      const rawData = Array.isArray(res?.data?.data) ? res.data.data : [];
+
+      // Optional client-side filter when API payload does not accept subjectCode strings
+      const filtered = subjectCode
+        ? rawData.filter((assignment) => assignment.subjectCode === subjectCode || assignment.subjectId === subjectCode)
+        : rawData;
+
+      const mapped = filtered.map((a) => {
         const now = new Date();
         const end = a.endDate ? new Date(a.endDate) : null;
         const raw = (a.status || '').toString().toLowerCase();
@@ -159,15 +201,19 @@ export const examinerTimeslotServiceReal = {
         };
       });
 
+      const requestedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : mapped.length;
+      const requestedPageNum = Number.isInteger(pageNum) && pageNum >= 0 ? pageNum : 0;
+      const startIndex = requestedPageNum * requestedPageSize;
+      const paginated = mapped.slice(startIndex, startIndex + requestedPageSize);
+
       return {
         success: true,
         code: 'OK',
         data: {
-          // Wrap in a pagination-like envelope to match current consumers
-          pageNum: 0,
-          pageSize: mapped.length,
+          pageNum: requestedPageNum,
+          pageSize: requestedPageSize,
           total: mapped.length,
-          data: mapped,
+          data: paginated,
         },
       };
     } catch (error) {
@@ -180,49 +226,53 @@ export const examinerTimeslotServiceReal = {
     }
   },
 
-  // GET /api/examiners/{examinerId}/assignments/{assignmentId}/sessions
-  // Fallback: some deployments expose GET /api/assignments/{assignmentId}/sessions?examinerId=...
+  // POST /api/examiners/{examinerId}/assignments/{assignmentId}/sessions/query
+  // Fallback: POST /api/assignments/{assignmentId}/timeslots/query
   async getAvailableSessions(assignmentId, options = {}) {
-    const { examinerId, date, venueId, includeFullSlots, pageNum, pageSize } = options || {};
+    const { examinerId, date, venueId, includeFullSlots, status, pageNum, pageSize } = options || {};
     try {
-      const params = {};
-      if (date) params.date = date;
-      if (venueId) params.venueId = venueId;
-      // Prefer status filter supported by swagger: available|all
-      if (typeof includeFullSlots !== 'undefined') params.status = includeFullSlots ? 'all' : 'available';
-      if (typeof pageNum !== 'undefined') params.pageNum = pageNum;
-      if (typeof pageSize !== 'undefined') params.pageSize = pageSize;
+      const body = {};
+      if (date) body.date = date;
+      if (venueId) body.venueId = Number(venueId);
+      const resolvedStatus = status
+        ? status
+        : typeof includeFullSlots !== 'undefined'
+          ? (includeFullSlots ? 'ALL' : 'AVAILABLE')
+          : undefined;
+      if (resolvedStatus) body.status = resolvedStatus.toString().toUpperCase();
 
       let res;
-      if (examinerId) {
-        // Primary, swagger-aligned endpoint
-        res = await apiClient.get(`/api/examiners/${examinerId}/assignments/${assignmentId}/sessions`, { params });
+      if (examinerId != null) {
+        res = await apiClient.post(
+          `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
+          body
+        );
       } else {
-        // Fallback to legacy doc pattern when examinerId not provided explicitly
-        res = await apiClient.get(`/api/assignments/${assignmentId}/sessions`, {
-          params: { ...params, examinerId },
-        });
+        res = await apiClient.post(
+          `/api/assignments/${assignmentId}/timeslots/query`,
+          body
+        );
       }
 
-      const payload = res?.data?.data;
-      const items = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.sessions)
+      const payload = res?.data?.data || {};
+      const itemsRaw = Array.isArray(res?.data?.data)
+        ? res.data.data
+        : Array.isArray(payload.sessions)
           ? payload.sessions
-          : Array.isArray(payload?.timeSlots)
+          : Array.isArray(payload.timeSlots)
             ? payload.timeSlots
             : [];
 
-      const sessions = items
-        .map((session) => normalizeSession(session, examinerId))
-        .filter(Boolean);
+      const items = itemsRaw.map((session) => normalizeSession(session, examinerId, Number(assignmentId))).filter(Boolean);
 
-      const assignmentInfo = Array.isArray(payload)
-        ? { assignmentId: Number(assignmentId) }
-        : (payload?.assignment || { assignmentId: Number(assignmentId) });
-      const examinerInfo = Array.isArray(payload)
-        ? { maxSessions: 12, currentAssignedSessions: 0, remainingCapacity: 12 }
-        : (payload?.examinerInfo || { maxSessions: 12, currentAssignedSessions: 0, remainingCapacity: 12 });
+      const requestedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : items.length;
+      const requestedPageNum = Number.isInteger(pageNum) && pageNum >= 0 ? pageNum : 0;
+      const startIndex = requestedPageNum * requestedPageSize;
+      const paginated = items.slice(startIndex, startIndex + requestedPageSize);
+
+      const assignmentInfo = payload.assignment || { assignmentId: Number(assignmentId) };
+      const examinerInfo = payload.examinerInfo || null;
+      const summary = payload.summary || null;
 
       return {
         success: true,
@@ -230,8 +280,12 @@ export const examinerTimeslotServiceReal = {
         data: {
           assignment: assignmentInfo,
           examinerInfo,
-          sessions,
-          timeSlots: sessions,
+          summary,
+          sessions: paginated,
+          timeSlots: paginated,
+          total: items.length,
+          pageNum: requestedPageNum,
+          pageSize: requestedPageSize,
         },
       };
     } catch (error) {
@@ -253,41 +307,36 @@ export const examinerTimeslotServiceReal = {
           ? data.slotAssignments.map((s) => s.sessionId ?? s.slotId)
           : [];
       const sessionIds = extracted.filter((id) => id !== undefined && id !== null);
-      const payload = { sessionIds };
-      const res = await apiClient.post(
-        `/api/assignments/${assignmentId}/sessions/assign`,
-        payload,
-        { params: { examinerId: data?.examinerId } }
-      );
-      const raw = res?.data?.data ?? res?.data ?? {};
 
-      // Support multiple backend response variants
-      const idsFromArray = (arr) => (Array.isArray(arr) ? arr.filter((x) => typeof x === 'number') : []);
-      const idsFromObjects = (arr) => (Array.isArray(arr) ? arr.map((o) => (typeof o === 'number' ? o : (o?.sessionId ?? o?.id ?? o?.slotId))).filter((x) => typeof x === 'number') : []);
-
-      let successIds = [];
-      successIds = successIds.length ? successIds : idsFromArray(raw.addedSessionIds);
-      successIds = successIds.length ? successIds : idsFromArray(raw.sessionIds);
-      successIds = successIds.length ? successIds : idsFromArray(raw.success);
-      successIds = successIds.length ? successIds : idsFromObjects(raw.sessions);
-      successIds = successIds.length ? successIds : idsFromObjects(raw.assignedSessions);
-
-      // Final fallback: if API only returned success=true, assume request ids were applied
-      if ((!successIds || successIds.length === 0) && res?.data?.success === true && sessionIds.length > 0) {
-        successIds = sessionIds;
+      const examinerId = data?.examinerId;
+      if (examinerId == null) {
+        throw new Error('examinerId is required to assign sessions');
       }
 
-      const failuresRaw = raw.failures || raw.failedSessions || raw.failed || raw.errors || [];
-      const failures = Array.isArray(failuresRaw) ? failuresRaw : [];
+      const res = await apiClient.post(
+        `/api/assignments/${assignmentId}/sessions/assign`,
+        {
+          examinerId,
+          sessionIds,
+        }
+      );
 
-      const assignedSessions = successIds.map((id) => ({ sessionId: id, slotId: id, sessionCount: 1 }));
+      const raw = res?.data?.data ?? {};
+      const idsFromArray = (arr) => (Array.isArray(arr) ? arr.map((x) => Number(x)).filter((x) => !Number.isNaN(x)) : []);
+      const successIds = idsFromArray(raw.updatedSessionIds);
+      const finalSuccessIds = successIds.length > 0
+        ? successIds
+        : (res?.data?.success === true ? sessionIds : []);
+
+      const failures = sessionIds.filter((id) => !finalSuccessIds.includes(id));
+      const assignedSessions = finalSuccessIds.map((id) => ({ sessionId: id, slotId: id, sessionCount: 1 }));
 
       return {
         success: true,
         code: 'OK',
         data: {
           assignmentId: Number(assignmentId),
-          examinerId: data?.examinerId,
+          examinerId,
           assignedSessions,
           assignedSlots: assignedSessions, // keep legacy consumer happy (expects slotId)
           failedSessions: failures,
@@ -304,29 +353,61 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to assign sessions',
+        message: error.response?.data?.message || error.message || 'Failed to assign sessions',
       };
     }
   },
 
-  // GET /api/examiners/{examinerId}/schedule
+  // POST /api/examiners/{examinerId}/schedule
   async getExaminerSchedule(examinerId, options = {}) {
     try {
-      const params = {};
-      if (options.assignmentId) params.assignmentId = options.assignmentId;
-      if (options.date) params.date = options.date;
-      if (options.dateFrom) params.dateFrom = options.dateFrom;
-      if (options.dateTo) params.dateTo = options.dateTo;
-      const res = await apiClient.get(`/api/examiners/${examinerId}/schedule`, { params });
+      const requestBody = {};
+      if (options.assignmentId != null) requestBody.assignmentId = Number(options.assignmentId);
+
+      const res = await apiClient.post(`/api/examiners/${examinerId}/schedule`, requestBody);
       const body = res?.data?.data || {};
+
+      const applyDateFilters = (sessions) => {
+        if (!Array.isArray(sessions)) return [];
+
+        const hasDateExact = typeof options.date === 'string';
+        const hasFrom = typeof options.dateFrom === 'string';
+        const hasTo = typeof options.dateTo === 'string';
+
+        if (!hasDateExact && !hasFrom && !hasTo) return sessions;
+
+        const dateFrom = hasDateExact ? new Date(options.date) : (hasFrom ? new Date(options.dateFrom) : null);
+        const dateTo = hasDateExact ? new Date(options.date) : (hasTo ? new Date(options.dateTo) : null);
+
+        return sessions.filter((session) => {
+          if (!session?.start) return false;
+          const startDate = new Date(session.start);
+
+          let within = true;
+          if (dateFrom) {
+            const from = new Date(dateFrom);
+            from.setHours(0, 0, 0, 0);
+            if (startDate < from) within = false;
+          }
+          if (dateTo) {
+            const to = new Date(dateTo);
+            to.setHours(23, 59, 59, 999);
+            if (startDate > to) within = false;
+          }
+
+          return within;
+        });
+      };
 
       // If backend already returns assignments, pass through
       if (Array.isArray(body.assignments)) {
         const assignments = body.assignments.map((assignment) => {
           const rawSessions = assignment.sessions ?? assignment.slots ?? [];
-          const normalizedSessions = rawSessions
-            .map((session) => normalizeSession(session, examinerId))
-            .filter(Boolean);
+          const normalizedSessions = applyDateFilters(
+            rawSessions
+              .map((session) => normalizeSession(session, examinerId, assignment.assignmentId))
+              .filter(Boolean)
+          );
           return {
             ...assignment,
             sessions: normalizedSessions,
@@ -339,8 +420,10 @@ export const examinerTimeslotServiceReal = {
       // Otherwise map from a flat schedule structure
       const slots = Array.isArray(body.slots) ? body.slots : [];
       const fallbackSessions = slots
-        .map((slot) => normalizeSession(slot, examinerId))
+        .map((slot) => normalizeSession(slot, examinerId, body.assignmentId ?? null))
         .filter(Boolean);
+
+      const filteredFallback = applyDateFilters(fallbackSessions);
 
       return {
         success: true,
@@ -352,8 +435,8 @@ export const examinerTimeslotServiceReal = {
               assignmentName: body.assignmentName || 'Assigned Sessions',
               courseCode: body.courseCode || '',
               courseName: body.courseName || '',
-              sessions: fallbackSessions,
-              slots: fallbackSessions,
+              sessions: filteredFallback,
+              slots: filteredFallback,
             },
           ],
         },
@@ -368,25 +451,55 @@ export const examinerTimeslotServiceReal = {
     }
   },
 
-  // DELETE /api/assignments/{assignmentId}/sessions/{sessionId}/unassign?examinerId=...
+  // POST /api/assignments/{assignmentId}/sessions/unassign
   async unassignExaminerFromSession(assignmentId, sessionId, examinerId) {
     try {
-      const res = await apiClient.delete(`/api/assignments/${assignmentId}/sessions/${sessionId}/unassign`, { params: { examinerId } });
-      const ok = res?.data?.success === true || res?.data === true;
+      const res = await apiClient.post(
+        `/api/assignments/${assignmentId}/sessions/unassign`,
+        {
+          examinerId,
+          sessionId: Number(sessionId),
+        }
+      );
+
+      const ok = res?.data?.success === true && res?.data?.data?.success !== false;
+      const returnedSessionId = res?.data?.data?.sessionId ?? Number(sessionId);
       return {
         success: ok,
         code: ok ? 'OK' : 'FAILED',
         data: ok
-          ? { assignmentId: Number(assignmentId), sessionId: Number(sessionId), examinerId }
+          ? { assignmentId: Number(assignmentId), sessionId: returnedSessionId, examinerId }
           : null,
         message: ok ? undefined : 'Failed to unassign from session',
       };
     } catch (error) {
+      // Fallback to legacy claim endpoint if new DTO-based API is unavailable
+      if (error.response && error.response.status === 404 && examinerId != null) {
+        try {
+          const legacyRes = await apiClient.delete(`/api/examiners/${examinerId}/sessions/${sessionId}/claim`);
+          const legacyOk = legacyRes?.data?.success === true || legacyRes?.data === true;
+          return {
+            success: legacyOk,
+            code: legacyOk ? 'OK' : 'FAILED',
+            data: legacyOk
+              ? { assignmentId: Number(assignmentId), sessionId: Number(sessionId), examinerId }
+              : null,
+            message: legacyOk ? undefined : 'Failed to unassign from session',
+          };
+        } catch (legacyError) {
+          return {
+            success: false,
+            code: 'SERVER_ERROR',
+            data: null,
+            message: legacyError.response?.data?.message || legacyError.message || 'Failed to unassign from session',
+          };
+        }
+      }
       return {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to unassign from session',
+        message: error.response?.data?.message || error.message || 'Failed to unassign from session',
       };
     }
   },

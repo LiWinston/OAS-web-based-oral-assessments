@@ -35,7 +35,7 @@ function formatDate(isoString) {
 
 export default function AssignedSlots({ showDebugSection = false }) {
   const { examinerId, isValidExaminer } = useExaminerAuth();
-  const { selectedCourse } = useScheduleFilterStore();
+  const { selectedCourse, assessmentType } = useScheduleFilterStore();
   const { withdrawFromSession, isSubmitting, canWithdraw } =
     useTimeslotAssignment();
 
@@ -57,6 +57,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
   const [resultProps, setResultProps] = React.useState({});
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [pendingSlot, setPendingSlot] = React.useState(null);
+  const [showAllPast, setShowAllPast] = React.useState(false);
 
   const doWithdraw = async (slot) => {
     try {
@@ -115,18 +116,34 @@ export default function AssignedSlots({ showDebugSection = false }) {
           !selectedCourse || assignment.courseCode === selectedCourse
       )
       .flatMap((assignment) =>
-        (assignment.sessions || assignment.slots || []).map((slot) => ({
-          ...slot,
-          assignmentId: assignment.assignmentId,
-          assignmentName: assignment.assignmentName,
-          courseCode: assignment.courseCode,
-          courseName: assignment.courseName,
-        }))
-      );
+        (assignment.sessions || assignment.slots || []).map((slot) => {
+          const required =
+            slot.requiredExaminers ?? slot.coverage?.required ?? null;
+          const derivedType = (slot.assessmentType || (() => {
+            if (required === 1) return 'INDIVIDUAL';
+            if (required === 0) return 'MIX';
+            return 'GROUP';
+          })())
+            .toString()
+            .toUpperCase();
+          return {
+            ...slot,
+            assessmentType: derivedType,
+            assignmentId: assignment.assignmentId,
+            assignmentName: assignment.assignmentName,
+            courseCode: assignment.courseCode,
+            courseName: assignment.courseName,
+          };
+        })
+      )
+      .filter((slot) => {
+        if (!assessmentType || assessmentType === 'ALL') return true;
+        return slot.assessmentType === assessmentType;
+      });
 
     // Sort by date and time
     return slots.sort((a, b) => new Date(a.start) - new Date(b.start));
-  }, [scheduleData, selectedCourse]);
+  }, [scheduleData, selectedCourse, assessmentType]);
 
   // Group slots into upcoming and past
   const now = new Date();
@@ -136,6 +153,13 @@ export default function AssignedSlots({ showDebugSection = false }) {
   const pastSlots = allAssignedSlots.filter(
     (slot) => new Date(slot.start) <= now
   );
+  const visiblePastSlots = showAllPast ? pastSlots : pastSlots.slice(0, 5);
+
+  React.useEffect(() => {
+    if (pastSlots.length <= 5 && showAllPast) {
+      setShowAllPast(false);
+    }
+  }, [pastSlots.length, showAllPast]);
 
   if (isLoading) {
     return (
@@ -366,7 +390,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                   Past Sessions ({pastSlots.length})
                 </h3>
                 <div className="space-y-3">
-                  {pastSlots.slice(0, 5).map((slot) => (
+                  {visiblePastSlots.map((slot) => (
                     <div
                       key={slot.slotId}
                       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 opacity-75"
@@ -419,7 +443,15 @@ export default function AssignedSlots({ showDebugSection = false }) {
 
                   {pastSlots.length > 5 && (
                     <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-2">
-                      ... and {pastSlots.length - 5} more past sessions
+                      <button
+                        type="button"
+                        className="text-blue-600 dark:text-blue-300 hover:underline"
+                        onClick={() => setShowAllPast((prev) => !prev)}
+                      >
+                        {showAllPast
+                          ? 'Show less'
+                          : `Show ${pastSlots.length - 5} more past session${pastSlots.length - 5 === 1 ? '' : 's'}`}
+                      </button>
                     </div>
                   )}
                 </div>
