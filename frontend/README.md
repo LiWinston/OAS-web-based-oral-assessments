@@ -255,6 +255,10 @@ frontend/
 │   │   ├── SuperAdminSidebar.jsx # Super Admin navigation sidebar
 │   │   └── SuperAdminTopNav.jsx # Super Admin header navigation
 │   ├── admin/                   # Course Admin specific components
+│   │   ├── dashboard/           # Course Admin dashboard widgets
+│   │   │   ├── AssignmentStatusTable.jsx # Live status overview with refresh & actions
+│   │   │   ├── SimpleCalendar.jsx        # Assignment calendar with staffing drill-down
+│   │   │   └── QuickActions.jsx          # Shortcut tiles surfaced on the dashboard
 │   │   ├── onboarding/          # Onboarding wizard components
 │   │   │   ├── OnboardingLayout.jsx        # Shared layout
 │   │   │   ├── OnboardingWelcome.jsx       # Welcome step
@@ -357,6 +361,7 @@ frontend/
 │   ├── useDarkMode.js           # Theme management
 │   ├── useExaminerAuth.js       # Examiner authentication and role validation
 │   ├── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
+│   ├── admin/useAdminAssignments.js # Shared Course Admin assignment fetch/cache hook
 │   └── admin/useAdminResults.js # Results list/detail queries + review/override/release mutations
 │
 ├── lib/                         # Utilities and providers
@@ -466,6 +471,11 @@ const roleRoutes = {
 - Authentication: Temporary Next.js API route for login during development
 - Backend: Spring Boot service with /login and /token/refresh available; additional endpoints under active development
 - Database: MySQL running via Docker; accessed by Spring Boot only
+
+### Recent Frontend Enhancements (September 2025)
+
+- **Unified Course Admin data fetching** — `useAdminAssignments` now powers both the dashboard status table and calendar, preventing redundant API calls and adding a manual refresh surface when backend data changes mid-session.
+- **Assignment-first calendar experience** — the dashboard calendar aggregates sessions per assignment, highlights staffing gaps, start/due milestones, and exposes a clickable drill-down dialog for day-level details and quick navigation to scheduling/results views.
 
 ### Integration Status — ✅ COMPLETED
 

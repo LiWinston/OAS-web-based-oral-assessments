@@ -7,10 +7,19 @@ import { Button } from "../../components/ui/button";
 import { AssignmentStatusTable } from "../../components/admin/dashboard/AssignmentStatusTable";
 import { QuickActions } from "../../components/admin/dashboard/QuickActions";
 import { SimpleCalendar } from "../../components/admin/dashboard/SimpleCalendar";
+import { useAdminAssignments } from "../../hooks/admin/useAdminAssignments";
 
 export default function AdminDashboard() {
   const { user } = useAuthStore();
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
+
+  const {
+    assignments,
+    loading: assignmentsLoading,
+    error: assignmentsError,
+    warnings: assignmentWarnings,
+    refresh: refreshAssignments,
+  } = useAdminAssignments(user?.id);
 
   // Initialize welcome animation
   useEffect(() => {
@@ -111,12 +120,23 @@ export default function AdminDashboard() {
         <div className="lg:col-span-2 space-y-6">
           {/* Enhanced Assignment Status Overview */}
           <div className="animate-fadeInUp" style={{ animationDelay: "600ms" }}>
-            <AssignmentStatusTable />
+            <AssignmentStatusTable
+              assignments={assignments}
+              loading={assignmentsLoading}
+              error={assignmentsError}
+              warnings={assignmentWarnings}
+              onRefresh={refreshAssignments}
+            />
           </div>
 
           {/* Enhanced Calendar view */}
           <div className="animate-fadeInUp" style={{ animationDelay: "700ms" }}>
-            <SimpleCalendar />
+            <SimpleCalendar
+              assignments={assignments}
+              assignmentsLoading={assignmentsLoading}
+              assignmentsError={assignmentsError}
+              onRefreshAssignments={refreshAssignments}
+            />
           </div>
         </div>
 
