@@ -5,14 +5,16 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
+import org.swen90017.oas.dto.request.ReleaseResultsRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
+import org.swen90017.oas.dto.response.ReleaseResultsResponseDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.AssignmentService;
 
@@ -138,5 +140,30 @@ public class AssignmentController {
             @Parameter(description = "Student ID") @RequestParam Long studentId) {
         AssignmentAvailabilityResponseDTO availability = assignmentService.getAssignmentAvailability(assignmentId, studentId);
         return ResponseEntity.ok(Result.success(availability));
+    }
+
+    /**
+     * Get assignment setup status
+     */
+    @Operation(summary = "Get assignment setup status", description = "Get the three-step setup progress information for an assignment")
+    @GetMapping("/{assignmentId}/status")
+    @Log(module = "Assignment Management", businessType = BusinessType.QUERY)
+    public ResponseEntity<Result<AssignmentStatusResponseDTO>> getAssignmentStatus(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
+        AssignmentStatusResponseDTO status = assignmentService.getAssignmentStatus(assignmentId);
+        return ResponseEntity.ok(Result.success(status));
+    }
+
+    /**
+     * Release results for an assignment
+     */
+    @Operation(summary = "Release assignment results", description = "Release assignment results to students")
+    @PostMapping("/{assignmentId}/results/release")
+    @Log(module = "Assignment Management", businessType = BusinessType.UPDATE)
+    public ResponseEntity<Result<ReleaseResultsResponseDTO>> releaseResults(
+            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
+            @Parameter(description = "Release results request") @Valid @RequestBody ReleaseResultsRequestDTO request) {
+        ReleaseResultsResponseDTO result = assignmentService.releaseResults(assignmentId, request);
+        return ResponseEntity.ok(Result.success(result));
     }
 }

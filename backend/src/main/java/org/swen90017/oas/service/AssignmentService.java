@@ -2,11 +2,14 @@ package org.swen90017.oas.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
+import org.swen90017.oas.dto.request.ReleaseResultsRequestDTO;
 import org.swen90017.oas.dto.request.StudentAssignmentQueryRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
 import org.swen90017.oas.dto.response.GroupContextResponseDTO;
+import org.swen90017.oas.dto.response.ReleaseResultsResponseDTO;
 import org.swen90017.oas.dto.response.StudentAssignmentListResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 
@@ -84,4 +87,16 @@ public interface AssignmentService extends IService<Assignment> {
      * Returns availability details including policies and quick stats
      */
     AssignmentAvailabilityResponseDTO getAssignmentAvailability(Long assignmentId, Long studentId);
+
+    /**
+     * Get assignment setup status
+     * Returns the three-step setup progress information
+     */
+    AssignmentStatusResponseDTO getAssignmentStatus(Long assignmentId);
+
+    /**
+     * Release results for an assignment
+     * Marks results as released to students
+     */
+    ReleaseResultsResponseDTO releaseResults(Long assignmentId, ReleaseResultsRequestDTO request);
 }

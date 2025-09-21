@@ -40,6 +40,9 @@ public enum BusinessError implements Error {
     ASSIGNMENT_INVALID_TOTAL_WEIGHT("4045", "Invalid total rubric weight"),
     ASSIGNMENT_INVALID_RUBRIC_FORMAT("4046", "Invalid rubric format"),
     ASSIGNMENT_TOTAL_WEIGHT_EXCEEDED("4047", "Total assignment weight for subject cannot exceed 100%"),
+    ASSIGNMENT_INVALID_WEIGHT_BASIS("4048", "Invalid weight basis, must be 'percentage' or 'points'"),
+    ASSIGNMENT_INVALID_TOTAL_POINTS("4049", "Invalid total rubric points"),
+    ASSIGNMENT_UPDATE_FAILED("4050", "Failed to update assignment"),
 
     // Epic 5 Timeslot and Session Management errors
     SESSION_CONFIG_NOT_FOUND("5001", "Session configuration not found or not configured"),
@@ -98,7 +101,14 @@ public enum BusinessError implements Error {
     RUBRIC_CRITERION_INCOMPLETE("9010", "Rubric criterion not fully completed"),
     INCOMPATIBLE_SCORE_FIELDS("9011", "Incompatible score fields for scaleType"),
     EXAMINER_LIMIT_NOT_SET("9012", "Examiner session limit not configured"),
-    TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient");
+    TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient"),
+    
+    // Admin results functionality errors (9014+)
+    SUBMISSION_NOT_FOUND("9014", "Assessment submission not found"),
+    EXAMINER_NOT_ASSIGNED_TO_SUBMISSION("9015", "Examiner is not assigned to this submission"),
+    ALREADY_REOPENED("9016", "Examiner marking is already reopened"),
+    NO_SUBMITTED_EXAMINERS("9017", "No examiners have submitted markings for this assessment"),
+    ASSESSMENT_ALREADY_RELEASED("9018", "Assessment is already released to students");
     // 9013 预留：总限额不满足
     // TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient")
     // add more below as needed

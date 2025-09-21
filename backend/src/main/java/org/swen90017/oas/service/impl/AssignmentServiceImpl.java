@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,10 +18,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.AssignmentRequestDTO;
+import org.swen90017.oas.dto.request.ReleaseResultsRequestDTO;
 import org.swen90017.oas.dto.request.StudentAssignmentQueryRequestDTO;
 import org.swen90017.oas.dto.response.AssignmentResponseDTO;
+import org.swen90017.oas.dto.response.AssignmentSetupStatusDTO;
+import org.swen90017.oas.dto.response.AssignmentStatusResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentStatusStatsResponseDTO;
 import org.swen90017.oas.dto.response.GroupContextResponseDTO;
+import org.swen90017.oas.dto.response.ReleaseResultsResponseDTO;
 import org.swen90017.oas.dto.response.StudentAssignmentListResponseDTO;
 import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.Subject;
@@ -31,7 +34,6 @@ import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.entity.SysStudentGroup;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.AssignmentType;
-import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.GroupMapper;
@@ -56,7 +58,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Objects;
 
 /**
  * Assignment Service Implementation
@@ -75,6 +76,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     private final SysUserMapper sysUserMapper;
     private final TimeSlotMapper timeSlotMapper;
     private final SlotSessionMapper slotSessionMapper;
+    private final AssignmentSetupStatusService setupStatusService;
 
     @Override
     public AssignmentResponseDTO getAssignmentById(Long id) {
@@ -114,7 +116,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         // Validate rubrics info if provided
         if (dto.getRubricsInfo() != null) {
-            validateRubricsInfo(dto.getRubricsInfo());
+            validateRubricsInfo(dto.getRubricsInfo(), dto.getRubricMetaInfo());
         }
 
         Assignment assignment = new Assignment();
@@ -169,6 +171,11 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
 
         // Validate total weight for subject (exclude current assignment)
         validateTotalWeightForSubject(dto.getSubjectId(), dto.getWeight(), id);
+
+        // Validate rubrics info if provided
+        if (dto.getRubricsInfo() != null) {
+            validateRubricsInfo(dto.getRubricsInfo(), dto.getRubricMetaInfo());
+        }
 
         BeanUtils.copyProperties(dto, existingAssignment, "id", "createTime", "creator");
 
@@ -308,15 +315,37 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             }
         }
 
+        // Calculate and set setup status
+        AssignmentSetupStatusDTO setupStatus = setupStatusService.calculateSetupStatus(assignment);
+        dto.setSetupStatus(setupStatus);
+
         return dto;
     }
 
     /**
-     * Validate rubrics info
+     * Validate rubrics info with weight basis support
      */
-    private void validateRubricsInfo(List<RubricsInfoDto> rubricsInfo) {
+    private void validateRubricsInfo(List<RubricsInfoDto> rubricsInfo, RubricMetaInfo rubricMetaInfo) {
         if (rubricsInfo == null || rubricsInfo.isEmpty()) {
             return;
+        }
+
+        // Get weight basis and total points from meta info
+        String weightBasis = "percentage"; // default
+        Double totalPoints = 100.0; // default
+        
+        if (rubricMetaInfo != null) {
+            if (rubricMetaInfo.getWeightBasis() != null) {
+                weightBasis = rubricMetaInfo.getWeightBasis();
+            }
+            if (rubricMetaInfo.getTotalPoints() != null) {
+                totalPoints = rubricMetaInfo.getTotalPoints();
+            }
+        }
+
+        // Validate weight basis
+        if (!"percentage".equals(weightBasis) && !"points".equals(weightBasis)) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_WEIGHT_BASIS);
         }
 
         double totalWeight = 0.0;
@@ -326,8 +355,15 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                 throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC);
             }
 
-            // Validate rubric weight
-            if (rubric.getWeight() == null || rubric.getWeight() < 0.0 || rubric.getWeight() > 100.0) {
+            // Validate rubric weight based on weight basis
+            if (rubric.getWeight() == null || rubric.getWeight() < 0.0) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_WEIGHT);
+            }
+            
+            // For percentage basis, weight should not exceed 100
+            // For points basis, weight should not exceed total points
+            double maxWeight = "percentage".equals(weightBasis) ? 100.0 : totalPoints;
+            if (rubric.getWeight() > maxWeight) {
                 throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_RUBRIC_WEIGHT);
             }
 
@@ -356,9 +392,14 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             totalWeight += rubric.getWeight();
         }
 
-        // Validate total weight is reasonable (should be close to 100%)
-        if (Math.abs(totalWeight - 100.0) > 5.0) {
-            throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_WEIGHT);
+        // Validate total weight based on weight basis
+        double expectedTotal = "percentage".equals(weightBasis) ? 100.0 : totalPoints;
+        if (Math.abs(totalWeight - expectedTotal) > 5.0) {
+            if ("percentage".equals(weightBasis)) {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_WEIGHT);
+            } else {
+                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_POINTS);
+            }
         }
     }
 
@@ -853,5 +894,73 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         // For now, we'll assume the student has access if they can see the assignment
         // In a real implementation, this would check enrollment records
         return true;
+    }
+
+    @Override
+    public AssignmentStatusResponseDTO getAssignmentStatus(Long assignmentId) {
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        AssignmentSetupStatusDTO setupStatus = setupStatusService.calculateSetupStatus(assignment);
+        
+        AssignmentStatusResponseDTO response = new AssignmentStatusResponseDTO();
+        response.setAssignmentId(assignmentId);
+        response.setSetupStatus(setupStatus);
+        
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ReleaseResultsResponseDTO releaseResults(Long assignmentId, ReleaseResultsRequestDTO request) {
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+
+        // Check if results are already released
+        if (Boolean.TRUE.equals(assignment.getResultsReleased())) {
+            // Idempotent operation - return existing release info
+            ReleaseResultsResponseDTO response = new ReleaseResultsResponseDTO();
+            response.setSuccess(true);
+            response.setReleasedOn(assignment.getResultsReleasedAt());
+            response.setStudentsNotified(0); // No new notifications sent
+            return response;
+        }
+
+        // Mark results as released
+        LocalDateTime now = LocalDateTime.now();
+        assignment.setResultsReleased(true);
+        assignment.setResultsReleasedAt(now);
+        assignment.setUpdateTime(now);
+        
+        int updateResult = assignmentMapper.updateById(assignment);
+        if (updateResult == 0) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_UPDATE_FAILED);
+        }
+
+        // Count students for notification (if requested)
+        int studentsNotified = 0;
+        if (Boolean.TRUE.equals(request.getNotifyStudents())) {
+            // TODO: Implement actual notification logic
+            // For now, just return 0 as a placeholder
+            studentsNotified = 0;
+        }
+
+        // Clear cache
+        try {
+            cacheSupport.evictBySubjectId(assignment.getSubjectId());
+        } catch (Exception ignore) {
+            // Log cache eviction failure but don't fail the operation
+        }
+
+        ReleaseResultsResponseDTO response = new ReleaseResultsResponseDTO();
+        response.setSuccess(true);
+        response.setReleasedOn(now);
+        response.setStudentsNotified(studentsNotified);
+        
+        return response;
     }
 }

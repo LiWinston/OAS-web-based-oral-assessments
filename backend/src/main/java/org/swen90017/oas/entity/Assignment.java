@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
@@ -96,6 +95,20 @@ public class Assignment {
      * Release date
      */
     private LocalDateTime releasedAt;
+
+    /**
+     * Are results released to students
+     */
+    @Schema(description = "Whether results are released to students", example = "false")
+    @TableField("results_released")
+    private Boolean resultsReleased;
+
+    /**
+     * Results release timestamp
+     */
+    @Schema(description = "When results were released", example = "2025-06-12T13:00:00")
+    @TableField("results_released_at")
+    private LocalDateTime resultsReleasedAt;
 
     /**
      * Rubric meta information (JSON string)
