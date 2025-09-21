@@ -16,6 +16,31 @@ export default function UsersTable({
 }) {
   const allSelected = useMemo(() => rows?.length > 0 && rows.every((r) => selectedIds.has(r.assignmentUserId)), [rows, selectedIds]);
 
+  const dateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    []
+  );
+
+  const formatAddedAt = (value) => {
+    if (!value && value !== 0) {
+      return "Pending";
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime()) || parsed.getTime() <= 0) {
+      return "Pending";
+    }
+
+    return dateFormatter.format(parsed);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <Table>
@@ -75,7 +100,7 @@ export default function UsersTable({
               ) : (
                 <TableCell>{row.assignedSlotsCount ?? 0}</TableCell>
               )}
-              <TableCell>{new Date(row.addedAt).toLocaleString()}</TableCell>
+              <TableCell>{formatAddedAt(row.addedAt)}</TableCell>
               <TableCell className="text-right">
                 <Button variant="destructive" size="sm" onClick={() => onRemoveOne(row)}>
                   <i className="fas fa-user-minus mr-2" /> Remove

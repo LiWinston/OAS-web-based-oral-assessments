@@ -21,6 +21,13 @@ public class AssessmentSubmission implements Serializable {
 
     private Long assignmentId;
     private Long sessionId; // 可为空
+    
+    /**
+     * Enrollment ID - references session_student.id
+     * Links assessment to specific enrollment in session
+     */
+    @Schema(description = "Enrollment ID from session_student table", example = "1001")
+    private Long enrollmentId;
 
     /**
      * Align with AssignMode: INDIVIDUAL | GROUP

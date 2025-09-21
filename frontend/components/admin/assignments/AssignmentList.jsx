@@ -402,18 +402,18 @@ export function AssignmentList({
                           </Link>
 
                           <Link
-                            href={`/admin/assignments/${assignment.id}/schedule`}
+                            href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/timeslots`}
                             className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 group transform hover:scale-110 ${
                               !assignment.hasTimeSlots ? "animate-pulse" : ""
                             }`}
                             onMouseEnter={(e) => {
                               const rect = e.currentTarget.getBoundingClientRect();
-                              setTooltip({
-                                show: true,
-                                text: 'Schedule Time Slots',
-                                x: rect.left + rect.width / 2,
-                                y: rect.top
-                              });
+                            setTooltip({
+                              show: true,
+                              text: 'Schedule Sessions',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
                             }}
                             onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
@@ -477,6 +477,9 @@ export function AssignmentList({
               const typeStyles = getTypeStyles(assignment.type);
               const statusStyles = getStatusStyles(assignment.status);
               const progress = getProgressPercentage(assignment);
+              const studentCount =
+                assignment.students ?? assignment.studentCount ?? 0;
+              const groupCount = assignment.groups ?? assignment.groupCount ?? 0;
 
               return (
                 <div
@@ -559,9 +562,8 @@ export function AssignmentList({
                           ></i>
                         </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
-                          {assignment.students} students
-                          {assignment.groups > 0 &&
-                            `, ${assignment.groups} groups`}
+                          {studentCount} students
+                          {groupCount > 0 && `, ${groupCount} groups`}
                         </span>
                       </div>
 
@@ -660,7 +662,7 @@ export function AssignmentList({
                                     hasTimeSlots ? 'fa-check-circle' : 'fa-circle'
                                   } mr-1 group-hover:animate-pulse`}
                                 ></i>
-                                Time Slots
+                                Sessions
                               </span>
                               <span
                                 className={`flex items-center transition-colors duration-300 ${
@@ -717,7 +719,7 @@ export function AssignmentList({
                         </Link>
 
                         <Link
-                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/schedule`}
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/timeslots`}
                           className={`text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-all duration-200 transform hover:scale-110 ${
                             !assignment.hasTimeSlots ? "animate-pulse" : ""
                           }`}
@@ -725,7 +727,7 @@ export function AssignmentList({
                             const rect = e.currentTarget.getBoundingClientRect();
                             setTooltip({
                               show: true,
-                              text: 'Schedule Time Slots',
+                              text: 'Schedule Sessions',
                               x: rect.left + rect.width / 2,
                               y: rect.top
                             });
@@ -733,6 +735,23 @@ export function AssignmentList({
                           onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                         >
                           <i className="fas fa-calendar-week hover:animate-wiggle"></i>
+                        </Link>
+
+                        <Link
+                          href={`/admin/courses/${assignment.subjectId}/assignments/${assignment.id}/results`}
+                          className={`text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-200 transform hover:scale-110`}
+                          onMouseEnter={(e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltip({
+                              show: true,
+                              text: 'Results & Marking',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
+                          }}
+                          onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
+                        >
+                          <i className="fas fa-chart-bar hover:animate-wiggle"></i>
                         </Link>
 
                         <button

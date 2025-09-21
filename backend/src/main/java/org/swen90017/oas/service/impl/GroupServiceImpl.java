@@ -37,7 +37,8 @@ public class GroupServiceImpl implements GroupService {
                 dtos,
                 GroupCSVRequestDTO::getUserId,    // Student ID extractor
                 GroupCSVRequestDTO::getName,      // Username extractor
-                GroupCSVRequestDTO::getLoginId    // SIS user ID extractor
+                GroupCSVRequestDTO::getLoginId,   // SIS user ID extractor
+                GroupCSVRequestDTO::getEmail      // Email extractor
         );
 
         // Process group-related business logic
@@ -124,7 +125,8 @@ public class GroupServiceImpl implements GroupService {
 
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 groupDTOs,
-                GroupCSVRequestDTO::getUserId
+                GroupCSVRequestDTO::getUserId,
+                GroupCSVRequestDTO::getLoginId
         );
 
         // Calculate unique group count

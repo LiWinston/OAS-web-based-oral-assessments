@@ -19,6 +19,11 @@ import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
 import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
+import org.swen90017.oas.mapper.AssignmentParticipantMapper;
+import org.swen90017.oas.mapper.SubjectMapper;
+import org.swen90017.oas.service.EmailService;
+import org.swen90017.oas.enums.UserStatus;
+import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.service.SessionService;
 import org.swen90017.oas.dto.response.AdminSessionsListResponseDTO;
 import org.swen90017.oas.dto.response.SessionDetailDTO;
@@ -44,6 +49,9 @@ public class SessionServiceImpl implements SessionService {
     private final AssignmentMapper assignmentMapper;
     private final ExaminerAssignmentLimitMapper limitMapper;
     private final AssignmentSessionConfigMapper sessionConfigMapper;
+    private final AssignmentParticipantMapper assignmentParticipantMapper;
+    private final SubjectMapper subjectMapper;
+    private final EmailService emailService;
 
     @Override
     public List<Long> listExaminerIds(Long sessionId) {
@@ -505,10 +513,18 @@ public class SessionServiceImpl implements SessionService {
             a.setStatus("RELEASED");
             a.setIsReleased(Boolean.TRUE);
             a.setReleasedAt(LocalDateTime.now());
+            
+            // 发布给学生时的额外操作：
+            // 1. 更新 assignment_participant 表中学生的 if_join 为 1
+            // 2. 发送课程加入通知邮件给学生
+            updateStudentParticipationAndSendNotification(assignmentId);
         } else {
             a.setStatus("IN_PROGRESS");
             a.setIsReleased(Boolean.FALSE);
             a.setReleasedAt(null);
+            
+            // 取消发布时，将学生的 if_join 改回 0
+            updateStudentParticipationStatus(assignmentId, 0);
         }
         a.setUpdateTime(LocalDateTime.now());
         return assignmentMapper.updateById(a) > 0;
@@ -593,6 +609,80 @@ public class SessionServiceImpl implements SessionService {
         m.put("publishedToExaminer", Boolean.TRUE.equals(s.getIsPublishedToExaminer()));
         m.put("publishedToStudent", Boolean.TRUE.equals(s.getIsPublishedToStudent()));
         return m;
+    }
+    
+    /**
+     * 发布给学生时：更新学生的 if_join 状态并发送邮件通知
+     */
+    private void updateStudentParticipationAndSendNotification(Long assignmentId) {
+        log.info("Start post-release operations for assignment {} to students", assignmentId);
+        
+        // 1. 更新学生的 if_join 状态为 1
+        updateStudentParticipationStatus(assignmentId, 1);
+        
+        // 2. 获取作业和课程信息
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            log.warn("Assignment not found. assignmentId: {}", assignmentId);
+            return;
+        }
+        
+        Subject subject = subjectMapper.selectById(assignment.getSubjectId());
+        String courseName = subject != null ? subject.getSubjectName() : null;
+        String assignmentName = assignment.getName();
+        
+        // 3. 查询该作业的所有学生参与者
+        QueryWrapper<AssignmentParticipant> wrapper = new QueryWrapper<>();
+        wrapper.eq("assignment_id", assignmentId)
+               .eq("role_id", UserRole.STUDENT.sort())
+               .eq("if_join", 1); // 只查询 if_join = 1 的学生
+        List<AssignmentParticipant> studentParticipants = assignmentParticipantMapper.selectList(wrapper);
+        
+        if (studentParticipants.isEmpty()) {
+            log.info("No student participants found for this assignment. Skip sending notifications");
+            return;
+        }
+        
+        // 4. 获取学生用户信息
+        List<Long> userIds = studentParticipants.stream()
+                .map(AssignmentParticipant::getUserId)
+                .collect(java.util.stream.Collectors.toList());
+        
+        List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+        
+        // 5. 筛选出已注册的用户
+        List<SysUser> registeredUsers = users.stream()
+                .filter(user -> UserStatus.ACTIVE.code().equals(user.getStatus()) 
+                        && RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus()))
+                .collect(java.util.stream.Collectors.toList());
+        
+        log.info("Preparing to send release notifications to {} registered students", registeredUsers.size());
+        
+        // 6. 发送邮件通知
+        if (!registeredUsers.isEmpty()) {
+            emailService.sendCourseJoinNotification(registeredUsers, courseName, assignmentName);
+            log.info("Release notifications sent to students successfully");
+        }
+    }
+    
+    /**
+     * 更新学生的 if_join 状态
+     */
+    private void updateStudentParticipationStatus(Long assignmentId, int ifJoinValue) {
+        log.info("Updating students' if_join status to {} for assignment {}", ifJoinValue, assignmentId);
+        
+        // 执行更新：只更新学生角色的记录
+        QueryWrapper<AssignmentParticipant> updateWrapper = new QueryWrapper<>();
+        updateWrapper.eq("assignment_id", assignmentId)
+                    .eq("role_id", UserRole.STUDENT.sort());
+        
+        List<AssignmentParticipant> participants = assignmentParticipantMapper.selectList(updateWrapper);
+        for (AssignmentParticipant participant : participants) {
+            participant.setIfJoin(ifJoinValue);
+            assignmentParticipantMapper.updateById(participant);
+        }
+        
+        log.info("Successfully updated if_join status for {} student participant records", participants.size());
     }
 }
 

@@ -2,6 +2,7 @@ package org.swen90017.oas.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
+import org.swen90017.oas.enums.AssessmentStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -79,6 +80,12 @@ public class SessionStudentsResponseDTO {
          */
         @Schema(description = "Booking type", example = "INDIVIDUAL")
         private String type;
+
+        /**
+         * Assessment status for this student
+         */
+        @Schema(description = "Assessment status information")
+        private AssessmentStatusDTO assessmentStatus;
     }
 
     /**
@@ -128,6 +135,12 @@ public class SessionStudentsResponseDTO {
          */
         @Schema(description = "Booking type", example = "GROUP")
         private String type;
+
+        /**
+         * Assessment status for this group
+         */
+        @Schema(description = "Assessment status information")
+        private AssessmentStatusDTO assessmentStatus;
     }
 
     /**
@@ -159,5 +172,60 @@ public class SessionStudentsResponseDTO {
          */
         @Schema(description = "Member email", example = "jane.smith@student.unimelb.edu.au")
         private String email;
+    }
+
+    /**
+     * Assessment Status DTO
+     */
+    @Data
+    @Schema(description = "Assessment status information")
+    public static class AssessmentStatusDTO {
+        /**
+         * Assessment submission ID (if exists)
+         */
+        @Schema(description = "Assessment submission ID", example = "1001")
+        private Long submissionId;
+
+        /**
+         * Assessment status using enum
+         */
+        @Schema(description = "Assessment status", example = "NO_MARK")
+        private AssessmentStatus status;
+
+        /**
+         * Total score (if assessed)
+         */
+        @Schema(description = "Total score", example = "85.5")
+        private Double totalScore;
+
+        /**
+         * Overall feedback (for DRAFT and REOPEN status)
+         */
+        @Schema(description = "Overall feedback", example = "Good presentation but needs improvement on technical details")
+        private String overallFeedback;
+
+        /**
+         * Admin note (for REOPEN status - why it was returned)
+         */
+        @Schema(description = "Admin note for returned assessments", example = "Score too high, please re-evaluate")
+        private String adminNote;
+
+        /**
+         * Submitted time (for DRAFT and REOPEN status)
+         */
+        @Schema(description = "Submitted time", example = "2024-01-15T14:30:00")
+        private LocalDateTime submittedAt;
+
+        /**
+         * Last updated time
+         */
+        @Schema(description = "Last updated time", example = "2024-01-15T14:30:00")
+        private LocalDateTime updatedAt;
+
+        /**
+         * Rubric scores JSON (for DRAFT and REOPEN status)
+         */
+        @Schema(description = "Rubric scores in JSON format")
+        private String scoresJson;
     }
 }

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.common.CommonError;
@@ -56,6 +57,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     private  SubjectService subjectService;
     @Autowired
     private AssignmentService assignmentService;
+
+    @Value("${email.domain-validation.enabled:true}")
+    private boolean emailDomainValidationEnabled;
     @Override
     /**
      * List administrator users with pagination and optional filters.
@@ -259,9 +263,13 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         } else {
             throw new BusinessException("Email and login id cannot be both null", CommonError.BAD_REQUEST.getCode());
         }
-        // Validate email domain
-        if (email == null || !email.toLowerCase().endsWith("@unimelb.edu.au") && !email.toLowerCase().endsWith("@student.unimelb.edu.au")&&!email.toLowerCase().endsWith("@gmail.com")) {
-            throw new BusinessException("Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
+        // Validate email domain (configurable)
+        if (emailDomainValidationEnabled) {
+            if (email == null || (!email.toLowerCase().endsWith("@unimelb.edu.au")
+                    && !email.toLowerCase().endsWith("@student.unimelb.edu.au")
+                    )) {
+                throw new BusinessException("Invalid email domain (must be @unimelb.edu.au or @student.unimelb.edu.au)", CommonError.BAD_REQUEST.getCode());
+            }
         }
 
         // Check email uniqueness

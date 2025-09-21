@@ -15,4 +15,9 @@ public interface CsvService {
      * @return a list of objects mapped from the CSV data
      */
     <T,R> List<T> importCsv(InputStream inputStream, String type) throws IOException;
+    
+    /**
+     * 构建邀请原因描述
+     */
+    String buildInviteReason(Long assignmentId);
 }

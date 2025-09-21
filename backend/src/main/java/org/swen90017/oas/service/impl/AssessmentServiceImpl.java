@@ -16,10 +16,12 @@ import org.swen90017.oas.dto.response.ExaminerSummaryDTO;
 import org.swen90017.oas.dto.response.ExaminerAssessmentsPageResponseDTO;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.Assignment;
+import org.swen90017.oas.entity.SessionStudent;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssessmentSubmissionMapper;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
+import org.swen90017.oas.mapper.SessionStudentMapper;
 import org.swen90017.oas.service.AssessmentService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +39,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final AssessmentSubmissionMapper submissionMapper;
     private final AssignmentMapper assignmentMapper;
     private final SessionExaminerMapper sessionExaminerMapper;
+    private final SessionStudentMapper sessionStudentMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -57,15 +60,33 @@ public class AssessmentServiceImpl implements AssessmentService {
         // 2.1 兼容 subjectType 同义词
         String normalizedSubjectType = normalizeSubjectType(request.getSubjectType());
 
-        // 3) 查询是否已有草稿（唯一键）
-        AssessmentSubmission existing = submissionMapper.selectByUniqueTarget(
-                request.getAssignmentId(), request.getSessionId(), normalizedSubjectType, request.getSubjectId(), examinerId);
+        // 2.2 查询 enrollment_id (如果提供了 sessionId)
+        Long enrollmentId = null;
+        if (request.getSessionId() != null) {
+            SessionStudent enrollment = sessionStudentMapper.selectBySessionAndSubject(
+                request.getSessionId(), normalizedSubjectType, request.getSubjectId());
+            if (enrollment != null) {
+                enrollmentId = enrollment.getId();
+            }
+        }
+
+        // 3) 查询是否已有草稿（优先使用新方法）
+        AssessmentSubmission existing = null;
+        if (enrollmentId != null) {
+            // 使用新的基于 enrollment_id 的查询方法
+            existing = submissionMapper.selectByEnrollmentAndExaminer(enrollmentId, examinerId);
+        } else {
+            // 回退到旧的唯一键查询方法
+            existing = submissionMapper.selectByUniqueTarget(
+                    request.getAssignmentId(), request.getSessionId(), normalizedSubjectType, request.getSubjectId(), examinerId);
+        }
 
         boolean isCreate = (existing == null);
         AssessmentSubmission record = isCreate ? new AssessmentSubmission() : existing;
         if (isCreate) {
             record.setAssignmentId(request.getAssignmentId());
             record.setSessionId(request.getSessionId());
+            record.setEnrollmentId(enrollmentId); // 设置 enrollment_id
             record.setSubjectType(normalizedSubjectType);
             record.setSubjectId(request.getSubjectId());
             record.setExaminerId(examinerId);

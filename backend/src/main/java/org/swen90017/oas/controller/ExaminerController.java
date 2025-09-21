@@ -16,12 +16,14 @@ import org.swen90017.oas.dto.request.ExaminerScheduleQueryDTO;
 import org.swen90017.oas.dto.request.ExaminerSelfUnassignRequestDTO;
 import org.swen90017.oas.dto.request.ExaminerSessionStudentsRequestDTO;
 import org.swen90017.oas.dto.request.ListAssignmentsRequestDTO;
+import org.swen90017.oas.dto.request.SessionStudentsSimpleRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.service.ExaminerSelfService;
 import org.swen90017.oas.service.SessionService;
+import org.swen90017.oas.utils.SecurityUtils;
 
 import javax.validation.Valid;
 import java.util.Collections;
@@ -43,11 +45,7 @@ public class ExaminerController {
             @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @RequestBody ExaminerListSessionsRequestDTO request) {
-        try {
-            return Result.success(sessionService.listAdminSessions(assignmentId, request.getDate(), request.getStatus(), request.getVenueId()));
-        } catch (Exception e) {
-            throw new BusinessException(BusinessError.INVALID_PARAM);
-        }
+        return Result.success(sessionService.listAdminSessions(assignmentId, request.getDate(), request.getStatus(), request.getVenueId()));
     }
 
     @Operation(summary = "Batch self-assign sessions", description = "Assign examiner to multiple sessions using DTO")
@@ -149,16 +147,31 @@ public class ExaminerController {
     }
 
     @Operation(summary = "Get session students and groups", description = "Get all students and groups enrolled in a specific session")
-    @PostMapping("/api/sessions/students")
+    @PostMapping("/api/sessions/students/detailed")
     @Log(module = "Examiner Session Management", businessType = BusinessType.QUERY)
     public Result<SessionStudentsResponseDTO> getSessionStudents(
             @Valid @RequestBody ExaminerSessionStudentsRequestDTO request) {
-        try {
-            SessionStudentsResponseDTO response = examinerSelfService.getSessionStudents(request.getSessionId());
-            return Result.success(response);
-        } catch (Exception e) {
-            throw new BusinessException(BusinessError.INVALID_PARAM);
+        // Get examiner ID: prioritize request parameter, otherwise get from JWT token
+        Long examinerId = request.getExaminerId();
+        if (examinerId == null) {
+            // Get current logged-in user ID from JWT token
+            examinerId = SecurityUtils.getLoginUser() != null ? SecurityUtils.getLoginUser().getUserId() : null;
+            if (examinerId == null) {
+                throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+            }
         }
+        
+        SessionStudentsResponseDTO response = examinerSelfService.getSessionStudents(request.getSessionId(), examinerId);
+        return Result.success(response);
+    }
+
+    @Operation(summary = "Get session students and groups (simple)", description = "Get basic information of all students and groups enrolled in a specific session without assessment status")
+    @PostMapping("/api/sessions/students")
+    @Log(module = "Examiner Session Management", businessType = BusinessType.QUERY)
+    public Result<SessionStudentsSimpleResponseDTO> getSessionStudentsSimple(
+            @Valid @RequestBody SessionStudentsSimpleRequestDTO request) {
+        SessionStudentsSimpleResponseDTO response = examinerSelfService.getSessionStudentsSimple(request.getSessionId());
+        return Result.success(response);
     }
 }
 

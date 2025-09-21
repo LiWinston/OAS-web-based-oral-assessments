@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { showError } from '@/lib/notifications.js';
+import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 
 /**
  * ExaminerLimitsStep - Step 3 of the schedule wizard
@@ -12,11 +13,11 @@ import { showError } from '@/lib/notifications.js';
  * @typedef {import('@/types/timeslot.js').Examiner} Examiner
  */
 
-export default function ExaminerLimitsStep({ 
-  assignmentId, 
-  totalSessions = 0, 
-  onComplete, 
-  onPrevious 
+export default function ExaminerLimitsStep({
+  assignmentId,
+  totalSessions = 0,
+  onComplete,
+  onPrevious
 }) {
   const { data: sessionConfig } = useSessionConfig(assignmentId);
   const {
@@ -27,6 +28,7 @@ export default function ExaminerLimitsStep({
   } = useExaminerLimits(assignmentId);
 
   const [examiners, setExaminers] = useState([]);
+  const [computedTotalSessions, setComputedTotalSessions] = useState(null);
 
   useEffect(() => {
     if (serverExaminers && serverExaminers.length) {
@@ -34,10 +36,37 @@ export default function ExaminerLimitsStep({
     }
   }, [serverExaminers]);
 
+  // Load total sessions to assign from backend to avoid fallback being 0
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!assignmentId) return;
+      try {
+        const res = await courseAdminSessionService.getSessions(assignmentId, {});
+        const items = Array.isArray(res?.data) ? res.data : [];
+        let count = 0;
+        if (items.length && Object.prototype.hasOwnProperty.call(items[0], 'sessionCount')) {
+          count = items.reduce((sum, s) => sum + (parseInt(s.sessionCount, 10) || 0), 0);
+        } else {
+          count = items.length;
+        }
+        if (!cancelled) setComputedTotalSessions(count);
+      } catch (e) {
+        // keep fallback; optionally show subtle error once
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [assignmentId]);
+
+  const sessionsToAssign = useMemo(() => {
+    return (computedTotalSessions != null ? computedTotalSessions : totalSessions) || 0;
+  }, [computedTotalSessions, totalSessions]);
+
+  const perSession = useMemo(() => sessionConfig?.examinersPerSession || 2, [sessionConfig]);
+
   const neededCapacity = useMemo(() => {
-    const perSession = sessionConfig?.examinersPerSession || 2;
-    return (totalSessions || 0) * perSession;
-  }, [totalSessions, sessionConfig]);
+    return sessionsToAssign * perSession;
+  }, [sessionsToAssign, perSession]);
 
   const totalCapacity = useMemo(() => {
     return (examiners || []).reduce((sum, ex) => sum + (parseInt(ex.maxSessions, 10) || 0), 0);
@@ -134,8 +163,9 @@ export default function ExaminerLimitsStep({
                 <i className="fas fa-calendar-check text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Sessions to Assign</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{totalSessions} sessions</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Minimum Required Capacity</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{neededCapacity} examiner sessions</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Based on {sessionsToAssign} sessions × {perSession} examiners/session</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -222,9 +252,9 @@ export default function ExaminerLimitsStep({
             <span>Previous</span>
           </button>
 
-          <button 
-            onClick={handleCompleteSetup} 
-            className={`btn ${canProceed ? 'btn-success' : 'btn-disabled'}`} 
+          <button
+            onClick={handleCompleteSetup}
+            className={`btn ${canProceed ? 'btn-success' : 'btn-disabled'}`}
             disabled={!canProceed || isUpdating}
           >
             {isUpdating ? (

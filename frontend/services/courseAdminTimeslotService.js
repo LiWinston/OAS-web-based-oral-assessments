@@ -605,11 +605,8 @@ export const courseAdminTimeslotService = {
   },
 
   async releaseSchedule(assignmentId, payload = {}) {
-        payload = {
-      "notifyStudents": true,
-      "notifyExaminers": true,
-      "releaseMessage": "Assessment schedule is now available for booking."
-      }
+    // Expect payload to follow ReleaseScheduleRequestDTO from Swagger
+    // { audience: 'examiners' | 'students', notifyStudents?, notifyExaminers?, releaseMessage? }
     const response = await callApiIfEnabled(() => apiClient.post(`${base(assignmentId)}/schedule/release`, payload));
     console.log("response", response);
     

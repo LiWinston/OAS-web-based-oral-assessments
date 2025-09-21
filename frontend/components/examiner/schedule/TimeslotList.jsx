@@ -108,7 +108,19 @@ export default function TimeslotList({
                       )}
                       {!canSelect && reason && !slot.isExaminerAlreadyAssigned && (
                         <span className="px-2 py-1 text-xs rounded-full bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                          {reason === 'SLOT_FULL' || reason === 'SESSION_CLOSED' ? 'Full' : reason === 'TIME_CONFLICT' ? 'Conflict' : reason === 'ALREADY_ASSIGNED' ? 'Assigned' : reason}
+                          {reason === 'SLOT_FULL' || reason === 'SESSION_CLOSED'
+                            ? 'Full'
+                            : reason === 'TIME_CONFLICT'
+                              ? 'Conflict'
+                              : reason === 'ALREADY_ASSIGNED'
+                                ? 'Assigned'
+                                : reason === 'SESSION_NOT_OPEN'
+                                  ? 'Not Open'
+                                  : reason === 'NOT_PUBLISHED'
+                                    ? 'Hidden'
+                                    : reason === 'SESSION_CANCELLED'
+                                      ? 'Cancelled'
+                                      : reason}
                         </span>
                       )}
                     </div>

@@ -19,4 +19,10 @@ public class ExaminerSessionStudentsRequestDTO {
     @Schema(description = "Session ID", example = "1001", required = true)
     @NotNull(message = "Session ID cannot be null")
     private Long sessionId;
+
+    /**
+     * Examiner ID (optional - if not provided, will use current logged-in examiner from JWT token)
+     */
+    @Schema(description = "Examiner ID (optional)", example = "2001", required = false)
+    private Long examinerId;
 }

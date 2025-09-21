@@ -23,7 +23,10 @@ import org.swen90017.oas.service.ExaminerService;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Date;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 public class ExaminerServiceImpl implements ExaminerService {
@@ -38,6 +41,12 @@ public class ExaminerServiceImpl implements ExaminerService {
     private SysRoleMapper sysRoleMapper;
     @Autowired
     private AssignmentParticipantMapper assignmentParticipantMapper;
+    @Autowired
+    private org.swen90017.oas.mapper.AssignmentMapper assignmentMapper;
+    @Autowired
+    private org.swen90017.oas.mapper.SubjectMapper subjectMapper;
+    @Autowired
+    private org.swen90017.oas.service.EmailService emailService;
 
     @Override
     public List<SysExaminer> inviteExaminer(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS, Long assignmentId) {
@@ -77,6 +86,7 @@ public class ExaminerServiceImpl implements ExaminerService {
                 user.setEmail(dto.getSisLoginId() + "@unimelb.edu.au");
                 user.setStatus(UserStatus.INACTIVE.code());
                 user.setRegistrationStatus(RegistrationStatus.Pending.code());
+                user.setInvitedAt(new Date()); // 设置邀请时间
                 sysUserMapper.insert(user);
             }
 
@@ -124,7 +134,24 @@ public class ExaminerServiceImpl implements ExaminerService {
     public PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS) {
         // 简化：仅返回计数等占位信息（该 DTO 为学生预览结构，这里仅设置计数）
         PreviewCSVResponseDTO preview = new PreviewCSVResponseDTO();
-        int total = examinerCSVRequestDTOS == null ? 0 : examinerCSVRequestDTOS.size();
+        if (examinerCSVRequestDTOS == null || examinerCSVRequestDTOS.isEmpty()) {
+            preview.setTotalCount(0);
+            preview.setNewCount(0);
+            preview.setExistingCount(0);
+            return preview;
+        }
+        
+        // 过滤掉空行（与ExaminerCsvHandler.validate()逻辑一致）
+        // 只有当Name、ID和SisUserId都为空时才认为是空行
+        long validCount = examinerCSVRequestDTOS.stream()
+                .filter(dto -> dto != null && !(
+                    (dto.getName() == null || dto.getName().trim().isEmpty()) &&
+                    (dto.getId() == null || dto.getId().trim().isEmpty()) &&
+                    (dto.getSisUserId() == null || dto.getSisUserId().trim().isEmpty())
+                ))
+                .count();
+        
+        int total = (int) validCount;
         preview.setTotalCount(total);
         preview.setNewCount(total);
         preview.setExistingCount(0);
@@ -137,6 +164,47 @@ public class ExaminerServiceImpl implements ExaminerService {
             return Long.parseLong(s.trim());
         } catch (NumberFormatException e) {
             return null;
+        }
+    }
+
+    @Override
+    public void sendCourseJoinNotificationForExistingExaminers(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId) {
+        if (examinerDTOs == null || examinerDTOs.isEmpty() || assignmentId == null) {
+            return;
+        }
+        
+        // 获取课程和作业信息
+        org.swen90017.oas.entity.Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) return;
+        
+        org.swen90017.oas.entity.Subject subject = subjectMapper.selectById(assignment.getSubjectId());
+        String courseName = subject != null ? subject.getSubjectName() : null;
+        String assignmentName = assignment.getName();
+        
+        // 查找已注册的现有用户（通过email）
+        List<String> emails = examinerDTOs.stream()
+                .map(dto -> {
+                    String sisLoginId = dto.getSisLoginId();
+                    return sisLoginId != null ? sisLoginId + "@unimelb.edu.au" : null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        
+        if (emails.isEmpty()) return;
+        
+        // 查询现有用户
+        QueryWrapper<org.swen90017.oas.entity.SysUser> wrapper = new QueryWrapper<>();
+        wrapper.in("email", emails);
+        List<org.swen90017.oas.entity.SysUser> existingUsers = sysUserMapper.selectList(wrapper);
+        
+        // 筛选出已注册的用户
+        List<org.swen90017.oas.entity.SysUser> registeredUsers = existingUsers.stream()
+                .filter(user -> org.swen90017.oas.enums.UserStatus.ACTIVE.code().equals(user.getStatus()) 
+                        && org.swen90017.oas.enums.RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus()))
+                .collect(Collectors.toList());
+        
+        if (!registeredUsers.isEmpty()) {
+            emailService.sendExaminerCourseJoinNotification(registeredUsers, courseName, assignmentName);
         }
     }
 

@@ -81,6 +81,14 @@ token:
   expireTime: 1500
   refreshExpireTime: 30
 
+# 邮箱后缀校验开关（true 开启校验，false 关闭校验）
+email:
+  domain-validation:
+    enabled: ${EMAIL_DOMAIN_VALIDATION_ENABLED:false}
+csv:
+  import:
+    use-email-column: ${CSV_IMPORT_USE_EMAIL_COLUMN:true}
+
 # CORS Configuration
 cors:
   # Allowed frontend domains; uses CORS_ALLOWED_ORIGINS env var or defaults to localhost

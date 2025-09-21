@@ -40,4 +40,13 @@ public interface EmailService {
      */
     void sendExaminerReviewNotification(String examinerEmail, String examinerName, String reason);
 
+     * Send course join notification to registered students
+     */
+    void sendCourseJoinNotification(List<SysUser> registeredStudents, String courseName, String assignmentName);
+
+    /**
+     * Send course join notification to registered examiners
+     */
+    void sendExaminerCourseJoinNotification(List<SysUser> registeredExaminers, String courseName, String assignmentName);
+
 }

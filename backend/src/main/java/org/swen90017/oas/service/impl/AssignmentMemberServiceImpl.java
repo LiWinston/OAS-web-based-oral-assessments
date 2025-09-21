@@ -13,7 +13,9 @@ import org.swen90017.oas.dto.response.AssignmentMemberListResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentMemberResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentMemberRemoveResponseDTO;
 import org.swen90017.oas.entity.*;
+import org.swen90017.oas.enums.RegistrationStatus;
 import org.swen90017.oas.enums.UserRole;
+import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.AssignmentMemberService;
@@ -21,6 +23,7 @@ import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.StudentTimeSlotService;
 
 import java.security.SecureRandom;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -110,13 +113,24 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
             if (u != null) {
                 dto.setEmail(u.getEmail());
                 dto.setFullName(u.getUserName());
+                // 使用用户的邀请时间作为Added At时间
+                if (u.getInvitedAt() != null) {
+                    dto.setAddedAt(u.getInvitedAt().toInstant()
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime());
+                } else {
+                    dto.setAddedAt(null);
+                }
+            } else {
+                dto.setAddedAt(null);
             }
-            dto.setAddedAt(null);
 
             if (r == UserRole.STUDENT) {
                 dto.setBookingsCount(studentBookings.getOrDefault(ap.getUserId(), 0));
-                // group id best-effort
-                SysStudentGroup sg = sysStudentGroupMapper.selectById(ap.getUserId());
+                // group id best-effort - get the first group the student belongs to
+                QueryWrapper<SysStudentGroup> groupWrapper = new QueryWrapper<>();
+                groupWrapper.eq("user_id", ap.getUserId()).last("limit 1");
+                SysStudentGroup sg = sysStudentGroupMapper.selectOne(groupWrapper);
                 dto.setGroupId(sg != null ? sg.getGroupId() : null);
             } else if (r == UserRole.EXAMINER) {
                 dto.setAssignedSlotsCount(examinerAssigned.getOrDefault(ap.getUserId(), 0));
@@ -173,11 +187,14 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         link.setAssignmentId(assignmentId);
         link.setUserId(user.getUserId());
         link.setRoleId(UserRole.getByCode(normalizedRole).sort());
+        // 单独添加成员时，examiner和student都设置为1（立即生效）
+        // 这与CSV导入不同，CSV导入的学生需要等待release
         link.setIfJoin(1);
         assignmentParticipantMapper.insert(link);
 
         boolean inviteSent = false;
         if (created) {
+            // 新用户：发送激活邮件
             if (Objects.equals(normalizedRole, UserRole.EXAMINER.code())) {
                 // create examiner row with token
                 SysExaminer ex = new SysExaminer();
@@ -201,6 +218,29 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 sysStudentMapper.insert(st);
                 String reason = buildInviteReason(assignmentId);
                 emailService.sendActivationEmail(Collections.singletonList(st), reason);
+                inviteSent = true;
+            }
+        } else {
+            // 已存在用户：检查是否已注册，如果已注册则发送课程加入通知
+            boolean isRegistered = UserStatus.ACTIVE.code().equals(user.getStatus())
+                    && RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus());
+            
+            if (isRegistered) {
+                // 获取课程和作业信息
+                Assignment assignment = assignmentMapper.selectById(assignmentId);
+                Subject subject = null;
+                if (assignment != null) {
+                    subject = subjectMapper.selectById(assignment.getSubjectId());
+                }
+                String courseName = subject != null ? subject.getSubjectName() : null;
+                String assignmentName = assignment != null ? assignment.getName() : null;
+                
+                // 发送课程加入通知
+                if (Objects.equals(normalizedRole, UserRole.EXAMINER.code())) {
+                    emailService.sendExaminerCourseJoinNotification(Collections.singletonList(user), courseName, assignmentName);
+                } else if (Objects.equals(normalizedRole, UserRole.STUDENT.code())) {
+                    emailService.sendCourseJoinNotification(Collections.singletonList(user), courseName, assignmentName);
+                }
                 inviteSent = true;
             }
         }

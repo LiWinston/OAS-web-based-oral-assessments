@@ -37,10 +37,6 @@ public class CsvController {
     private GroupService groupService;
     @Autowired
     private ExaminerService examinerService;
-    @Autowired
-    private org.swen90017.oas.mapper.AssignmentMapper assignmentMapper;
-    @Autowired
-    private org.swen90017.oas.mapper.SubjectMapper subjectMapper;
 
     @Operation(summary = "Preview CSV", description = "Preview CSV content for student/group before importing")
     @PostMapping("/preview")
@@ -112,8 +108,12 @@ public class CsvController {
     private Result<List<SysStudent>> importStudentCsv(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
             List<SysStudent> invited = studentService.inviteStudent(studentDTOs, assignmentId);
-            String reason = buildInviteReason(assignmentId);
+            String reason = csvService.buildInviteReason(assignmentId);
+            // 发送激活邮件给新用户
             emailService.sendActivationEmail(invited, reason);
+            
+            // 注意：学生的课程加入通知将在 "Release to Student" 时发送，这里不发送
+            
             return invited;
         });
         return Result.success(sysStudents);
@@ -134,20 +134,16 @@ public class CsvController {
 
     private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData, Long assignmentId) {
         List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, assignmentId));
-        String reason = buildInviteReason(assignmentId);
+        String reason = csvService.buildInviteReason(assignmentId);
+        // 发送激活邮件给新用户
         emailService.sendExaminerActivationEmail(examiners, reason);
+        
+        // 发送课程加入通知给已注册的现有用户
+        examinerService.sendCourseJoinNotificationForExistingExaminers(csvData, assignmentId);
+        
         return Result.success(examiners);
     }
 
-    private String buildInviteReason(Long assignmentId) {
-        if (assignmentId == null) return null;
-        org.swen90017.oas.entity.Assignment assignment = assignmentMapper.selectById(assignmentId);
-        if (assignment == null) return null;
-        org.swen90017.oas.entity.Subject subject = subjectMapper.selectById(assignment.getSubjectId());
-        String courseCode = subject != null && subject.getSubjectCode() != null ? subject.getSubjectCode() : "N/A";
-        String courseName = subject != null && subject.getSubjectName() != null ? subject.getSubjectName() : "N/A";
-        String assignmentCode = assignment.getId() != null ? String.valueOf(assignment.getId()) : "N/A";
-        String assignmentName = assignment.getName() != null ? assignment.getName() : "N/A";
-        return "Course " + courseCode + " " + courseName + " · Assignment " + assignmentCode + " " + assignmentName;
-    }
+    
+    
 }

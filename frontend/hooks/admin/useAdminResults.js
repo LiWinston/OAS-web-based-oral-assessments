@@ -1,205 +1,126 @@
-"use client";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { adminResultsService } from '@/services/adminResultsService.js';
+import { showSuccess, showError } from '@/lib/notifications.js';
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { adminResultsService } from "@/services/adminResultsService";
-import { useNotification } from "@/hooks/useNotification";
-
-// Query keys
 export const adminResultsKeys = {
-  all: ["admin", "results"],
-  consolidated: (assignmentId, filters = {}) => ["admin", "results", "consolidated", assignmentId, filters],
-  entity: (assignmentId, sessionId, kind, entityId) => ["admin", "results", "entity", assignmentId, sessionId, kind, entityId],
-  aggregation: (assignmentId) => ["admin", "results", "aggregation", assignmentId],
-  schedule: (assignmentId) => ["admin", "results", "schedule", assignmentId],
+  list: (subjectId, assignmentId, params) => ['admin-results', subjectId, assignmentId, params],
+  detail: (subjectId, assignmentId, submissionId) => ['admin-result', subjectId, assignmentId, submissionId],
 };
 
-// Queries
-export function useConsolidatedResults(assignmentId, filters = {}, options = {}) {
+export function useAssessmentList(subjectId, assignmentId, params = {}) {
   return useQuery({
-    queryKey: adminResultsKeys.consolidated(assignmentId, filters),
+    queryKey: adminResultsKeys.list(subjectId, assignmentId, params),
     queryFn: async () => {
-      const res = await adminResultsService.getConsolidatedResults(assignmentId, filters);
-      return res.data; // unwrap to payload
+      const resp = await adminResultsService.listAssessments(subjectId, assignmentId, params);
+      return resp?.data;
     },
-    enabled: !!assignmentId,
+    enabled: !!subjectId && !!assignmentId,
     staleTime: 30_000,
-    refetchInterval: 60_000,
-    ...options,
   });
 }
 
-export function useEntityDetail(assignmentId, sessionId, kind, entityId, options = {}) {
+export function useAssessmentDetail(subjectId, assignmentId, submissionId) {
   return useQuery({
-    queryKey: adminResultsKeys.entity(assignmentId, sessionId, kind, entityId),
+    queryKey: adminResultsKeys.detail(subjectId, assignmentId, submissionId),
     queryFn: async () => {
-      const res = await adminResultsService.getEntityDetail(assignmentId, sessionId, kind, entityId);
-      return res.data;
+      const resp = await adminResultsService.getAssessmentDetail(subjectId, assignmentId, submissionId);
+      return resp?.data;
     },
-    enabled: !!assignmentId && !!sessionId && !!kind && !!entityId,
-    staleTime: 30_000,
-    ...options,
+    enabled: !!subjectId && !!assignmentId && !!submissionId,
   });
 }
 
-export function useAggregation(assignmentId, options = {}) {
-  return useQuery({
-    queryKey: adminResultsKeys.aggregation(assignmentId),
-    queryFn: async () => {
-      const res = await adminResultsService.getAggregationMethod(assignmentId);
-      return res.data;
-    },
-    enabled: !!assignmentId,
-    staleTime: 30_000,
-    ...options,
-  });
-}
-
-// Mutations
-export function useSetAggregation() {
+export function useReviewExaminer(subjectId, assignmentId, submissionId) {
   const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, method }) => {
-      const res = await adminResultsService.setAggregationMethod(assignmentId, method);
-      return res.data;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: adminResultsKeys.aggregation(vars.assignmentId) });
-      // Invalidate all consolidated queries for this assignment (any filters)
-      queryClient.invalidateQueries({ queryKey: ["admin", "results", "consolidated", vars.assignmentId] });
-      showNotification("success", "Aggregation updated");
-    },
-  });
-}
 
-export function useReleaseResults() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
   return useMutation({
-    mutationFn: async ({ assignmentId, entities, notify }) => {
-      const res = await adminResultsService.releaseResults(assignmentId, { scope: "SELECTION", entities, notify: !!notify });
-      return res.data;
-    },
-    onSuccess: (data, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "results", "consolidated", vars.assignmentId] });
-      showNotification("success", `Successfully released ${data?.releasedCount ?? 0} results`);
-    },
-    onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to release results";
-      showNotification("error", msg);
-    },
-  });
-}
-
-export function useWithdrawResults() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, entities, reason }) => {
-      const res = await adminResultsService.withdrawResults(assignmentId, { scope: "SELECTION", entities, reason });
-      return res.data;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: ["admin", "results", "consolidated", vars.assignmentId] });
-      showNotification("success", "Results withdrawn");
-    },
-    onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to withdraw results";
-      showNotification("error", msg);
-    },
-  });
-}
-
-export function useSchedule(assignmentId, options = {}) {
-  return useQuery({
-    queryKey: adminResultsKeys.schedule(assignmentId),
-    queryFn: async () => {
-      const res = await adminResultsService.getPublicationSchedule(assignmentId);
-      return res.data;
-    },
-    enabled: !!assignmentId,
-    staleTime: 30_000,
-    ...options,
-  });
-}
-
-export function useSetSchedule() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, schedule }) => {
-      const res = await adminResultsService.setPublicationSchedule(assignmentId, {
-        status: schedule.status,
-        at: schedule.at,
-        notify: !!schedule.notify,
-      });
-      return res.data;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: adminResultsKeys.schedule(vars.assignmentId) });
-      showNotification("success", "Schedule saved");
-    },
-    onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to save schedule";
-      showNotification("error", msg);
-    },
-  });
-}
-
-export function useSetOverride() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, sessionId, entityKind, entityId, valuePct1dp, reason }) => {
-      const res = await adminResultsService.setOverride(assignmentId, sessionId, entityKind, entityId, { finalOverridePct1dp: valuePct1dp, reason });
-      return res.data;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: adminResultsKeys.entity(vars.assignmentId, vars.sessionId, vars.entityKind, vars.entityId) });
-      showNotification("success", "Override applied");
-    },
-    onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to apply override";
-      showNotification("error", msg);
-    },
-  });
-}
-
-export function useClearOverride() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, sessionId, entityKind, entityId }) => {
-      const res = await adminResultsService.clearOverride(assignmentId, sessionId, entityKind, entityId);
-      return res.data;
-    },
-    onSuccess: (_, vars) => {
-      queryClient.invalidateQueries({ queryKey: adminResultsKeys.entity(vars.assignmentId, vars.sessionId, vars.entityKind, vars.entityId) });
-      showNotification("success", "Override cleared");
-    },
-    onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to clear override";
-      showNotification("error", msg);
-    },
-  });
-}
-
-// Optional: Review mutation
-export function useReviewEntity() {
-  const queryClient = useQueryClient();
-  const { showNotification } = useNotification();
-  return useMutation({
-    mutationFn: async ({ assignmentId, sessionId, entityKind, entityId, request }) => {
-      const res = await adminResultsService.reviewEntity(assignmentId, sessionId, entityKind, entityId, request);
-      return res.data;
+    mutationFn: async ({ examinerId, reason }) => {
+      const resp = await adminResultsService.reviewExaminer(
+        subjectId,
+        assignmentId,
+        submissionId,
+        examinerId,
+        { reason }
+      );
+      return resp?.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: adminResultsKeys.all });
-      showNotification("success", "Review requested");
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+      });
+      showSuccess('Review request sent successfully');
     },
     onError: (error) => {
-      const msg = error?.response?.data?.message || "Failed to request review";
-      showNotification("error", msg);
+      const message = error?.response?.data?.message || error?.message || 'Failed to request review';
+      showError(message);
+    }
+  });
+}
+
+export function useSetFinalScore(subjectId, assignmentId, submissionId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body) => {
+      const resp = await adminResultsService.setFinalScore(
+        subjectId,
+        assignmentId,
+        submissionId,
+        body
+      );
+      return resp?.data;
     },
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+        data
+      );
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+      showSuccess('Final score updated successfully');
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to update final score';
+      showError(message);
+    }
+  });
+}
+
+export function useReleaseAssessment(subjectId, assignmentId, submissionId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (body) => {
+      const resp = await adminResultsService.releaseAssessment(
+        subjectId,
+        assignmentId,
+        submissionId,
+        body
+      );
+      return resp?.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({
+        queryKey: adminResultsKeys.detail(subjectId, assignmentId, submissionId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: ['admin-results', subjectId, assignmentId],
+      });
+
+      const notified = data?.notifiedStudents || 0;
+      if (notified > 0) {
+        showSuccess(`Results released and ${notified} student(s) notified`);
+      } else {
+        showSuccess('Results released successfully');
+      }
+    },
+    onError: (error) => {
+      const message = error?.response?.data?.message || error?.message || 'Failed to release results';
+      showError(message);
+    }
   });
 }

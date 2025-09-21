@@ -6,6 +6,7 @@
         <id column="id" property="id" />
         <result column="assignment_id" property="assignmentId" />
         <result column="session_id" property="sessionId" />
+        <result column="enrollment_id" property="enrollmentId" />
         <result column="subject_type" property="subjectType" />
         <result column="subject_id" property="subjectId" />
         <result column="examiner_id" property="examinerId" />
@@ -28,6 +29,13 @@
           AND (session_id = #{sessionId} OR (session_id IS NULL AND #{sessionId} IS NULL))
           AND subject_type = #{subjectType}
           AND subject_id = #{subjectId}
+          AND examiner_id = #{examinerId}
+        LIMIT 1
+    </select>
+
+    <select id="selectByEnrollmentAndExaminer" resultMap="AssessmentSubmissionMap">
+        SELECT * FROM assessment_submission
+        WHERE enrollment_id = #{enrollmentId}
           AND examiner_id = #{examinerId}
         LIMIT 1
     </select>

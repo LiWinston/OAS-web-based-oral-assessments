@@ -21,6 +21,7 @@ import org.swen90017.oas.mapper.SysUserRoleMapper;
 import org.swen90017.oas.mapper.SysRoleMapper;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.PasswordResetService;
+import org.swen90017.oas.utils.PasswordPolicyUtils;
 
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -83,30 +84,18 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     }
 
     private boolean constantTimeEquals(String a, String b) {
-        if (a == null || b == null) return false;
-        if (a.length() != b.length()) return false;
+        if (a == null || b == null) {
+            return false;
+        }
+        if (a.length() != b.length()) {
+            return false;
+        }
         int result = 0;
         for (int i = 0; i < a.length(); i++) {
             result |= a.charAt(i) ^ b.charAt(i);
         }
         return result == 0;
     }
-
-    private boolean isStrongPassword(String password) {
-        if (password == null || password.length() < 8) return false;
-        boolean hasLetter = false;
-        boolean hasDigit = false;
-        for (int i = 0; i < password.length(); i++) {
-            char c = password.charAt(i);
-            if (Character.isLetter(c)) hasLetter = true;
-            if (Character.isDigit(c)) hasDigit = true;
-            if (hasLetter && hasDigit) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     @Override
     @Transactional
     public void requestCode(String email, String ip, String userAgent) {
@@ -194,7 +183,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         if (passwordEncoder.matches(newPassword, user.getPassword())) {
             throw new IllegalArgumentException("SAME_AS_OLD_PASSWORD");
         }
-        if (!isStrongPassword(newPassword)) {
+        if (!PasswordPolicyUtils.isStrongPassword(newPassword)) {
             throw new IllegalArgumentException("WEAK_PASSWORD");
         }
 
@@ -209,5 +198,15 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         refreshTokenMapper.revokeAllByUserId(user.getUserId());
     }
 }
+
+
+
+
+
+
+
+
+
+
 
 

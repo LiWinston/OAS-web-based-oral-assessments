@@ -77,7 +77,7 @@ export default function VenueSelect({ assignmentId, value = null, selectedName =
     <div className="relative" ref={containerRef}>
       <button
         type="button"
-        className="custom-input flex items-center justify-between w-full"
+        className="custom-input bg-white dark:bg-white text-gray-900 flex items-center justify-between w-full"
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -94,7 +94,7 @@ export default function VenueSelect({ assignmentId, value = null, selectedName =
           <div className="flex items-center p-2 border-b border-gray-200 dark:border-gray-700">
             <input
               type="text"
-              className="flex-1 custom-input"
+              className="flex-1 custom-input bg-white dark:bg-white text-gray-900"
               placeholder="Search or add venue..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
