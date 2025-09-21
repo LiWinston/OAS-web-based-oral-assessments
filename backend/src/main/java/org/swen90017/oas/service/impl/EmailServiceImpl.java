@@ -504,4 +504,37 @@ public class EmailServiceImpl implements EmailService {
             log.error("Failed to send a batch of {} HTML emails: {}", batch.size(), e.getMessage());
         }
     }
+
+    @Override
+    @Async
+    public void sendExaminerReviewNotification(String examinerEmail, String examinerName, String reason) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            
+            helper.setTo(examinerEmail);
+            helper.setSubject("Assessment Marking Review Required");
+            
+            String htmlContent = String.format(
+                "<html><body>" +
+                "<h2>Assessment Marking Review</h2>" +
+                "<p>Dear %s,</p>" +
+                "<p>Your assessment marking has been reviewed by a course administrator and requires your attention.</p>" +
+                "<p><strong>Reason for review:</strong></p>" +
+                "<p>%s</p>" +
+                "<p>Please log in to the OAS system to review and resubmit your assessment marking.</p>" +
+                "<p>Best regards,<br/>OAS System</p>" +
+                "</body></html>",
+                examinerName != null ? examinerName : "Examiner",
+                reason != null ? reason : "No specific reason provided"
+            );
+            
+            helper.setText(htmlContent, true);
+            mailSender.send(mimeMessage);
+            
+            log.info("Successfully sent examiner review notification to: {}", examinerEmail);
+        } catch (Exception e) {
+            log.error("Failed to send examiner review notification to {}: {}", examinerEmail, e.getMessage());
+        }
+    }
 }

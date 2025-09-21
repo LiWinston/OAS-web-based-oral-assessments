@@ -29,8 +29,8 @@ public class GroupServiceImpl implements GroupService {
 
     @Override
     @Transactional
-    public List<SysStudent> importGroupData(List<GroupCSVRequestDTO> dtos) {
-        log.info("Importing {} group data records", dtos.size());
+    public List<SysStudent> importGroupData(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
+        log.info("Importing {} group data records for assignment {}", dtos.size(), assignmentId);
 
         // Use base service to import student data
         List<SysStudent> sysStudents = baseCsvImportService.importStudents(
@@ -42,18 +42,18 @@ public class GroupServiceImpl implements GroupService {
         );
 
         // Process group-related business logic
-        processGroupRelations(dtos);
+        processGroupRelations(dtos, assignmentId);
 
-        log.info("Successfully imported {} students with group relations", sysStudents.size());
+        log.info("Successfully imported {} students with group relations for assignment {}", sysStudents.size(), assignmentId);
         return sysStudents;
     }
 
     /**
      * Process group-related business logic
      */
-    private void processGroupRelations(List<GroupCSVRequestDTO> dtos) {
+    private void processGroupRelations(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
         // Create or get group information
-        Map<String, SysGroup> groupMap = createOrGetGroups(dtos);
+        Map<String, SysGroup> groupMap = createOrGetGroups(dtos, assignmentId);
         
         // Create student-group relationships
         createStudentGroupRelations(dtos, groupMap);
@@ -62,26 +62,34 @@ public class GroupServiceImpl implements GroupService {
     /**
      * Create or get group information
      */
-    private Map<String, SysGroup> createOrGetGroups(List<GroupCSVRequestDTO> dtos) {
+    private Map<String, SysGroup> createOrGetGroups(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
         Map<String, SysGroup> groupMap = new HashMap<>();
         
         for (GroupCSVRequestDTO dto : dtos) {
             String canvasGroupId = dto.getCanvasGroupId();
             if (canvasGroupId != null && !groupMap.containsKey(canvasGroupId)) {
-                SysGroup group = groupMapper.selectByCanvasGroupId(canvasGroupId);
+                // Look for existing group with same canvas_group_id and assignment_id
+                QueryWrapper<SysGroup> queryWrapper = new QueryWrapper<>();
+                queryWrapper.eq("canvas_group_id", canvasGroupId);
+                if (assignmentId != null) {
+                    queryWrapper.eq("assignment_id", assignmentId);
+                }
+                SysGroup group = groupMapper.selectOne(queryWrapper);
+                
                 if (group == null) {
                     group = new SysGroup();
                     group.setGroupName(dto.getGroupName());
                     group.setCanvasGroupId(canvasGroupId);
+                    group.setAssignmentId(assignmentId);
                     group.setCreateTime(LocalDateTime.now());
                     groupMapper.insert(group);
-                    log.debug("Created new group with ID: {}", group.getGroupId());
+                    log.debug("Created new group with ID: {} for assignment: {}", group.getGroupId(), assignmentId);
                 }
                 groupMap.put(canvasGroupId, group);
             }
         }
         
-        log.info("Processed {} groups", groupMap.size());
+        log.info("Processed {} groups for assignment {}", groupMap.size(), assignmentId);
         return groupMap;
     }
 

@@ -15,4 +15,7 @@ public class RubricMetaInfo {
     
     @Schema(description = "Total points for the rubric", example = "100.0")
     Double totalPoints;
+    
+    @Schema(description = "Weight basis for interpreting criteria weights", example = "percentage", allowableValues = {"percentage", "points"})
+    String weightBasis = "percentage";
 }

@@ -26,6 +26,12 @@ public class GroupContextResponseDTO {
     private String groupName;
 
     /**
+     * Assignment ID
+     */
+    @Schema(description = "Assignment ID", example = "101")
+    private Long assignmentId;
+
+    /**
      * List of group members
      */
     @Schema(description = "List of group members")

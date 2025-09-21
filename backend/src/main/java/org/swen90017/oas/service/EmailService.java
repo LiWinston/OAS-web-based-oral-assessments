@@ -32,6 +32,14 @@ public interface EmailService {
     void sendPasswordResetCode(SysUser user, String code, int ttlMinutes);
 
     /**
+     * Send examiner review notification when their marking is reopened
+     *
+     * @param examinerEmail examiner's email address
+     * @param examinerName examiner's name
+     * @param reason reason for the review
+     */
+    void sendExaminerReviewNotification(String examinerEmail, String examinerName, String reason);
+
      * Send course join notification to registered students
      */
     void sendCourseJoinNotification(List<SysUser> registeredStudents, String courseName, String assignmentName);

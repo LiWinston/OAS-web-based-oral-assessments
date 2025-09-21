@@ -13,4 +13,5 @@ public class SysGroup {
     private String canvasGroupId;
     private LocalDateTime createTime;
     private Long creator;
+    private Long assignmentId;
 }

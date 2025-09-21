@@ -10,7 +10,7 @@ public interface GroupService {
     /**
      * Import group data
      */
-    List<SysStudent> importGroupData(List<GroupCSVRequestDTO> dtos);
+    List<SysStudent> importGroupData(List<GroupCSVRequestDTO> dtos, Long assignmentId);
 
     /**
      * Preview group CSV import

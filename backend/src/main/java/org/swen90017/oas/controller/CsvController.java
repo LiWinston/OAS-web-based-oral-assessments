@@ -70,7 +70,7 @@ public class CsvController {
         if ("student".equalsIgnoreCase(dto.getType())) {
             return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else if ("group".equalsIgnoreCase(dto.getType())) {
-            return importGroupCsv((List<GroupCSVRequestDTO>) csvData);
+            return importGroupCsv((List<GroupCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else if ("examiner".equalsIgnoreCase(dto.getType())) {
             return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else {
@@ -122,10 +122,11 @@ public class CsvController {
     /**
      * Import group CSV
      */
-    private Result<List<SysStudent>> importGroupCsv(List<GroupCSVRequestDTO> groupDTOs) {
+    private Result<List<SysStudent>> importGroupCsv(List<GroupCSVRequestDTO> groupDTOs, Long assignmentId) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
-            List<SysStudent> invited = groupService.importGroupData(groupDTOs);
-            emailService.sendActivationEmail(invited, null);
+            List<SysStudent> invited = groupService.importGroupData(groupDTOs, assignmentId);
+            String reason = buildInviteReason(assignmentId);
+            emailService.sendActivationEmail(invited, reason);
             return invited;
         });
         return Result.success(sysStudents);

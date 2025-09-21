@@ -122,4 +122,10 @@ public class AssignmentResponseDTO {
      */
     @Schema(description = "Update time", example = "2024-01-20T14:45:00")
     private LocalDateTime updateTime;
+
+    /**
+     * Setup status information
+     */
+    @Schema(description = "Assignment setup status")
+    private AssignmentSetupStatusDTO setupStatus;
 }

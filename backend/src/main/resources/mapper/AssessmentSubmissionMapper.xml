@@ -61,17 +61,16 @@
     <select id="listByStudentAndAssignment" resultMap="AssessmentSubmissionMap">
         SELECT * FROM assessment_submission
         WHERE assignment_id = #{assignmentId}
-          AND subject_type = 'STUDENT'
+          AND subject_type = 'INDIVIDUAL'
           AND subject_id = #{studentId}
         <if test="status != null and status != ''">
             AND status = #{status}
         </if>
-        ORDER BY submitted_at DESC
     </select>
 
     <select id="listByStudent" resultMap="AssessmentSubmissionMap">
         SELECT * FROM assessment_submission
-        WHERE subject_type = 'STUDENT'
+        WHERE subject_type = 'INDIVIDUAL'
           AND subject_id = #{studentId}
         <if test="assignmentId != null">
             AND assignment_id = #{assignmentId}
@@ -80,6 +79,27 @@
             AND status = #{status}
         </if>
         ORDER BY submitted_at DESC
+    </select>
+
+    <select id="listByStudentAndAssignmentWithGroups" resultMap="AssessmentSubmissionMap">
+        SELECT DISTINCT a.* FROM assessment_submission a
+        WHERE a.assignment_id = #{assignmentId}
+        <if test="status != null and status != ''">
+            AND a.status = #{status}
+        </if>
+        AND (
+            -- Individual submissions
+            (a.subject_type = 'INDIVIDUAL' AND a.subject_id = #{studentId})
+            OR
+            -- Group submissions
+            (a.subject_type = 'GROUP' AND a.subject_id IN (
+                SELECT sg.group_id 
+                FROM sys_student_group sg 
+                INNER JOIN sys_group g ON sg.group_id = g.group_id 
+                WHERE sg.user_id = #{studentId} AND g.assignment_id = #{assignmentId}
+            ))
+        )
+        ORDER BY a.submitted_at DESC
     </select>
     <sql id="ExaminerAssessmentsWhere">
         WHERE examiner_id = #{examinerId}

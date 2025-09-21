@@ -100,7 +100,8 @@ CREATE TABLE sys_group (
                            group_name VARCHAR(100) NOT NULL,
                            canvas_group_id VARCHAR(50) UNIQUE,
                            create_time DATETIME,
-                           creator BIGINT
+                           creator BIGINT,
+                           assignment_id BIGINT
 );
 DROP TABLE IF EXISTS `sys_student_group`;
 
