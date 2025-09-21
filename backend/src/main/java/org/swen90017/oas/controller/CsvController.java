@@ -112,8 +112,7 @@ public class CsvController {
             // 发送激活邮件给新用户
             emailService.sendActivationEmail(invited, reason);
             
-            // 发送课程加入通知给已注册的现有用户
-            studentService.sendCourseJoinNotificationForExistingStudents(studentDTOs, assignmentId);
+            // 注意：学生的课程加入通知将在 "Release to Student" 时发送，这里不发送
             
             return invited;
         });

@@ -185,6 +185,8 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         link.setAssignmentId(assignmentId);
         link.setUserId(user.getUserId());
         link.setRoleId(UserRole.getByCode(normalizedRole).sort());
+        // 单独添加成员时，examiner和student都设置为1（立即生效）
+        // 这与CSV导入不同，CSV导入的学生需要等待release
         link.setIfJoin(1);
         assignmentParticipantMapper.insert(link);
 

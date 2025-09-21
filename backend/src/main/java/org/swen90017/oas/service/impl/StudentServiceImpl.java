@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,7 +84,7 @@ public class StudentServiceImpl implements StudentService {
                 participant.setAssignmentId(assignmentId);
                 participant.setUserId(sysStudent.getUserId());
                 participant.setRoleId(UserRole.STUDENT.sort());
-                participant.setIfJoin(1);
+                participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
                 assignmentParticipantMapper.insert(participant);
                 log.info("Linked user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
             } else {
@@ -105,7 +108,7 @@ public class StudentServiceImpl implements StudentService {
                     participant.setAssignmentId(assignmentId);
                     participant.setUserId(sysStudent.getUserId());
                     participant.setRoleId(UserRole.STUDENT.sort());
-                    participant.setIfJoin(1);
+                    participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
                     assignmentParticipantMapper.insert(participant);
                     log.info("Linked user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                 } catch (NumberFormatException ex) {
@@ -149,7 +152,7 @@ public class StudentServiceImpl implements StudentService {
                     participant.setAssignmentId(assignmentId);
                     participant.setUserId(sysStudent.getUserId());
                     participant.setRoleId(UserRole.STUDENT.sort());
-                    participant.setIfJoin(1);
+                    participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
                     assignmentParticipantMapper.insert(participant);
                     log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                 } else {
@@ -172,7 +175,7 @@ public class StudentServiceImpl implements StudentService {
                         participant.setAssignmentId(assignmentId);
                         participant.setUserId(sysStudent.getUserId());
                         participant.setRoleId(UserRole.STUDENT.sort());
-                        participant.setIfJoin(1);
+                        participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
                         assignmentParticipantMapper.insert(participant);
                         log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                     } catch (NumberFormatException ex) {
@@ -260,14 +263,14 @@ public class StudentServiceImpl implements StudentService {
                 })
                 .collect(Collectors.toList());
         
-        log.info("符合条件的已注册用户数量: {}", registeredUsers.size());
+        log.info("Registered users eligible for notification: {}", registeredUsers.size());
         if (!registeredUsers.isEmpty()) {
-            log.info("准备发送课程加入通知给用户: {}", 
+            log.info("Sending course-join notifications to users: {}", 
                     registeredUsers.stream().map(SysUser::getEmail).collect(Collectors.toList()));
             emailService.sendCourseJoinNotification(registeredUsers, courseName, assignmentName);
-            log.info("课程加入通知发送完成");
+            log.info("Course-join notifications sent successfully");
         } else {
-            log.info("没有符合条件的已注册用户，跳过发送通知");
+            log.info("No eligible registered users found. Skipping notifications");
         }
     }
 }
