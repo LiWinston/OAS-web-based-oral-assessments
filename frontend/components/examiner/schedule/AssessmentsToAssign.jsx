@@ -9,7 +9,7 @@ import useScheduleFilterStore from "@/store/scheduleFilterStore";
 const AssessmentsToAssign = () => {
   const router = useRouter();
   const { examinerId, isValidExaminer } = useExaminerAuth();
-  const { selectedCourse } = useScheduleFilterStore();
+  const { selectedCourse, assessmentType } = useScheduleFilterStore();
 
   const {
     data: assignmentsData,
@@ -29,11 +29,22 @@ const AssessmentsToAssign = () => {
 
   const assignments = assignmentsData?.data?.data || [];
   const renderAssignments = React.useMemo(() => {
-    if (!selectedCourse) return assignments;
-    return assignments.filter(
-      (a) => (a.courseCode || a.subjectCode) === selectedCourse
-    );
-  }, [assignments, selectedCourse]);
+    let list = assignments;
+    if (selectedCourse) {
+      list = list.filter(
+        (a) => (a.courseCode || a.subjectCode) === selectedCourse
+      );
+    }
+    if (assessmentType && assessmentType !== "ALL") {
+      list = list.filter((assignment) => {
+        const type = (assignment.assessmentType || assignment.type || "")
+          .toString()
+          .toUpperCase();
+        return type === assessmentType;
+      });
+    }
+    return list;
+  }, [assignments, selectedCourse, assessmentType]);
 
   // Derive a simple lifecycle state for UX from dates
   const getAssignmentState = (assignment) => {

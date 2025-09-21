@@ -408,12 +408,12 @@ export function AssignmentList({
                             }`}
                             onMouseEnter={(e) => {
                               const rect = e.currentTarget.getBoundingClientRect();
-                              setTooltip({
-                                show: true,
-                                text: 'Schedule Time Slots',
-                                x: rect.left + rect.width / 2,
-                                y: rect.top
-                              });
+                            setTooltip({
+                              show: true,
+                              text: 'Schedule Sessions',
+                              x: rect.left + rect.width / 2,
+                              y: rect.top
+                            });
                             }}
                             onMouseLeave={() => setTooltip({ show: false, text: '', x: 0, y: 0 })}
                           >
@@ -477,6 +477,9 @@ export function AssignmentList({
               const typeStyles = getTypeStyles(assignment.type);
               const statusStyles = getStatusStyles(assignment.status);
               const progress = getProgressPercentage(assignment);
+              const studentCount =
+                assignment.students ?? assignment.studentCount ?? 0;
+              const groupCount = assignment.groups ?? assignment.groupCount ?? 0;
 
               return (
                 <div
@@ -559,9 +562,8 @@ export function AssignmentList({
                           ></i>
                         </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
-                          {assignment.students} students
-                          {assignment.groups > 0 &&
-                            `, ${assignment.groups} groups`}
+                          {studentCount} students
+                          {groupCount > 0 && `, ${groupCount} groups`}
                         </span>
                       </div>
 
@@ -660,7 +662,7 @@ export function AssignmentList({
                                     hasTimeSlots ? 'fa-check-circle' : 'fa-circle'
                                   } mr-1 group-hover:animate-pulse`}
                                 ></i>
-                                Time Slots
+                                Sessions
                               </span>
                               <span
                                 className={`flex items-center transition-colors duration-300 ${
@@ -725,7 +727,7 @@ export function AssignmentList({
                             const rect = e.currentTarget.getBoundingClientRect();
                             setTooltip({
                               show: true,
-                              text: 'Schedule Time Slots',
+                              text: 'Schedule Sessions',
                               x: rect.left + rect.width / 2,
                               y: rect.top
                             });

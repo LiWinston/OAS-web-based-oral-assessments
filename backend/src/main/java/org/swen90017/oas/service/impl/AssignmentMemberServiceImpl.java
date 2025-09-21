@@ -127,8 +127,10 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
 
             if (r == UserRole.STUDENT) {
                 dto.setBookingsCount(studentBookings.getOrDefault(ap.getUserId(), 0));
-                // group id best-effort
-                SysStudentGroup sg = sysStudentGroupMapper.selectById(ap.getUserId());
+                // group id best-effort - get the first group the student belongs to
+                QueryWrapper<SysStudentGroup> groupWrapper = new QueryWrapper<>();
+                groupWrapper.eq("user_id", ap.getUserId()).last("limit 1");
+                SysStudentGroup sg = sysStudentGroupMapper.selectOne(groupWrapper);
                 dto.setGroupId(sg != null ? sg.getGroupId() : null);
             } else if (r == UserRole.EXAMINER) {
                 dto.setAssignedSlotsCount(examinerAssigned.getOrDefault(ap.getUserId(), 0));

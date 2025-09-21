@@ -42,15 +42,23 @@ const ExaminerCalendar = () => {
 
   const scheduleSessionsRaw = useMemo(() => (
     (scheduleData?.data?.assignments ?? []).flatMap((assignment) =>
-      (assignment.sessions || assignment.slots || []).map((slot) => ({
-        ...slot,
-        assignmentId: assignment.assignmentId,
-        assignmentName: assignment.assignmentName,
-        courseCode: assignment.courseCode,
-        courseName: assignment.courseName,
-        assessmentType:
-          (slot.requiredExaminers === 1 ? 'INDIVIDUAL' : 'GROUP'),
-      }))
+      (assignment.sessions || assignment.slots || []).map((slot) => {
+        const required = slot.requiredExaminers ?? slot.coverage?.required ?? null;
+        const normalizedType = (slot.assessmentType
+          || ((required === 1)
+            ? 'INDIVIDUAL'
+            : (required === 0 || required == null ? 'MIX' : 'GROUP')))
+          .toString()
+          .toUpperCase();
+        return {
+          ...slot,
+          assignmentId: assignment.assignmentId,
+          assignmentName: assignment.assignmentName,
+          courseCode: assignment.courseCode,
+          courseName: assignment.courseName,
+          assessmentType: normalizedType,
+        };
+      })
     )
   ), [scheduleData]);
 
@@ -94,12 +102,13 @@ const ExaminerCalendar = () => {
     const days = [];
     
     // Previous month's trailing days
-    const prevMonth = new Date(year, month - 1, 0);
-    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+    const prevMonthLastDate = new Date(year, month, 0).getDate();
+    for (let i = startingDayOfWeek; i > 0; i--) {
+      const dayOfPrevMonth = prevMonthLastDate - i + 1;
       days.push({
-        date: prevMonth.getDate() - i,
+        date: dayOfPrevMonth,
         isCurrentMonth: false,
-        fullDate: new Date(year, month - 1, prevMonth.getDate() - i)
+        fullDate: new Date(year, month - 1, dayOfPrevMonth)
       });
     }
     
@@ -178,10 +187,6 @@ const ExaminerCalendar = () => {
     });
   };
 
-  const getEventTypeClass = (assessmentType) => {
-    return assessmentType === 'GROUP' ? 'event-group' : 'event-individual';
-  };
-
   const getEventStatusClass = (slot) => {
     const now = new Date();
     const slotStart = new Date(slot.start);
@@ -198,20 +203,14 @@ const ExaminerCalendar = () => {
   };
 
   const getEventColor = (slot) => {
-    const status = getEventStatusClass(slot);
-    const isGroup = slot.assignmentName && slot.assignmentName.toLowerCase().includes('group');
-    
-    if (status === 'event-active') {
-      return 'bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200 border-green-400';
-    } else if (status === 'event-completed') {
-      return 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-400';
-    } else if (status === 'event-soon') {
-      return 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200 border-orange-400';
-    } else if (isGroup) {
-      return 'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 border-blue-400';
-    } else {
-      return 'bg-indigo-200 dark:bg-indigo-800 text-indigo-800 dark:text-indigo-200 border-indigo-400';
+    const type = (slot.assessmentType || '').toString().toUpperCase();
+    if (type === 'GROUP') {
+      return 'bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-100 border-blue-300 dark:border-blue-500';
     }
+    if (type === 'MIX' || type === 'MIXED') {
+      return 'bg-teal-100 dark:bg-teal-900/40 text-teal-800 dark:text-teal-100 border-teal-300 dark:border-teal-500';
+    }
+    return 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-100 border-indigo-300 dark:border-indigo-500';
   };
 
   const days = getDaysInMonth(currentMonth);
@@ -320,15 +319,25 @@ const ExaminerCalendar = () => {
             {days.map((day, index) => {
               const events = getEventsForDate(day.fullDate);
               const isCurrentDay = isToday(day.fullDate);
+              const displayDateLabel = day.isCurrentMonth
+                ? day.date
+                : day.fullDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+              const ariaLabel = day.fullDate.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              });
               
               return (
                 <div
-                  key={index}
+                  key={day.fullDate.toISOString() + index}
                   className={`calendar-day ${isCurrentDay ? 'today' : ''} ${!day.isCurrentMonth ? 'other-month' : ''}`}
+                  aria-label={ariaLabel}
                 >
                   <div className="calendar-day-header">
                     <span className={`date-number ${isCurrentDay ? 'text-blue-600 dark:text-blue-400 font-medium' : ''}`}>
-                      {day.date}
+                      {displayDateLabel}
                     </span>
                     {isCurrentDay && (
                       <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 dark:bg-opacity-50 text-blue-800 dark:text-blue-200 rounded">
@@ -382,24 +391,16 @@ const ExaminerCalendar = () => {
           <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex flex-wrap gap-4 text-xs">
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-200 dark:bg-blue-800 border border-blue-400 rounded mr-2"></div>
-                <span className="text-gray-700 dark:text-gray-300">Group Assessment</span>
+                <div className="w-3 h-3 bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-500 rounded mr-2"></div>
+                <span className="text-gray-700 dark:text-gray-300">Group assessment</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-indigo-200 dark:bg-indigo-800 border border-indigo-400 rounded mr-2"></div>
-                <span className="text-gray-700 dark:text-gray-300">Individual Assessment</span>
+                <div className="w-3 h-3 bg-indigo-100 dark:bg-indigo-900/40 border border-indigo-300 dark:border-indigo-500 rounded mr-2"></div>
+                <span className="text-gray-700 dark:text-gray-300">Individual assessment</span>
               </div>
               <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-200 dark:bg-green-800 border border-green-400 rounded mr-2"></div>
-                <span className="text-gray-700 dark:text-gray-300">Active Now</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-orange-200 dark:bg-orange-800 border border-orange-400 rounded mr-2"></div>
-                <span className="text-gray-700 dark:text-gray-300">Starting Soon</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-gray-200 dark:bg-gray-700 border border-gray-400 rounded mr-2"></div>
-                <span className="text-gray-700 dark:text-gray-300">Completed</span>
+                <div className="w-3 h-3 bg-teal-100 dark:bg-teal-900/40 border border-teal-300 dark:border-teal-500 rounded mr-2"></div>
+                <span className="text-gray-700 dark:text-gray-300">Mixed assessment</span>
               </div>
               <div className="flex items-center">
                 <div className="w-3 h-3 border-2 border-blue-500 rounded mr-2"></div>
