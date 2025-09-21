@@ -25,6 +25,7 @@ import org.swen90017.oas.service.SubjectService;
 import org.swen90017.oas.utils.RubricParser;
 
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -50,6 +51,17 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         String queryStatus = "released".equals(status) ? "SUBMITTED" : null;
         List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudent(studentId, null, queryStatus);
         
+        // Handle empty submissions
+        if (submissions == null || submissions.isEmpty()) {
+            StudentResultOverviewDTO dto = new StudentResultOverviewDTO();
+            dto.setPageNum(pageNum);
+            dto.setPageSize(pageSize);
+            dto.setTotal(0L);
+            dto.setData(new ArrayList<>());
+            dto.setCachingHintSeconds(3600);
+            return dto;
+        }
+        
         // Filter by assignment release status and convert to DTO format
         List<StudentResultOverviewDTO.Item> items = submissions.stream()
                 .filter(sub -> {
@@ -57,13 +69,45 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                     return assignment != null;
                 })
                 .map(sub -> convertToOverviewItem(sub, studentId))
+                .filter(Objects::nonNull) // Filter out any null items from conversion
                 .collect(Collectors.toList());
+
+        // Apply semester filtering
+        if (semester != null && !"all".equals(semester) && !"current".equals(semester)) {
+            items = items.stream()
+                    .filter(item -> item != null && semester.equals(item.getSemester()))
+                    .collect(Collectors.toList());
+        }
+
+        // Get total count before pagination
+        long totalCount = items.size();
+
+        // Apply sorting
+        items = applySorting(items, sort);
+
+        // Apply pagination
+        List<StudentResultOverviewDTO.Item> paginatedItems;
+        if (items.isEmpty()) {
+            paginatedItems = new ArrayList<>();
+        } else {
+            int startIndex = (pageNum - 1) * pageSize;
+            int endIndex = Math.min(startIndex + pageSize, items.size());
+            
+            // Ensure valid indices
+            if (startIndex >= items.size()) {
+                paginatedItems = new ArrayList<>(); // Return empty list if start index is beyond data
+            } else {
+                int safeStartIndex = Math.max(0, startIndex);
+                int safeEndIndex = Math.max(safeStartIndex, Math.min(endIndex, items.size()));
+                paginatedItems = items.subList(safeStartIndex, safeEndIndex);
+            }
+        }
 
         StudentResultOverviewDTO dto = new StudentResultOverviewDTO();
         dto.setPageNum(pageNum);
         dto.setPageSize(pageSize);
-        dto.setTotal((long) items.size());
-        dto.setData(items);
+        dto.setTotal(totalCount);
+        dto.setData(paginatedItems);
         dto.setCachingHintSeconds(3600);
         return dto;
     }
@@ -303,6 +347,97 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         }
     }
 
+    /**
+     * Apply sorting to the list of student result items
+     */
+    private List<StudentResultOverviewDTO.Item> applySorting(List<StudentResultOverviewDTO.Item> items, String sort) {
+        if (items == null || items.isEmpty()) {
+            return new ArrayList<>(); // Return empty list if input is null or empty
+        }
+        
+        if (sort == null || sort.isEmpty()) {
+            sort = "date_desc"; // Default sorting
+        }
+
+        switch (sort.toLowerCase()) {
+            case "date_desc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            ZonedDateTime dateA = a.getResult() != null ? a.getResult().getAssessedOn() : null;
+                            ZonedDateTime dateB = b.getResult() != null ? b.getResult().getAssessedOn() : null;
+                            if (dateA == null && dateB == null) return 0;
+                            if (dateA == null) return 1; // null dates go to end
+                            if (dateB == null) return -1;
+                            return dateB.compareTo(dateA); // descending
+                        })
+                        .collect(Collectors.toList());
+                        
+            case "date_asc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            ZonedDateTime dateA = a.getResult() != null ? a.getResult().getAssessedOn() : null;
+                            ZonedDateTime dateB = b.getResult() != null ? b.getResult().getAssessedOn() : null;
+                            if (dateA == null && dateB == null) return 0;
+                            if (dateA == null) return 1; // null dates go to end
+                            if (dateB == null) return -1;
+                            return dateA.compareTo(dateB); // ascending
+                        })
+                        .collect(Collectors.toList());
+                        
+            case "grade_desc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            Double percentageA = a.getResult() != null ? a.getResult().getPercentage() : null;
+                            Double percentageB = b.getResult() != null ? b.getResult().getPercentage() : null;
+                            if (percentageA == null && percentageB == null) return 0;
+                            if (percentageA == null) return 1; // null grades go to end
+                            if (percentageB == null) return -1;
+                            return Double.compare(percentageB, percentageA); // descending
+                        })
+                        .collect(Collectors.toList());
+                        
+            case "grade_asc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            Double percentageA = a.getResult() != null ? a.getResult().getPercentage() : null;
+                            Double percentageB = b.getResult() != null ? b.getResult().getPercentage() : null;
+                            if (percentageA == null && percentageB == null) return 0;
+                            if (percentageA == null) return 1; // null grades go to end
+                            if (percentageB == null) return -1;
+                            return Double.compare(percentageA, percentageB); // ascending
+                        })
+                        .collect(Collectors.toList());
+                        
+            case "name_asc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            String nameA = a.getAssignmentName();
+                            String nameB = b.getAssignmentName();
+                            if (nameA == null && nameB == null) return 0;
+                            if (nameA == null) return 1; // null names go to end
+                            if (nameB == null) return -1;
+                            return nameA.compareToIgnoreCase(nameB); // ascending, case insensitive
+                        })
+                        .collect(Collectors.toList());
+                        
+            case "name_desc":
+                return items.stream()
+                        .sorted((a, b) -> {
+                            String nameA = a.getAssignmentName();
+                            String nameB = b.getAssignmentName();
+                            if (nameA == null && nameB == null) return 0;
+                            if (nameA == null) return 1; // null names go to end
+                            if (nameB == null) return -1;
+                            return nameB.compareToIgnoreCase(nameA); // descending, case insensitive
+                        })
+                        .collect(Collectors.toList());
+                        
+            default:
+                log.warn("Unknown sort parameter: {}, using default date_desc", sort);
+                return applySorting(items, "date_desc");
+        }
+    }
+
     private void ensureAssignmentParticipation(Long studentId, Long assignmentId) {
         AssignmentParticipant rel = assignmentParticipantMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<AssignmentParticipant>()
@@ -316,12 +451,17 @@ public class StudentResultsServiceImpl implements StudentResultsService {
     }
 
     private StudentResultOverviewDTO.Item convertToOverviewItem(AssessmentSubmission submission, Long studentId) {
-        Assignment assignment = assignmentMapper.selectById(submission.getAssignmentId());
+        if (submission == null) {
+            return null;
+        }
         
-        // Get course information
-        CourseInfo courseInfo = getCourseInfoFromAssignment(assignment);
-        
-        StudentResultOverviewDTO.Item item = new StudentResultOverviewDTO.Item();
+        try {
+            Assignment assignment = assignmentMapper.selectById(submission.getAssignmentId());
+            
+            // Get course information
+            CourseInfo courseInfo = getCourseInfoFromAssignment(assignment);
+            
+            StudentResultOverviewDTO.Item item = new StudentResultOverviewDTO.Item();
         item.setAssignmentId(submission.getAssignmentId());
         item.setAssignmentName(assignment != null ? assignment.getName() : "Unknown Assignment");
         item.setCourseCode(courseInfo.getCourseCode());
@@ -368,9 +508,14 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         // Check if any submission has detailed feedback
         boolean hasDetailedFeedback = allSubmissions.stream()
             .anyMatch(sub -> sub.getOverallFeedback() != null && !sub.getOverallFeedback().trim().isEmpty());
-        item.setHasDetailedFeedback(hasDetailedFeedback);
-        
-        return item;
+            item.setHasDetailedFeedback(hasDetailedFeedback);
+            
+            return item;
+        } catch (Exception e) {
+            log.warn("Error converting assessment submission {} to overview item: {}", 
+                     submission.getId(), e.getMessage());
+            return null; // Return null so it can be filtered out
+        }
     }
 
     private String calculateGrade(Double score, Double maxScore) {
