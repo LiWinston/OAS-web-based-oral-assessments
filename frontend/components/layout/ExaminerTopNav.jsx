@@ -16,6 +16,32 @@ export function ExaminerTopNav({ onSidebarToggle }) {
 
   const { user, smartLogout } = useAuthStore();
 
+  const displayName = (() => {
+    if (!user) return "Examiner";
+    return user.name?.trim()
+      || user.username?.trim()
+      || user.email?.split("@")[0]
+      || "Examiner";
+  })();
+
+  const displayInitial = displayName?.trim()?.charAt(0)?.toUpperCase() || "E";
+
+  const roleLabel = (() => {
+    if (!user?.role) return "Examiner";
+    switch (user.role) {
+      case "EXAMINER":
+        return "Examiner";
+      case "COURSE_ADMIN":
+        return "Course Admin";
+      case "SUPER_ADMIN":
+        return "Super Admin";
+      case "STUDENT":
+        return "Student";
+      default:
+        return user.role;
+    }
+  })();
+
   /**
    * Mock notification data for demonstration purposes
    */
@@ -170,15 +196,15 @@ export function ExaminerTopNav({ onSidebarToggle }) {
           >
             <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
               <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                {user?.name?.charAt(0) || "E"}
+                {displayInitial}
               </span>
             </div>
             <div className="hidden md:block text-left">
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                {user?.name || "Dr. Emma Thompson"}
+                {displayName}
               </div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                Examiner
+                {roleLabel}
               </div>
             </div>
             <i className="fas fa-chevron-down text-xs text-gray-500 dark:text-gray-400"></i>
