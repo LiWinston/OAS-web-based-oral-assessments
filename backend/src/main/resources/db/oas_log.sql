@@ -170,6 +170,36 @@ CREATE TABLE assignment (
                             KEY idx_assignment_subject (subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';
 
+-- Assignment Participant Table (Members in assignments)
+DROP TABLE IF EXISTS assignment_participant;
+CREATE TABLE assignment_participant (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT 'Primary key ID',
+    assignment_id BIGINT NOT NULL COMMENT 'Assignment ID, foreign key',
+    user_id BIGINT NOT NULL COMMENT 'User ID, foreign key',
+    role_id BIGINT NOT NULL COMMENT 'Role ID (1=Admin, 2=Student, 3=Examiner, etc.)',
+    if_join TINYINT(1) DEFAULT 1 COMMENT 'Whether user has joined (1=joined, 0=not joined)',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When participant was added',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
+
+    -- Foreign key constraints
+    CONSTRAINT fk_assignment_participant_assignment
+        FOREIGN KEY (assignment_id) REFERENCES assignment(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_assignment_participant_user
+        FOREIGN KEY (user_id) REFERENCES sys_user(user_id)
+        ON DELETE CASCADE,
+
+    -- Indexes
+    KEY idx_assignment_participant_assignment (assignment_id),
+    KEY idx_assignment_participant_user (user_id),
+    KEY idx_assignment_participant_role (role_id),
+    KEY idx_assignment_participant_created_at (created_at),
+    KEY idx_assignment_participant_updated_at (updated_at),
+    
+    -- Unique constraint: same user cannot be added to same assignment with same role multiple times
+    UNIQUE KEY uk_assignment_user_role (assignment_id, user_id, role_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment participant table with timestamp tracking';
+
 -- Session Student Booking Table
 DROP TABLE IF EXISTS session_student;
 CREATE TABLE session_student (
