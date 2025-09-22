@@ -119,6 +119,13 @@ public class SessionServiceImpl implements SessionService {
         if (windows == null || windows.isEmpty()) {
             return 0;
         }
+        
+        // Validate assignment exists and get assignment time range
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+        
         // 1) 构建候选切片
         List<SlotSession> toInsert = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
@@ -128,6 +135,14 @@ public class SessionServiceImpl implements SessionService {
             LocalDateTime endAt = w.getDate().atTime(w.getEndTime());
             if (!endAt.isAfter(startAt)) {
                 throw new BusinessException(BusinessError.INVALID_PARAM);
+            }
+            
+            // Validate session time is within assignment time range
+            if (assignment.getStartDate() != null && startAt.isBefore(assignment.getStartDate())) {
+                throw new BusinessException("Session start time is before assignment start date", "SESSION_BEFORE_ASSIGNMENT_START");
+            }
+            if (assignment.getEndDate() != null && endAt.isAfter(assignment.getEndDate())) {
+                throw new BusinessException("Session end time is after assignment end date", "SESSION_AFTER_ASSIGNMENT_END");
             }
 
             // 校验 venue 合法性（存在且属于 assignment）
@@ -197,8 +212,45 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId) {
-        // 简化：按日期范围查询并在内存过滤 status/venue
+        // Validate assignment exists and get assignment time range
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+        
+        // Check if the requested date is within assignment time range
         LocalDate target = (date == null || date.isEmpty()) ? null : LocalDate.parse(date);
+        if (target != null) {
+            // Check if target date is within assignment date range
+            LocalDate assignmentStartDate = assignment.getStartDate() != null ? assignment.getStartDate().toLocalDate() : null;
+            LocalDate assignmentEndDate = assignment.getEndDate() != null ? assignment.getEndDate().toLocalDate() : null;
+            
+            if (assignmentStartDate != null && target.isBefore(assignmentStartDate)) {
+                // Return empty response with indication that date is outside assignment range
+                AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
+                resp.setSessions(new ArrayList<>());
+                resp.setFullyStaffed(0);
+                resp.setPartiallyStaffed(0);
+                resp.setUnstaffed(0);
+                resp.setOutsideAssignmentRange(true);
+                resp.setMessage("Requested date is before assignment start date");
+                return resp;
+            }
+            
+            if (assignmentEndDate != null && target.isAfter(assignmentEndDate)) {
+                // Return empty response with indication that date is outside assignment range
+                AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
+                resp.setSessions(new ArrayList<>());
+                resp.setFullyStaffed(0);
+                resp.setPartiallyStaffed(0);
+                resp.setUnstaffed(0);
+                resp.setOutsideAssignmentRange(true);
+                resp.setMessage("Requested date is after assignment end date");
+                return resp;
+            }
+        }
+        
+        // 简化：按日期范围查询并在内存过滤 status/venue
         LocalDateTime from = target == null ? null : target.atStartOfDay();
         LocalDateTime to = target == null ? null : target.atTime(23,59,59);
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);

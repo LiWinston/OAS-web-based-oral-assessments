@@ -49,6 +49,18 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
+        
+        // Check if the requested date is within assignment time range
+        LocalDate assignmentStartDate = assignment.getStartDate() != null ? assignment.getStartDate().toLocalDate() : null;
+        LocalDate assignmentEndDate = assignment.getEndDate() != null ? assignment.getEndDate().toLocalDate() : null;
+        
+        if (assignmentStartDate != null && date.isBefore(assignmentStartDate)) {
+            throw new BusinessException("Requested date is before assignment start date", "DATE_BEFORE_ASSIGNMENT_START");
+        }
+        
+        if (assignmentEndDate != null && date.isAfter(assignmentEndDate)) {
+            throw new BusinessException("Requested date is after assignment end date", "DATE_AFTER_ASSIGNMENT_END");
+        }
 
         // Get sessions directly for the assignment and date
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(
