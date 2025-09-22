@@ -1,20 +1,26 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 
 export default function DocumentationPage() {
-  const [searchTerm, setSearchTerm] = useState('');
   const [expandedSections, setExpandedSections] = useState({});
-  const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const heroStats = [
+  const heroStats = useMemo(() => ([
     { value: '12', label: 'Active courses this term' },
     { value: '48', label: 'Assessments in configuration' },
     { value: '24h', label: 'Default booking lockout' }
-  ];
+  ]), []);
 
-  const heroActions = [
+  const heroActions = useMemo(() => ([
     {
       href: '/admin/onboarding',
       label: 'Open Onboarding Hub',
@@ -27,9 +33,15 @@ export default function DocumentationPage() {
       icon: 'fas fa-chart-line',
       variant: 'ghost'
     }
-  ];
+  ]), []);
 
-  const quickLinks = [
+  const quickLinks = useMemo(() => ([
+    {
+      href: '/admin',
+      icon: 'fas fa-tachometer-alt',
+      title: 'Dashboard Overview',
+      description: 'Monitor live course metrics, bookings, and upcoming milestones.'
+    },
     {
       href: '/admin/courses',
       icon: 'fas fa-layer-group',
@@ -43,10 +55,10 @@ export default function DocumentationPage() {
       description: 'Invite examiners and students, track onboarding status, and manage permissions.'
     },
     {
-      href: '/admin/onboarding',
-      icon: 'fas fa-envelope-open-text',
-      title: 'Invitation Pipeline',
-      description: 'Monitor expiring invites and resend reminders with one click.'
+      href: '/admin/profile',
+      icon: 'fas fa-shield-alt',
+      title: 'Team Profile & Security',
+      description: 'Update credentials, contact details, and notification preferences.'
     },
     {
       href: '/admin/results',
@@ -55,21 +67,85 @@ export default function DocumentationPage() {
       description: 'Aggregate marks, quality-check feedback, and control release windows.'
     },
     {
-      href: '/admin/profile',
-      icon: 'fas fa-id-badge',
-      title: 'Team Profile',
-      description: 'Update faculty details, notification preferences, and security options.'
-    },
-    {
       href: '/admin/documentation',
       icon: 'fas fa-book-open',
       title: 'Full Documentation',
       description: 'Bookmark this hub for policies, best practices, and troubleshooting tips.'
     }
-  ];
+  ]), []);
 
-  const categories = [
-    { id: 'all', name: 'All Topics', icon: 'fas fa-th-large' },
+  const operationalPhases = useMemo(() => ([
+    {
+      id: 'foundation',
+      title: 'Lay the Foundation',
+      summary: 'Set up courses, assignments, and rubrics so downstream teams have a single source of truth.',
+      checklist: [
+        'Create course shells with consistent naming and semester metadata.',
+        'Duplicate or author rubrics that align with assessment types and weighting.',
+        'Import student and examiner rosters from Canvas CSV and verify eligibility.'
+      ]
+    },
+    {
+      id: 'orchestrate',
+      title: 'Orchestrate Scheduling',
+      summary: 'Configure session templates, staffing rules, and release policies before students arrive.',
+      checklist: [
+        'Use the three-step wizard to define sessions, capacity, and examiner limits.',
+        'Invite examiners and monitor coverage dashboards until each slot is fully staffed.',
+        'Preview the student booking view before opening the schedule.'
+      ]
+    },
+    {
+      id: 'release',
+      title: 'Consolidate & Release',
+      summary: 'Monitor examiner submissions, reconcile marks, and publish results with Canvas exports.',
+      checklist: [
+        'Track marking progress and reopen assessments when moderation is required.',
+        'Review aggregated scores, feedback quality, and audit history prior to release.',
+        'Export Canvas-ready CSVs and archive communications for compliance.'
+      ]
+    }
+  ]), []);
+
+  const controlCenters = useMemo(() => ([
+    {
+      id: 'staffing',
+      title: 'Staffing Control',
+      description: 'Dashboards highlight examiner distribution, capacity limits, and backlog warnings.',
+      bullets: [
+        'Coverage meter shows current vs required examiners per assignment.',
+        'Session detail reveals which slots are unstaffed so you can target invites.',
+        'Notifications integrate with email templates to nudge examiners proactively.'
+      ]
+    },
+    {
+      id: 'quality',
+      title: 'Quality Control',
+      description: 'Marking review views summarise drafts, submissions, and reopened items.',
+      bullets: [
+        'Filter by assessment status to identify bottlenecks quickly.',
+        'Audit log records rubric edits, reopen actions, and release decisions.',
+        'Result previews mirror the student view so feedback lands as intended.'
+      ]
+    },
+    {
+      id: 'integration',
+      title: 'Integration Control',
+      description: 'Canvas import/export compatibility prevents rework at the end of term.',
+      bullets: [
+        'Diff preview for roster re-imports shows additions, removals, and updates.',
+        'Canvas export validates grade scales and student identifiers automatically.',
+        'Release timeline chip ensures results and Canvas uploads stay in sync.'
+      ]
+    }
+  ]), []);
+
+  const [activePhase, setActivePhase] = useState(operationalPhases[0].id);
+  const [activeControl, setActiveControl] = useState(controlCenters[0].id);
+
+  const currentControl = controlCenters.find(control => control.id === activeControl);
+
+  const topics = useMemo(() => ([
     { id: 'getting-started', name: 'Getting Started', icon: 'fas fa-rocket' },
     { id: 'courses', name: 'Course Management', icon: 'fas fa-book' },
     { id: 'assignments', name: 'Assignments & Rubrics', icon: 'fas fa-tasks' },
@@ -80,7 +156,7 @@ export default function DocumentationPage() {
     { id: 'notifications', name: 'Notifications & Comms', icon: 'fas fa-envelope-open-text' },
     { id: 'integrations', name: 'Canvas & Data', icon: 'fas fa-file-csv' },
     { id: 'technical', name: 'Technical Support', icon: 'fas fa-cog' }
-  ];
+  ]), []);
 
   const faqData = [
     {
@@ -728,21 +804,19 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
 - Use built-in feedback system for bug reports`
     }
   ];
+  const documentationSections = useMemo(() => (
+    topics.map(topic => ({
+      ...topic,
+      faqs: faqData.filter(faq => faq.category === topic.id)
+    })).filter(section => section.faqs.length > 0)
+  ), [topics, faqData]);
 
-  const toggleSection = (index) => {
+  const toggleSection = (key) => {
     setExpandedSections(prev => ({
       ...prev,
-      [index]: !prev[index]
+      [key]: !prev[key]
     }));
   };
-
-  const filteredFaqs = faqData.filter(faq => {
-    const matchesCategory = selectedCategory === 'all' || faq.category === selectedCategory;
-    const matchesSearch = searchTerm === '' || 
-      faq.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      faq.answer.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
 
   const formatAnswer = (answer) => {
     return answer.split('\n').map((line, index) => {
@@ -829,102 +903,97 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
         </div>
       </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-        <div className="flex flex-col lg:flex-row gap-4 mb-6">
-          {/* Search Bar */}
-          <div className="relative flex-1">
-            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <i className="fas fa-search text-gray-400"></i>
-            </span>
-            <input
-              type="text"
-              placeholder="Search documentation..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <i className="fas fa-route text-blue-600 mr-3"></i>
+            Operating Rhythm
+          </CardTitle>
+          <CardDescription>
+            Switch between the key phases outlined in the course admin process docs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs value={activePhase} onValueChange={setActivePhase}>
+            <TabsList className="flex flex-wrap gap-2 bg-blue-50 dark:bg-gray-800/60">
+              {operationalPhases.map((phase) => (
+                <TabsTrigger key={phase.id} value={phase.id} className="px-3 py-2">
+                  {phase.title}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {operationalPhases.map((phase) => (
+              <TabsContent key={phase.id} value={phase.id}>
+                <div className="grid gap-4 md:grid-cols-[1.2fr_1fr] mt-4">
+                  <div className="bg-blue-50 dark:bg-gray-800/60 rounded-xl p-5">
+                    <h3 className="text-base font-semibold text-blue-700 dark:text-blue-300 mb-2">{phase.summary}</h3>
+                  </div>
+                  <div className="rounded-xl border border-blue-100 dark:border-gray-700 p-5 bg-white dark:bg-gray-900">
+                    <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Checklist</h4>
+                    <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                      {phase.checklist.map(item => (
+                        <li key={item} className="flex">
+                          <i className="fas fa-check text-blue-500 mr-2 mt-1"></i>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </CardContent>
+      </Card>
 
-        {/* Category Filters */}
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center space-x-2 ${
-                selectedCategory === category.id
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              <i className={`${category.icon} text-xs`}></i>
-              <span>{category.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* FAQ Content */}
-      <div className="space-y-4">
-        {filteredFaqs.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <i className="fas fa-search text-gray-400 text-xl"></i>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No results found
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Try adjusting your search terms or selecting a different category
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <i className="fas fa-sliders-h text-blue-600 mr-3"></i>
+            Control Centres
+          </CardTitle>
+          <CardDescription>
+            Focus on the dashboards and tools that keep scheduling, quality, and integrations healthy.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {controlCenters.map((control) => (
+              <button
+                key={control.id}
+                onClick={() => setActiveControl(control.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  activeControl === control.id
+                    ? 'bg-blue-600 text-white shadow'
+                    : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                {control.title}
+              </button>
+            ))}
           </div>
-        ) : (
-          filteredFaqs.map((faq, index) => {
-            const categoryInfo = categories.find(cat => cat.id === faq.category);
-            return (
-              <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <button
-                  onClick={() => toggleSection(index)}
-                  className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors rounded-lg"
-                >
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                        <i className={`${categoryInfo?.icon} text-blue-600 dark:text-blue-400 text-sm`}></i>
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                        {faq.question}
-                      </h3>
-                      <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                        {categoryInfo?.name}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <i className={`fas fa-chevron-${expandedSections[index] ? 'up' : 'down'} text-gray-400 transition-transform duration-200`}></i>
-                  </div>
-                </button>
-                
-                {expandedSections[index] && (
-                  <div className="px-6 pb-6">
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                      <div className="prose prose-sm max-w-none text-gray-600 dark:text-gray-400">
-                        {formatAnswer(faq.answer)}
-                      </div>
-                    </div>
-                  </div>
-                )}
+
+          {currentControl && (
+            <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
+              <div className="bg-white dark:bg-gray-900 border border-blue-100 dark:border-gray-700 rounded-xl p-5">
+                <h3 className="text-base font-semibold mb-2 text-gray-800 dark:text-gray-200">{currentControl.title}</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{currentControl.description}</p>
               </div>
-            );
-          })
-        )}
-      </div>
+              <div className="rounded-xl border border-blue-100 dark:border-gray-700 p-5 bg-blue-50 dark:bg-gray-800/60">
+                <ul className="space-y-2 text-sm text-gray-700 dark:text-gray-300">
+                  {currentControl.bullets.map(point => (
+                    <li key={point} className="flex">
+                      <i className="fas fa-chevron-right text-blue-500 mr-2 mt-1 text-xs"></i>
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Quick Access Links */}
       <div className="bg-white dark:bg-gray-900 border border-blue-100 dark:border-gray-800 rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
           Quick Access
@@ -950,6 +1019,68 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
           ))}
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <i className="fas fa-book-open text-blue-600 mr-3"></i>
+            Knowledge Base
+          </CardTitle>
+          <CardDescription>
+            Explore curated guidance for every stage of course administration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {documentationSections.length === 0 ? (
+            <div className="border border-blue-100 dark:border-gray-700 rounded-xl p-6 text-center">
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-search text-blue-500 text-xl"></i>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No documentation available</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Documentation sections will appear here once added.</p>
+            </div>
+          ) : (
+            documentationSections.map((section) => (
+              <div key={section.id} className="border border-blue-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900">
+                <div className="flex items-center gap-3 p-5 border-b border-blue-100 dark:border-gray-800">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                    <i className={`${section.icon} text-blue-600 dark:text-blue-400`}></i>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white">{section.name}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{section.faqs.length} article{section.faqs.length > 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-3">
+                  {section.faqs.map((faq) => {
+                    const faqKey = `${section.id}-${faq.question}`;
+                    const isExpanded = !!expandedSections[faqKey];
+                    return (
+                      <div key={faqKey} className="border border-blue-50 dark:border-gray-800 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleSection(faqKey)}
+                          className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">{faq.question}</span>
+                          <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'} text-blue-500`}></i>
+                        </button>
+                        {isExpanded && (
+                          <div className="px-4 pb-4 border-t border-blue-50 dark-border-gray-800">
+                            <div className="prose prose-sm max-w-none text-gray-600 dark:text-gray-400">
+                              {formatAnswer(faq.answer)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
 
       {/* Contact Support */}
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
