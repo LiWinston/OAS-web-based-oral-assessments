@@ -26,6 +26,12 @@ export function SuperAdminSidebar({ isOpen, onToggle }) {
       href: '/superadmin/courses',
       icon: 'fas fa-university',
       current: pathname?.startsWith('/superadmin/courses')
+    },
+    {
+      name: 'Documentation',
+      href: '/superadmin/documentation',
+      icon: 'fas fa-book-open',
+      current: pathname?.startsWith('/superadmin/documentation')
     }//delteed settings
   ];
 

@@ -8,6 +8,66 @@ export default function DocumentationPage() {
   const [expandedSections, setExpandedSections] = useState({});
   const [selectedCategory, setSelectedCategory] = useState('all');
 
+  const heroStats = [
+    { value: '12', label: 'Active courses this term' },
+    { value: '48', label: 'Assessments in configuration' },
+    { value: '24h', label: 'Default booking lockout' }
+  ];
+
+  const heroActions = [
+    {
+      href: '/admin/onboarding',
+      label: 'Open Onboarding Hub',
+      icon: 'fas fa-rocket',
+      variant: 'solid'
+    },
+    {
+      href: '/admin/results',
+      label: 'Review Results Console',
+      icon: 'fas fa-chart-line',
+      variant: 'ghost'
+    }
+  ];
+
+  const quickLinks = [
+    {
+      href: '/admin/courses',
+      icon: 'fas fa-layer-group',
+      title: 'Courses & Assignments',
+      description: 'Create courses, duplicate rubrics, and release schedules confidently.'
+    },
+    {
+      href: '/admin/users',
+      icon: 'fas fa-user-plus',
+      title: 'Roster & Access',
+      description: 'Invite examiners and students, track onboarding status, and manage permissions.'
+    },
+    {
+      href: '/admin/onboarding',
+      icon: 'fas fa-envelope-open-text',
+      title: 'Invitation Pipeline',
+      description: 'Monitor expiring invites and resend reminders with one click.'
+    },
+    {
+      href: '/admin/results',
+      icon: 'fas fa-chart-bar',
+      title: 'Results Management',
+      description: 'Aggregate marks, quality-check feedback, and control release windows.'
+    },
+    {
+      href: '/admin/profile',
+      icon: 'fas fa-id-badge',
+      title: 'Team Profile',
+      description: 'Update faculty details, notification preferences, and security options.'
+    },
+    {
+      href: '/admin/documentation',
+      icon: 'fas fa-book-open',
+      title: 'Full Documentation',
+      description: 'Bookmark this hub for policies, best practices, and troubleshooting tips.'
+    }
+  ];
+
   const categories = [
     { id: 'all', name: 'All Topics', icon: 'fas fa-th-large' },
     { id: 'getting-started', name: 'Getting Started', icon: 'fas fa-rocket' },
@@ -16,6 +76,9 @@ export default function DocumentationPage() {
     { id: 'scheduling', name: 'Scheduling & Booking', icon: 'fas fa-calendar-alt' },
     { id: 'assessment', name: 'Assessment & Marking', icon: 'fas fa-edit' },
     { id: 'results', name: 'Results & Reports', icon: 'fas fa-chart-bar' },
+    { id: 'users', name: 'User & Access Control', icon: 'fas fa-user-shield' },
+    { id: 'notifications', name: 'Notifications & Comms', icon: 'fas fa-envelope-open-text' },
+    { id: 'integrations', name: 'Canvas & Data', icon: 'fas fa-file-csv' },
     { id: 'technical', name: 'Technical Support', icon: 'fas fa-cog' }
   ];
 
@@ -67,6 +130,31 @@ export default function DocumentationPage() {
 - Books examination time slots
 - Views results and feedback once published
 - Manages their assessment schedule`
+    },
+    {
+      category: 'users',
+      question: 'How do I onboard examiners and students into an assignment?',
+      answer: `Onboarding follows a role-aware invitation flow:
+
+**Course Admin Invites**
+- Create the course and assignment first so the roster has context
+- Import students and examiners via CSV (Canvas export works out-of-the-box)
+- The system emails personalised onboarding links that expire automatically
+
+**Student/Examiner Journey**
+- Clicking the link launches the unified onboarding page
+- Users set their password, confirm profile details, and land directly on their dashboard
+- Progress is tracked so you can see who has completed onboarding`
+    },
+    {
+      category: 'users',
+      question: 'Can I control who sees scheduling or marking features?',
+      answer: `Yes—permissions are enforced per assignment and role:
+
+- Only examiners assigned to an assignment can self-assign sessions or open its marking workspace
+- Students only see schedules after you release them and once timeslots are fully staffed
+- Admin-only settings (assignment configuration, rubrics, CSV import/export) are hidden from other roles
+- Super Admins can temporarily revoke your course access if required for compliance`
     },
     {
       category: 'courses',
@@ -192,6 +280,22 @@ export default function DocumentationPage() {
   - Needs Work (0-9): Difficult to understand`
     },
     {
+      category: 'assignments',
+      question: 'How do I reuse rubrics or comment libraries across semesters?',
+      answer: `Our reuse plan keeps high-quality assessment assets evergreen:
+
+**Copy from Existing Assignment**
+- Choose "Duplicate" when creating a new assignment to clone rubric structure and comment libraries
+- Adjust weighting or criteria labels without losing historical versions
+
+**Comment Library Governance**
+- Predefined comments are scoped at the assignment level so you can curate wording for each cohort
+- Examiners can propose new comments during marking; you approve or refine them afterwards
+
+**Quality Tracking**
+- Rubric change logs capture who updated criteria and why, supporting moderation discussions`
+    },
+    {
       category: 'scheduling',
       question: 'How do I set up time slots for oral examinations?',
       answer: `Time slot configuration is a multi-step process:
@@ -266,6 +370,21 @@ export default function DocumentationPage() {
 - Email notifications for critical shortfalls`
     },
     {
+      category: 'scheduling',
+      question: 'When should I release the schedule to students?',
+      answer: `Best practice is to release only when the schedule is healthy:
+
+**Pre-Release Checks**
+- All sessions under each timeslot have the minimum required examiners
+- Lockout window and booking deadline reflect your course policy
+- Notification copy for release email is reviewed (auto-generated from your settings)
+
+**After Release**
+- Students see only the fully staffed sessions
+- Dashboards add "Book now" tasks with urgency indicators
+- You can still adjust staffing; if coverage drops, affected sessions disappear for students until fixed`
+    },
+    {
       category: 'assessment',
       question: 'How do examiners use the marking interface during oral exams?',
       answer: `The marking interface is designed for real-time assessment:
@@ -306,6 +425,16 @@ export default function DocumentationPage() {
 - Validation ensures all criteria are scored
 - Review screen before final submission
 - Automatic backup of work in progress`
+    },
+    {
+      category: 'assessment',
+      question: 'What is the process for reopening a submitted assessment?',
+      answer: `Occasionally you may need an examiner to make corrections:
+
+- Locate the assessment in Results → Marking Review and choose "Reopen"
+- The examiner is notified instantly and the record returns to Draft status
+- All previous scores and comments remain intact—examiners simply adjust and resubmit
+- Audit history records the reopen reason and who initiated it`
     },
     {
       category: 'results',
@@ -392,6 +521,50 @@ export default function DocumentationPage() {
 - Contact IT support for Canvas integration issues
 
 **Best Practice:** Test with a small group first, then perform full export once process is verified.`
+    },
+    {
+      category: 'notifications',
+      question: 'Which notifications are sent automatically and can I customise them?',
+      answer: `The notification system keeps stakeholders aligned:
+
+**Out-of-the-box emails**
+- Onboarding invitations for students and examiners
+- Booking confirmations, reschedule updates, and cancellations
+- Examiner reminders for upcoming sessions (configurable frequency)
+- Result release announcements to students
+
+**Customisation Options**
+- Edit subject lines and intro paragraphs per assignment
+- Include calendar attachments for booking emails
+- Pause reminders temporarily during major timetable changes`
+    },
+    {
+      category: 'notifications',
+      question: 'How do I broadcast last-minute changes?',
+      answer: `Use the Notifications hub:
+
+- Create a targeted message filtered by role, course, or assignment
+- Choose delivery: email only, in-app banner, or both
+- Include schedule links so recipients can act immediately
+- Track open rates and resend to anyone who missed the update`
+    },
+    {
+      category: 'integrations',
+      question: 'What data formats are supported for Canvas import/export?',
+      answer: `CSV integration mirrors Canvas templates:
+
+- Import: studentId, name, email, optional groupId columns—export directly from Canvas to avoid formatting issues
+- Re-import: preview diff highlights additions, removals, and updates before committing
+- Export: grade, score, examiner feedback, and Canvas assignment identifier—all UTF-8 encoded with quoted fields for safety`
+    },
+    {
+      category: 'integrations',
+      question: 'How can I reconcile Canvas and OAS after grades change?',
+      answer: `If moderation changes grades post-export:
+
+- Re-open the assignment in OAS, adjust final marks, and re-release if needed
+- Generate a fresh Canvas CSV; modified rows include an "Updated" badge in the preview
+- Canvas import recognises existing submissions and updates in-place—no need to delete prior attempts`
     },
     {
       category: 'technical',
@@ -620,15 +793,39 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
         </nav>
       </div>
 
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            Documentation & FAQ
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Find answers to common questions and learn how to use the Oral Assessment System
-          </p>
+      {/* Hero */}
+      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white rounded-2xl p-6 md:p-8 shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <h1 className="text-3xl font-semibold">Course Admin Companion</h1>
+            <p className="mt-2 text-sm text-blue-50">
+              Operational guidance for configuring courses, orchestrating schedules, and releasing results with confidence.
+            </p>
+            <div className="flex flex-wrap gap-3 mt-4">
+              {heroActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    action.variant === 'solid'
+                      ? 'bg-white text-blue-700 hover:bg-blue-100'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  }`}
+                >
+                  <i className={`${action.icon} mr-2`}></i>
+                  {action.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            {heroStats.map((stat) => (
+              <div key={stat.label} className="bg-white/10 rounded-xl p-4">
+                <p className="text-lg font-semibold">{stat.value}</p>
+                <p className="text-xs text-blue-100">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -728,32 +925,29 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
       </div>
 
       {/* Quick Access Links */}
-      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6">
+      <div className="bg-white dark:bg-gray-900 border border-blue-100 dark:border-gray-800 rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
           Quick Access
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Link
-            href="/admin/courses"
-            className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:shadow-md transition-shadow"
-          >
-            <i className="fas fa-book text-blue-600 dark:text-blue-400"></i>
-            <span className="text-gray-700 dark:text-gray-300">Manage Courses</span>
-          </Link>
-          <Link
-            href="/admin/assignments"
-            className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:shadow-md transition-shadow"
-          >
-            <i className="fas fa-tasks text-blue-600 dark:text-blue-400"></i>
-            <span className="text-gray-700 dark:text-gray-300">Create Assignments</span>
-          </Link>
-          <Link
-            href="/admin/settings"
-            className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-800 rounded-lg hover:shadow-md transition-shadow"
-          >
-            <i className="fas fa-cog text-blue-600 dark:text-blue-400"></i>
-            <span className="text-gray-700 dark:text-gray-300">System Settings</span>
-          </Link>
+          {quickLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="group flex flex-col gap-3 p-5 rounded-xl bg-gradient-to-br from-blue-600 via-blue-500 to-indigo-500 text-white shadow hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center text-sm font-semibold">
+                <i className={`${link.icon} mr-3 text-base`}></i>
+                {link.title}
+              </div>
+              <p className="text-sm text-blue-100 group-hover:text-white/90">
+                {link.description}
+              </p>
+              <span className="text-xs font-medium text-white/80">
+                Open →
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
 
