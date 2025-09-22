@@ -125,7 +125,7 @@ public class CsvController {
     private Result<List<SysStudent>> importGroupCsv(List<GroupCSVRequestDTO> groupDTOs, Long assignmentId) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
             List<SysStudent> invited = groupService.importGroupData(groupDTOs, assignmentId);
-            String reason = buildInviteReason(assignmentId);
+            String reason = csvService.buildInviteReason(assignmentId);
             emailService.sendActivationEmail(invited, reason);
             return invited;
         });
