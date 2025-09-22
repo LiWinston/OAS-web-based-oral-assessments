@@ -1,5 +1,6 @@
 package org.swen90017.oas.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.ReleaseAssessmentRequestDTO;
 import org.swen90017.oas.dto.request.ReviewExaminerRequestDTO;
 import org.swen90017.oas.dto.request.UpdateFinalScoreRequestDTO;
+import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.SysUser;
@@ -202,23 +204,40 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
-        // Update release status
-        adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
+        // Update assessment_submission status to RELEASED
+        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionStatus(
+                assignmentId, submission.getSessionId(), 
+                submission.getSubjectType(), submission.getSubjectId(), "RELEASED");
         
-        // Send notification to students if requested
+        // Count distinct students affected by the status update
         int notifiedStudents = 0;
-        if (request.getNotify() != null && request.getNotify()) {
+        if (updatedSubmissions > 0) {
+            notifiedStudents = adminResultsMapper.countDistinctStudentsForAssessment(
+                    assignmentId, submission.getSessionId(), 
+                    submission.getSubjectType(), submission.getSubjectId());
+        }
+        
+        // Only update assignment release status if we actually updated some submissions
+        boolean released = false;
+        if (notifiedStudents > 0) {
+            adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
+            released = true;
+        }
+        
+        // Send notification to students if requested and we have students to notify
+        if (request.getNotify() != null && request.getNotify() && notifiedStudents > 0) {
             try {
                 // TODO: Implement student notification logic
-                // This would depend on how students are associated with assessments
-                notifiedStudents = 1; // Placeholder
+                // This would send notifications to the specific students affected
+                log.info("Would send release notification to {} students for assignment {}", 
+                        notifiedStudents, assignmentId);
             } catch (Exception e) {
                 log.warn("Failed to send release notification: {}", e.getMessage());
             }
         }
         
         ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
-        response.setReleased(true);
+        response.setReleased(released);
         response.setNotifiedStudents(notifiedStudents);
         
         return response;
@@ -275,6 +294,20 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             override.setValuePct1dp(convertToDouble(data.get("final_score_override_pct")));
             override.setReason((String) data.get("final_score_override_reason"));
             override.setAt(formatDateTime((LocalDateTime) data.get("final_score_override_at")));
+            
+            // Populate user information for the override
+            Long overrideByUserId = (Long) data.get("final_score_override_by");
+            if (overrideByUserId != null) {
+                SysUser user = sysUserMapper.selectById(overrideByUserId);
+                if (user != null) {
+                    AssessmentComputedDTO.ManualOverrideInfo.UserInfo userInfo = 
+                        new AssessmentComputedDTO.ManualOverrideInfo.UserInfo();
+                    userInfo.setId(user.getUserId());
+                    userInfo.setName(user.getUserName());
+                    override.setBy(userInfo);
+                }
+            }
+            
             computed.setManualOverride(override);
         }
         
@@ -333,8 +366,33 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 .collect(Collectors.toList());
         detail.setExaminers(examiners);
         
-        // Computed scores and release status will be set by caller
-        detail.setComputed(new AssessmentComputedDTO());
+        // Computed scores (will be filled by computeDetailedAssessmentScores)
+        AssessmentComputedDTO computed = new AssessmentComputedDTO();
+        
+        // Check for manual override from query results
+        if (assessmentData.get("final_score_override_pct") != null) {
+            AssessmentComputedDTO.ManualOverrideInfo override = new AssessmentComputedDTO.ManualOverrideInfo();
+            override.setValuePct1dp(convertToDouble(assessmentData.get("final_score_override_pct")));
+            override.setReason((String) assessmentData.get("final_score_override_reason"));
+            override.setAt(formatDateTime((LocalDateTime) assessmentData.get("final_score_override_at")));
+            
+            // Populate user information for the override
+            Long overrideByUserId = (Long) assessmentData.get("final_score_override_by");
+            if (overrideByUserId != null) {
+                SysUser user = sysUserMapper.selectById(overrideByUserId);
+                if (user != null) {
+                    AssessmentComputedDTO.ManualOverrideInfo.UserInfo userInfo = 
+                        new AssessmentComputedDTO.ManualOverrideInfo.UserInfo();
+                    userInfo.setId(user.getUserId());
+                    userInfo.setName(user.getUserName());
+                    override.setBy(userInfo);
+                }
+            }
+            
+            computed.setManualOverride(override);
+        }
+        
+        detail.setComputed(computed);
         detail.setReleaseStatus("NOT_RELEASED");
         
         return detail;
@@ -413,8 +471,39 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         // Parse scores JSON to get rubric items
         try {
             String scoresJson = (String) data.get("scores_json");
-            if (scoresJson != null) {
-                // TODO: Parse scores JSON and map to rubric items
+            if (scoresJson != null && !scoresJson.trim().isEmpty()) {
+                List<SaveAssessmentDraftRequestDTO.ScoreItem> scoreItems = objectMapper.readValue(
+                    scoresJson, 
+                    new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {}
+                );
+                
+                List<ExaminerMarkDetailDTO.RubricItem> rubricItems = new ArrayList<>();
+                for (SaveAssessmentDraftRequestDTO.ScoreItem scoreItem : scoreItems) {
+                    ExaminerMarkDetailDTO.RubricItem rubricItem = new ExaminerMarkDetailDTO.RubricItem();
+                    
+                    // Map basic fields
+                    rubricItem.setCriterionId(scoreItem.getDescription()); // Using description as criterion ID
+                    rubricItem.setPoints(scoreItem.getInputPoints());
+                    
+                    // Map selected level if available
+                    if (scoreItem.getSelectedLevel() != null) {
+                        rubricItem.setLevelId(scoreItem.getSelectedLevel().getDescription());
+                    }
+                    
+                    // Map comments
+                    List<ExaminerMarkDetailDTO.RubricItem.Comment> comments = new ArrayList<>();
+                    if (scoreItem.getComment() != null && !scoreItem.getComment().trim().isEmpty()) {
+                        ExaminerMarkDetailDTO.RubricItem.Comment comment = new ExaminerMarkDetailDTO.RubricItem.Comment();
+                        comment.setSource("custom");
+                        comment.setText(scoreItem.getComment());
+                        comments.add(comment);
+                    }
+                    rubricItem.setComments(comments);
+                    
+                    rubricItems.add(rubricItem);
+                }
+                detail.setItems(rubricItems);
+            } else {
                 detail.setItems(new ArrayList<>());
             }
         } catch (Exception e) {
@@ -467,11 +556,19 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         Double averageScore = submittedScores.isEmpty() ? null : 
                 submittedScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         
-        AssessmentComputedDTO computed = new AssessmentComputedDTO();
-        computed.setAverageScorePct1dp(averageScore);
-        computed.setEffectiveFinalScorePct1dp(averageScore); // TODO: Check for manual override
+        // Check if computed scores were already set in mapToAssessmentSummary (which includes override info)
+        AssessmentComputedDTO computed = detail.getComputed();
+        if (computed == null) {
+            computed = new AssessmentComputedDTO();
+            detail.setComputed(computed);
+        }
         
-        detail.setComputed(computed);
+        computed.setAverageScorePct1dp(averageScore);
+        
+        // Set effective final score - use manual override if available, otherwise use average
+        Double effectiveScore = computed.getManualOverride() != null ? 
+                computed.getManualOverride().getValuePct1dp() : averageScore;
+        computed.setEffectiveFinalScorePct1dp(effectiveScore);
     }
 
     /**

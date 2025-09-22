@@ -99,4 +99,25 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("reason") String reason,
             @Param("userId") Long userId
     );
+
+    /**
+     * Update assessment submission status to RELEASED for all submissions of an assessment
+     */
+    Integer updateAssessmentSubmissionStatus(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("subjectType") String subjectType,
+            @Param("subjectId") Long subjectId,
+            @Param("status") String status
+    );
+
+    /**
+     * Count distinct students affected by assessment submission status update
+     */
+    Integer countDistinctStudentsForAssessment(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("subjectType") String subjectType,
+            @Param("subjectId") Long subjectId
+    );
 }

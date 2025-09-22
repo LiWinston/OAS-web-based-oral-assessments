@@ -147,6 +147,7 @@ public class AdminResultsController {
             @Valid @RequestBody ReleaseAssessmentRequestDTO request) {
         
         LoginUser loginUser = SecurityUtils.getLoginUser();
+
         ReleaseAssessmentResponseDTO result = adminResultsService.releaseAssessment(
                 subjectId, assignmentId, submissionId, request, loginUser.getUserId());
         

@@ -20,10 +20,11 @@
             -- Release status from assignment
             CASE WHEN a.results_released = 1 THEN 'RELEASED' ELSE 'NOT_RELEASED' END as release_status,
             
-            -- Final score override info (set to NULL for now until columns are added)
-            NULL as final_score_override_pct,
-            NULL as final_score_override_reason,
-            NULL as final_score_override_at
+            -- Final score override info
+            asub.final_score_override as final_score_override_pct,
+            asub.override_reason as final_score_override_reason,
+            asub.override_at as final_score_override_at,
+            asub.override_by_user_id as final_score_override_by
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
@@ -109,7 +110,13 @@
                     WHERE sgm.group_id = asub.subject_id
                 )
                 ELSE NULL
-            END as group_member_count
+            END as group_member_count,
+            
+            -- Final score override info
+            asub.final_score_override as final_score_override_pct,
+            asub.override_reason as final_score_override_reason,
+            asub.override_at as final_score_override_at,
+            asub.override_by_user_id as final_score_override_by
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
@@ -211,11 +218,13 @@
     </update>
 
     <!-- Set final score override for all submissions of an assessment -->
-    <!-- TODO: Add final_score_override columns to assessment_submission table first -->
-    <!-- Temporarily simplified to avoid parameter mapping errors until columns are added -->
     <update id="setFinalScoreOverride">
         UPDATE assessment_submission 
-        SET updated_at = NOW()
+        SET final_score_override = #{finalScore},
+            override_reason = #{reason},
+            override_by_user_id = #{userId},
+            override_at = NOW(),
+            updated_at = NOW()
         WHERE assignment_id = #{assignmentId}
         AND session_id = #{sessionId}
         AND (
@@ -232,7 +241,58 @@
             -- Also update the group-level submission if it exists
             (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
         )
-        -- Note: finalScore, reason, userId parameters are ignored until database columns are added
     </update>
+
+    <!-- Update assessment submission status for all submissions of an assessment -->
+    <update id="updateAssessmentSubmissionStatus">
+        UPDATE assessment_submission 
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE assignment_id = #{assignmentId}
+        AND session_id = #{sessionId}
+        AND (
+            -- For individual assessments, update the specific student's submissions
+            (subject_type = 'INDIVIDUAL' AND subject_id = #{subjectId} AND #{subjectType} = 'INDIVIDUAL')
+            OR
+            -- For group assessments, update all submissions for group members
+            (subject_type = 'INDIVIDUAL' AND #{subjectType} = 'GROUP' AND subject_id IN (
+                SELECT sg.user_id 
+                FROM sys_student_group sg 
+                WHERE sg.group_id = #{subjectId}
+            ))
+            OR
+            -- Also update the group-level submission if it exists
+            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+        )
+    </update>
+
+    <!-- Count distinct students affected by assessment submission status update -->
+    <select id="countDistinctStudentsForAssessment" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT 
+            CASE 
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN asub.subject_id
+                WHEN asub.subject_type = 'GROUP' THEN sg.user_id
+                ELSE NULL
+            END
+        ) as student_count
+        FROM assessment_submission asub
+        LEFT JOIN sys_student_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.session_id = #{sessionId}
+        AND (
+            -- For individual assessments, count the specific student
+            (asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = #{subjectId} AND #{subjectType} = 'INDIVIDUAL')
+            OR
+            -- For group assessments, count all group members
+            (asub.subject_type = 'INDIVIDUAL' AND #{subjectType} = 'GROUP' AND asub.subject_id IN (
+                SELECT sg2.user_id 
+                FROM sys_student_group sg2 
+                WHERE sg2.group_id = #{subjectId}
+            ))
+            OR
+            -- For group-level submissions, count all group members
+            (asub.subject_type = 'GROUP' AND asub.subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+        )
+    </select>
 
 </mapper>
