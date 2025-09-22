@@ -327,7 +327,9 @@ frontend/
 │   │   ├── ExaminerPanel.jsx         # Read-only examiner cards with rubric snapshots
 │   │   ├── ReviewDialog.jsx          # Reason capture for reopening examiner markings
 │   │   ├── FinalScoreEditor.jsx      # Manual final score override dialog
-│   │   └── ReleaseDialog.jsx         # Release confirmation with notification toggle
+│   │   ├── ReleaseDialog.jsx         # Release confirmation with notification toggle
+│   │   ├── ResultsHubAssignmentRow.jsx # Assignment overview card used in Results Hub entry point
+│   │   └── ResultsHubCoursePicker.jsx  # Searchable course selector for the Results Hub sidebar
 │   └── student/                 # Student components
 │       ├── dashboard/           # Student dashboard components
 │       │   ├── MyGroups.jsx              # Group membership display with avatars
@@ -362,7 +364,8 @@ frontend/
 │   ├── useExaminerAuth.js       # Examiner authentication and role validation
 │   ├── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
 │   ├── admin/useAdminAssignments.js # Shared Course Admin assignment fetch/cache hook
-│   └── admin/useAdminResults.js # Results list/detail queries + review/override/release mutations
+│   ├── admin/useAdminResults.js # Results list/detail queries + review/override/release mutations
+│   └── admin/useAssignmentResultsSummary.js # Aggregates assessment counts for the Results Hub metrics
 │
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
@@ -741,8 +744,8 @@ The following reflects the current state of the frontend implementation against 
 
 ### Results Release Control — 🚧 Frontend Ready (mock-backed)
 
-- Current: Course Admin can review examiner submissions, set manual overrides, request rework, and release/re-release results (mock data aligned with API contract).
-- Implementation: Results list with filters, detail page with rubric snapshots, manual override editor, review dialog, and release confirmation (with notify toggle).
+- Current: Course Admin can review examiner submissions, set manual overrides, request rework, and release/re-release results (mock data aligned with API contract). Second entry point available through a dedicated Results Hub navigation item.
+- Implementation: Results list with filters, detail page with rubric snapshots, manual override editor, review dialog, and release confirmation (with notify toggle). `/admin/results` hub provides assignment overviews, readiness chips, and quick navigation via `ResultsHubAssignmentRow.jsx` and `ResultsHubCoursePicker.jsx`.
 - Target: Wire up Spring Boot endpoints and add reporting/export workflows; maintain optimistic updates and notifications.
 - User can: Moderate and release results when using `NEXT_PUBLIC_USE_MOCK_API=true`; backend integration required for production.
 

@@ -20,7 +20,7 @@ const navigationItems = [
   {
     section: 'CONFIGURATION',
     items: [
-      { href: '/admin/settings', icon: 'fas fa-cog', label: 'Settings' }
+      { href: '/admin/results', icon: 'fas fa-chart-bar', label: 'Results' }
     ]
   },
   {
