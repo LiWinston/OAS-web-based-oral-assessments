@@ -32,7 +32,7 @@ export function SuperAdminSidebar({ isOpen, onToggle }) {
       href: '/superadmin/documentation',
       icon: 'fas fa-book-open',
       current: pathname?.startsWith('/superadmin/documentation')
-    }//delteed settings
+    }//deleted settings
   ];
 
   return (
