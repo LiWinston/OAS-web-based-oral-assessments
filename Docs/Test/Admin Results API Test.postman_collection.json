@@ -1,0 +1,250 @@
+{
+	"info": {
+		"_postman_id": "3acb598c-ac9c-41f9-8889-6e6426c8d769",
+		"name": "Admin Results API Test",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "47854387",
+		"_collection_link": "https://quokka-9612.postman.co/workspace/Quokka-Workspace~cef035b8-12c4-478e-8339-2e4b1c1e23c5/collection/47854387-3acb598c-ac9c-41f9-8889-6e6426c8d769?action=share&source=collection_link&creator=47854387"
+	},
+	"item": [
+		{
+			"name": "List assessments for an assignment",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments"
+					],
+					"query": [
+						{
+							"key": "pageNum",
+							"value": "1",
+							"disabled": true
+						},
+						{
+							"key": "pageSize",
+							"value": "2",
+							"disabled": true
+						},
+						{
+							"key": "q",
+							"value": null,
+							"disabled": true
+						},
+						{
+							"key": "sessionId",
+							"value": "",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get assessment detail",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments/{{submissionId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments",
+						"{{submissionId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get examiner marking detail",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments/{{submissionId}}/examiners/{{examinerId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments",
+						"{{submissionId}}",
+						"examiners",
+						"{{examinerId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Release assessment",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbGljZSIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1c2VyaWQiOjIsImxvZ2luX3VzZXJfa2V5IjoiNzM5OTI1MzUtYTNkOS00ZTVjLTkwN2EtYjE1MTc5N2I3NmNkIiwiaWF0IjoxNzU4NTQxNTExLCJleHAiOjE3NTg2MzE1MTF9.iW4HDeXx2uWChlQLyovQOPxHjz6lB_5gjeqElUBfHkXqIcnZm5qzie3pB39XeGmN-5vwFxlQ8ZvKD5sgxs9UaA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"notify\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments/{{submissionId}}/release",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments",
+						"{{submissionId}}",
+						"release"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Review examiner marking",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbGljZSIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1c2VyaWQiOjIsImxvZ2luX3VzZXJfa2V5IjoiNzM5OTI1MzUtYTNkOS00ZTVjLTkwN2EtYjE1MTc5N2I3NmNkIiwiaWF0IjoxNzU4NTQxNTExLCJleHAiOjE3NTg2MzE1MTF9.iW4HDeXx2uWChlQLyovQOPxHjz6lB_5gjeqElUBfHkXqIcnZm5qzie3pB39XeGmN-5vwFxlQ8ZvKD5sgxs9UaA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"reason\": \"Please expand justification for criterion C2.\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments/{{submissionId}}/examiners/{{examinerId}}/review",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments",
+						"{{submissionId}}",
+						"examiners",
+						"{{examinerId}}",
+						"review"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Set final score",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhbGljZSIsInRva2VuX3R5cGUiOiJhY2Nlc3MiLCJ1c2VyaWQiOjIsImxvZ2luX3VzZXJfa2V5IjoiNzM5OTI1MzUtYTNkOS00ZTVjLTkwN2EtYjE1MTc5N2I3NmNkIiwiaWF0IjoxNzU4NTQxNTExLCJleHAiOjE3NTg2MzE1MTF9.iW4HDeXx2uWChlQLyovQOPxHjz6lB_5gjeqElUBfHkXqIcnZm5qzie3pB39XeGmN-5vwFxlQ8ZvKD5sgxs9UaA",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"finalScorePct1dp\": 85,\n  \"reason\": \"Moderation panel decision\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/admin/subjects/{{subjectId}}/assignments/{{assignmentId}}/assessments/{{submissionId}}/final-score",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"admin",
+						"subjects",
+						"{{subjectId}}",
+						"assignments",
+						"{{assignmentId}}",
+						"assessments",
+						"{{submissionId}}",
+						"final-score"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
