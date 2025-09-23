@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "../../../../../store/authStore";
@@ -45,10 +45,120 @@ export default function CourseAssignmentsPage() {
   });
   const [dataLoading, setDataLoading] = useState(true);
 
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const computeProgressFromSetupStatus = useCallback((setupStatus) => {
+    if (!setupStatus) {
+      return null;
+    }
+
+    const completed = [
+      Boolean(setupStatus.rubricConfigured),
+      Boolean(setupStatus.timeSlotsConfigured),
+      Boolean(setupStatus.resultsReleased),
+    ].filter(Boolean).length;
+
+    if (completed === 0) return 0;
+    if (completed === 1) return 33;
+    if (completed === 2) return 66;
+    return 100;
+  }, []);
+
+  const deriveProgressFromAssignment = useCallback((assignment) => {
+    if (!assignment) {
+      return 0;
+    }
+
+    const flags = {
+      rubricConfigured: Boolean(
+        assignment?.hasRubric ||
+          assignment?.rubricConfigured ||
+          assignment?.rubricStatus === "CONFIGURED"
+      ),
+      timeSlotsConfigured: Boolean(
+        assignment?.hasTimeSlots ||
+          assignment?.timeSlotsConfigured ||
+          assignment?.scheduleConfigured ||
+          assignment?.schedule?.configured
+      ),
+      resultsReleased: Boolean(
+        assignment?.resultsReleased ||
+          assignment?.results?.released ||
+          assignment?.resultStatus === "RELEASED"
+      ),
+    };
+
+    return computeProgressFromSetupStatus(flags);
+  }, [computeProgressFromSetupStatus]);
+
+  const enrichAssignmentsWithStatus = useCallback(async (assignmentList) => {
+    if (!assignmentList || assignmentList.length === 0) {
+      return assignmentList ?? [];
+    }
+
+    const statusResults = await Promise.allSettled(
+      assignmentList.map((assignment) =>
+        assignmentService.getAssignmentStatus(assignment.id)
+      )
+    );
+
+    return assignmentList.map((assignment, index) => {
+      let setupStatus = assignment.setupStatus
+        ? {
+            ...assignment.setupStatus,
+            progress: computeProgressFromSetupStatus(assignment.setupStatus),
+          }
+        : undefined;
+
+      let progress =
+        typeof assignment.progress === "number"
+          ? Math.round(assignment.progress)
+          : setupStatus?.progress;
+
+      const result = statusResults[index];
+      if (result?.status === "fulfilled" && result.value?.success) {
+        const payload = result.value.data ?? result.value;
+        const apiSetupStatus = payload?.setupStatus;
+        if (apiSetupStatus) {
+          const computed = computeProgressFromSetupStatus(apiSetupStatus);
+          const normalized = {
+            ...apiSetupStatus,
+            progress: computed,
+          };
+          setupStatus = normalized;
+          progress = computed;
+        }
+      }
+
+      if (typeof progress !== "number" || Number.isNaN(progress)) {
+        if (setupStatus) {
+          progress = computeProgressFromSetupStatus(setupStatus);
+        }
+      }
+
+      if (typeof progress !== "number" || Number.isNaN(progress)) {
+        progress = deriveProgressFromAssignment(assignment);
+      }
+
+      progress = Math.max(0, Math.min(100, Math.round(progress || 0)));
+
+      return {
+        ...assignment,
+        setupStatus,
+        progress,
+      };
+    });
+  }, [computeProgressFromSetupStatus, deriveProgressFromAssignment]);
+
   // Fetch all data when component mounts
   useEffect(() => {
-    let isMounted = true;
-    
     const fetchAllData = async () => {
       try {
         setLoading(true);
@@ -60,7 +170,7 @@ export default function CourseAssignmentsPage() {
           courseId ? assignmentService.getAssignmentStats(courseId).catch(err => ({ success: false, error: err })) : Promise.resolve({ success: false })
         ]);
         
-        if (!isMounted) return;
+        if (!isMountedRef.current) return;
 
         if (courseResult.success && courseResult.data) {
           // Use the returned course data directly since API returns a single course object
@@ -73,7 +183,20 @@ export default function CourseAssignmentsPage() {
         
         // Process assignment list data
         if (assignmentsResult.success) {
-          setAssignments(assignmentsResult.data);
+          const assignmentsData = assignmentsResult.data ?? [];
+          try {
+            const enriched = await enrichAssignmentsWithStatus(assignmentsData);
+            if (isMountedRef.current) {
+              setAssignments(enriched);
+            }
+          } catch (statusError) {
+            console.error("Failed to enrich assignments with status:", statusError);
+            if (isMountedRef.current) {
+              setAssignments(assignmentsData);
+            }
+          }
+        } else if (isMountedRef.current) {
+          setAssignments([]);
         }
         
         // Process statistics data
@@ -91,12 +214,12 @@ export default function CourseAssignmentsPage() {
         }
         
       } catch (error) {
-        if (isMounted) {
+        if (isMountedRef.current) {
           showNotification("error", "Failed to load data");
           console.error("Failed to fetch data:", error);
         }
       } finally {
-        if (isMounted) {
+        if (isMountedRef.current) {
           setLoading(false);
           setDataLoading(false);
         }
@@ -109,14 +232,15 @@ export default function CourseAssignmentsPage() {
 
     // Ensure welcome animation doesn't get stuck
     const welcomeTimer = setTimeout(() => {
-      setShowWelcomeAnimation(false);
+      if (isMountedRef.current) {
+        setShowWelcomeAnimation(false);
+      }
     }, 3000);
 
     return () => {
-      isMounted = false;
       clearTimeout(welcomeTimer);
     };
-  }, [courseId, router, showNotification]);
+  }, [courseId, router, showNotification, enrichAssignmentsWithStatus]);
 
   const refreshData = async () => {
     try {
@@ -128,7 +252,20 @@ export default function CourseAssignmentsPage() {
       ]);
       
       if (assignmentsResult.success) {
-        setAssignments(assignmentsResult.data);
+        const assignmentsData = assignmentsResult.data ?? [];
+        try {
+          const enriched = await enrichAssignmentsWithStatus(assignmentsData);
+          if (isMountedRef.current) {
+            setAssignments(enriched);
+          }
+        } catch (statusError) {
+          console.error("Failed to refresh assignment statuses:", statusError);
+          if (isMountedRef.current) {
+            setAssignments(assignmentsData);
+          }
+        }
+      } else if (isMountedRef.current) {
+        setAssignments([]);
       }
       
       if (statsResult.success) {
@@ -147,7 +284,9 @@ export default function CourseAssignmentsPage() {
       showNotification("error", "Failed to refresh data");
       console.error("Failed to refresh data:", error);
     } finally {
-      setDataLoading(false);
+      if (isMountedRef.current) {
+        setDataLoading(false);
+      }
     }
   };
 

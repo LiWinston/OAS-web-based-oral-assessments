@@ -176,36 +176,80 @@ export function AssignmentList({
     }
   };
 
-  const getProgressPercentage = (assignment) => {
-    // Prefer explicit numeric progress if backend provides it
-    if (typeof assignment?.progress === 'number') {
-      return Math.round(assignment.progress);
-    }
+  const clampProgress = (value) =>
+    Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
 
-    // Otherwise derive from three setup steps per client feedback
-    const hasRubric = Boolean(
-      assignment?.hasRubric ||
-        assignment?.rubricConfigured ||
-        assignment?.rubricStatus === 'CONFIGURED'
+  const getSetupFlags = (assignment) => {
+    const status = assignment?.setupStatus || {};
+
+    const rubricConfigured = Boolean(
+      status.rubricConfigured ??
+        assignment?.hasRubric ??
+        assignment?.rubricConfigured ??
+        (assignment?.rubricStatus === 'CONFIGURED')
     );
-    const hasTimeSlots = Boolean(
-      assignment?.hasTimeSlots ||
-        assignment?.timeSlotsConfigured ||
-        assignment?.scheduleConfigured ||
+    const timeSlotsConfigured = Boolean(
+      status.timeSlotsConfigured ??
+        assignment?.hasTimeSlots ??
+        assignment?.timeSlotsConfigured ??
+        assignment?.scheduleConfigured ??
         assignment?.schedule?.configured
     );
     const resultsReleased = Boolean(
-      assignment?.resultsReleased ||
-        assignment?.results?.released ||
-        assignment?.resultStatus === 'RELEASED'
+      status.resultsReleased ??
+        assignment?.resultsReleased ??
+        assignment?.results?.released ??
+        (assignment?.resultStatus === 'RELEASED')
     );
 
-    const completed = [hasRubric, hasTimeSlots, resultsReleased].filter(Boolean)
-      .length;
-    if (completed === 3) return 100;
-    if (completed === 2) return 66; // 33% increments rounded
+    return {
+      rubricConfigured,
+      timeSlotsConfigured,
+      resultsReleased,
+      // Preserve progress if backend already calculated it
+      progress: status.progress,
+    };
+  };
+
+  const computeProgressFromSetupStatus = (setupStatus) => {
+    if (!setupStatus) {
+      return null;
+    }
+
+    if (
+      typeof setupStatus.progress === 'number' &&
+      !Number.isNaN(setupStatus.progress)
+    ) {
+      return clampProgress(setupStatus.progress);
+    }
+
+    const completed = [
+      Boolean(setupStatus.rubricConfigured),
+      Boolean(setupStatus.timeSlotsConfigured),
+      Boolean(setupStatus.resultsReleased),
+    ].filter(Boolean).length;
+
+    if (completed === 0) return 0;
     if (completed === 1) return 33;
-    return 0;
+    if (completed === 2) return 66;
+    return 100;
+  };
+
+  const getProgressPercentage = (assignment) => {
+    if (!assignment) return 0;
+
+    if (typeof assignment?.progress === 'number') {
+      return clampProgress(assignment.progress);
+    }
+
+    const fromSetupStatus = computeProgressFromSetupStatus(assignment?.setupStatus);
+    if (fromSetupStatus !== null) {
+      return fromSetupStatus;
+    }
+
+    const fallback = computeProgressFromSetupStatus(getSetupFlags(assignment));
+
+    return fallback ?? 0;
   };
 
   if (loading) {
@@ -480,6 +524,11 @@ export function AssignmentList({
               const studentCount =
                 assignment.students ?? assignment.studentCount ?? 0;
               const groupCount = assignment.groups ?? assignment.groupCount ?? 0;
+              const {
+                rubricConfigured,
+                timeSlotsConfigured,
+                resultsReleased,
+              } = getSetupFlags(assignment);
 
               return (
                 <div
@@ -607,82 +656,37 @@ export function AssignmentList({
                           )}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {assignment.completedSessions}/
-                        {assignment.totalSessions} sessions completed
-                      </div>
                     </div>
 
                     {/* Configuration Status */}
                     <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                       <div className="flex items-center space-x-4 text-xs">
-                        {(() => {
-                          const hasRubric = Boolean(
-                            assignment?.hasRubric ||
-                              assignment?.rubricConfigured ||
-                              assignment?.rubricStatus === 'CONFIGURED'
-                          );
-                          const hasTimeSlots = Boolean(
-                            assignment?.hasTimeSlots ||
-                              assignment?.timeSlotsConfigured ||
-                              assignment?.scheduleConfigured ||
-                              assignment?.schedule?.configured
-                          );
-                          const resultsReleased = Boolean(
-                            assignment?.resultsReleased ||
-                              assignment?.results?.released ||
-                              assignment?.resultStatus === 'RELEASED'
-                          );
+                        {['Rubric', 'Sessions', 'Results'].map((label) => {
+                          const isComplete =
+                            label === 'Rubric'
+                              ? rubricConfigured
+                              : label === 'Sessions'
+                              ? timeSlotsConfigured
+                              : resultsReleased;
 
                           return (
-                            <>
-                              <span
-                                className={`flex items-center transition-colors duration-300 ${
-                                  hasRubric
-                                    ? 'text-green-600'
-                                    : 'text-gray-400 group-hover:text-gray-600'
+                            <span
+                              key={label}
+                              className={`flex items-center transition-colors duration-300 ${
+                                isComplete
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-300'
+                              }`}
+                            >
+                              <i
+                                className={`fas fa-circle mr-1 group-hover:animate-pulse ${
+                                  isComplete ? 'text-green-500 dark:text-green-400' : ''
                                 }`}
-                              >
-                                <i
-                                  className={`fas ${
-                                    hasRubric ? 'fa-check-circle' : 'fa-circle'
-                                  } mr-1 group-hover:animate-pulse`}
-                                ></i>
-                                Rubric
-                              </span>
-                              <span
-                                className={`flex items-center transition-colors duration-300 ${
-                                  hasTimeSlots
-                                    ? 'text-green-600'
-                                    : 'text-gray-400 group-hover:text-gray-600'
-                                }`}
-                              >
-                                <i
-                                  className={`fas ${
-                                    hasTimeSlots ? 'fa-check-circle' : 'fa-circle'
-                                  } mr-1 group-hover:animate-pulse`}
-                                ></i>
-                                Sessions
-                              </span>
-                              <span
-                                className={`flex items-center transition-colors duration-300 ${
-                                  resultsReleased
-                                    ? 'text-green-600'
-                                    : 'text-gray-400 group-hover:text-gray-600'
-                                }`}
-                              >
-                                <i
-                                  className={`fas ${
-                                    resultsReleased
-                                      ? 'fa-check-circle'
-                                      : 'fa-circle'
-                                  } mr-1 group-hover:animate-pulse`}
-                                ></i>
-                                Results
-                              </span>
-                            </>
+                              ></i>
+                              {label}
+                            </span>
                           );
-                        })()}
+                        })}
                       </div>
                     </div>
 

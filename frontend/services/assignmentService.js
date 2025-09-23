@@ -16,6 +16,54 @@ const formatDateForBackend = (dateString) => {
   return `${dateString}T00:00:00`;
 };
 
+const calculateProgressFromSetup = ({
+  rubricConfigured,
+  timeSlotsConfigured,
+  resultsReleased,
+}) => {
+  const completed = [rubricConfigured, timeSlotsConfigured, resultsReleased]
+    .filter(Boolean).length;
+
+  if (completed === 0) return 0;
+  if (completed === 1) return 33;
+  if (completed === 2) return 66;
+  return 100;
+};
+
+const deriveMockSetupStatus = (assignment) => {
+  const rubricConfigured = Boolean(
+    assignment?.hasRubric ||
+      assignment?.rubricConfigured ||
+      assignment?.rubricStatus === "CONFIGURED"
+  );
+  const timeSlotsConfigured = Boolean(
+    assignment?.hasTimeSlots ||
+      assignment?.timeSlotsConfigured ||
+      assignment?.scheduleConfigured ||
+      assignment?.schedule?.configured
+  );
+  const resultsReleased = Boolean(
+    assignment?.resultsReleased ||
+      assignment?.results?.released ||
+      assignment?.resultStatus === "RELEASED"
+  );
+
+  const progress = calculateProgressFromSetup({
+    rubricConfigured,
+    timeSlotsConfigured,
+    resultsReleased,
+  });
+
+  return {
+    rubricConfigured,
+    timeSlotsConfigured,
+    resultsReleased,
+    progress,
+    releasedOn: resultsReleased ? assignment?.resultsReleasedAt : null,
+    lastUpdated: assignment?.updateTime ?? assignment?.createdAt,
+  };
+};
+
 // Mock assignments data
 const mockAssignments = [
   {
@@ -175,6 +223,33 @@ const mockAssignmentService = {
     };
   },
 
+  async getAssignmentStatus(assignmentId) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    const assignment = mockAssignments.find(
+      (a) => a.id === parseInt(assignmentId)
+    );
+
+    if (!assignment) {
+      return {
+        success: false,
+        code: "404",
+        message: "Assignment not found",
+      };
+    }
+
+    const setupStatus = deriveMockSetupStatus(assignment);
+
+    return {
+      success: true,
+      code: "200",
+      data: {
+        assignmentId: assignment.id,
+        setupStatus,
+      },
+    };
+  },
+
   async getAssignmentStats(courseId) {
     await new Promise((resolve) => setTimeout(resolve, 600));
     const courseAssignments = mockAssignments.filter(
@@ -308,6 +383,31 @@ export const assignmentService = {
         data,
       });
       return { success: false, message: data?.message || "Assignment stats fetch failed", code: status };
+    }
+  },
+
+  async getAssignmentStatus(assignmentId) {
+    if (USE_MOCK_API) {
+      return await mockAssignmentService.getAssignmentStatus(assignmentId);
+    }
+
+    try {
+      const response = await api.get(`/api/assignments/${assignmentId}/status`);
+      return response.data;
+    } catch (e) {
+      const status = e?.response?.status;
+      const data = e?.response?.data;
+      // eslint-disable-next-line no-console
+      console.warn("[assignmentService] GET /api/assignments/{id}/status failed", {
+        assignmentId,
+        status,
+        data,
+      });
+      return {
+        success: false,
+        message: data?.message || "Assignment status fetch failed",
+        code: status,
+      };
     }
   },
 
