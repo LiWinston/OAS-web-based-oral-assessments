@@ -247,7 +247,9 @@ frontend/
 │   │       └── OnboardingComplete.jsx     # Success confirmation
 │   ├── layout/                  # Layout components
 │   │   ├── AdminSidebar.jsx     # Course Admin navigation sidebar
-│   │   ├── AdminTopNav.jsx      # Course Admin header navigation
+│   │   ├── AdminTopNav.jsx      # Course Admin header navigation (launches global search)
+│   │   ├── GlobalSearchProvider.jsx # Role-aware data loader for command palette
+│   │   ├── GlobalSearchPalette.jsx  # Shared command palette UI
 │   │   ├── ExaminerSidebar.jsx  # Examiner navigation sidebar
 │   │   ├── ExaminerTopNav.jsx   # Examiner header navigation
 │   │   ├── StudentSidebar.jsx   # Student navigation sidebar
@@ -356,7 +358,8 @@ frontend/
 ├── store/                       # State management
 │   ├── authStore.js             # Authentication state (Zustand)
 │   ├── uiStore.js               # UI preferences (Zustand)
-│   └── scheduleFilterStore.js   # Schedule filtering state (Zustand)
+│   ├── scheduleFilterStore.js   # Schedule filtering state (Zustand)
+│   └── globalSearchStore.js     # Command palette query/open/loading state (Zustand)
 │
 ├── hooks/                       # Custom React hooks
 │   ├── useAuth.js               # Authentication helpers
@@ -370,6 +373,11 @@ frontend/
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
 │   └── utils.js                 # Helper functions
+
+├── search/                      # Global search registry & role sources
+│   ├── registry.js              # registerSearchSources / getSearchSources
+│   └── sources/
+│       └── courseAdmin.js       # Course Admin sections (quick links, courses, assignments)
 
 ├── hooks/                       # Custom hooks
 │   └── examiner/assessment/     # Examiner marking hooks
@@ -479,6 +487,7 @@ const roleRoutes = {
 
 - **Unified Course Admin data fetching** — `useAdminAssignments` now powers both the dashboard status table and calendar, preventing redundant API calls and adding a manual refresh surface when backend data changes mid-session.
 - **Assignment-first calendar experience** — the dashboard calendar aggregates sessions per assignment, highlights staffing gaps, start/due milestones, and exposes a clickable drill-down dialog for day-level details and quick navigation to scheduling/results views.
+- **Role-aware global search (Course Admin)** — command palette (`⌘/Ctrl+K`) surfaces quick links, courses, assignment results, rubrics, and session scheduling. Data sources are registered per role so examiner/student palettes can plug in later.
 
 ### Integration Status — ✅ COMPLETED
 
@@ -622,6 +631,7 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - ✅ Course Admin results moderation & release flow (mock data aligned with API contract)
 - ✅ CSV import for student/group data
 - ✅ Course Admin and Super Admin management systems
+- ✅ Course Admin global search command palette with deep links to results, rubric, and session configuration
 
 **Critical PRD Gaps:**
 - ❌ **Examiner Marking Interface**: No actual assessment execution interface
@@ -630,6 +640,7 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - 🚧 **Results Release Control**: Course Admin moderation & release UI implemented (mock-driven); backend integration pending
 - ❌ **Mark Aggregation**: Multiple examiner score combination not implemented
 - ❌ **Canvas Export**: Results export to LMS not complete
+- 🚧 **Global Search (Examiner/Student)**: Command palette available for Course Admin; other roles pending source registration
 
 ### Detailed Implementation Status
 
@@ -693,6 +704,13 @@ The following reflects the current state of the frontend implementation against 
 - Current: Complete scheduling and timeslot management for both Course Admin configuration and Examiner self-assignment; comprehensive mock API layer with realistic test data.
 - Implementation: Three-step session configuration wizard for Course Admin; calendar-based timeslot display and management; batch operations (duplicate, delete, notify); examiner self-assignment with conflict detection; withdrawal functionality when no students booked.
 - User can: Configure assessment session parameters; create and manage timeslots with venues; assign examiners to slots; view calendar-based schedules; perform bulk operations; track booking status.
+
+### Global Search Command Palette — 🚧 Partial (Course Admin ready)
+
+- Current: Course Admin layout exposes a role-aware command palette (`GlobalSearchPalette`) triggered via header input or `⌘/Ctrl+K`. Sources register through `search/registry.js` with dedicated Course Admin feeds (quick links, courses, assignment results, rubric setup, session scheduling).
+- Implementation: `GlobalSearchProvider` orchestrates per-role loading, caches shared datasets, and avoids caching failed loads so transient errors retry on next open. `globalSearchStore.js` tracks open state, query text, sections, and loading/errors.
+- User can: Search across Course Admin navigation, specific courses, assignments (results/rubric/sessions), and deep-link directly from the palette.
+- Pending: Register Examiner and Student sources, add per-role recents/favourites once their datasets are defined.
 
 ### Notifications System — ⏳ Partial (UI notifications only)
 

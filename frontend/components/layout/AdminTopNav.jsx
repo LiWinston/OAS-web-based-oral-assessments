@@ -1,18 +1,25 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuthStore } from '../../store/authStore';
-import { Button } from '../ui/button';
+import { useGlobalSearchStore } from '@/store/globalSearchStore';
 
 export function AdminTopNav({ onSidebarToggle }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const { user, smartLogout } = useAuthStore();
+  const openSearch = useGlobalSearchStore((state) => state.setOpen);
+  const setSearchQuery = useGlobalSearchStore((state) => state.setQuery);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.body.classList.toggle('dark');
   };
+
+  const handleSearchOpen = useCallback(() => {
+    setSearchQuery('');
+    openSearch(true);
+  }, [openSearch, setSearchQuery]);
 
   return (
     <header className="sticky top-0 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h-16 z-40 flex items-center justify-between px-4 md:px-6">
@@ -31,12 +38,15 @@ export function AdminTopNav({ onSidebarToggle }) {
           <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i className="fas fa-search text-gray-400"></i>
           </span>
-          <input
-            type="text"
-            placeholder="Search for courses, assignments, students..."
-            className="w-48 md:w-72 pl-10 pr-4 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20"
-            aria-label="Search"
-          />
+          <button
+            type="button"
+            onClick={handleSearchOpen}
+            className="w-48 md:w-72 pl-10 pr-12 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-blue-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 text-left"
+            aria-label="Open global search"
+          >
+            <span className="text-gray-500 dark:text-gray-400">Search for courses, assignments...</span>
+            <span className="absolute inset-y-0 right-3 hidden md:flex items-center text-xs text-gray-400 dark:text-gray-500">⌘K</span>
+          </button>
         </div>
       </div>
 
