@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import Fuse from 'fuse.js';
 import { usePathname, useRouter } from 'next/navigation';
 import { useGlobalSearchStore } from '@/store/globalSearchStore';
 import { useAuthStore } from '@/store/authStore';
@@ -19,17 +20,45 @@ const isInputLikeElement = (element) => {
   return editable || inputTypes.includes(tag);
 };
 
+const FUZZY_OPTIONS = {
+  threshold: 0.35,
+  ignoreLocation: true,
+  includeScore: true,
+  keys: [
+    { name: 'title', weight: 0.6 },
+    { name: 'subtitle', weight: 0.2 },
+    { name: 'keywords', weight: 0.2 },
+  ],
+  minMatchCharLength: 2,
+};
+
 const matchItems = (items, query) => {
   if (!query) return items;
 
-  const normalized = query.trim().toLowerCase();
+  const normalized = query.trim();
   if (!normalized) return items;
 
-  return items.filter((item) => {
-    return [item.title, item.subtitle, item.keywords]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(normalized));
-  });
+  if (normalized.length < 2) {
+    const needle = normalized.toLowerCase();
+    return items.filter((item) =>
+      [item.title, item.subtitle, item.keywords]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(needle))
+    );
+  }
+
+  try {
+    const fuse = new Fuse(items, FUZZY_OPTIONS);
+    return fuse.search(normalized).map((result) => result.item);
+  } catch (error) {
+    console.warn('Global search fuzzy match failed; falling back to substring search.', error);
+    const needle = normalized.toLowerCase();
+    return items.filter((item) =>
+      [item.title, item.subtitle, item.keywords]
+        .filter(Boolean)
+        .some((value) => value.toLowerCase().includes(needle))
+    );
+  }
 };
 
 const filterSection = (section, query) => {

@@ -154,11 +154,11 @@ Source summary:
 - **Caching Key** – `GlobalSearchProvider` caches by `role-userId`. Switching users or roles automatically triggers a reload.
 - **Favourites Toggle** – When a section item carries `allowFavourite`, the palette renders a star control. Toggling updates localStorage immediately and triggers an in-memory refresh so lists stay in sync without reopening the palette.
 - **Cross-role Persistence** – Any role that registers `.favourites` / `.recents` sections automatically opts into persistence. The palette detects those sections at runtime and updates the lists after navigation or star toggles without extra role-specific wiring.
+- **Fuzzy Matching** – Queries with ≥2 characters use Fuse.js to score results against `title`, `subtitle`, and `keywords`, so abbreviations (e.g., “res rel”) still surface the intended target. Single-character searches fall back to substring matching for predictability.
 
 ## Deferred Enhancements
 
 - Real-time status badges for rubric/timeslot completion (backend support needed).
-- Fuzzy scoring (e.g., Fuse.js) once datasets grow large enough to justify it.
 - Debounced refresh or manual refresh trigger inside the palette for admins who expect instant updates after major configuration changes.
 
 ## Troubleshooting
