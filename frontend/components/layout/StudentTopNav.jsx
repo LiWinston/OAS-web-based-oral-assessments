@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuthStore } from "../../store/authStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { useGlobalSearchStore } from "@/store/globalSearchStore";
 
 /**
  * Student Top Navigation Component
@@ -17,6 +18,13 @@ export function StudentTopNav({ onSidebarToggle }) {
   const { user, smartLogout } = useAuthStore();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const setSearchOpen = useGlobalSearchStore((state) => state.setOpen);
+  const setSearchQuery = useGlobalSearchStore((state) => state.setQuery);
+
+  const handleSearchOpen = useCallback(() => {
+    setSearchQuery("");
+    setSearchOpen(true);
+  }, [setSearchOpen, setSearchQuery]);
 
   return (
     <header className="bg-white dark:bg-gray-800 shadow h-16 z-10 flex items-center justify-between px-4 md:px-6 border-b border-gray-200 dark:border-gray-700">
@@ -29,6 +37,22 @@ export function StudentTopNav({ onSidebarToggle }) {
         >
           <i className="fas fa-bars"></i>
         </button>
+
+        {/* Global search trigger */}
+        <div className="ml-4 md:ml-0 relative">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i className="fas fa-search text-gray-400"></i>
+          </span>
+          <button
+            type="button"
+            onClick={handleSearchOpen}
+            className="w-44 md:w-64 pl-10 pr-12 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-blue-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 text-left"
+            aria-label="Open global search"
+          >
+            <span className="text-gray-500 dark:text-gray-400">Search bookings, results...</span>
+            <span className="absolute inset-y-0 right-3 hidden md:flex items-center text-xs text-gray-400 dark:text-gray-500">⌘K</span>
+          </button>
+        </div>
       </div>
 
       {/* Right side - Dark mode, user profile */}

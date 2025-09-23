@@ -6,6 +6,7 @@ import { AdminSidebar } from '../../components/layout/AdminSidebar';
 import { AdminTopNav } from '../../components/layout/AdminTopNav';
 import GlobalSearchProvider from '../../components/layout/GlobalSearchProvider';
 import { GlobalSearchPalette } from '../../components/layout/GlobalSearchPalette';
+import '@/search/sources/courseAdmin';
 
 export default function AdminLayout({ children }) {
   const pathname = usePathname();

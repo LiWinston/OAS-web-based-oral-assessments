@@ -5,9 +5,6 @@ import { useAuthStore } from '@/store/authStore';
 import { useGlobalSearchStore } from '@/store/globalSearchStore';
 import { getSearchSources } from '@/search/registry';
 
-// Ensure Course Admin sources are registered
-import '@/search/sources/courseAdmin';
-
 const buildContextKey = (user) => {
   const role = user?.role ?? 'unknown-role';
   const id = user?.id ?? 'anonymous';
