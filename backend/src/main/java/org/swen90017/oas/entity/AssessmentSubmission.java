@@ -48,6 +48,21 @@ public class AssessmentSubmission implements Serializable {
     private Double totalScore;      // 聚合得分
 
     /**
+     * Final score override fields
+     */
+    @Schema(description = "Final score override percentage (0-100)", example = "85.5")
+    private Double finalScoreOverride;
+    
+    @Schema(description = "Reason for score override", example = "Adjusted due to technical difficulties during assessment")
+    private String overrideReason;
+    
+    @Schema(description = "User ID who made the override", example = "1001")
+    private Long overrideByUserId;
+    
+    @Schema(description = "Timestamp when override was made")
+    private LocalDateTime overrideAt;
+
+    /**
      * JSON snapshots (stored as TEXT/JSON in DB)
      */
     private String rubricMetaSnapshot;
