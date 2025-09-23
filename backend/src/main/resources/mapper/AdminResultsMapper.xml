@@ -6,16 +6,34 @@
     <select id="listAssessmentSummaries" resultType="java.util.Map">
         SELECT DISTINCT
             a.id as assignment_id,
+            GROUP_CONCAT(asub.id ORDER BY asub.id) as submission_ids,
             asub.session_id,
             asub.subject_type,
             asub.subject_id,
             
             -- Student/Group info
             CASE 
-                WHEN asub.subject_type = 'student' THEN su.user_name
-                WHEN asub.subject_type = 'group' THEN sg.group_name
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
+                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
+            
+            -- Group member count for GROUP assessments
+            CASE 
+                WHEN asub.subject_type = 'GROUP' THEN (
+                    SELECT COUNT(*) FROM sys_student_group sgm 
+                    WHERE sgm.group_id = asub.subject_id
+                )
+                ELSE NULL
+            END as group_member_count,
+            
+            -- Session timing info
+            ss.start_at as session_start_at,
+            ss.end_at as session_end_at,
+            
+            -- Venue info
+            ss.venue_id as session_venue_id,
+            v.room_name as venue_name,
             
             -- Release status from assignment
             CASE WHEN a.results_released = 1 THEN 'RELEASED' ELSE 'NOT_RELEASED' END as release_status,
@@ -28,12 +46,12 @@
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
+        WHERE a.id = #{assignmentId}
         
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
@@ -41,14 +59,21 @@
         
         <if test="searchQuery != null and searchQuery != ''">
             AND (
-                su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                st.student_number LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_id LIKE CONCAT('%', #{searchQuery}, '%')
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type = 'GROUP' AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
             )
         </if>
         
-        GROUP BY a.id, asub.session_id, asub.subject_type, asub.subject_id, entity_name
+        GROUP BY a.id, asub.session_id, asub.subject_type, asub.subject_id, entity_name, group_member_count,
+                 a.results_released, asub.final_score_override, asub.override_reason, 
+                 asub.override_at, asub.override_by_user_id, ss.start_at, ss.end_at, 
+                 ss.venue_id, v.room_name
         ORDER BY entity_name
         <if test="limit != null">
             LIMIT #{limit}
@@ -64,12 +89,12 @@
                                    asub.subject_type, '_', asub.subject_id))
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
+        WHERE a.id = #{assignmentId}
         
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
@@ -77,10 +102,14 @@
         
         <if test="searchQuery != null and searchQuery != ''">
             AND (
-                su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                st.student_number LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_id LIKE CONCAT('%', #{searchQuery}, '%')
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type = 'GROUP' AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
             )
         </if>
     </select>
@@ -97,15 +126,23 @@
             asub.subject_type,
             asub.subject_id,
             
+            -- Session timing info
+            ss.start_at as session_start_at,
+            ss.end_at as session_end_at,
+            
+            -- Venue info
+            ss.venue_id as session_venue_id,
+            v.room_name as venue_name,
+            
             -- Student/Group info
             CASE 
-                WHEN asub.subject_type = 'student' THEN su.user_name
-                WHEN asub.subject_type = 'group' THEN sg.group_name
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
+                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
             
             CASE 
-                WHEN asub.subject_type = 'group' THEN (
+                WHEN asub.subject_type = 'GROUP' THEN (
                     SELECT COUNT(*) FROM sys_student_group sgm 
                     WHERE sgm.group_id = asub.subject_id
                 )
@@ -120,13 +157,12 @@
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
-        AND asub.id = #{submissionId}
+        WHERE asub.id = #{submissionId}
         LIMIT 1
     </select>
 
@@ -216,6 +252,19 @@
             update_time = NOW()
         WHERE id = #{assignmentId}
     </update>
+
+    <!-- Update assignment release status (is_released field) -->
+    <update id="updateAssignmentReleaseStatus">
+        UPDATE assignment 
+        SET is_released = #{released},
+            released_at = CASE 
+                WHEN #{released} = TRUE THEN NOW()
+                ELSE NULL
+            END,
+            update_time = NOW()
+        WHERE id = #{assignmentId}
+    </update>
+
 
     <!-- Set final score override for all submissions of an assessment -->
     <update id="setFinalScoreOverride">

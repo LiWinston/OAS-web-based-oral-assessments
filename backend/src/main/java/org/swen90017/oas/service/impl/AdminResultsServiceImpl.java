@@ -31,6 +31,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -61,32 +62,33 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Convert to DTOs and compute scores
         List<AssessmentSummaryDTO> assessments = rawData.stream()
-                .map(this::mapToAssessmentSummary)
+                .map(rawDataMap -> {
+                    AssessmentSummaryDTO assessment = mapToAssessmentSummary(rawDataMap);
+                    computeAssessmentScores(assessment, rawDataMap);
+                    return assessment;
+                })
                 .collect(Collectors.toList());
-        
-        // Compute scores for each assessment
-        for (AssessmentSummaryDTO assessment : assessments) {
-            computeAssessmentScores(assessment);
-        }
         
         return new PageResult<>(pageNum, pageSize, total, assessments);
     }
 
     @Override
     public AssessmentDetailDTO getAssessmentDetail(Long subjectId, Long assignmentId, Long submissionId) {
-        // Get basic assessment info
-        Map<String, Object> assessmentData = adminResultsMapper.getAssessmentDetail(subjectId, assignmentId, submissionId);
+        // Get basic assessment info - only use submissionId
+        Map<String, Object> assessmentData = adminResultsMapper.getAssessmentDetail(submissionId);
         if (assessmentData == null || assessmentData.isEmpty()) {
             throw new BusinessException(BusinessError.SUBMISSION_NOT_FOUND);
         }
         
         // Get all examiner markings for this assessment
+        // Extract required info from assessmentData
+        Long actualAssignmentId = (Long) assessmentData.get("assignment_id");
         String subjectType = (String) assessmentData.get("subject_type");
         Long sessionId = (Long) assessmentData.get("session_id");
         Long entityId = (Long) assessmentData.get("subject_id");
         
         List<Map<String, Object>> examinerData = adminResultsMapper.getExaminerMarkings(
-                assignmentId, sessionId, subjectType, entityId);
+                actualAssignmentId, sessionId, subjectType, entityId);
         
         // Convert to DTO
         AssessmentDetailDTO detail = mapToAssessmentDetail(assessmentData, examinerData);
@@ -216,11 +218,12 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                     assignmentId, submission.getSessionId(), 
                     submission.getSubjectType(), submission.getSubjectId());
         }
-        
+        adminResultsMapper.updateAssignmentReleaseStatus(assignmentId, true);
+
         // Only update assignment release status if we actually updated some submissions
         boolean released = false;
         if (notifiedStudents > 0) {
-            adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
+            // Also update the assignment's is_released field to true
             released = true;
         }
         
@@ -253,35 +256,66 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AssessmentKeyDTO key = new AssessmentKeyDTO();
         key.setAssignmentId((Long) data.get("assignment_id"));
         key.setSessionId((Long) data.get("session_id"));
-        key.setSubmissionId(0L); // Will be set based on composite key
-        key.setKind("student".equals(data.get("subject_type")) ? "INDIVIDUAL" : "GROUP");
+        
+        // Parse submission_ids from GROUP_CONCAT result
+        String submissionIdsStr = (String) data.get("submission_ids");
+        if (submissionIdsStr != null && !submissionIdsStr.isEmpty()) {
+            List<Long> submissionIds = Arrays.stream(submissionIdsStr.split(","))
+                    .map(String::trim)
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+            // Set the first submission ID for backward compatibility
+            key.setSubmissionId(submissionIds.isEmpty() ? null : submissionIds.get(0));
+        }
+        
         key.setEntityId((Long) data.get("subject_id"));
         assessmentInfo.setKey(key);
         
         // Student/Group info
-        if ("student".equals(data.get("subject_type"))) {
+        if ("INDIVIDUAL".equals(data.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.StudentInfo student = 
                     new AssessmentSummaryDTO.AssessmentInfo.StudentInfo();
             student.setId((Long) data.get("subject_id"));
             student.setName((String) data.get("entity_name"));
             assessmentInfo.setStudent(student);
-        } else if ("group".equals(data.get("subject_type"))) {
+        } else if ("GROUP".equals(data.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.GroupInfo group = 
                     new AssessmentSummaryDTO.AssessmentInfo.GroupInfo();
             group.setId((Long) data.get("subject_id"));
             group.setName((String) data.get("entity_name"));
-            // group.setMemberCount() - would need additional query
+            // Set member count if available from query
+            if (data.get("group_member_count") != null) {
+                group.setMemberCount(((Number) data.get("group_member_count")).intValue());
+            }
             assessmentInfo.setGroup(group);
         }
         
         dto.setAssessment(assessmentInfo);
         
-        // Session info - simplified (session details can be fetched separately if needed)
+        // Session info with timing and venue details
         AssessmentSessionDTO session = new AssessmentSessionDTO();
         session.setId((Long) data.get("session_id"));
-        // Note: Session timing and venue details removed from assessment results view
-        // These can be fetched separately from slot_sessions table if needed for display
         session.setTimezone("Australia/Melbourne"); // Default timezone
+        
+        // Set session timing if available
+        LocalDateTime startAt = (LocalDateTime) data.get("session_start_at");
+        LocalDateTime endAt = (LocalDateTime) data.get("session_end_at");
+        if (startAt != null) {
+            session.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            session.setEnd(formatDateTime(endAt));
+        }
+        
+        // Set venue information if available
+        Long venueId = (Long) data.get("session_venue_id");
+        String venueName = (String) data.get("venue_name");
+        if (venueId != null) {
+            AssessmentSessionDTO.VenueInfo venue = new AssessmentSessionDTO.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            session.setVenue(venue);
+        }
         
         dto.setSession(session);
         
@@ -331,18 +365,17 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         key.setAssignmentId((Long) assessmentData.get("assignment_id"));
         key.setSessionId((Long) assessmentData.get("session_id"));
         key.setSubmissionId(0L); // Will be set based on composite key
-        key.setKind("student".equals(assessmentData.get("subject_type")) ? "INDIVIDUAL" : "GROUP");
         key.setEntityId((Long) assessmentData.get("subject_id"));
         assessmentInfo.setKey(key);
         
         // Map student/group info
-        if ("student".equals(assessmentData.get("subject_type"))) {
+        if ("INDIVIDUAL".equals(assessmentData.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.StudentInfo student = 
                     new AssessmentSummaryDTO.AssessmentInfo.StudentInfo();
             student.setId((Long) assessmentData.get("subject_id"));
             student.setName((String) assessmentData.get("entity_name"));
             assessmentInfo.setStudent(student);
-        } else if ("group".equals(assessmentData.get("subject_type"))) {
+        } else if ("GROUP".equals(assessmentData.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.GroupInfo group = 
                     new AssessmentSummaryDTO.AssessmentInfo.GroupInfo();
             group.setId((Long) assessmentData.get("subject_id"));
@@ -355,6 +388,33 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         }
         
         detail.setAssessment(assessmentInfo);
+        
+        // Map session info with timing and venue details
+        AssessmentSessionDTO session = new AssessmentSessionDTO();
+        session.setId((Long) assessmentData.get("session_id"));
+        session.setTimezone("Australia/Melbourne"); // Default timezone
+        
+        // Set session timing if available
+        LocalDateTime startAt = (LocalDateTime) assessmentData.get("session_start_at");
+        LocalDateTime endAt = (LocalDateTime) assessmentData.get("session_end_at");
+        if (startAt != null) {
+            session.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            session.setEnd(formatDateTime(endAt));
+        }
+        
+        // Set venue information if available
+        Long venueId = (Long) assessmentData.get("session_venue_id");
+        String venueName = (String) assessmentData.get("venue_name");
+        if (venueId != null) {
+            AssessmentSessionDTO.VenueInfo venue = new AssessmentSessionDTO.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            session.setVenue(venue);
+        }
+        
+        detail.setSession(session);
         
         // Map rubric info
         AdminRubricDTO rubric = mapToRubricDTO(assessmentData);
@@ -514,11 +574,11 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         return detail;
     }
 
-    private void computeAssessmentScores(AssessmentSummaryDTO assessment) {
+    private void computeAssessmentScores(AssessmentSummaryDTO assessment, Map<String, Object> rawData) {
         // Get all examiner markings for this assessment
         Long assignmentId = assessment.getAssessment().getKey().getAssignmentId();
         Long sessionId = assessment.getAssessment().getKey().getSessionId();
-        String subjectType = assessment.getAssessment().getKey().getKind().toLowerCase();
+        String subjectType = (String) rawData.get("subject_type"); // INDIVIDUAL or GROUP
         Long subjectId = assessment.getAssessment().getKey().getEntityId();
         
         List<Map<String, Object>> examinerMarkings = adminResultsMapper.getExaminerMarkings(

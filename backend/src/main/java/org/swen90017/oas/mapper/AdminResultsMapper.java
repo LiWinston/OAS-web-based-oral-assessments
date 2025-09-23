@@ -37,8 +37,6 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
      * Get detailed assessment information including all examiner markings
      */
     Map<String, Object> getAssessmentDetail(
-            @Param("subjectId") Long subjectId,
-            @Param("assignmentId") Long assignmentId,
             @Param("submissionId") Long submissionId
     );
 
@@ -86,6 +84,15 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("assignmentId") Long assignmentId,
             @Param("releaseStatus") String releaseStatus
     );
+
+    /**
+     * Update assignment release status (is_released field)
+     */
+    Integer updateAssignmentReleaseStatus(
+            @Param("assignmentId") Long assignmentId,
+            @Param("released") Boolean released
+    );
+
 
     /**
      * Set final score override for assessment
