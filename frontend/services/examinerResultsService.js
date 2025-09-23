@@ -1,6 +1,13 @@
-// Pure mock service for Examiner Results — no real API calls
+// Examiner Results Service - Switch between mock and real implementations
 
-// --- Mock implementation (contract-aligned minimal) ---
+import examinerResultsServiceReal from "./examinerResultsService.real";
+
+// Toggle: default to real API for backend integration
+// Set NEXT_PUBLIC_USE_MOCK_API=true to use mock API
+const mockFlag = process.env.NEXT_PUBLIC_USE_MOCK_API ?? "false";
+const USE_MOCKS = String(mockFlag) === "true";
+
+// --- Mock implementation (contract-aligned minimal) for fallback ---
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function randPct() {
@@ -373,5 +380,14 @@ const mockExaminerResultsService = {
   },
 };
 
-export const examinerResultsService = mockExaminerResultsService;
-export default examinerResultsService;
+const service = USE_MOCKS
+  ? mockExaminerResultsService
+  : examinerResultsServiceReal;
+
+// Log which service is being used
+if (typeof window !== 'undefined') {
+  console.log(`[ExaminerResultsService] Using ${USE_MOCKS ? 'MOCK' : 'REAL'} implementation`);
+}
+
+export const examinerResultsService = service;
+export default service;

@@ -26,7 +26,14 @@ export default function ExaminerResultsPage() {
     return p;
   }, [filters, page]);
 
-  const { data, isLoading } = useExaminerResultsQuery(userId, queryParams);
+  const { data, isLoading, error } = useExaminerResultsQuery(userId, queryParams);
+  
+  console.log('ExaminerResultsPage - userId:', userId);
+  console.log('ExaminerResultsPage - queryParams:', queryParams);
+  console.log('ExaminerResultsPage - data:', data);
+  console.log('ExaminerResultsPage - isLoading:', isLoading);
+  console.log('ExaminerResultsPage - error:', error);
+  
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
@@ -56,6 +63,9 @@ export default function ExaminerResultsPage() {
         </div>
       ) : (
         <>
+          <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
+            Debug: {data?.items?.length || 0} items, total: {total}, loading: {isLoading ? 'yes' : 'no'}
+          </div>
           <ResultsTable items={data?.items || []} />
           <div className="flex justify-between items-center mt-4">
             <div className="text-xs text-gray-500">Page {page} of {totalPages} • {total} total</div>

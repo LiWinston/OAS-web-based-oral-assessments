@@ -14,7 +14,7 @@ export function useAssessmentDraft(sessionContext) {
   const [privateNotes, setPrivateNotes] = useState("");
 
   const [assessmentId, setAssessmentId] = useState(null);
-  const [isDraft, setIsDraft] = useState(false);
+  const [isDraft, setIsDraft] = useState(true); // Default to draft to allow editing
 
   // Initialize basic selection defaults when context loads
   useEffect(() => {
@@ -35,17 +35,33 @@ export function useAssessmentDraft(sessionContext) {
     const existing = sessionContext?.existingAssessment;
     if (!existing) return;
 
+    console.log('DEBUG useAssessmentDraft - Loading existing assessment:', existing);
+
     setAssessmentId(existing.assessmentId || null);
-    setIsDraft(existing.status === "DRAFT" || existing.status === "REOPENED");
+    // Allow re-editing of any assessment (including submitted ones)
+    setIsDraft(true);
 
     const groupEntity = existing.entities?.find((e) => e.kind === "GROUP");
     const individualEntities = (existing.entities || []).filter((e) => e.kind === "INDIVIDUAL");
 
+    console.log('DEBUG useAssessmentDraft - Found entities:', { groupEntity, individualEntities });
+
     if (groupEntity) {
       const ratings = {};
       const comments = {};
+      
+      console.log('DEBUG useAssessmentDraft - Processing group items:', groupEntity.items);
+      
       groupEntity.items?.forEach((item) => {
+        console.log('DEBUG useAssessmentDraft - Processing item:', item);
+        
         const range = getRatingRange(sessionContext, item.criterionId, item.levelId);
+        console.log('DEBUG useAssessmentDraft - Got range for item:', { 
+          criterionId: item.criterionId, 
+          levelId: item.levelId, 
+          range 
+        });
+        
         ratings[item.criterionId] = {
           levelId: item.levelId,
           points: item.points,
@@ -55,6 +71,10 @@ export function useAssessmentDraft(sessionContext) {
           comments[item.criterionId] = item.comments.map((c) => c.text).join("\n");
         }
       });
+      
+      console.log('DEBUG useAssessmentDraft - Final ratings:', ratings);
+      console.log('DEBUG useAssessmentDraft - Final comments:', comments);
+      
       setGroupRatings(ratings);
       setGroupComments(comments);
       setOverallFeedback(groupEntity.overallFeedback || "");
@@ -95,6 +115,8 @@ export function useAssessmentDraft(sessionContext) {
           ...prev,
           [selectedStudent]: { ...(prev[selectedStudent] || {}), [criterionId]: rating },
         }));
+      } else {
+        console.warn('Rating change ignored - no valid target', { assessmentType, selectedStudent });
       }
     },
     [assessmentType, selectedStudent]
@@ -168,7 +190,23 @@ function getRatingRange(sessionContext, criterionId, levelId) {
   const criterion = sessionContext?.assignment?.rubric?.criteria?.find(
     (c) => c.criterionId === criterionId
   );
+  
+  console.log('DEBUG getRatingRange - Looking for range:', {
+    criterionId,
+    levelId,
+    foundCriterion: !!criterion,
+    criterionDescription: criterion?.description,
+    availableLevels: criterion?.levels?.map(l => ({ levelId: l.levelId, description: l.description }))
+  });
+  
   const level = criterion?.levels?.find((l) => l.levelId === levelId);
+  
+  console.log('DEBUG getRatingRange - Found level:', {
+    levelId,
+    foundLevel: level,
+    result: level ? { minPoints: level.minPoints, maxPoints: level.maxPoints } : {}
+  });
+  
   return level
     ? { minPoints: level.minPoints, maxPoints: level.maxPoints }
     : {};

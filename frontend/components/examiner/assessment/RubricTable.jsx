@@ -43,23 +43,43 @@ export default function RubricTable({
     if (disabled) return;
     const { min, max } = normalizeRange(level);
     const midPoint = Math.floor((min + max) / 2);
+    
+    // For points scale type, set wider range; for descriptive, use level range
+    const criterion = criteria?.find(c => c.criterionId === criterionId);
+    const isPointsScale = criterion?.scaleType === 'points';
+    
     onRatingChange(criterionId, {
       levelId,
       points: midPoint,
-      minPoints: min,
-      maxPoints: max
+      minPoints: isPointsScale ? 0 : min,
+      maxPoints: isPointsScale ? 100 : max
     });
   };
 
   const handlePointsChange = (criterionId, points) => {
     if (disabled) return;
     
+    const criterion = criteria?.find(c => c.criterionId === criterionId);
+    const isPointsScale = criterion?.scaleType === 'points';
     const current = selectedRatings[criterionId];
+    
+    // Initialize rating if not exists (for points scale type)
+    if (!current && isPointsScale) {
+      const validPoints = Math.max(0, Math.min(100, parseInt(points) || 0));
+      onRatingChange(criterionId, {
+        levelId: null, // No level selected for points scale
+        points: validPoints,
+        minPoints: 0,
+        maxPoints: 100
+      });
+      return;
+    }
+    
     if (current) {
-      const validPoints = Math.max(
-        current.minPoints,
-        Math.min(current.maxPoints, parseInt(points) || 0)
-      );
+      const validPoints = isPointsScale 
+        ? Math.max(0, Math.min(100, parseInt(points) || 0)) // 0-100 for points scale
+        : Math.max(current.minPoints, Math.min(current.maxPoints, parseInt(points) || 0)); // level range for descriptive
+      
       onRatingChange(criterionId, {
         ...current,
         points: validPoints
@@ -139,40 +159,49 @@ export default function RubricTable({
                 </Button>
               </td>
               <td className="p-3">
-                <div
-                  className="grid gap-1"
-                  style={{ gridTemplateColumns: `repeat(${criterion.levels.length}, minmax(0, 1fr))` }}
-                >
-                  {(criterion.levels || []).map((level) => (
-                    <div
-                      key={level.levelId}
-                      className={cn(
-                        "p-3 border rounded-lg cursor-pointer transition-all text-center",
-                        "hover:bg-gray-50 dark:hover:bg-gray-700",
-                        selectedRatings[criterion.criterionId]?.levelId === level.levelId
-                          ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
-                          : "border-gray-300 dark:border-gray-600",
-                        disabled && "cursor-not-allowed opacity-75"
-                      )}
-                      onClick={() => handleRatingSelect(criterion.criterionId, level.levelId, level)}
-                    >
-                      <div className="font-semibold text-sm mb-1 flex items-center justify-center gap-1">
-                        {selectedRatings[criterion.criterionId]?.levelId === level.levelId && (
-                          <i className="fas fa-check-circle text-blue-600 dark:text-blue-400"></i>
+                {/* Only show level selection for descriptive scale types */}
+                {criterion.scaleType === 'descriptive' ? (
+                  <div
+                    className="grid gap-1"
+                    style={{ gridTemplateColumns: `repeat(${criterion.levels.length}, minmax(0, 1fr))` }}
+                  >
+                    {(criterion.levels || []).map((level) => (
+                      <div
+                        key={level.levelId}
+                        className={cn(
+                          "p-3 border rounded-lg cursor-pointer transition-all text-center",
+                          "hover:bg-gray-50 dark:hover:bg-gray-700",
+                          selectedRatings[criterion.criterionId]?.levelId === level.levelId
+                            ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
+                            : "border-gray-300 dark:border-gray-600",
+                          disabled && "cursor-not-allowed opacity-75"
                         )}
-                        <span>{getLevelLabel(level)}</span>
-                      </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
-                        {(() => { const r = normalizeRange(level); return `${r.min}-${r.max}`; })()}
-                      </div>
-                      {level?.description && (
-                        <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                          {level.description}
+                        onClick={() => handleRatingSelect(criterion.criterionId, level.levelId, level)}
+                      >
+                        <div className="font-semibold text-sm mb-1 flex items-center justify-center gap-1">
+                          {selectedRatings[criterion.criterionId]?.levelId === level.levelId && (
+                            <i className="fas fa-check-circle text-blue-600 dark:text-blue-400"></i>
+                          )}
+                          <span>{getLevelLabel(level)}</span>
                         </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          {(() => { const r = normalizeRange(level); return `${r.min}-${r.max}`; })()}
+                        </div>
+                        {level?.description && (
+                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            {level.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  /* For points scale type, show a simple message */
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+                    <i className="fas fa-edit mr-2"></i>
+                    Enter points directly in the Points column →
+                  </div>
+                )}
                 
                 {/* Comments Section */}
                 {expandedComments[criterion.criterionId] && (
@@ -260,30 +289,46 @@ export default function RubricTable({
                 )}
               </td>
               <td className="p-3 align-top text-center">
-                {selectedRatings[criterion.criterionId] ? (
+                {selectedRatings[criterion.criterionId] || criterion.scaleType === 'points' ? (
                   <div className="space-y-2">
                     {disabled ? (
                       <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
                         <i className="fas fa-star text-amber-500"></i>
-                        <span>{selectedRatings[criterion.criterionId].points}</span>
+                        <span>{selectedRatings[criterion.criterionId]?.points || 0}</span>
                         <span className="text-xs text-gray-500">pts</span>
                       </div>
-                    ) : (
+                    ) : criterion.scaleType === 'points' ? (
+                      /* Points scale type: Show editable input with 0-100 range */
                       <div className="flex items-center justify-center space-x-2">
                         <input
                           type="number"
                           className="w-16 p-1 border border-gray-300 dark:border-gray-600 rounded text-center
                                    bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                          value={selectedRatings[criterion.criterionId].points || 0}
+                          value={selectedRatings[criterion.criterionId]?.points || ''}
                           onChange={(e) => handlePointsChange(criterion.criterionId, e.target.value)}
-                          min={selectedRatings[criterion.criterionId].minPoints}
-                          max={selectedRatings[criterion.criterionId].maxPoints}
+                          min={0}
+                          max={100}
+                          placeholder="0"
                         />
                         <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
                       </div>
+                    ) : selectedRatings[criterion.criterionId] ? (
+                      /* Descriptive scale type: Show readonly calculated points */
+                      <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
+                        <i className="fas fa-calculator text-blue-500"></i>
+                        <span>{selectedRatings[criterion.criterionId].points}</span>
+                        <span className="text-xs text-gray-500">pts</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-600">-</span>
                     )}
                     <div className="text-xs text-gray-500 dark:text-gray-500">
-                      ({selectedRatings[criterion.criterionId].minPoints}-{selectedRatings[criterion.criterionId].maxPoints})
+                      {criterion.scaleType === 'points' 
+                        ? '(0-100)' 
+                        : selectedRatings[criterion.criterionId]
+                          ? `(${selectedRatings[criterion.criterionId].minPoints}-${selectedRatings[criterion.criterionId].maxPoints})`
+                          : ''
+                      }
                     </div>
                   </div>
                 ) : (
