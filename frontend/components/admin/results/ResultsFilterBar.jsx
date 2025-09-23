@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 
 const STATUS_PRESETS = [
@@ -9,27 +8,18 @@ const STATUS_PRESETS = [
   { label: "Not Released", value: "not_released", icon: "fa-lock" },
 ];
 
-export default function ResultsFilterBar({ value, onChange, sessions = [] }) {
+export default function ResultsFilterBar({ value, onChange }) {
   const current = value || {};
-
-  const sessionOptions = useMemo(() => {
-    const unique = new Map();
-    sessions.forEach((session) => {
-      if (!session?.id) return;
-      unique.set(session.id, session);
-    });
-    return Array.from(unique.values());
-  }, [sessions]);
 
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div className="flex-1">
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search student or group</label>
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search student / group or session time</label>
         <input
           type="search"
           value={current.q || ""}
           onChange={(e) => onChange({ ...current, q: e.target.value })}
-          placeholder="Type a name or submission ID..."
+          placeholder="Search by name or session time..."
           className="form-control w-full"
         />
       </div>
@@ -59,31 +49,9 @@ export default function ResultsFilterBar({ value, onChange, sessions = [] }) {
           </div>
         </div>
 
-        <div className="min-w-[12rem]">
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Session</label>
-          <select
-            value={current.sessionId || ""}
-            onChange={(e) => onChange({ ...current, sessionId: e.target.value || undefined })}
-            className="form-control w-full"
-          >
-            <option value="">All sessions</option>
-            {sessionOptions.map((session) => {
-              const start = session.start ? new Date(session.start) : null;
-              const label = start
-                ? `${start.toLocaleDateString()} • ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-                : `Session ${session.id}`;
-              return (
-                <option key={session.id} value={session.id}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-
         <Button
           variant="outline"
-          onClick={() => onChange({ q: '', status: 'all', sessionId: undefined })}
+          onClick={() => onChange({ q: '', status: 'all' })}
           className="self-start"
         >
           <i className="fas fa-rotate-left mr-2" /> Reset

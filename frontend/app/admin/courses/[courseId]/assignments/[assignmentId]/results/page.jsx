@@ -49,16 +49,13 @@ export default function AdminResultsListPage() {
 
   const pageNum = Number(search.get('page') || 1);
   const q = search.get('q') || '';
-  const sessionId = search.get('sessionId') || undefined;
   const status = search.get('status') || 'all';
 
   const listParams = useMemo(() => ({
     pageNum,
     pageSize: 10,
-    q,
-    sessionId,
     status,
-  }), [pageNum, q, sessionId, status]);
+  }), [pageNum, status]);
 
   const { data, isLoading } = useAssessmentList(subjectId, assignmentId, listParams);
 
@@ -67,13 +64,35 @@ export default function AdminResultsListPage() {
   const pageSize = data?.pageSize || 10;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
 
-  const sessions = useMemo(() => {
-    const map = new Map();
-    items.forEach((item) => {
-      if (item.session?.id) map.set(item.session.id, item.session);
+  const filteredItems = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return items;
+    return items.filter((row) => {
+      const name = (row.assessment?.student?.name || row.assessment?.group?.name || '').toLowerCase();
+      const sessionWindow = (() => {
+        const start = row.session?.start ? new Date(row.session.start) : null;
+        const end = row.session?.end ? new Date(row.session.end) : null;
+        if (start && end) {
+          const dateLabel = start.toLocaleDateString('en-AU', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          });
+          const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const endLabel = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          return `${dateLabel} ${startLabel} – ${endLabel}`.toLowerCase();
+        }
+        if (start) {
+          const dateLabel = start.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
+          const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          return `${dateLabel} ${startLabel}`.toLowerCase();
+        }
+        return '';
+      })();
+      return name.includes(needle) || sessionWindow.includes(needle);
     });
-    return Array.from(map.values());
-  }, [items]);
+  }, [items, q]);
 
   const [course, setCourse] = useState(null);
   const [assignment, setAssignment] = useState(null);
@@ -114,10 +133,6 @@ export default function AdminResultsListPage() {
     if ('status' in next) {
       const val = next.status && next.status !== 'all' ? next.status : null;
       if (val) sp.set('status', val); else sp.delete('status');
-    }
-    if ('sessionId' in next) {
-      const val = next.sessionId;
-      if (val) sp.set('sessionId', val); else sp.delete('sessionId');
     }
     sp.set('page', '1');
     router.replace(`?${sp.toString()}`);
@@ -203,7 +218,7 @@ export default function AdminResultsListPage() {
         <i className="fas fa-circle-info mr-2" /> Release is available once at least one examiner has submitted their marking.
       </div>
 
-      <ResultsFilterBar value={{ q, status, sessionId }} sessions={sessions} onChange={updateQuery} />
+      <ResultsFilterBar value={{ q, status }} onChange={updateQuery} />
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <Table>
@@ -228,24 +243,40 @@ export default function AdminResultsListPage() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && items.length === 0 && (
+            {!isLoading && filteredItems.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="py-12 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <i className="fas fa-file-excel text-3xl text-gray-300" />
                     <span className="text-sm text-gray-500">No assessments found</span>
-                    {(q || sessionId || (status && status !== 'all')) && (
+                    {(q || (status && status !== 'all')) && (
                       <span className="text-xs text-gray-400">Try adjusting your filters</span>
                     )}
                   </div>
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && items.map((row) => {
+            {!isLoading && filteredItems.map((row) => {
               const key = row.assessment?.key;
               const display = row.assessment?.student?.name || row.assessment?.group?.name || key?.submissionId;
               const start = row.session?.start ? new Date(row.session.start) : null;
-              const sessionStr = start ? `${start.toLocaleDateString()} ${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : '—';
+              const end = row.session?.end ? new Date(row.session.end) : null;
+              let sessionStr = '—';
+              if (start && end) {
+                const dateLabel = start.toLocaleDateString('en-AU', {
+                  weekday: 'short',
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                });
+                const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const endLabel = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                sessionStr = `${dateLabel} ${startLabel} – ${endLabel}`;
+              } else if (start) {
+                const dateLabel = start.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
+                const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                sessionStr = `${dateLabel} ${startLabel}`;
+              }
               const manual = row.computed?.manualOverride;
               return (
                 <TableRow key={key?.submissionId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
