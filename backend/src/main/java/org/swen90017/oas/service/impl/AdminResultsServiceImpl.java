@@ -49,7 +49,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     @Override
     public PageResult<AssessmentSummaryDTO> listAssessments(Long subjectId, Long assignmentId, 
                                                            Integer pageNum, Integer pageSize,
-                                                           String searchQuery, Long sessionId) {
+                                                           String searchQuery, Long sessionId, Boolean isReleased) {
         // Calculate offset
         int offset = (pageNum - 1) * pageSize;
         
@@ -58,7 +58,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Get assessment summaries
         List<Map<String, Object>> rawData = adminResultsMapper.listAssessmentSummaries(
-                subjectId, assignmentId, sessionId, searchQuery, offset, pageSize);
+                subjectId, assignmentId, sessionId, searchQuery, offset, pageSize, isReleased);
         
         // Convert to DTOs and compute scores
         List<AssessmentSummaryDTO> assessments = rawData.stream()
@@ -167,12 +167,10 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.SUBMISSION_NOT_FOUND);
         }
         
-        // Set final score override for all submissions of this assessment
-        // For group assessments, this will update all group members' individual submissions
-        // For individual assessments, this will update only the specific student's submissions
-        int updated = adminResultsMapper.setFinalScoreOverride(
-                assignmentId, submission.getSessionId(),
-                submission.getSubjectType(), submission.getSubjectId(),
+        // Set final score override for all examiner submissions of the same student in the same assignment
+        // This will update all examiner assessments for this student across all sessions in this assignment
+        int updated = adminResultsMapper.setFinalScoreOverrideForAllExaminers(
+                assignmentId, submissionId,
                 request.getFinalScorePct1dp(), request.getReason(), adminUserId);
         
         if (updated == 0) {
@@ -364,7 +362,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AssessmentKeyDTO key = new AssessmentKeyDTO();
         key.setAssignmentId((Long) assessmentData.get("assignment_id"));
         key.setSessionId((Long) assessmentData.get("session_id"));
-        key.setSubmissionId(0L); // Will be set based on composite key
+        key.setSubmissionId((Long)assessmentData.get("submission_id"));
         key.setEntityId((Long) assessmentData.get("subject_id"));
         assessmentInfo.setKey(key);
         
@@ -453,7 +451,36 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         }
         
         detail.setComputed(computed);
-        detail.setReleaseStatus("NOT_RELEASED");
+        String releaseStates = (assessmentData.get("status") + "").equals("RELEASE") ? "RELEASE" : "NOT_RELEASE";
+        detail.setReleaseStatus(releaseStates);
+        
+        // Map final grade information
+        AssessmentDetailDTO.FinalGradeInfo finalGrade = new AssessmentDetailDTO.FinalGradeInfo();
+        
+        // Set final grade percentage - use override if available, otherwise will be set by computeDetailedAssessmentScores
+        Double finalScoreOverride = convertToDouble(assessmentData.get("final_score_override_pct"));
+        if (finalScoreOverride != null) {
+            finalGrade.setGradePct1dp(finalScoreOverride);
+            finalGrade.setIsManualOverride(true);
+            finalGrade.setOverrideReason((String) assessmentData.get("final_score_override_reason"));
+        } else {
+            finalGrade.setIsManualOverride(false);
+        }
+        
+        // Set consolidated feedback from all examiners
+        String consolidatedFeedback = (String) assessmentData.get("consolidated_feedback");
+        finalGrade.setConsolidatedFeedback(consolidatedFeedback);
+        
+        // Set admin notes
+        String adminNotes = (String) assessmentData.get("admin_notes");
+        finalGrade.setAdminNotes(adminNotes);
+        
+        // Convert percentage to letter grade (if applicable)
+        if (finalGrade.getGradePct1dp() != null) {
+            finalGrade.setGradeLetter(convertPercentageToLetterGrade(finalGrade.getGradePct1dp()));
+        }
+        
+        detail.setFinalGrade(finalGrade);
         
         return detail;
     }
@@ -629,6 +656,30 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         Double effectiveScore = computed.getManualOverride() != null ? 
                 computed.getManualOverride().getValuePct1dp() : averageScore;
         computed.setEffectiveFinalScorePct1dp(effectiveScore);
+        
+        // Update final grade information if not a manual override
+        AssessmentDetailDTO.FinalGradeInfo finalGrade = detail.getFinalGrade();
+        if (finalGrade != null && !Boolean.TRUE.equals(finalGrade.getIsManualOverride())) {
+            finalGrade.setGradePct1dp(effectiveScore);
+            if (effectiveScore != null) {
+                finalGrade.setGradeLetter(convertPercentageToLetterGrade(effectiveScore));
+            }
+        }
+    }
+
+    /**
+     * Convert percentage to letter grade based on common Australian university grading scale
+     * @param percentage The percentage score (0-100)
+     * @return Letter grade (HD, D, C, P, F)
+     */
+    private String convertPercentageToLetterGrade(Double percentage) {
+        if (percentage == null) return null;
+        
+        if (percentage >= 80) return "HD";  // High Distinction
+        if (percentage >= 70) return "D";   // Distinction
+        if (percentage >= 60) return "C";   // Credit
+        if (percentage >= 50) return "P";   // Pass
+        return "F";                         // Fail
     }
 
     /**

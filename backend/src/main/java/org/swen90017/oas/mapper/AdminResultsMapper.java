@@ -20,7 +20,8 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("sessionId") Long sessionId,
             @Param("searchQuery") String searchQuery,
             @Param("offset") Integer offset,
-            @Param("limit") Integer limit
+            @Param("limit") Integer limit,
+            @Param("isReleased") Boolean isReleased
     );
 
     /**
@@ -102,6 +103,17 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("sessionId") Long sessionId,
             @Param("subjectType") String subjectType,
             @Param("subjectId") Long subjectId,
+            @Param("finalScore") Double finalScore,
+            @Param("reason") String reason,
+            @Param("userId") Long userId
+    );
+
+    /**
+     * Set final score override for all examiner submissions of the same student in the same assignment
+     */
+    Integer setFinalScoreOverrideForAllExaminers(
+            @Param("assignmentId") Long assignmentId,
+            @Param("submissionId") Long submissionId,
             @Param("finalScore") Double finalScore,
             @Param("reason") String reason,
             @Param("userId") Long userId

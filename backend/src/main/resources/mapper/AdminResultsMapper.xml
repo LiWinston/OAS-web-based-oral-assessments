@@ -35,8 +35,11 @@
             ss.venue_id as session_venue_id,
             v.room_name as venue_name,
             
-            -- Release status from assignment
-            CASE WHEN a.results_released = 1 THEN 'RELEASED' ELSE 'NOT_RELEASED' END as release_status,
+            -- Release status derived from assessment_submission.status
+            CASE 
+                WHEN SUM(CASE WHEN asub.status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                ELSE 'NOT_RELEASED' 
+            END as release_status,
             
             -- Final score override info
             asub.final_score_override as final_score_override_pct,
@@ -56,7 +59,18 @@
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
         </if>
-        
+
+        <if test="isReleased != null">
+            <choose>
+                <when test="isReleased == true">
+                    AND asub.status = 'RELEASED'
+                </when>
+                <otherwise>
+                    AND asub.status != 'RELEASED'
+                </otherwise>
+            </choose>
+        </if>
+
         <if test="searchQuery != null and searchQuery != ''">
             AND (
                 (asub.subject_type = 'INDIVIDUAL' AND (
@@ -71,7 +85,7 @@
         </if>
         
         GROUP BY a.id, asub.session_id, asub.subject_type, asub.subject_id, entity_name, group_member_count,
-                 a.results_released, asub.final_score_override, asub.override_reason, 
+                 asub.final_score_override, asub.override_reason, 
                  asub.override_at, asub.override_by_user_id, ss.start_at, ss.end_at, 
                  ss.venue_id, v.room_name
         ORDER BY entity_name
@@ -95,7 +109,7 @@
         LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
         WHERE a.id = #{assignmentId}
-        
+
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
         </if>
@@ -125,6 +139,8 @@
             asub.session_id,
             asub.subject_type,
             asub.subject_id,
+            asub.id as submission_id,
+            asub.status as status,
             
             -- Session timing info
             ss.start_at as session_start_at,
@@ -153,7 +169,30 @@
             asub.final_score_override as final_score_override_pct,
             asub.override_reason as final_score_override_reason,
             asub.override_at as final_score_override_at,
-            asub.override_by_user_id as final_score_override_by
+            asub.override_by_user_id as final_score_override_by,
+            
+            -- Consolidated feedback from all examiners
+            (
+                SELECT GROUP_CONCAT(
+                    CASE 
+                        WHEN asub_all.overall_feedback IS NOT NULL AND asub_all.overall_feedback != '' 
+                        THEN CONCAT('Examiner ', u.user_name, ': ', asub_all.overall_feedback)
+                        ELSE NULL 
+                    END
+                    SEPARATOR '\n\n'
+                )
+                FROM assessment_submission asub_all
+                LEFT JOIN sys_user u ON asub_all.examiner_id = u.user_id
+                WHERE asub_all.assignment_id = asub.assignment_id
+                AND asub_all.subject_type = asub.subject_type
+                AND asub_all.subject_id = asub.subject_id
+                AND asub_all.status = 'SUBMITTED'
+                AND asub_all.overall_feedback IS NOT NULL
+                AND asub_all.overall_feedback != ''
+            ) as consolidated_feedback,
+            
+            -- Admin notes (get from any submission, they should be consistent)
+            asub.admin_note as admin_notes
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
@@ -290,6 +329,24 @@
             -- Also update the group-level submission if it exists
             (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
         )
+    </update>
+
+    <!-- Set final score override for all examiner submissions of the same student in the same assignment -->
+    <update id="setFinalScoreOverrideForAllExaminers">
+        UPDATE assessment_submission a1
+        INNER JOIN (
+            SELECT assignment_id, subject_id, subject_type
+            FROM assessment_submission
+            WHERE id = #{submissionId}
+            LIMIT 1
+        ) a2 ON a1.assignment_id = a2.assignment_id 
+             AND a1.subject_id = a2.subject_id 
+             AND a1.subject_type = a2.subject_type
+        SET a1.final_score_override = #{finalScore},
+            a1.override_reason = #{reason},
+            a1.override_by_user_id = #{userId},
+            a1.override_at = NOW(),
+            a1.updated_at = NOW()
     </update>
 
     <!-- Update assessment submission status for all submissions of an assessment -->
