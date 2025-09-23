@@ -31,6 +31,11 @@ const navigationItems = [
     section: "SUPPORT",
     items: [
       {
+        href: "/student/support",
+        icon: "fas fa-headset",
+        label: "Support",
+      },
+      {
         href: "/student/help",
         icon: "fas fa-question-circle",
         label: "Help Center",

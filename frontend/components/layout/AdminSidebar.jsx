@@ -27,7 +27,7 @@ const navigationItems = [
     section: 'HELP',
     items: [
       { href: '/admin/documentation', icon: 'fas fa-book-open', label: 'Documentation' },
-      { href: '#support', icon: 'fas fa-headset', label: 'Support' }
+      { href: '/admin/support', icon: 'fas fa-headset', label: 'Support' }
     ]
   }
 ];
