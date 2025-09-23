@@ -1,6 +1,11 @@
 import { registerSearchSources } from '../registry';
 import { studentBookingServiceReal as studentBookingService } from '@/services/studentBookingReal';
 import { studentResultsService } from '@/services/studentResultsService';
+import {
+  getRecents,
+  getFavourites,
+  getFavouritesSet,
+} from '@/search/persistence';
 
 const QUICK_LINKS = [
   {
@@ -72,6 +77,146 @@ const formatTime = (iso) => {
 };
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+const FAVOURITES_SECTION_ID = 'student.favourites';
+const RECENTS_SECTION_ID = 'student.recents';
+
+const ensureFavouritesCache = async (ctx) => {
+  if (ctx.cache.favourites) {
+    return ctx.cache.favourites;
+  }
+  const studentId = resolveStudentId(ctx.user);
+  const favourites = getFavourites(ctx.role, studentId);
+  ctx.cache.favourites = favourites;
+  ctx.cache.favouritesSet = new Set(favourites.map((item) => item.id));
+  return favourites;
+};
+
+const getFavouriteSet = async (ctx) => {
+  if (ctx.cache.favouritesSet) {
+    return ctx.cache.favouritesSet;
+  }
+  await ensureFavouritesCache(ctx);
+  return ctx.cache.favouritesSet ?? new Set();
+};
+
+const markFavouriteMeta = (items, favouritesSet) =>
+  items.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+
+const loadRecentsSectionItems = (ctx) => {
+  const studentId = resolveStudentId(ctx.user);
+  const recents = getRecents(ctx.role, studentId);
+  const favouritesSet = ctx.cache.favouritesSet
+    ? ctx.cache.favouritesSet
+    : (() => {
+        const set = getFavouritesSet(ctx.role, studentId);
+        ctx.cache.favouritesSet = set;
+        return set;
+      })();
+  return recents.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+};
+
+const loadFavouritesSectionItems = async (ctx) => {
+  const favourites = await ensureFavouritesCache(ctx);
+  return favourites.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: true,
+  }));
+};
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
+const formatCountdown = (iso) => {
+  if (!iso) return '';
+  const start = new Date(iso);
+  if (Number.isNaN(start.getTime())) return '';
+  const diff = start.getTime() - Date.now();
+  if (diff <= 0) {
+    return 'Happening now';
+  }
+  if (diff < HOUR) {
+    const minutes = Math.max(1, Math.round(diff / MINUTE));
+    return `Starts in ${minutes} min`;
+  }
+  const hours = diff / HOUR;
+  if (hours < 24) {
+    return `Starts in ${hours.toFixed(1)} h`;
+  }
+  const days = Math.round(hours / 24);
+  return `Starts in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const describeLockout = (booking, session) => {
+  if (!booking?.lockoutEnabled) return null;
+  const hours = booking.lockoutWindowHours ?? booking.lockoutWindow ?? session?.lockoutWindowHours;
+  if (typeof hours !== 'number' || hours <= 0) return 'Lockout window enabled';
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60);
+    return `Lockout ${minutes} min before start`;
+  }
+  if (hours < 24) {
+    return `Lockout ${hours} h before start`;
+  }
+  const days = Math.round(hours / 24);
+  return `Lockout ${days} day${days === 1 ? '' : 's'} before`;
+};
+
+const describeReschedule = (booking) => {
+  if (booking?.reschedulingEnabled === false) {
+    return 'No rescheduling';
+  }
+  if (booking?.reschedulingEnabled === true) {
+    return 'Rescheduling available';
+  }
+  return null;
+};
+
+const describeCapacity = (availability) => {
+  const slots = availability?.availableSessions ?? availability?.availableSlots;
+  if (typeof slots !== 'number') return null;
+  if (slots === 0) return 'Fully booked';
+  if (slots <= 3) return `⚠ Only ${slots} slot${slots === 1 ? '' : 's'} left`;
+  return `${slots} sessions available`;
+};
+
+const describeBookingDeadline = (availability) => {
+  const raw = availability?.bookingDeadline;
+  if (!raw) return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return 'Booking closes today';
+  if (diff < HOUR) {
+    const minutes = Math.max(1, Math.round(diff / MINUTE));
+    return `Book within ${minutes} min`;
+  }
+  const hours = diff / HOUR;
+  if (hours < 24) {
+    return `Book within ${hours.toFixed(1)} h`;
+  }
+  const days = Math.round(hours / 24);
+  return `Book within ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const describeGrade = (result) => {
+  if (result.overallGrade) {
+    return `Grade: ${result.overallGrade}`;
+  }
+  if (typeof result.examinerScorePct1dp === 'number') {
+    return `Score: ${result.examinerScorePct1dp}%`;
+  }
+  return null;
+};
 
 const loadStudentAssignments = async (ctx, { status = 'open' } = {}) => {
   if (!ctx.cache.studentAssignments) {
@@ -158,21 +303,31 @@ const upcomingBookingsLoader = async (ctx) => {
   const bookings = await loadStudentBookings(ctx);
   if (!bookings.length) return [];
 
-  return bookings.map((booking) => {
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = bookings.map((booking) => {
     const session = booking.session || {};
     const start = session.start;
     const end = session.end;
     const sessionId = session.sessionId ?? session.id ?? booking.bookingId;
     const timeLabel = [formatDate(start), formatTime(start), formatTime(end)].filter(Boolean);
     const venue = session.venue?.name || session.venue?.room || null;
+    const countdown = formatCountdown(start);
+    const lockout = describeLockout(booking, session);
+    const reschedule = describeReschedule(booking);
+    const deadline = describeBookingDeadline({ bookingDeadline: booking.bookingDeadline });
 
     return {
       id: `student-booking-${sessionId}`,
       title: booking.assignmentName || 'Booked session',
       subtitle: [
         timeLabel[0] ? `${timeLabel[0]} • ${timeLabel[1] || ''}`.trim() : null,
+        countdown,
         venue,
         booking.courseCode,
+        lockout,
+        reschedule,
+        deadline,
       ]
         .filter(Boolean)
         .join(' • '),
@@ -184,30 +339,48 @@ const upcomingBookingsLoader = async (ctx) => {
         sessionId,
         venue,
         'booking',
+        countdown,
+        lockout,
+        reschedule,
+        deadline,
       ]
         .filter(Boolean)
         .join(' '),
     };
   });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const availableAssignmentsLoader = async (ctx) => {
   const assignments = await loadStudentAssignments(ctx, { status: 'bookable' });
   if (!assignments.length) return [];
 
-  return assignments
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = assignments
     .slice(0, 20)
     .map((assignment) => {
       const availability = assignment.availability || {};
       const nextWindow = assignment.nextAvailableDate || assignment.startDate;
-      const capacity = availability.availableSessions ?? availability.availableSlots;
+      const capacityLabel = describeCapacity(availability);
+      const deadlineLabel = describeBookingDeadline(availability);
+      const reschedule = availability.reschedulingEnabled
+        ? 'Rescheduling allowed'
+        : availability.reschedulingEnabled === false
+        ? 'No rescheduling'
+        : null;
+      const countdown = formatCountdown(nextWindow);
 
       return {
         id: `student-available-${assignment.assignmentId}`,
         title: assignment.assignmentName || 'Available assignment',
         subtitle: [
           assignment.courseCode,
-          capacity != null ? `${capacity} sessions available` : null,
+          capacityLabel,
+          deadlineLabel,
+          reschedule,
+          countdown,
           nextWindow ? `Next: ${formatDate(nextWindow)}` : null,
         ]
           .filter(Boolean)
@@ -222,19 +395,29 @@ const availableAssignmentsLoader = async (ctx) => {
           assignment.assignmentId,
           'book',
           'availability',
+          capacityLabel,
+          deadlineLabel,
+          reschedule,
+          countdown,
         ]
           .filter(Boolean)
           .join(' '),
       };
     });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const resultsLoader = async (ctx) => {
   const results = await loadStudentResults(ctx);
   if (!results.length) return [];
 
-  return results.slice(0, 30).map((result) => {
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = results.slice(0, 30).map((result) => {
     const releasedAt = result.releasedAt || result.updatedAt || result.completedAt;
+    const gradeLabel = describeGrade(result);
+    const statusLabel = result.releaseStatus ? result.releaseStatus.replace(/_/g, ' ') : null;
 
     return {
       id: `student-result-${result.assignmentId}`,
@@ -242,7 +425,8 @@ const resultsLoader = async (ctx) => {
       subtitle: [
         result.courseCode,
         releasedAt ? `Released ${formatDate(releasedAt)}` : null,
-        result.overallGrade ? `Grade: ${result.overallGrade}` : null,
+        gradeLabel,
+        statusLabel,
       ]
         .filter(Boolean)
         .join(' • '),
@@ -256,14 +440,34 @@ const resultsLoader = async (ctx) => {
         result.assignmentId,
         'result',
         'feedback',
+        gradeLabel,
+        statusLabel,
       ]
         .filter(Boolean)
         .join(' '),
     };
   });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const studentSources = [
+  {
+    id: FAVOURITES_SECTION_ID,
+    label: 'Favourites',
+    priority: 120,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadFavouritesSectionItems(ctx),
+  },
+  {
+    id: RECENTS_SECTION_ID,
+    label: 'Recent Searches',
+    priority: 110,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadRecentsSectionItems(ctx),
+  },
   {
     id: 'student.quick-links',
     label: 'Quick Links',
@@ -271,7 +475,10 @@ const studentSources = [
     defaultLimit: QUICK_LINKS.length,
     queryLimit: QUICK_LINKS.length,
     alwaysVisible: true,
-    loader: async () => QUICK_LINKS,
+    loader: async (ctx) => {
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(QUICK_LINKS, favouritesSet);
+    },
   },
   {
     id: 'student.upcoming-bookings',

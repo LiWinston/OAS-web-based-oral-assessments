@@ -13,9 +13,10 @@ _Last updated: 2025-03-21_
 | Piece | Responsibility | Location |
 | --- | --- | --- |
 | `useGlobalSearchStore` | Palette state (open, query, loading, errors, loaded sections) | `frontend/store/globalSearchStore.js` |
-| `GlobalSearchPalette` | UI & interaction layer (keyboard shortcuts, filtering, rendering) | `frontend/components/layout/GlobalSearchPalette.jsx` |
+| `GlobalSearchPalette` | UI & interaction layer (keyboard shortcuts, filtering, rendering, favourite toggles) | `frontend/components/layout/GlobalSearchPalette.jsx` |
 | `GlobalSearchProvider` | Fetch orchestrator; resolves active role, pulls data, hydrates store | `frontend/components/layout/GlobalSearchProvider.jsx` |
 | `search/registry` | Registry storing sources per role (`registerSearchSources` / `getSearchSources`) | `frontend/search/registry.js` |
+| `search/persistence` | LocalStorage helpers for per-role recents & favourites | `frontend/search/persistence.js` |
 | `search/sources/*` | Role-specific source definitions (Quick Links, Courses, etc.) | `frontend/search/sources/` |
 
 ## Data Flow
@@ -57,17 +58,51 @@ Source summary:
 
 | Source ID | Label | Purpose | Notes |
 | --- | --- | --- | --- |
+| `course-admin.favourites` | Favourites | Starred shortcuts pinned across sessions. | Pulled from role/user scoped localStorage; items always marked as favourite. |
+| `course-admin.recents` | Recent Searches | Last visited links from the palette. | Updated every time an item is executed; limited to 15 entries. |
 | `course-admin.quick-links` | Quick Links | Static shortcuts (Dashboard, Courses, Users, Results, Support, Docs). | `alwaysVisible` so the palette never feels empty on first open. |
-| `course-admin.courses` | Courses | All courses managed by the current admin. | Uses `courseService.getAllCourses`, cached. |
-| `course-admin.assignment-results` | Assignments — Results | Jumps directly into moderation & release screens. | Derived from the same assignment payload; subtitle adds course code. |
-| `course-admin.assignment-rubrics` | Assignments — Rubrics | Navigates to rubric setup. | Subtitle hints at rubric status (configured vs. needs setup). |
-| `course-admin.assignment-schedules` | Assignments — Sessions | Links to timeslot/session configuration. | Subtitle highlights scheduling context. |
+| `course-admin.courses` | Courses | All courses managed by the current admin. | Uses `courseService.getAllCourses`, cached; items expose favourite toggle state. |
+| `course-admin.assignment-results` | Assignments — Results | Jumps directly into moderation & release screens. | Shares cached assignment payloads; supports favourites. |
+| `course-admin.assignment-rubrics` | Assignments — Rubrics | Navigates to rubric setup. | Subtitle hints at rubric status (configured vs. needs setup); supports favourites. |
+| `course-admin.assignment-schedules` | Assignments — Sessions | Links to timeslot/session configuration. | Subtitle highlights scheduling context; supports favourites. |
 
 Implementation notes:
 
 - Assignments are fetched for every course returned by `courseService.getAllCourses`. If the backend response becomes very large, consider re-introducing a configurable cap or lazy loading.
 - All assignment-derived sections share a cached `courseAssignments` array so we only call the backend once per course.
+- Recents and favourites are stored in `localStorage` under `oas-search-{type}:{role}:{userId}`. Loaders pull the persisted lists into dedicated sections while augmenting every item with `allowFavourite`/`isFavourite` metadata so the palette can render star toggles.
+- Course Admin assignment loaders enrich subtitles with release status, marking progress, scheduling completeness, urgency, and due-date countdowns so admins can triage before clicking through.
 - Real-time status (e.g., number of configured slots) is intentionally omitted for now; add-on loaders can augment `keywords` or `subtitle` later if needed.
+
+## Examiner Source Set
+
+File: `frontend/search/sources/examiner.js`
+
+Source summary:
+
+| Source ID | Label | Purpose | Notes |
+| --- | --- | --- | --- |
+| `examiner.favourites` | Favourites | Starred shortcuts persisted per examiner. | Hydrated from `search/persistence.js`; items always allow favourite toggles. |
+| `examiner.recents` | Recent Searches | Jump back to last palette destinations. | Syncs with the palette’s `addRecent` hook after each navigation. |
+| `examiner.quick-links` | Quick Links | Dashboard, schedule, marking workspace, etc. | Items expose favourite toggles to pin common areas. |
+| `examiner.upcoming-sessions` | Upcoming Sessions | Shows future slots with countdown, staffing, and student load. | `subtitle` highlights session window, examiner coverage, venue, and start countdown. |
+| `examiner.marking-sessions` | Sessions Ready to Mark | Links directly into assessment UIs. | Surfaces marking status (draft/submitted/reopened) and booking load. |
+| `examiner.assignment-opportunities` | Assignments Needing Coverage | Self-assignment entry points. | Displays remaining examiner capacity, urgency, and signup countdowns. |
+
+## Student Source Set
+
+File: `frontend/search/sources/student.js`
+
+Source summary:
+
+| Source ID | Label | Purpose | Notes |
+| --- | --- | --- | --- |
+| `student.favourites` | Favourites | Persisted shortcuts the student has starred. | Role/user scoped via `search/persistence.js`. |
+| `student.recents` | Recent Searches | Last palette selections. | Updated automatically after navigation. |
+| `student.quick-links` | Quick Links | Dashboard, bookings, results, groups, help, etc. | Favourite-capable for quick pinning. |
+| `student.upcoming-bookings` | Upcoming Bookings | View upcoming sessions with timing safeguards. | Announces start countdowns, venue, lockout/reschedule status, and booking deadlines. |
+| `student.available-assignments` | Available to Book | Quickly book sessions still open. | Highlights remaining capacity, booking deadline, reschedule rules, and countdown to next slot. |
+| `student.released-results` | Recently Released Results | Deep link into results detail views. | Shows release date, grade/score, and release status cues. |
 
 ## Extending to a New Role
 
@@ -101,7 +136,7 @@ Implementation notes:
 
 2. **Import the Module** where the role should have search access (e.g., wrap the examiner layout in `GlobalSearchProvider` and include `import '@/search/sources/examiner';`).
 
-3. **Role-Specific Recent/Favourite Items** – Implement a loader that reads `localStorage` namespaced by role (e.g., `oas-search-recents:EXAMINER`). Because each role uses its own sources, favourite lists remain isolated.
+3. **Role-Specific Recent/Favourite Items** – Implement loaders backed by `search/persistence.js`, which already provides helpers used by the Course Admin sources (`getRecents`, `getFavourites`, `toggleFavourite`, etc.). Namespacing follows the pattern `oas-search-{recents|favourites}:{ROLE}:{userId}` so roles never bleed into each other.
 
 4. **Optional** – If a role shares the same shortcuts as Course Admin (e.g., Super Admin), register the same source array for that role, as we do with `registerSearchSources('SUPER_ADMIN', courseAdminSources)`.
 
@@ -117,12 +152,13 @@ Implementation notes:
 - **Keyboard shortcuts** (`⌘/Ctrl + K`, arrow navigation, `Enter`, `Esc`) are handled inside `GlobalSearchPalette`.
 - **Routing** – Items require a valid `href`. For Course Admin we normalise base paths to the existing App Router structure (`/admin/courses/[courseId]/assignments/...`).
 - **Caching Key** – `GlobalSearchProvider` caches by `role-userId`. Switching users or roles automatically triggers a reload.
+- **Favourites Toggle** – When a section item carries `allowFavourite`, the palette renders a star control. Toggling updates localStorage immediately and triggers an in-memory refresh so lists stay in sync without reopening the palette.
+- **Cross-role Persistence** – Any role that registers `.favourites` / `.recents` sections automatically opts into persistence. The palette detects those sections at runtime and updates the lists after navigation or star toggles without extra role-specific wiring.
 
 ## Deferred Enhancements
 
 - Real-time status badges for rubric/timeslot completion (backend support needed).
 - Fuzzy scoring (e.g., Fuse.js) once datasets grow large enough to justify it.
-- Role-specific “Recents”/“Favourites” sections persisted per role as discussed (isolated namespaces, easy to plug in as a new source).
 - Debounced refresh or manual refresh trigger inside the palette for admins who expect instant updates after major configuration changes.
 
 ## Troubleshooting

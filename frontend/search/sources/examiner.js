@@ -1,5 +1,10 @@
 import { registerSearchSources } from '../registry';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
+import {
+  getRecents,
+  getFavourites,
+  getFavouritesSet,
+} from '@/search/persistence';
 
 const QUICK_LINKS = [
   {
@@ -61,6 +66,162 @@ const formatTime = (iso) => {
 };
 
 const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+const FAVOURITES_SECTION_ID = 'examiner.favourites';
+const RECENTS_SECTION_ID = 'examiner.recents';
+
+const resolveUserId = (user) => user?.id ?? user?.userId ?? user?.examinerId;
+
+const ensureFavouritesCache = async (ctx) => {
+  if (ctx.cache.favourites) {
+    return ctx.cache.favourites;
+  }
+  const userId = resolveUserId(ctx.user);
+  const favourites = getFavourites(ctx.role, userId);
+  ctx.cache.favourites = favourites;
+  ctx.cache.favouritesSet = new Set(favourites.map((item) => item.id));
+  return favourites;
+};
+
+const getFavouriteSet = async (ctx) => {
+  if (ctx.cache.favouritesSet) {
+    return ctx.cache.favouritesSet;
+  }
+  await ensureFavouritesCache(ctx);
+  return ctx.cache.favouritesSet ?? new Set();
+};
+
+const markFavouriteMeta = (items, favouritesSet) =>
+  items.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+
+const loadRecentsSectionItems = (ctx) => {
+  const userId = resolveUserId(ctx.user);
+  const recents = getRecents(ctx.role, userId);
+  const favouritesSet = ctx.cache.favouritesSet
+    ? ctx.cache.favouritesSet
+    : (() => {
+        const set = getFavouritesSet(ctx.role, userId);
+        ctx.cache.favouritesSet = set;
+        return set;
+      })();
+  return recents.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+};
+
+const loadFavouritesSectionItems = async (ctx) => {
+  const favourites = await ensureFavouritesCache(ctx);
+  return favourites.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: true,
+  }));
+};
+
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
+const formatCountdown = (iso) => {
+  if (!iso) return '';
+  const start = new Date(iso);
+  if (Number.isNaN(start.getTime())) return '';
+  const diff = start.getTime() - Date.now();
+  if (diff <= 0) {
+    return 'Starting now';
+  }
+  if (diff < HOUR) {
+    const minutes = Math.max(1, Math.round(diff / MINUTE));
+    return `Starts in ${minutes} min`;
+  }
+  const hours = diff / HOUR;
+  if (hours < 24) {
+    return `Starts in ${hours.toFixed(1)} h`;
+  }
+  const days = Math.round(hours / 24);
+  return `Starts in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const describeStudentLoad = (session) => {
+  const count = session.bookingCount ?? session.participants?.length;
+  const capacity = session.capacity ?? session.studentCapacity?.capacity ?? session.studentCapacity?.total;
+  if (typeof count !== 'number') {
+    return null;
+  }
+  if (typeof capacity === 'number' && capacity > 0) {
+    return `${count}/${capacity} students booked`;
+  }
+  if (count === 0) {
+    return 'No students booked yet';
+  }
+  return `${count} students booked`;
+};
+
+const describeExaminerCoverage = (session) => {
+  const required = session.requiredExaminers ?? session.coverage?.required;
+  const assigned = session.currentExaminers ?? session.coverage?.assigned;
+  if (typeof required !== 'number' || typeof assigned !== 'number') {
+    return null;
+  }
+  const remaining = Math.max(required - assigned, 0);
+  if (remaining === 0) {
+    return 'Fully staffed';
+  }
+  return `${remaining} examiner slot${remaining === 1 ? '' : 's'} open`;
+};
+
+const toUpper = (value) => (typeof value === 'string' ? value.toUpperCase() : '');
+
+const describeMarkingStatus = (session) => {
+  const status = toUpper(session.status || session.markingStatus || session.assessmentStatus);
+  if (!status) return 'Ready to mark';
+  if (status === 'DRAFT') return 'Draft in progress';
+  if (status === 'SUBMITTED') return 'Submitted — review now';
+  if (status === 'REOPENED') return 'Reopened — needs attention';
+  return status.charAt(0) + status.slice(1).toLowerCase();
+};
+
+const describeUrgency = (assignment) => {
+  const urgency = toUpper(assignment.urgency);
+  if (!urgency) return null;
+  if (urgency.includes('HIGH')) return 'High urgency';
+  if (urgency.includes('MEDIUM')) return 'Medium urgency';
+  if (urgency.includes('LOW')) return 'Low urgency';
+  return urgency;
+};
+
+const formatSignupDeadline = (assignment) => {
+  const raw = assignment.signupDeadline || assignment.deadline;
+  if (!raw) return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return 'Signup closed';
+  if (diff < HOUR) {
+    const minutes = Math.max(1, Math.round(diff / MINUTE));
+    return `Signup closes in ${minutes} min`;
+  }
+  const hours = diff / HOUR;
+  if (hours < 24) {
+    return `Signup closes in ${hours.toFixed(1)} h`;
+  }
+  const days = Math.round(hours / 24);
+  return `Signup closes in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const formatAssessmentType = (type) => {
+  if (!type) return null;
+  const upper = type.toString().toUpperCase();
+  if (upper === 'INDIVIDUAL') return 'Individual session';
+  if (upper === 'GROUP') return 'Group session';
+  if (upper === 'MIX' || upper === 'MIXED') return 'Mixed session';
+  return `${upper.charAt(0)}${upper.slice(1).toLowerCase()} session`;
+};
 
 const loadScheduleAssignments = async (ctx) => {
   if (ctx.cache.examinerScheduleAssignments) {
@@ -128,15 +289,29 @@ const upcomingSessionsLoader = async (ctx) => {
     .sort((a, b) => new Date(a.session.start) - new Date(b.session.start))
     .slice(0, 12);
 
-  return sessions.map(({ assignment, session }) => {
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = sessions.map(({ assignment, session }) => {
     const sessionId = session.sessionId ?? session.slotId ?? session.id;
     const uniqueId = sessionId || `${assignment.assignmentId || 'assignment'}-${session.start || 'session'}`;
     const start = formatTime(session.start);
     const end = formatTime(session.end);
     const dateLabel = formatDate(session.start);
     const venue = session.venue?.name || session.venue?.room || '';
+    const countdown = formatCountdown(session.start);
+    const studentLoad = describeStudentLoad(session);
+    const coverage = describeExaminerCoverage(session);
+    const typeLabel = formatAssessmentType(session.assessmentType);
 
-    const subtitleParts = [dateLabel, start && end ? `${start} – ${end}` : start, venue]
+    const subtitleParts = [
+      dateLabel,
+      start && end ? `${start} – ${end}` : start,
+      typeLabel,
+      studentLoad,
+      coverage,
+      countdown,
+      venue,
+    ]
       .filter(Boolean)
       .join(' • ');
 
@@ -151,11 +326,17 @@ const upcomingSessionsLoader = async (ctx) => {
         assignment.courseCode,
         sessionId,
         venue,
+        typeLabel,
+        studentLoad,
+        coverage,
+        countdown,
       ]
         .filter(Boolean)
         .join(' '),
     };
   });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const markingSessionsLoader = async (ctx) => {
@@ -173,18 +354,31 @@ const markingSessionsLoader = async (ctx) => {
     .sort((a, b) => new Date(b.session.start) - new Date(a.session.start))
     .slice(0, 12);
 
-  return sessions.map(({ assignment, session }) => {
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = sessions.map(({ assignment, session }) => {
     const sessionId = session.sessionId ?? session.slotId ?? session.id;
     const uniqueId = sessionId || `${assignment.assignmentId || 'assignment'}-${session.start || 'session'}`;
     const dateLabel = formatDate(session.start);
     const summary = [assignment.assignmentName, assignment.courseCode]
       .filter(Boolean)
       .join(' • ');
+    const statusLabel = describeMarkingStatus(session);
+    const studentLoad = describeStudentLoad(session);
+    const typeLabel = formatAssessmentType(session.assessmentType);
 
     return {
       id: `examiner-marking-${uniqueId}`,
       title: `Mark ${summary || 'assessment'}`,
-      subtitle: `${dateLabel} • ${formatTime(session.start)} session ready for marking`,
+      subtitle: [
+        dateLabel,
+        formatTime(session.start),
+        statusLabel,
+        typeLabel,
+        studentLoad,
+      ]
+        .filter(Boolean)
+        .join(' • '),
       href: sessionId ? `/examiner/assessment/${sessionId}` : '/examiner/assessment',
       keywords: [
         'mark',
@@ -193,18 +387,25 @@ const markingSessionsLoader = async (ctx) => {
         assignment.courseName,
         assignment.courseCode,
         sessionId,
+        statusLabel,
+        studentLoad,
+        typeLabel,
       ]
         .filter(Boolean)
         .join(' '),
     };
   });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const assignmentOpportunitiesLoader = async (ctx) => {
   const assignments = await loadAvailableAssignments(ctx);
   if (!assignments.length) return [];
 
-  return assignments
+  const favouritesSet = await getFavouriteSet(ctx);
+
+  const items = assignments
     .filter((assignment) => {
       const remaining = assignment.examinerInfo?.remainingCapacity;
       return typeof remaining === 'number' ? remaining > 0 : true;
@@ -212,9 +413,15 @@ const assignmentOpportunitiesLoader = async (ctx) => {
     .slice(0, 20)
     .map((assignment) => {
       const remaining = assignment.examinerInfo?.remainingCapacity;
+      const urgency = describeUrgency(assignment);
+      const signupCountdown = formatSignupDeadline(assignment);
+      const startCountdown = formatCountdown(assignment.earliestTimeslot);
       const subtitleParts = [
         assignment.courseCode,
         remaining != null ? `${remaining} slots remaining` : null,
+        urgency,
+        signupCountdown,
+        startCountdown,
         assignment.earliestTimeslot ? `From ${formatDate(assignment.earliestTimeslot)}` : null,
       ].filter(Boolean);
 
@@ -232,14 +439,36 @@ const assignmentOpportunitiesLoader = async (ctx) => {
           assignment.assignmentId,
           'self assign',
           'schedule',
+          urgency,
+          signupCountdown,
+          startCountdown,
+          remaining != null ? `${remaining} slots remaining` : null,
         ]
           .filter(Boolean)
           .join(' '),
       };
     });
+
+  return markFavouriteMeta(items, favouritesSet);
 };
 
 const examinerSources = [
+  {
+    id: FAVOURITES_SECTION_ID,
+    label: 'Favourites',
+    priority: 120,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadFavouritesSectionItems(ctx),
+  },
+  {
+    id: RECENTS_SECTION_ID,
+    label: 'Recent Searches',
+    priority: 110,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadRecentsSectionItems(ctx),
+  },
   {
     id: 'examiner.quick-links',
     label: 'Quick Links',
@@ -247,7 +476,10 @@ const examinerSources = [
     defaultLimit: QUICK_LINKS.length,
     queryLimit: QUICK_LINKS.length,
     alwaysVisible: true,
-    loader: async () => QUICK_LINKS,
+    loader: async (ctx) => {
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(QUICK_LINKS, favouritesSet);
+    },
   },
   {
     id: 'examiner.upcoming-sessions',

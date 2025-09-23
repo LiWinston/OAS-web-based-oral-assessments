@@ -3,6 +3,13 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useGlobalSearchStore } from '@/store/globalSearchStore';
+import { useAuthStore } from '@/store/authStore';
+import {
+  addRecent,
+  toggleFavourite,
+  getFavourites,
+  getRecents,
+} from '@/search/persistence';
 
 const isInputLikeElement = (element) => {
   if (!element) return false;
@@ -62,6 +69,28 @@ const flattenSections = (sections) => {
   return flat;
 };
 
+const resolveUserId = (user) =>
+  user?.id ?? user?.userId ?? user?.adminId ?? user?.examinerId ?? user?.studentId;
+
+const itemsEqual = (a = [], b = []) => {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (!left || !right) return false;
+    if (
+      left.id !== right.id ||
+      left.href !== right.href ||
+      left.title !== right.title ||
+      left.subtitle !== right.subtitle ||
+      Boolean(left.isFavourite) !== Boolean(right.isFavourite)
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
 export function GlobalSearchPalette() {
   const router = useRouter();
   const pathname = usePathname();
@@ -75,6 +104,106 @@ export function GlobalSearchPalette() {
   const loading = useGlobalSearchStore((state) => state.loading);
   const error = useGlobalSearchStore((state) => state.error);
   const sections = useGlobalSearchStore((state) => state.sections);
+  const setSectionsState = useGlobalSearchStore((state) => state.setSections);
+  const user = useAuthStore((state) => state.user);
+
+  const role = user?.role;
+  const userId = resolveUserId(user);
+
+  const hasFavouritesSection = useMemo(
+    () => sections.some((section) => section?.id?.endsWith('.favourites')),
+    [sections]
+  );
+
+  const hasRecentsSection = useMemo(
+    () => sections.some((section) => section?.id?.endsWith('.recents')),
+    [sections]
+  );
+
+  const enablePersistence = Boolean(role && userId && (hasFavouritesSection || hasRecentsSection));
+
+  const shouldAllowFavourite = enablePersistence && hasFavouritesSection;
+  const shouldRecordRecent = enablePersistence && hasRecentsSection;
+
+  const syncSections = useCallback(
+    ({ favouritesList, recentsList } = {}) => {
+      if (!enablePersistence) return;
+
+      setSectionsState((prevSections) => {
+        const favouritesSectionExists = prevSections.some((section) => section?.id?.endsWith('.favourites'));
+        const recentsSectionExists = prevSections.some((section) => section?.id?.endsWith('.recents'));
+
+        if (!favouritesSectionExists && !recentsSectionExists) {
+          return prevSections;
+        }
+
+        const resolvedFavourites = favouritesSectionExists
+          ? favouritesList ?? getFavourites(role, userId)
+          : [];
+        const favouritesSet = new Set(resolvedFavourites.map((item) => item.id));
+        const resolvedRecents = recentsSectionExists
+          ? recentsList ?? getRecents(role, userId)
+          : [];
+
+        let mutated = false;
+
+        const nextSections = prevSections.map((section) => {
+          if (favouritesSectionExists && section?.id?.endsWith('.favourites')) {
+            const items = resolvedFavourites.map((item) => ({
+              ...item,
+              allowFavourite: true,
+              isFavourite: true,
+            }));
+            if (!itemsEqual(section.items, items)) {
+              mutated = true;
+              return { ...section, items };
+            }
+            return section;
+          }
+
+          if (recentsSectionExists && section?.id?.endsWith('.recents')) {
+            const items = resolvedRecents.map((item) => ({
+              ...item,
+              allowFavourite: true,
+              isFavourite: favouritesSet.has(item.id),
+            }));
+            if (!itemsEqual(section.items, items)) {
+              mutated = true;
+              return { ...section, items };
+            }
+            return section;
+          }
+
+          if (!Array.isArray(section.items) || section.items.length === 0) {
+            return section;
+          }
+
+          let sectionMutated = false;
+          const nextItems = section.items.map((item) => {
+            if (!item || !item.allowFavourite) {
+              return item;
+            }
+            const favouriteState = favouritesSet.has(item.id);
+            if (item.isFavourite === favouriteState) {
+              return item;
+            }
+            sectionMutated = true;
+            return { ...item, isFavourite: favouriteState };
+          });
+
+          if (sectionMutated) {
+            mutated = true;
+            return { ...section, items: nextItems };
+          }
+
+          return section;
+        });
+
+        return mutated ? nextSections : prevSections;
+      });
+    },
+    [enablePersistence, role, userId, setSectionsState]
+  );
 
   const sectionData = useMemo(() => {
     if (!Array.isArray(sections)) return [];
@@ -91,12 +220,19 @@ export function GlobalSearchPalette() {
   }, [setOpen, setQuery]);
 
   const handleSelect = useCallback(
-    (link) => {
+    (link, sectionId) => {
       if (!link?.href) return;
+
+      if (shouldRecordRecent) {
+        const payload = { ...link, sectionId: sectionId ?? link?.sectionId };
+        const recents = addRecent(role, userId, payload);
+        syncSections({ recentsList: recents });
+      }
+
       router.push(link.href);
       closePalette();
     },
-    [closePalette, router]
+    [closePalette, router, shouldRecordRecent, role, userId, syncSections]
   );
 
   useEffect(() => {
@@ -137,9 +273,9 @@ export function GlobalSearchPalette() {
         case 'Enter':
           if (allItems.length === 0) return;
           event.preventDefault();
-          const target = allItems[highlightedIndex]?.item;
-          if (target) {
-            handleSelect(target);
+          const targetEntry = allItems[highlightedIndex];
+          if (targetEntry?.item) {
+            handleSelect(targetEntry.item, targetEntry.section);
           }
           break;
         default:
@@ -187,6 +323,18 @@ export function GlobalSearchPalette() {
     closePalette();
   }, [pathname, closePalette]);
 
+  const handleFavouriteClick = useCallback(
+    (event, sectionId, item) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (!shouldAllowFavourite) return;
+      const payload = { ...item, sectionId: sectionId ?? item.sectionId };
+      const result = toggleFavourite(role, userId, payload);
+      syncSections({ favouritesList: result.favourites });
+    },
+    [shouldAllowFavourite, role, userId, syncSections]
+  );
+
   const renderSection = (section, startIndex) => {
     return (
       <div key={section.id} className="mt-4 first:mt-0">
@@ -197,24 +345,51 @@ export function GlobalSearchPalette() {
           {section.items.map((item, index) => {
             const flatIndex = startIndex + index;
             const isActive = highlightedIndex === flatIndex;
+            const isFavourite = Boolean(item.isFavourite);
             return (
               <button
                 key={item.id}
                 type="button"
                 onMouseEnter={() => setHighlightedIndex(flatIndex)}
-                onClick={() => handleSelect(item)}
+                onClick={() => handleSelect(item, section.id)}
                 className={`w-full flex flex-col items-start px-4 py-3 text-left transition-colors ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-100'
                     : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
               >
-                <span className="text-sm font-medium">{item.title}</span>
-                {item.subtitle && (
-                  <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {item.subtitle}
-                  </span>
-                )}
+                <div className="w-full flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block truncate">{item.title}</span>
+                    {item.subtitle && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block truncate">
+                        {item.subtitle}
+                      </span>
+                    )}
+                  </div>
+                  {shouldAllowFavourite && item.allowFavourite && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => handleFavouriteClick(event, section.id, item)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          handleFavouriteClick(event, section.id, item);
+                        }
+                      }}
+                      className={`p-1 rounded-md text-xs transition-colors cursor-pointer ${
+                        isFavourite
+                          ? 'text-yellow-500 hover:text-yellow-400'
+                          : 'text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-300'
+                      }`}
+                      aria-pressed={isFavourite}
+                      aria-label={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                      title={isFavourite ? 'Remove from favourites' : 'Add to favourites'}
+                    >
+                      <i className={`${isFavourite ? 'fas' : 'far'} fa-star`} aria-hidden="true"></i>
+                    </span>
+                  )}
+                </div>
               </button>
             );
           })}

@@ -1,8 +1,166 @@
 import { registerSearchSources } from '../registry';
 import { courseService } from '@/services/courseService';
 import { assignmentService } from '@/services/assignmentService';
+import {
+  getRecents,
+  getFavourites,
+  getFavouritesSet,
+} from '@/search/persistence';
 
 const MAX_ASSIGNMENT_COURSES = Infinity;
+const MINUTE = 60 * 1000;
+const HOUR = 60 * MINUTE;
+
+const formatDate = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-AU', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+};
+
+const formatCountdown = (iso) => {
+  if (!iso) return '';
+  const target = new Date(iso);
+  if (Number.isNaN(target.getTime())) return '';
+  const diff = target.getTime() - Date.now();
+  if (diff <= 0) return '';
+  if (diff < HOUR) {
+    const minutes = Math.max(1, Math.round(diff / MINUTE));
+    return `Due in ${minutes} min`;
+  }
+  const hours = diff / HOUR;
+  if (hours < 24) {
+    return `Due in ${hours.toFixed(1)} h`;
+  }
+  const days = Math.round(hours / 24);
+  return `Due in ${days} day${days === 1 ? '' : 's'}`;
+};
+
+const describeReleaseStatus = (assignment) => {
+  if (assignment.resultsReleased === true) return 'Results released';
+  if (assignment.resultsReleased === false) return 'Release pending';
+  const status = assignment.releaseStatus || assignment.resultsStatus;
+  if (!status) return null;
+  return status.replace(/_/g, ' ');
+};
+
+const describeMarkingProgress = (assignment) => {
+  const completed = assignment.completedSessions ?? assignment.markedSessions;
+  const total = assignment.totalSessions ?? assignment.sessionCount;
+  if (typeof completed === 'number' && typeof total === 'number' && total > 0) {
+    const pct = Math.round((completed / total) * 100);
+    return `Marking ${completed}/${total} (${pct}%)`;
+  }
+  const status = assignment.markingStatus || assignment.status;
+  if (!status) return null;
+  return status.replace(/_/g, ' ');
+};
+
+const describeRubricStatus = (assignment) => {
+  if (assignment.hasRubric) return 'Rubric ready';
+  const status = assignment.rubricStatus;
+  if (status) return status.replace(/_/g, ' ');
+  return 'Rubric not configured';
+};
+
+const describeScheduleStatus = (assignment) => {
+  if (assignment.hasTimeSlots) {
+    const total = assignment.totalSessions ?? assignment.scheduledSessions;
+    const completed = assignment.completedSessions;
+    if (typeof completed === 'number' && typeof total === 'number' && total > 0) {
+      const pct = Math.round((completed / total) * 100);
+      return `Sessions ${completed}/${total} (${pct}%)`;
+    }
+    return 'Sessions configured';
+  }
+  return 'Sessions not configured';
+};
+
+const describeStudentLoad = (assignment) => {
+  const students = assignment.students ?? assignment.studentCount;
+  if (typeof students === 'number' && students > 0) {
+    return `${students} students`; // simple summary
+  }
+  return null;
+};
+
+const describeWeight = (assignment) => {
+  const weight = assignment.weight ?? assignment.weighting;
+  if (typeof weight === 'number' && weight > 0) {
+    return `${weight}% weight`;
+  }
+  return null;
+};
+
+const describeUrgency = (assignment) => {
+  const value = assignment.urgency || assignment.priority;
+  if (!value) return null;
+  const upper = value.toString().toUpperCase();
+  if (upper.includes('HIGH')) return 'High urgency';
+  if (upper.includes('MEDIUM')) return 'Medium urgency';
+  if (upper.includes('LOW')) return 'Low urgency';
+  return upper.charAt(0) + upper.slice(1).toLowerCase();
+};
+const FAVOURITES_SECTION_ID = 'course-admin.favourites';
+const RECENTS_SECTION_ID = 'course-admin.recents';
+
+const resolveUserId = (user) => user?.id ?? user?.userId ?? user?.adminId;
+
+const ensureFavouritesCache = async (ctx) => {
+  if (ctx.cache.favourites) {
+    return ctx.cache.favourites;
+  }
+  const userId = resolveUserId(ctx.user);
+  const favourites = getFavourites(ctx.role, userId);
+  ctx.cache.favourites = favourites;
+  ctx.cache.favouritesSet = new Set(favourites.map((item) => item.id));
+  return favourites;
+};
+
+const getFavouriteSet = async (ctx) => {
+  if (ctx.cache.favouritesSet) {
+    return ctx.cache.favouritesSet;
+  }
+  await ensureFavouritesCache(ctx);
+  return ctx.cache.favouritesSet ?? new Set();
+};
+
+const markFavouriteMeta = (items, favouritesSet) =>
+  items.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+
+const loadRecentsSectionItems = (ctx) => {
+  const userId = resolveUserId(ctx.user);
+  const recents = getRecents(ctx.role, userId);
+  const favouritesSet = ctx.cache.favouritesSet
+    ? ctx.cache.favouritesSet
+    : (() => {
+        const set = getFavouritesSet(ctx.role, userId);
+        ctx.cache.favouritesSet = set;
+        return set;
+      })();
+  return recents.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: favouritesSet.has(item.id),
+  }));
+};
+
+const loadFavouritesSectionItems = async (ctx) => {
+  const favourites = await ensureFavouritesCache(ctx);
+  return favourites.map((item) => ({
+    ...item,
+    allowFavourite: true,
+    isFavourite: true,
+  }));
+};
 
 const QUICK_LINKS = [
   {
@@ -81,6 +239,16 @@ const buildAssignmentItems = (assignment, course) => {
     };
   }
 
+  const releaseStatus = describeReleaseStatus(assignment);
+  const markingProgress = describeMarkingProgress(assignment);
+  const rubricSummary = describeRubricStatus(assignment);
+  const scheduleSummary = describeScheduleStatus(assignment);
+  const studentLoad = describeStudentLoad(assignment);
+  const weightLabel = describeWeight(assignment);
+  const dueDateLabel = assignment.dueDate ? `Due ${formatDate(assignment.dueDate)}` : null;
+  const dueCountdown = formatCountdown(assignment.dueDate || assignment.endDate || assignment.startDate);
+  const urgencyLabel = describeUrgency(assignment);
+
   const baseKeywords = [
     assignment.name,
     assignment.description,
@@ -88,6 +256,15 @@ const buildAssignmentItems = (assignment, course) => {
     course.courseName,
     course.courseCode,
     assignmentId,
+    releaseStatus,
+    markingProgress,
+    rubricSummary,
+    scheduleSummary,
+    studentLoad,
+    weightLabel,
+    dueDateLabel,
+    dueCountdown,
+    urgencyLabel,
   ]
     .filter(Boolean)
     .join(' ');
@@ -95,37 +272,40 @@ const buildAssignmentItems = (assignment, course) => {
   const resultsItem = {
     id: `assignment-results-${assignmentId}`,
     title: assignment.name || 'Untitled Assignment',
-    subtitle: course.courseCode
-      ? `${course.courseCode} • Results`
-      : 'Assessment Results',
+    subtitle:
+      [
+        course.courseCode,
+        releaseStatus,
+        markingProgress,
+        urgencyLabel,
+        dueDateLabel || dueCountdown,
+      ]
+        .filter(Boolean)
+        .join(' • ') || 'Assessment Results',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/results`,
-    keywords: `${baseKeywords} results moderation release`,
+    keywords: `${baseKeywords} results moderation release ${releaseStatus || ''} ${markingProgress || ''}`,
   };
 
-  const rubricStatus = assignment.hasRubric
-    ? 'rubric configured'
-    : 'set up rubric';
   const rubricItem = {
     id: `assignment-rubric-${assignmentId}`,
     title: assignment.name || 'Untitled Assignment',
-    subtitle: course.courseCode
-      ? `${course.courseCode} • Rubric`
-      : 'Rubric configuration',
+    subtitle:
+      [course.courseCode, rubricSummary, weightLabel, urgencyLabel]
+        .filter(Boolean)
+        .join(' • ') || 'Rubric configuration',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/rubric`,
-    keywords: `${baseKeywords} rubric criteria feedback ${rubricStatus}`,
+    keywords: `${baseKeywords} rubric criteria feedback ${rubricSummary || ''}`,
   };
 
-  const scheduleStatus = assignment.hasTimeSlots
-    ? 'sessions configured'
-    : 'set up sessions';
   const scheduleItem = {
     id: `assignment-schedule-${assignmentId}`,
     title: assignment.name || 'Untitled Assignment',
-    subtitle: course.courseCode
-      ? `${course.courseCode} • Sessions`
-      : 'Session scheduling',
+    subtitle:
+      [course.courseCode, scheduleSummary, studentLoad, urgencyLabel, dueCountdown]
+        .filter(Boolean)
+        .join(' • ') || 'Session scheduling',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/timeslots`,
-    keywords: `${baseKeywords} timeslots schedule sessions availability ${scheduleStatus}`,
+    keywords: `${baseKeywords} timeslots schedule sessions availability ${scheduleSummary || ''}`,
   };
 
   return {
@@ -193,13 +373,32 @@ const loadAssignments = async (ctx) => {
 
 const courseAdminSources = [
   {
+    id: FAVOURITES_SECTION_ID,
+    label: 'Favourites',
+    priority: 120,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadFavouritesSectionItems(ctx),
+  },
+  {
+    id: RECENTS_SECTION_ID,
+    label: 'Recent Searches',
+    priority: 110,
+    defaultLimit: 6,
+    queryLimit: Infinity,
+    loader: async (ctx) => loadRecentsSectionItems(ctx),
+  },
+  {
     id: 'course-admin.quick-links',
     label: 'Quick Links',
     priority: 100,
     defaultLimit: 6,
     queryLimit: 6,
     alwaysVisible: true,
-    loader: async () => QUICK_LINKS,
+    loader: async (ctx) => {
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(QUICK_LINKS, favouritesSet);
+    },
   },
   {
     id: 'course-admin.courses',
@@ -209,7 +408,8 @@ const courseAdminSources = [
     queryLimit: Infinity,
     loader: async (ctx) => {
       const courses = await loadCourses(ctx);
-      return courses.map(toCourseItem);
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(courses.map(toCourseItem), favouritesSet);
     },
   },
   {
@@ -220,9 +420,13 @@ const courseAdminSources = [
     queryLimit: Infinity,
     loader: async (ctx) => {
       const assignmentPairs = await loadAssignments(ctx);
-      return assignmentPairs
-        .map(({ course, assignment }) => buildAssignmentItems(assignment, course).results)
-        .filter(Boolean);
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(
+        assignmentPairs
+          .map(({ course, assignment }) => buildAssignmentItems(assignment, course).results)
+          .filter(Boolean),
+        favouritesSet
+      );
     },
   },
   {
@@ -233,9 +437,13 @@ const courseAdminSources = [
     queryLimit: Infinity,
     loader: async (ctx) => {
       const assignmentPairs = await loadAssignments(ctx);
-      return assignmentPairs
-        .map(({ course, assignment }) => buildAssignmentItems(assignment, course).rubrics)
-        .filter(Boolean);
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(
+        assignmentPairs
+          .map(({ course, assignment }) => buildAssignmentItems(assignment, course).rubrics)
+          .filter(Boolean),
+        favouritesSet
+      );
     },
   },
   {
@@ -246,9 +454,13 @@ const courseAdminSources = [
     queryLimit: Infinity,
     loader: async (ctx) => {
       const assignmentPairs = await loadAssignments(ctx);
-      return assignmentPairs
-        .map(({ course, assignment }) => buildAssignmentItems(assignment, course).schedules)
-        .filter(Boolean);
+      const favouritesSet = await getFavouriteSet(ctx);
+      return markFavouriteMeta(
+        assignmentPairs
+          .map(({ course, assignment }) => buildAssignmentItems(assignment, course).schedules)
+          .filter(Boolean),
+        favouritesSet
+      );
     },
   },
 ];

@@ -631,7 +631,8 @@ NEXT_PUBLIC_API_BASE_URL=http://172.22.80.212:8081
 - ✅ Course Admin results moderation & release flow (mock data aligned with API contract)
 - ✅ CSV import for student/group data
 - ✅ Course Admin and Super Admin management systems
-- ✅ Course Admin global search command palette with deep links to results, rubric, and session configuration
+- ✅ Course Admin global search command palette with recents/favourites, due-date countdowns, and deep links to results/rubric/session configuration
+- ✅ Examiner & Student command palettes with role-specific recents/favourites and urgency cues (booking capacity, countdowns, marking status)
 
 **Critical PRD Gaps:**
 - ❌ **Examiner Marking Interface**: No actual assessment execution interface
@@ -705,12 +706,12 @@ The following reflects the current state of the frontend implementation against 
 - Implementation: Three-step session configuration wizard for Course Admin; calendar-based timeslot display and management; batch operations (duplicate, delete, notify); examiner self-assignment with conflict detection; withdrawal functionality when no students booked.
 - User can: Configure assessment session parameters; create and manage timeslots with venues; assign examiners to slots; view calendar-based schedules; perform bulk operations; track booking status.
 
-### Global Search Command Palette — 🚧 Partial (Course Admin ready)
+### Global Search Command Palette — 🚧 Partial (Examiner/Student integrations ongoing)
 
-- Current: Course Admin layout exposes a role-aware command palette (`GlobalSearchPalette`) triggered via header input or `⌘/Ctrl+K`. Sources register through `search/registry.js` with dedicated Course Admin feeds (quick links, courses, assignment results, rubric setup, session scheduling).
-- Implementation: `GlobalSearchProvider` orchestrates per-role loading, caches shared datasets, and avoids caching failed loads so transient errors retry on next open. `globalSearchStore.js` tracks open state, query text, sections, and loading/errors.
-- User can: Search across Course Admin navigation, specific courses, assignments (results/rubric/sessions), and deep-link directly from the palette.
-- Pending: Register Examiner and Student sources, add per-role recents/favourites once their datasets are defined.
+- Current: Course Admin, Examiner, and Student layouts expose a role-aware command palette (`GlobalSearchPalette`) triggered via header input or `⌘/Ctrl+K`. Each role registers dedicated feeds (favourites, recents, quick links, entity shortcuts) via `search/registry.js`.
+- Implementation: `GlobalSearchProvider` orchestrates per-role loading, caches shared datasets, and avoids caching failed loads so transient errors retry on next open. `globalSearchStore.js` tracks open state, query text, sections, and loading/errors. `search/persistence.js` stores per-role/user recents & favourites, hydrating dedicated sections while exposing inline star toggles. The palette detects any `.favourites`/`.recents` sections at runtime, so roles automatically inherit persistence once their sources register those sections. Examiner/Student loaders add countdowns, capacity warnings, and status cues so urgency is visible before navigation.
+- User can: Search across navigation, courses, assignments, sessions, and results; star frequently used shortcuts; re-open recent destinations without typing; and see time-sensitive cues (e.g., remaining examiner slots, booking lockouts, marking progress) directly inside the palette.
+- Pending: Hook Examiner/Student sources to real backend analytics once APIs stabilise, and add fuzzy matching to improve partial queries.
 
 ### Notifications System — ⏳ Partial (UI notifications only)
 
