@@ -725,7 +725,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                     status.setOverallFeedback(submission.getOverallFeedback());
                     status.setSubmittedAt(submission.getSubmittedAt());
                     status.setScoresJson(submission.getScoresJson());
-                } else if ("RETURNED".equals(dbStatus)) {
+                } else if ("REOPENED".equals(dbStatus)) {
                     status.setStatus(AssessmentStatus.REOPEN);
                     // Fill detailed information for REOPEN status
                     status.setTotalScore(submission.getTotalScore());

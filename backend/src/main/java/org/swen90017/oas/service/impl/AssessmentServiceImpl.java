@@ -85,6 +85,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         boolean isCreate = (existing == null);
         AssessmentSubmission record = isCreate ? new AssessmentSubmission() : existing;
+        record.setStatus("DRAFT");
         if (isCreate) {
             record.setAssignmentId(request.getAssignmentId());
             record.setSessionId(request.getSessionId());
@@ -92,7 +93,6 @@ public class AssessmentServiceImpl implements AssessmentService {
             record.setSubjectType(normalizedSubjectType);
             record.setSubjectId(request.getSubjectId());
             record.setExaminerId(examinerId);
-            record.setStatus("DRAFT");
             record.setCreatedAt(LocalDateTime.now());
             record.setUpdatedAt(LocalDateTime.now());
             record.setVersion(record.getVersion() == null ? 0 : record.getVersion());
