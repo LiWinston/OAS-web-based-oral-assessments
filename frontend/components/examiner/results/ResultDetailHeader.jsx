@@ -8,23 +8,24 @@ import { Button } from '../../ui/button';
 
 function StatusChip({ assessmentStatus, releaseStatus }) {
   const status = assessmentStatus === 'REOPENED' ? 'Reopened' : (releaseStatus === 'RELEASED' ? 'Released' : (assessmentStatus === 'SUBMITTED' ? 'Submitted' : 'Draft'));
-  const style = status === 'Reopened'
-    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border-purple-200 dark:border-purple-800'
+  
+  const baseClasses = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
+  const colorClasses = status === 'Reopened'
+    ? 'bg-purple-100 text-purple-800 border border-purple-200'
     : status === 'Released'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800'
+      ? 'bg-green-100 text-green-800 border border-green-200'
       : status === 'Submitted'
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800'
-        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-amber-200 dark:border-amber-800';
-  return <Badge className={style} variant="outline">{status}</Badge>;
+        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+        : 'bg-amber-100 text-amber-800 border border-amber-200';
+  
+  return <div className={`${baseClasses} ${colorClasses}`}>{status}</div>;
 }
 
-function fmtRange(start, end) {
-  const s = new Date(start);
-  const e = new Date(end);
+function fmtSubmittedTime(submittedAt) {
+  const s = new Date(submittedAt);
   const date = s.toLocaleDateString('en-AU', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-  const st = s.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
-  const et = e.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
-  return { date, st, et };
+  const time = s.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+  return { date, time };
 }
 
 export default function ResultDetailHeader({ detail, versions = [], currentVersion = 'latest' }) {
@@ -32,8 +33,8 @@ export default function ResultDetailHeader({ detail, versions = [], currentVersi
   const router = useRouter();
   const search = useSearchParams();
   if (!detail) return null;
-  const { assignment, session, assessmentStatus, releaseStatus } = detail;
-  const time = fmtRange(session?.start, session?.end);
+  const { assignment, session, assessmentStatus, releaseStatus, submittedAt } = detail;
+  const time = fmtSubmittedTime(submittedAt);
 
   const onJump = (v) => {
     const params = new URLSearchParams(search?.toString() || '');
@@ -58,8 +59,8 @@ export default function ResultDetailHeader({ detail, versions = [], currentVersi
                 <div className="font-medium">{time.date}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-500">Time</div>
-                <div className="font-medium">{time.st} – {time.et}</div>
+                <div className="text-xs text-gray-500">Submitted Time</div>
+                <div className="font-medium">{time.time}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500">Location</div>

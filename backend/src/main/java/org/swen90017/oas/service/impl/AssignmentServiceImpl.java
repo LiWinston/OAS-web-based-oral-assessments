@@ -634,12 +634,22 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         
         // Convert to DTOs with batch optimization
         List<StudentAssignmentResponseDTO> assignmentDTOs = convertToStudentAssignmentDTOsBatch(result.getRecords(), studentId);
+
+        if ("bookable".equals(queryDTO.getStatus())) {
+            assignmentDTOs = assignmentDTOs.stream()
+                    .filter(dto -> dto.getBooking() == null || !Boolean.TRUE.equals(dto.getBooking().getHasActiveBooking()))
+                    .collect(Collectors.toList());
+        }
         
         // Build response
         StudentAssignmentListResponseDTO response = new StudentAssignmentListResponseDTO();
         response.setPageNum(queryDTO.getPageNum());
         response.setPageSize(queryDTO.getPageSize());
-        response.setTotal(result.getTotal());
+        if ("bookable".equals(queryDTO.getStatus())) {
+            response.setTotal((long) assignmentDTOs.size());
+        } else {
+            response.setTotal(result.getTotal());
+        }
         response.setData(assignmentDTOs);
         
         return response;

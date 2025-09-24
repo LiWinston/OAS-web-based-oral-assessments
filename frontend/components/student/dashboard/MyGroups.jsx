@@ -17,6 +17,20 @@ export function MyGroups() {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [memberPreviews, setMemberPreviews] = useState({}); // groupId -> [{studentId,name,avatarUrl}]
+
+  // Align initials color scheme with My Groups page
+  const getInitialsColor = (name) => {
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500',
+      'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500'
+    ];
+    return colors[name.length % colors.length];
+  };
+
+  const generateMemberInitials = (name) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  };
 
   useEffect(() => {
     loadGroups();
@@ -28,13 +42,31 @@ export function MyGroups() {
       setError(null);
       
       const groupsData = await studentGroupsService.getCurrentUserGroups();
-      
-      // Format groups for UI display and limit to first 2 for dashboard
-      const formattedGroups = groupsData
-        .map(group => studentGroupsService.formatGroupForUI(group))
-        .slice(0, 2); // Show only first 2 groups on dashboard
-      
+
+      // Format groups for UI display, show all groups (scroll inside card)
+      const formattedGroups = groupsData.map(group => studentGroupsService.formatGroupForUI(group));
       setGroups(formattedGroups);
+
+      // Concurrently fetch small member previews for each group (up to 3 per group)
+      try {
+        const previews = {};
+        const promises = formattedGroups.map(async (g) => {
+          if (memberPreviews[g.groupId]) return;
+          const detail = await studentGroupsService.getCurrentUserGroupDetails(g.groupId);
+          const members = detail?.members || [];
+          previews[g.groupId] = members.slice(0, 3).map(m => ({
+            studentId: m.studentId,
+            name: m.name,
+            avatarUrl: m.avatarUrl || m.photoUrl || m.avatar || undefined,
+          }));
+        });
+        await Promise.allSettled(promises);
+        if (Object.keys(previews).length > 0) {
+          setMemberPreviews(prev => ({ ...prev, ...previews }));
+        }
+      } catch (_e) {
+        // ignore preview errors
+      }
     } catch (err) {
       console.error('Error loading groups for dashboard:', err);
       setError(err.message || 'Failed to load groups');
@@ -112,7 +144,7 @@ export function MyGroups() {
             </p>
           </div>
         ) : (
-          <ul className="space-y-4">
+          <ul className="space-y-4 max-h-80 overflow-y-auto pr-1">
             {groups.map((group) => (
               <li
                 key={group.groupId}
@@ -134,22 +166,42 @@ export function MyGroups() {
 
                     {/* Member avatars preview */}
                     <div className="mt-3 flex -space-x-1 overflow-hidden">
-                      {Array.from({length: Math.min(group.memberCount, 4)}).map((_, index) => {
-                        const memberName = `Member ${index + 1}`;
-                        return (
-                          <div key={index} className="relative group">
-                            {generateAvatar(memberName)}
-                            {/* Tooltip */}
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                              Group member {index + 1}
-                            </div>
+                      {(memberPreviews[group.groupId] || []).map((m) => (
+                        m.avatarUrl ? (
+                          <img
+                            key={m.studentId}
+                            src={m.avatarUrl}
+                            alt={m.name}
+                            className="h-6 w-6 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                          />
+                        ) : (
+                          <div
+                            key={m.studentId}
+                            className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${getInitialsColor(m.name)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                          >
+                            {generateMemberInitials(m.name)}
                           </div>
-                        );
-                      })}
-                      {group.memberCount > 4 && (
+                        )
+                      ))}
+                      {(() => {
+                        const count = Math.min(group.memberCount, 3) - ((memberPreviews[group.groupId] || []).length);
+                        if (count <= 0) return null;
+                        return Array.from({ length: count }).map((_, i) => {
+                          const placeholderName = `Member ${i + 1}`;
+                          return (
+                            <div
+                              key={`ph-${i}`}
+                              className={`inline-flex items-center justify-center h-6 w-6 rounded-full ${getInitialsColor(placeholderName)} text-white text-xs font-medium ring-2 ring-white dark:ring-gray-800`}
+                            >
+                              {generateMemberInitials(placeholderName)}
+                            </div>
+                          );
+                        });
+                      })()}
+                      {group.memberCount > 3 && (
                         <div className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-600 ring-2 ring-white dark:ring-gray-800">
-                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                            +{group.memberCount - 4}
+                          <span className="text-[10px] font-medium text-gray-600 dark:text-gray-300">
+                            +{group.memberCount - 3}
                           </span>
                         </div>
                       )}

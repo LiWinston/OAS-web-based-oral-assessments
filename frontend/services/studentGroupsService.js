@@ -7,6 +7,7 @@
  */
 
 import apiClient, { api } from './apiClient';
+import useAuthStore from '../store/authStore';
 
 // Mock data following the API contract data models
 const mockGroupsData = {
@@ -111,8 +112,7 @@ const mockGroupsData = {
   }
 };
 
-// Mock current user ID for authorization checks
-const MOCK_CURRENT_USER_ID = 205;
+// Note: do not hardcode a fallback student id; always read from auth store
 
 /**
  * Student Groups Service Class
@@ -348,7 +348,14 @@ class StudentGroupsService {
    */
   async getCurrentUserGroups() {
     try {
-      const response = await this.getStudentGroups(MOCK_CURRENT_USER_ID);
+      const authState = useAuthStore.getState();
+      const studentId = authState?.user?.id;
+      if (!studentId) {
+        const err = new Error('Missing current student identity');
+        err.code = 'UNAUTHENTICATED';
+        throw err;
+      }
+      const response = await this.getStudentGroups(studentId);
       return response.data.data; // Extract the groups array from the paginated response
     } catch (error) {
       console.error('Error fetching current user groups:', error);
@@ -365,7 +372,14 @@ class StudentGroupsService {
    */
   async getCurrentUserGroupDetails(groupId) {
     try {
-      const response = await this.getGroupDetails(MOCK_CURRENT_USER_ID, groupId);
+      const authState = useAuthStore.getState();
+      const studentId = authState?.user?.id;
+      if (!studentId) {
+        const err = new Error('Missing current student identity');
+        err.code = 'UNAUTHENTICATED';
+        throw err;
+      }
+      const response = await this.getGroupDetails(studentId, groupId);
       return response.data.group; // Extract the group object from the response
     } catch (error) {
       console.error('Error fetching current user group details:', error);

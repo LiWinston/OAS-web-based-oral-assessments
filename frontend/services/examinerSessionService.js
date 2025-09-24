@@ -63,50 +63,80 @@ const examinerSessionService = {
    */
   async getAssignmentSessions(examinerId, assignmentId, filters = {}) {
     try {
-      // Build payload with only non-null values to avoid backend validation issues
-      const payload = {};
-      if (filters.date) payload.date = filters.date;
-      if (filters.venueId !== undefined) payload.venueId = Number(filters.venueId);
-      if (filters.status) payload.status = filters.status;
-      
-      // Add any additional filters
-      Object.keys(filters).forEach(key => {
-        if (!['date', 'venueId', 'status'].includes(key) && filters[key] !== undefined) {
-          payload[key] = filters[key];
+      const params = {};
+      if (filters.date) params.date = filters.date;
+      if (filters.venueId !== undefined && filters.venueId !== null && filters.venueId !== '') {
+        params.venueId = Number(filters.venueId);
+      }
+      if (filters.status) params.status = filters.status.toString().toUpperCase();
+
+      let response;
+      try {
+        response = await apiClient.get(
+          `/api/admin/sessions/assignments/${assignmentId}/sessions`,
+          { params }
+        );
+      } catch (error) {
+        const statusCode = error?.response?.status;
+
+        if (!statusCode || ![404, 405].includes(statusCode)) {
+          throw error;
         }
-      });
 
+        // Build payload for legacy fallback
+        const payload = {};
+        if (filters.date) payload.date = filters.date;
+        if (filters.venueId !== undefined) payload.venueId = Number(filters.venueId);
+        if (filters.status) payload.status = filters.status;
 
-      const response = await apiClient.post(
-        `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
-        payload
-      );
-      
-      
+        Object.keys(filters).forEach((key) => {
+          if (!['date', 'venueId', 'status'].includes(key) && filters[key] !== undefined) {
+            payload[key] = filters[key];
+          }
+        });
+
+        response = await apiClient.post(
+          `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
+          payload
+        );
+      }
+
       // Check if backend response has success/data structure
       if (response.data?.success && response.data?.data) {
-        // Extract sessions array from data.sessions
-        const sessionsData = response.data.data.sessions || [];
+        const sessionsPayload = response.data.data;
+        const sessionsData = Array.isArray(sessionsPayload)
+          ? sessionsPayload
+          : Array.isArray(sessionsPayload.sessions)
+            ? sessionsPayload.sessions
+            : [];
+
         return {
           success: true,
           code: 'OK',
-          data: sessionsData  // Return the actual sessions array
+          data: sessionsData,
+          summary: sessionsPayload.summary || null,
+          fullyStaffed: sessionsPayload.fullyStaffed ?? null,
+          partiallyStaffed: sessionsPayload.partiallyStaffed ?? null,
+          unstaffed: sessionsPayload.unstaffed ?? null,
+          outsideAssignmentRange: sessionsPayload.outsideAssignmentRange ?? null,
+          message: sessionsPayload.message ?? null,
         };
-      } else if (Array.isArray(response.data)) {
-        // If response.data is directly an array
+      }
+
+      if (Array.isArray(response.data)) {
         return {
           success: true,
           code: 'OK',
           data: response.data
         };
-      } else {
-        return {
-          success: false,
-          code: 'NO_DATA',
-          message: 'No sessions data found',
-          data: []
-        };
       }
+
+      return {
+        success: false,
+        code: 'NO_DATA',
+        message: 'No sessions data found',
+        data: []
+      };
     } catch (error) {
       console.error('Error fetching assignment sessions:', error);
       return {

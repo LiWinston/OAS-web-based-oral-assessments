@@ -344,6 +344,73 @@ export const assignmentService = {
     return response.data;
   },
 
+  async savePredefinedComment(assignmentId, criterionDescription, levelDescription, commentText) {
+    try {
+      // First get the current assignment data
+      const assignmentResponse = await this.getAssignmentById(assignmentId);
+      if (!assignmentResponse?.success || !assignmentResponse?.data) {
+        throw new Error('Failed to fetch assignment data');
+      }
+
+      const assignment = assignmentResponse.data;
+      const rubricsInfo = [...(assignment.rubricsInfo || [])];
+
+      // Find the criterion that matches the description
+      const criterionIndex = rubricsInfo.findIndex(criterion => 
+        criterion.description === criterionDescription
+      );
+
+      if (criterionIndex === -1) {
+        throw new Error('Criterion not found');
+      }
+
+      // Find the performance level that matches the description
+      const performanceLevels = [...(rubricsInfo[criterionIndex].performanceLevel || [])];
+      const levelIndex = performanceLevels.findIndex(level => 
+        level.description === levelDescription
+      );
+
+      if (levelIndex === -1) {
+        throw new Error('Performance level not found');
+      }
+
+      // Add the comment to the preDefinedComment array if it doesn't already exist
+      const existingComments = performanceLevels[levelIndex].preDefinedComment || [];
+      if (!existingComments.includes(commentText)) {
+        performanceLevels[levelIndex] = {
+          ...performanceLevels[levelIndex],
+          preDefinedComment: [...existingComments, commentText]
+        };
+
+        // Update the rubricsInfo
+        rubricsInfo[criterionIndex] = {
+          ...rubricsInfo[criterionIndex],
+          performanceLevel: performanceLevels
+        };
+
+        // Update the assignment with the new rubricsInfo
+        const updateData = {
+          ...assignment,
+          rubricsInfo: rubricsInfo
+        };
+
+        const response = await api.put(`/api/assignments/${assignmentId}`, updateData);
+        return response.data;
+      } else {
+        return {
+          success: true,
+          message: 'Comment already exists'
+        };
+      }
+    } catch (error) {
+      console.error('Error saving predefined comment:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to save comment'
+      };
+    }
+  },
+
   async uploadStudentData(assignmentId, csvFile) {
     if (USE_MOCK_API) {
       return await mockAssignmentService.uploadStudentData(

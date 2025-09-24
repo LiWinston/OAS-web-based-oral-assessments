@@ -8,14 +8,17 @@ const precedence = (a) => (a === 'REOPENED' ? 4 : a === 'RELEASED' ? 3 : a === '
 
 function StatusChip({ assessmentStatus, releaseStatus }) {
   const status = assessmentStatus === 'REOPENED' ? 'Reopened' : (releaseStatus === 'RELEASED' ? 'Released' : (assessmentStatus === 'SUBMITTED' ? 'Submitted' : 'Draft'));
-  const style = status === 'Reopened'
-    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border-purple-200 dark:border-purple-800'
+  
+  const baseClasses = 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold';
+  const colorClasses = status === 'Reopened'
+    ? 'bg-purple-100 text-purple-800 border border-purple-200'
     : status === 'Released'
-      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 border-green-200 dark:border-green-800'
+      ? 'bg-green-100 text-green-800 border border-green-200'
       : status === 'Submitted'
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200 border-blue-200 dark:border-blue-800'
-        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200 border-amber-200 dark:border-amber-800';
-  return <Badge className={style} variant="outline">{status}</Badge>;
+        ? 'bg-blue-100 text-blue-800 border border-blue-200'
+        : 'bg-amber-100 text-amber-800 border border-amber-200';
+  
+  return <div className={`${baseClasses} ${colorClasses}`}>{status}</div>;
 }
 
 function fmtDateTime(s) {
@@ -34,86 +37,62 @@ function groupBy(items, fnKey) {
 }
 
 export default function ResultsTable({ items = [] }) {
-  console.log('ResultsTable received items:', items);
-  console.log('ResultsTable items length:', items?.length);
-  
   if (!items?.length) {
-    console.log('ResultsTable: No items, showing empty message');
     return (
       <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">No results found.</div>
     );
   }
 
-  // Debug the grouping logic
-  items.forEach((item, index) => {
-    console.log(`Item ${index}:`, {
-      assessmentId: item.assessmentId,
-      assignmentId: item.assignment?.id,
-      sessionId: item.session?.id,
-      assignmentName: item.assignment?.name,
-      groupKey: `${item.assignment?.id}-${item.session?.id}`
-    });
-  });
-
   const groups = groupBy(items, (it) => `${it.assignment?.id}-${it.session?.id}`);
-  console.log('ResultsTable groups:', groups);
 
   try {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700">
         <div className="hidden md:block">
           <table className="w-full">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
-                <th className="p-3">Assignment</th>
-                <th className="p-3">Entity</th>
-                <th className="p-3">Session</th>
-                <th className="p-3 text-center">Your Mark</th>
-                <th className="p-3">Status</th>
+              <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border-b-2 border-gray-200 dark:border-gray-600">
+                <th className="p-4 font-semibold">Assignment</th>
+                <th className="p-4 font-semibold">Entity</th>
+                <th className="p-4 font-semibold">Submit Time</th>
+                <th className="p-4 font-semibold text-center">Your Mark</th>
+                <th className="p-4 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>
             {groups.map(({ key, group }) => (
               <Fragment key={key}>
-                <tr key={`hdr-${key}`} className="bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
-                  <td colSpan={5} className="p-3 text-sm text-gray-700 dark:text-gray-300">
-                    <div className="flex justify-between">
-                      <div className="font-medium">
-                        {group[0].assignment?.courseCode ? `${group[0].assignment.courseCode} · ${group[0].assignment.courseName} · ${group[0].assignment?.name}` : group[0].assignment?.name}
-                      </div>
-                      <div className="text-xs text-gray-500">{fmtDateTime(group[0].session?.start)} → {fmtDateTime(group[0].session?.end)}</div>
-                    </div>
-                  </td>
-                </tr>
                 {group.map((it) => (
-                  <tr key={it.assessmentId} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40">
-                  <td className="p-3">
+                  <tr key={it.assessmentId} className="border-t border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors duration-150">
+                  <td className="p-4">
                     <div className="font-medium text-gray-900 dark:text-gray-100">
-                      <Link href={`/examiner/results/${it.assessmentId}`} className="hover:underline">{it.assignment?.name}</Link>
+                      <Link href={`/examiner/results/${it.assessmentId}`} className="hover:underline hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{it.assignment?.name}</Link>
                     </div>
-                  <div className="text-xs text-gray-500">{it.assignment?.courseCode ? `${it.assignment.courseCode} • ${it.assignment.courseName}` : String(it.assignment?.type || '').toUpperCase()}</div>
+                  <div className="text-xs text-gray-500 mt-1">{it.assignment?.courseCode ? `${it.assignment.courseCode} • ${it.assignment.courseName}` : String(it.assignment?.type || '').toUpperCase()}</div>
                   </td>
-                  <td className="p-3 text-sm text-gray-800 dark:text-gray-200">
+                  <td className="p-4 text-sm text-gray-800 dark:text-gray-200">
                     {it.entity?.kind === 'GROUP' ? (
                       <div>
                         <div className="font-medium">{it.entity.group?.groupName || `Group #${it.entity.group?.groupId}`}</div>
-                        <div className="text-xs text-gray-500">Members: {it.entity.group?.memberCount || '-'}</div>
+                        <div className="text-xs text-gray-500 mt-1">Members: {it.entity.group?.memberCount || '-'}</div>
                       </div>
                     ) : (
                       <div>
                         <div className="font-medium">{it.entity.student?.name}</div>
-                        <div className="text-xs text-gray-500">ID: {it.entity.student?.studentId}</div>
+                        <div className="text-xs text-gray-500 mt-1">ID: {it.entity.student?.studentId}</div>
                       </div>
                     )}
                   </td>
-                <td className="p-3 text-sm text-gray-800 dark:text-gray-200">
-                  <div>{fmtDateTime(it.session?.start)} → {fmtDateTime(it.session?.end)}</div>
-                  {it.session?.venue?.room && (
-                    <div className="text-xs text-gray-500">{it.session.venue.room}</div>
-                  )}
+                <td className="p-4 text-sm text-gray-800 dark:text-gray-200">
+                  <div className="font-medium">{fmtDateTime(it.submittedAt)}</div>
+                  <div className="text-xs text-gray-500 mt-1">Submitted</div>
                 </td>
-                  <td className="p-3 text-center font-semibold text-blue-700 dark:text-blue-300">{it.examinerScorePct1dp != null ? `${it.examinerScorePct1dp.toFixed ? it.examinerScorePct1dp.toFixed(1) : it.examinerScorePct1dp}%` : '-'}</td>
-                  <td className="p-3"><StatusChip assessmentStatus={it.assessmentStatus} releaseStatus={it.releaseStatus} /></td>
+                  <td className="p-4 text-center">
+                    <div className="font-bold text-lg text-blue-700 dark:text-blue-300">
+                      {it.examinerScorePct1dp != null ? `${it.examinerScorePct1dp.toFixed ? it.examinerScorePct1dp.toFixed(2) : it.examinerScorePct1dp}` : '-'}
+                    </div>
+                  </td>
+                  <td className="p-4"><StatusChip assessmentStatus={it.assessmentStatus} releaseStatus={it.releaseStatus} /></td>
                 </tr>
                 ))}
               </Fragment>
@@ -125,19 +104,31 @@ export default function ResultsTable({ items = [] }) {
       {/* Cards on mobile */}
       <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
         {items.map((it) => (
-          <Link key={it.assessmentId} href={`/examiner/results/${it.assessmentId}`} className="block p-3">
-            <div className="flex justify-between items-start">
-              <div>
+          <Link key={it.assessmentId} href={`/examiner/results/${it.assessmentId}`} className="block p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors">
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex-1">
                 <div className="font-medium text-gray-900 dark:text-gray-100">{it.assignment?.name}</div>
-                <div className="text-xs text-gray-500">{it.assignment?.courseCode ? `${it.assignment.courseCode} • ${it.assignment.courseName}` : String(it.assignment?.type || '').toUpperCase()}</div>
+                <div className="text-xs text-gray-500 mt-1">{it.assignment?.courseCode ? `${it.assignment.courseCode} • ${it.assignment.courseName}` : String(it.assignment?.type || '').toUpperCase()}</div>
               </div>
               <StatusChip assessmentStatus={it.assessmentStatus} releaseStatus={it.releaseStatus} />
             </div>
-            <div className="mt-2 text-sm text-gray-800 dark:text-gray-200">
-              {it.entity?.kind === 'GROUP' ? it.entity.group?.groupName : it.entity.student?.name}
+            <div className="text-sm text-gray-800 dark:text-gray-200 mb-2">
+              <span className="font-medium">
+                {it.entity?.kind === 'GROUP' ? it.entity.group?.groupName : it.entity.student?.name}
+              </span>
             </div>
-            <div className="mt-1 text-xs text-gray-500">{fmtDateTime(it.session?.start)} → {fmtDateTime(it.session?.end)}</div>
-            <div className="mt-2 text-sm font-semibold text-blue-700 dark:text-blue-300">{it.examinerScorePct1dp != null ? `${it.examinerScorePct1dp.toFixed ? it.examinerScorePct1dp.toFixed(1) : it.examinerScorePct1dp}%` : '-'}</div>
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="text-xs text-gray-500">Submit Time</div>
+                <div className="text-sm font-medium">{fmtDateTime(it.submittedAt)}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-gray-500">Your Mark</div>
+                <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+                  {it.examinerScorePct1dp != null ? `${it.examinerScorePct1dp.toFixed ? it.examinerScorePct1dp.toFixed(2) : it.examinerScorePct1dp}` : '-'}
+                </div>
+              </div>
+            </div>
           </Link>
         ))}
       </div>

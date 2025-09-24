@@ -44,6 +44,10 @@ export default function AssignmentsAvailable() {
     return true;
   });
 
+  const trulyBookableCount = assignments.filter(
+    (a) => !Boolean(a?.booking?.hasActiveBooking)
+  ).length;
+
   const onBook = (assignmentId) => router.push(`/student/booking/${assignmentId}`);
 
   const formatDeadline = (deadline) => {
@@ -138,7 +142,7 @@ export default function AssignmentsAvailable() {
             Assignments Available to Book
           </h2>
           <span className="ml-3 px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
-            {assignments.length} available
+            {trulyBookableCount} bookable
           </span>
         </div>
       </div>
@@ -175,15 +179,36 @@ export default function AssignmentsAvailable() {
                   )}
                 </div>
                 <PolicyChips availability={a.availability} />
+                {a?.booking?.hasActiveBooking && (
+                  <div className="mt-2 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-2">
+                    <i className="fas fa-info-circle"></i>
+                    Already booked. Please reschedule via My Bookings.
+                  </div>
+                )}
               </div>
-              <div className="ml-4">
+              <div className="ml-4 flex flex-col items-end gap-2">
                 <button
                   onClick={() => onBook(a.assignmentId)}
-                  className="px-3 py-1.5 text-sm rounded-md bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={Boolean(a?.booking?.hasActiveBooking)}
+                  className={`px-3 py-1.5 text-sm rounded-md text-white flex items-center ${
+                    a?.booking?.hasActiveBooking
+                      ? "bg-gray-400 cursor-not-allowed opacity-80"
+                      : "bg-blue-600 hover:bg-blue-700"
+                  }`}
                 >
                   <i className="fas fa-calendar-check mr-1"></i>
-                  Book Now
+                  {a?.booking?.hasActiveBooking
+                    ? "Already booked — manage in My Bookings"
+                    : "Book Now"}
                 </button>
+                {a?.booking?.hasActiveBooking && (
+                  <button
+                    onClick={() => router.push(`/student/booking/${a.assignmentId}/confirmation`)}
+                    className="px-2 py-1 text-xs rounded-md border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  >
+                    View booking
+                  </button>
+                )}
               </div>
             </div>
           </div>
