@@ -29,13 +29,25 @@ function normalizeSession(session, examinerId, assignmentIdHint) {
       ? { venueId: session.venueId, name: session.venueName }
       : null);
 
-  const required = session.requiredExaminers ?? session.coverage?.required ?? session.required ?? null;
+  let required = session.requiredExaminers ?? session.coverage?.required ?? session.required ?? null;
+  if (required != null) {
+    const numericRequired = Number(required);
+    if (!Number.isNaN(numericRequired)) {
+      required = numericRequired;
+    }
+  }
 
   // Get assigned examiners array and count
   const assignedExaminers = session.assignedExaminers || [];
-  const assigned = session.currentExaminers
+  let assigned = session.currentExaminers
     ?? session.coverage?.assigned
     ?? assignedExaminers.length;
+  if (assigned != null) {
+    const numericAssigned = Number(assigned);
+    if (!Number.isNaN(numericAssigned)) {
+      assigned = numericAssigned;
+    }
+  }
 
   // Check if current examiner is already assigned to this session
   const isExaminerAlreadyAssigned = examinerId && Array.isArray(assignedExaminers)
@@ -51,10 +63,16 @@ function normalizeSession(session, examinerId, assignmentIdHint) {
   const status = (session.status || '').toString().toUpperCase();
   const publishedToExaminer = session.publishedToExaminer;
 
+  const examinerCapacityReached = (required != null && assigned != null)
+    ? Number(assigned) >= Number(required)
+    : null;
+
   const isFullyStaffed = session.coverage?.isFullyStaffed
-    ?? (remainingCapacity != null
-      ? remainingCapacity <= 0
-      : (required != null && assigned != null ? assigned >= required : false));
+    ?? (examinerCapacityReached !== null
+      ? examinerCapacityReached
+      : (remainingCapacity != null ? remainingCapacity <= 0 : false));
+
+  const hasExaminerCapacity = examinerCapacityReached === null ? true : !examinerCapacityReached;
 
   const conflict = session.conflict ?? false;
 
@@ -70,17 +88,26 @@ function normalizeSession(session, examinerId, assignmentIdHint) {
   let derivedReason = null;
   if (alreadyAssigned) {
     derivedReason = 'ALREADY_ASSIGNED';
-  } else if (conflict) {
+  }
+  if (derivedReason === null && rawAvailability?.canSelect === false) {
+    derivedReason = rawAvailability?.reason ?? 'SESSION_UNAVAILABLE';
+  }
+  if (derivedReason === null && !hasExaminerCapacity) {
+    derivedReason = 'SESSION_CLOSED';
+  }
+  if (derivedReason === null && conflict) {
     derivedReason = 'TIME_CONFLICT';
-  } else if (!rawAvailability?.canSelect) {
-    derivedReason = rawAvailability?.reason ?? null;
-  } else if (publishedToExaminer === false) {
+  }
+  if (derivedReason === null && publishedToExaminer === false) {
     derivedReason = 'NOT_PUBLISHED';
-  } else if (status === 'CANCELLED') {
+  }
+  if (derivedReason === null && status === 'CANCELLED') {
     derivedReason = 'SESSION_CANCELLED';
-  } else if (status === 'DRAFT' || status === 'CREATED' || status === 'PENDING') {
+  }
+  if (derivedReason === null && (status === 'DRAFT' || status === 'CREATED' || status === 'PENDING')) {
     derivedReason = 'SESSION_NOT_OPEN';
-  } else if (isFullyStaffed) {
+  }
+  if (derivedReason === null && isFullyStaffed) {
     derivedReason = 'SESSION_CLOSED';
   }
 
@@ -110,6 +137,22 @@ function normalizeSession(session, examinerId, assignmentIdHint) {
     return 'GROUP';
   })();
 
+  const participantsList = (() => {
+    if (Array.isArray(session.participants)) return session.participants;
+    if (Array.isArray(session.students)) return session.students;
+    if (Array.isArray(session.enrolledStudents)) {
+      return session.enrolledStudents
+        .map((student) => student?.name || student?.studentNumber || (student?.id ? `Student ${student.id}` : null))
+        .filter(Boolean);
+    }
+    if (Array.isArray(session.enrolledGroups)) {
+      return session.enrolledGroups
+        .map((group) => group?.name || (group?.id ? `Group ${group.id}` : null))
+        .filter(Boolean);
+    }
+    return [];
+  })();
+
   return {
     sessionId,
     slotId: sessionId,
@@ -131,9 +174,13 @@ function normalizeSession(session, examinerId, assignmentIdHint) {
     isBooked: session.isBooked ?? bookingCount > 0,
     bookingCount,
     capacity,
+    examinerCapacityReached,
+    hasExaminerCapacity,
     canWithdraw: session.canWithdraw ?? (bookingCount === 0),
     cannotWithdrawReason: session.cannotWithdrawReason ?? null,
-    participants: session.participants ?? session.students ?? [],
+    participants: participantsList,
+    enrolledStudents: Array.isArray(session.enrolledStudents) ? session.enrolledStudents : undefined,
+    enrolledGroups: Array.isArray(session.enrolledGroups) ? session.enrolledGroups : undefined,
     sessionCount: 1,
     isExaminerAlreadyAssigned, // Add flag for UI to show "You're already assigned"
     assessmentType: normalizedAssessmentType,
@@ -226,32 +273,54 @@ export const examinerTimeslotServiceReal = {
     }
   },
 
-  // POST /api/examiners/{examinerId}/assignments/{assignmentId}/sessions/query
-  // Fallback: POST /api/assignments/{assignmentId}/timeslots/query
+  // Primary: GET /api/admin/sessions/assignments/{assignmentId}/sessions
+  // Legacy fallback: POST /api/examiners/{examinerId}/assignments/{assignmentId}/sessions/query
+  // Secondary fallback: POST /api/assignments/{assignmentId}/timeslots/query
   async getAvailableSessions(assignmentId, options = {}) {
     const { examinerId, date, venueId, includeFullSlots, status, pageNum, pageSize } = options || {};
     try {
-      const body = {};
-      if (date) body.date = date;
-      if (venueId) body.venueId = Number(venueId);
-      const resolvedStatus = status
-        ? status
-        : typeof includeFullSlots !== 'undefined'
-          ? (includeFullSlots ? 'ALL' : 'AVAILABLE')
-          : undefined;
-      if (resolvedStatus) body.status = resolvedStatus.toString().toUpperCase();
+      const params = {};
+      if (date) params.date = date;
+      if (venueId) params.venueId = Number(venueId);
+      if (status) params.status = status.toString().toUpperCase();
 
       let res;
-      if (examinerId != null) {
-        res = await apiClient.post(
-          `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
-          body
+      let usedAdminEndpoint = false;
+      try {
+        res = await apiClient.get(
+          `/api/admin/sessions/assignments/${assignmentId}/sessions`,
+          { params }
         );
-      } else {
-        res = await apiClient.post(
-          `/api/assignments/${assignmentId}/timeslots/query`,
-          body
-        );
+        usedAdminEndpoint = true;
+      } catch (error) {
+        const statusCode = error?.response?.status;
+
+        // Fall back to legacy endpoints only when admin route is unavailable
+        if (!statusCode || ![404, 405].includes(statusCode)) {
+          throw error;
+        }
+
+        const body = {};
+        if (date) body.date = date;
+        if (venueId) body.venueId = Number(venueId);
+        const resolvedStatus = status
+          ? status
+          : typeof includeFullSlots !== 'undefined'
+            ? (includeFullSlots ? 'ALL' : 'AVAILABLE')
+            : undefined;
+        if (resolvedStatus) body.status = resolvedStatus.toString().toUpperCase();
+
+        if (examinerId != null) {
+          res = await apiClient.post(
+            `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
+            body
+          );
+        } else {
+          res = await apiClient.post(
+            `/api/assignments/${assignmentId}/timeslots/query`,
+            body
+          );
+        }
       }
 
       const payload = res?.data?.data || {};
@@ -262,17 +331,32 @@ export const examinerTimeslotServiceReal = {
           : Array.isArray(payload.timeSlots)
             ? payload.timeSlots
             : [];
-
       const items = itemsRaw.map((session) => normalizeSession(session, examinerId, Number(assignmentId))).filter(Boolean);
 
-      const requestedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : items.length;
+      let filteredItems = items;
+      if (includeFullSlots === false) {
+        filteredItems = items.filter((session) => session.isExaminerAlreadyAssigned || session.availability?.canSelect);
+      }
+
+      const requestedPageSize = Number.isInteger(pageSize) && pageSize > 0 ? pageSize : filteredItems.length;
       const requestedPageNum = Number.isInteger(pageNum) && pageNum >= 0 ? pageNum : 0;
       const startIndex = requestedPageNum * requestedPageSize;
-      const paginated = items.slice(startIndex, startIndex + requestedPageSize);
+      const paginated = filteredItems.slice(startIndex, startIndex + requestedPageSize);
+
+      const totalItems = filteredItems.length;
 
       const assignmentInfo = payload.assignment || { assignmentId: Number(assignmentId) };
       const examinerInfo = payload.examinerInfo || null;
-      const summary = payload.summary || null;
+      const summary = payload.summary || (
+        (payload.fullyStaffed != null || payload.partiallyStaffed != null || payload.unstaffed != null)
+          ? {
+              fullyStaffed: payload.fullyStaffed ?? null,
+              partiallyStaffed: payload.partiallyStaffed ?? null,
+              unstaffed: payload.unstaffed ?? null,
+              totalSessions: payload.totalSessions ?? items.length,
+            }
+          : null
+      );
 
       return {
         success: true,
@@ -283,9 +367,15 @@ export const examinerTimeslotServiceReal = {
           summary,
           sessions: paginated,
           timeSlots: paginated,
-          total: items.length,
+          total: totalItems,
           pageNum: requestedPageNum,
           pageSize: requestedPageSize,
+          outsideAssignmentRange: payload.outsideAssignmentRange ?? null,
+          message: payload.message ?? null,
+          fullyStaffed: payload.fullyStaffed ?? summary?.fullyStaffed ?? null,
+          partiallyStaffed: payload.partiallyStaffed ?? summary?.partiallyStaffed ?? null,
+          unstaffed: payload.unstaffed ?? summary?.unstaffed ?? null,
+          source: usedAdminEndpoint ? 'admin-sessions' : 'legacy-query',
         },
       };
     } catch (error) {

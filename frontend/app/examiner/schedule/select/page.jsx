@@ -41,35 +41,40 @@ function TimeslotSelectionContent() {
 
   // Debug logging for development
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Debug - Examiner Auth:', {
+    if (process.env.NODE_ENV === "development") {
+      console.log("🔍 Debug - Examiner Auth:", {
         examinerId,
-        isValidExaminer
+        isValidExaminer,
       });
     }
   }, [examinerId, isValidExaminer]);
 
   // Fetch available assignments with debugging
-  const { 
-    data: assignmentsData, 
-    isLoading: isLoadingAssignments, 
+  const {
+    data: assignmentsData,
+    isLoading: isLoadingAssignments,
     error: assignmentsError,
-    refetch: refetchAssignments
+    refetch: refetchAssignments,
   } = useQuery({
-    queryKey: ['availableAssignments', examinerId],
+    queryKey: ["availableAssignments", examinerId],
     queryFn: async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🌐 API Call - Getting available assignments for examiner:', examinerId);
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          "🌐 API Call - Getting available assignments for examiner:",
+          examinerId
+        );
       }
       try {
-        const result = await examinerTimeslotService.getAvailableAssignments(examinerId);
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📦 API Response - Available assignments:', result);
+        const result = await examinerTimeslotService.getAvailableAssignments(
+          examinerId
+        );
+        if (process.env.NODE_ENV === "development") {
+          console.log("📦 API Response - Available assignments:", result);
         }
         return result;
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ API Error - Failed to fetch assignments:', error);
+        if (process.env.NODE_ENV === "development") {
+          console.error("❌ API Error - Failed to fetch assignments:", error);
         }
         throw error;
       }
@@ -77,67 +82,76 @@ function TimeslotSelectionContent() {
     enabled: isValidExaminer && !!examinerId && currentStep === 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Debug assignments data changes
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' && assignmentsData) {
-      console.log('📊 Debug - Assignments data updated:', {
+    if (process.env.NODE_ENV === "development" && assignmentsData) {
+      console.log("📊 Debug - Assignments data updated:", {
         success: assignmentsData?.success,
         dataLength: assignmentsData?.data?.data?.length || 0,
         totalAssignments: assignmentsData?.data?.total || 0,
-        errorPresent: !!assignmentsError
+        errorPresent: !!assignmentsError,
       });
     }
   }, [assignmentsData, assignmentsError]);
 
   // Fetch available sessions when assignment is selected and on step 2
-  const { 
-    data: timeslotsData, 
-    isLoading: isLoadingTimeslots, 
+  const {
+    data: timeslotsData,
+    isLoading: isLoadingTimeslots,
     error: timeslotsError,
-    refetch: refetchTimeslots
+    refetch: refetchTimeslots,
   } = useQuery({
-    queryKey: ['availableSessions', selectedAssignment?.assignmentId, examinerId],
+    queryKey: [
+      "availableSessions",
+      selectedAssignment?.assignmentId,
+      examinerId,
+    ],
     queryFn: async () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🌐 API Call - Getting available sessions:', {
+      if (process.env.NODE_ENV === "development") {
+        console.log("🌐 API Call - Getting available sessions:", {
           assignmentId: selectedAssignment.assignmentId,
-          examinerId: examinerId
+          examinerId: examinerId,
         });
       }
       try {
         const result = await examinerTimeslotService.getAvailableSessions(
-          selectedAssignment.assignmentId, 
+          selectedAssignment.assignmentId,
           { examinerId }
         );
-        if (process.env.NODE_ENV === 'development') {
-          console.log('📦 API Response - Available sessions:', result);
+        if (process.env.NODE_ENV === "development") {
+          console.log("📦 API Response - Available sessions:", result);
         }
         return result;
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('❌ API Error - Failed to fetch sessions:', error);
+        if (process.env.NODE_ENV === "development") {
+          console.error("❌ API Error - Failed to fetch sessions:", error);
         }
         throw error;
       }
     },
-    enabled: !!selectedAssignment && isValidExaminer && !!examinerId && currentStep === 2,
+    enabled:
+      !!selectedAssignment &&
+      isValidExaminer &&
+      !!examinerId &&
+      currentStep === 2,
     refetchInterval: 30000, // 30 seconds
     staleTime: 10000, // 10 seconds
     retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Availability summary for step 2 banner
   const availabilitySummary = useMemo(() => {
     if (!timeslotsData?.success) return null;
-    const sessions = timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
+    const sessions =
+      timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
     if (!Array.isArray(sessions)) return null;
     const selectable = sessions.filter((s) => s?.availability?.canSelect);
     const reasonsMap = sessions
-      .filter(s => !s?.availability?.canSelect && s?.availability?.reason)
+      .filter((s) => !s?.availability?.canSelect && s?.availability?.reason)
       .reduce((acc, s) => {
         const r = s.availability.reason;
         acc[r] = (acc[r] || 0) + 1;
@@ -145,14 +159,14 @@ function TimeslotSelectionContent() {
       }, {});
     let primaryReason = null;
     if (selectable.length === 0) {
-      const arr = Object.entries(reasonsMap).sort((a,b) => b[1]-a[1]);
+      const arr = Object.entries(reasonsMap).sort((a, b) => b[1] - a[1]);
       if (arr.length > 0) primaryReason = arr[0][0];
     }
     return {
       hasAny: sessions.length > 0,
       hasSelectable: selectable.length > 0,
       primaryReason,
-      reasonsMap
+      reasonsMap,
     };
   }, [timeslotsData]);
 
@@ -161,7 +175,7 @@ function TimeslotSelectionContent() {
     const assignmentId = searchParams.get("assignmentId");
     if (assignmentId && assignmentsData?.success) {
       const assignment = assignmentsData.data.data.find(
-        a => a.assignmentId === parseInt(assignmentId)
+        (a) => a.assignmentId === parseInt(assignmentId)
       );
       if (assignment) {
         setSelectedAssignment(assignment);
@@ -171,20 +185,28 @@ function TimeslotSelectionContent() {
   }, [searchParams, assignmentsData]);
 
   // Prefer assignment and examiner info from sessions API payload when available
-  const maxSessions = useMemo(() => (
-    timeslotsData?.data?.examinerInfo?.maxSessions ?? selectedAssignment?.examinerInfo?.maxSessions ?? 12
-  ), [timeslotsData, selectedAssignment]);
-  const summaryAssignment = useMemo(() => ({
-    ...(timeslotsData?.data?.assignment || {}),
-    ...(selectedAssignment || {}),
-  }), [timeslotsData, selectedAssignment]);
+  const maxSessions = useMemo(
+    () =>
+      timeslotsData?.data?.examinerInfo?.maxSessions ??
+      selectedAssignment?.examinerInfo?.maxSessions ??
+      12,
+    [timeslotsData, selectedAssignment]
+  );
+  const summaryAssignment = useMemo(
+    () => ({
+      ...(timeslotsData?.data?.assignment || {}),
+      ...(selectedAssignment || {}),
+    }),
+    [timeslotsData, selectedAssignment]
+  );
 
   // Get available dates from API data
   const getAvailableDates = () => {
     if (!timeslotsData?.success) {
       return [];
     }
-    const sessions = timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
+    const sessions =
+      timeslotsData.data?.sessions || timeslotsData.data?.timeSlots;
     if (!Array.isArray(sessions)) return [];
 
     const dates = new Set();
@@ -218,12 +240,18 @@ function TimeslotSelectionContent() {
     } else {
       const cap = maxSessions;
       if (currentAllocation + slot.sessionCount > cap) {
-        setSelectionMessage({ type: 'error', text: `You have reached your maximum allocation of ${maxSessions} sessions.` });
+        setSelectionMessage({
+          type: "error",
+          text: `You have reached your maximum allocation of ${maxSessions} sessions.`,
+        });
         return;
       }
       const conflict = allocatedSlots.find((s) => hasConflict(s, slot));
       if (conflict) {
-        setSelectionMessage({ type: 'error', text: 'This session conflicts with another selected session. Please choose a different time.' });
+        setSelectionMessage({
+          type: "error",
+          text: "This session conflicts with another selected session. Please choose a different time.",
+        });
         return;
       }
       setAllocatedSlots([...allocatedSlots, slot]);
@@ -277,17 +305,17 @@ function TimeslotSelectionContent() {
     setIsSubmitting(true);
     setSubmitError(null);
     setSubmitResult(null);
-    
+
     try {
-      const slotAssignments = allocatedSlots.map(slot => ({
-        slotId: slot.slotId
+      const slotAssignments = allocatedSlots.map((slot) => ({
+        slotId: slot.slotId,
       }));
 
       const result = await examinerTimeslotService.assignExaminerToTimeslots(
         selectedAssignment.assignmentId,
         {
           examinerId,
-          slotAssignments
+          slotAssignments,
         }
       );
 
@@ -295,56 +323,71 @@ function TimeslotSelectionContent() {
 
       if (result.success) {
         // Invalidate schedule queries so main page reflects latest data
-        queryClient.invalidateQueries({ queryKey: ['examinerSchedule'] });
-        queryClient.invalidateQueries({ queryKey: ['examinerDay'] });
-        queryClient.invalidateQueries({ queryKey: ['examinerWeek'] });
-        queryClient.invalidateQueries({ queryKey: ['availableAssignments'] });
-    queryClient.invalidateQueries({ queryKey: ['availableSessions', selectedAssignment?.assignmentId] });
+        queryClient.invalidateQueries({ queryKey: ["examinerSchedule"] });
+        queryClient.invalidateQueries({ queryKey: ["examinerDay"] });
+        queryClient.invalidateQueries({ queryKey: ["examinerWeek"] });
+        queryClient.invalidateQueries({ queryKey: ["availableAssignments"] });
+        queryClient.invalidateQueries({
+          queryKey: ["availableSessions", selectedAssignment?.assignmentId],
+        });
 
         // Show modal dialog in the center with summary
-        const details = (result.data?.assignedSlots || []).slice(0, 5).map((s) => {
-          const match = allocatedSlots.find((x) => x.slotId === s.slotId) || {};
-          const start = match.start ? new Date(match.start) : null;
-          const end = match.end ? new Date(match.end) : null;
-          if (start && end) {
-            return `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`;
-          }
-          return `Slot #${s.slotId}`;
-        });
+        const details = (result.data?.assignedSlots || [])
+          .slice(0, 5)
+          .map((s) => {
+            const match =
+              allocatedSlots.find((x) => x.slotId === s.slotId) || {};
+            const start = match.start ? new Date(match.start) : null;
+            const end = match.end ? new Date(match.end) : null;
+            if (start && end) {
+              return `${start.toLocaleDateString("en-AU", {
+                month: "short",
+                day: "numeric",
+              })} ${start.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+              })} – ${end.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+              })}`;
+            }
+            return `Slot #${s.slotId}`;
+          });
         setResultDialogProps({
-          status: result.data?.partial ? 'warning' : 'success',
-          title: result.data?.partial ? 'Partial Assignment Completed' : 'Sessions Assigned',
+          status: result.data?.partial ? "warning" : "success",
+          title: result.data?.partial
+            ? "Partial Assignment Completed"
+            : "Sessions Assigned",
           message: result.data?.partial
             ? `Assigned ${result.data.assignedSlots.length} session(s), ${result.data.failedSlots.length} failed.`
             : `Successfully assigned ${result.data.assignedSlots.length} session(s).`,
           details,
           autoDismiss: true,
           autoDismissMs: 5000,
-          onAutoDismiss: () => router.push('/examiner/schedule'),
-          onPrimaryAction: () => router.push('/examiner/schedule'),
-          primaryActionLabel: 'View My Schedule',
+          onAutoDismiss: () => router.push("/examiner/schedule"),
+          onPrimaryAction: () => router.push("/examiner/schedule"),
+          primaryActionLabel: "View My Schedule",
         });
         setResultDialogOpen(true);
       } else {
-        const msg = result.message || 'Failed to submit selections';
+        const msg = result.message || "Failed to submit selections";
         setSubmitError(msg);
         setResultDialogProps({
-          status: 'error',
-          title: 'Assignment Failed',
+          status: "error",
+          title: "Assignment Failed",
           message: msg,
           autoDismiss: false,
-          primaryActionLabel: 'Close',
+          primaryActionLabel: "Close",
         });
         setResultDialogOpen(true);
       }
     } catch (error) {
-      console.error('Submit error:', error);
-      setSubmitError('Failed to submit selections. Please try again.');
+      console.error("Submit error:", error);
+      setSubmitError("Failed to submit selections. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
 
   const navigateMonth = (direction) => {
     const newMonth = new Date(currentMonth);
@@ -481,7 +524,7 @@ function TimeslotSelectionContent() {
           onSelectAssignment={setSelectedAssignment}
           onRetry={() => refetchAssignments()}
           onNext={nextStep}
-          showDevInfo={process.env.NODE_ENV === 'development'}
+          showDevInfo={process.env.NODE_ENV === "development"}
           queryEnabled={!!examinerId && currentStep === 1}
         />
       )}
@@ -489,12 +532,12 @@ function TimeslotSelectionContent() {
       {/* Step 2: Session Selection */}
       {currentStep === 2 && (
         <div className="space-y-6">
-          {/* Assessment Summary */}
+          {/* Assignment Summary */}
           <div className="dashboard-card p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                 <i className="fas fa-clipboard-list text-blue-600 dark:text-blue-400 mr-2"></i>
-                Assessment Summary
+                Assignment Summary
               </h2>
             </div>
 
@@ -502,50 +545,77 @@ function TimeslotSelectionContent() {
               <div className="flex flex-wrap gap-4">
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-book text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{summaryAssignment.courseCode}</span>
+                  <span className="text-sm font-medium">
+                    {summaryAssignment.courseCode}
+                  </span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-clipboard-check text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{summaryAssignment.assignmentName}</span>
+                  <span className="text-sm font-medium">
+                    {summaryAssignment.assignmentName}
+                  </span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-users text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">{(summaryAssignment.assessmentType || summaryAssignment.type || '').toString().toUpperCase()} Assessment</span>
+                  <span className="text-sm font-medium">
+                    {(
+                      summaryAssignment.assessmentType ||
+                      summaryAssignment.type ||
+                      ""
+                    )
+                      .toString()
+                      .toUpperCase()}{" "}
+                    Assessment
+                  </span>
                 </div>
                 <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
                   <i className="fas fa-chart-bar text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">Sessions: {currentAllocation}/{maxSessions}</span>
+                  <span className="text-sm font-medium">
+                    Sessions: {currentAllocation}/{maxSessions}
+                  </span>
                 </div>
               </div>
             )}
           </div>
 
           {/* Availability Banner */}
-          {!isLoadingTimeslots && availabilitySummary && !availabilitySummary.hasSelectable && (
-            <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
-              <div className="flex items-start">
-                <i className="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mr-3 mt-0.5"></i>
-                <div>
-                  <div className="font-medium text-amber-800 dark:text-amber-200">
-                    {availabilitySummary.primaryReason === 'SLOT_FULL' && 'Fully Staffed'}
-                    {availabilitySummary.primaryReason === 'TIME_CONFLICT' && 'All Slots Conflict With Your Schedule'}
-                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You Are Already Assigned To These Slots'}
-                    {!availabilitySummary.primaryReason && (
-                      availabilitySummary.hasAny ? 'No Selectable Slots Available' : 'No Slots Configured Yet'
-                    )}
-                  </div>
-                  <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                    {availabilitySummary.primaryReason === 'SLOT_FULL' && 'Please wait for the course admin to add more slots or for capacity to become available.'}
-                    {availabilitySummary.primaryReason === 'TIME_CONFLICT' && 'Try a different time range, or withdraw from conflicting slots in your schedule.'}
-                    {availabilitySummary.primaryReason === 'ALREADY_ASSIGNED' && 'You are already assigned across the current sessions.'}
-                    {!availabilitySummary.primaryReason && (
-                      availabilitySummary.hasAny ? 'All current slots are unavailable for selection.' : 'Course admin has not configured any slots for this assessment yet.'
-                    )}
+          {!isLoadingTimeslots &&
+            availabilitySummary &&
+            !availabilitySummary.hasSelectable && (
+              <div className="p-4 rounded-lg border border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-900/20">
+                <div className="flex items-start">
+                  <i className="fas fa-exclamation-triangle text-amber-600 dark:text-amber-400 mr-3 mt-0.5"></i>
+                  <div>
+                    <div className="font-medium text-amber-800 dark:text-amber-200">
+                      {availabilitySummary.primaryReason === "SLOT_FULL" &&
+                        "Fully Staffed"}
+                      {availabilitySummary.primaryReason === "TIME_CONFLICT" &&
+                        "All Slots Conflict With Your Schedule"}
+                      {availabilitySummary.primaryReason ===
+                        "ALREADY_ASSIGNED" &&
+                        "You Are Already Assigned To These Slots"}
+                      {!availabilitySummary.primaryReason &&
+                        (availabilitySummary.hasAny
+                          ? "No Selectable Slots Available"
+                          : "No Slots Configured Yet")}
+                    </div>
+                    <div className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      {availabilitySummary.primaryReason === "SLOT_FULL" &&
+                        "Please wait for the course admin to add more slots or for capacity to become available."}
+                      {availabilitySummary.primaryReason === "TIME_CONFLICT" &&
+                        "Try a different time range, or withdraw from conflicting slots in your schedule."}
+                      {availabilitySummary.primaryReason ===
+                        "ALREADY_ASSIGNED" &&
+                        "You are already assigned across the current sessions."}
+                      {!availabilitySummary.primaryReason &&
+                        (availabilitySummary.hasAny
+                          ? "All current slots are unavailable for selection."
+                          : "Course admin has not configured any slots for this assessment yet.")}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Session Selection Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -560,11 +630,21 @@ function TimeslotSelectionContent() {
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   <i className="fas fa-info-circle text-gray-500 mr-2"></i>
-                  Click on sessions to select them. Your selections will be shown in the summary below.
-                  {isLoadingTimeslots && <span className="text-blue-600 dark:text-blue-400"> Updating...</span>}
+                  Click on sessions to select them. Your selections will be
+                  shown in the summary below.
+                  {isLoadingTimeslots && (
+                    <span className="text-blue-600 dark:text-blue-400">
+                      {" "}
+                      Updating...
+                    </span>
+                  )}
                 </p>
               </div>
-              <OperationResultDialog open={resultDialogOpen} onOpenChange={setResultDialogOpen} {...resultDialogProps} />
+              <OperationResultDialog
+                open={resultDialogOpen}
+                onOpenChange={setResultDialogOpen}
+                {...resultDialogProps}
+              />
               <TimeslotList
                 isLoading={isLoadingTimeslots}
                 error={timeslotsError}
@@ -588,7 +668,10 @@ function TimeslotSelectionContent() {
               allocatedSlots={allocatedSlots}
               totalSessions={currentAllocation}
               onRemoveSlot={removeSlot}
-              onClear={() => { setAllocatedSlots([]); setCurrentAllocation(0); }}
+              onClear={() => {
+                setAllocatedSlots([]);
+                setCurrentAllocation(0);
+              }}
             />
           )}
 
@@ -600,7 +683,7 @@ function TimeslotSelectionContent() {
               className="flex items-center"
             >
               <i className="fas fa-arrow-left mr-2"></i>
-              Back to Assessment Selection
+              Back to Assignment Selection
             </Button>
 
             <div className="flex flex-col items-end gap-2">
@@ -611,7 +694,8 @@ function TimeslotSelectionContent() {
               )}
               {submitResult?.success && submitResult.data.partial && (
                 <div className="text-sm text-yellow-600 dark:text-yellow-400">
-                  Partial success: {submitResult.data.assignedSlots.length} assigned, {submitResult.data.failedSlots.length} failed
+                  Partial success: {submitResult.data.assignedSlots.length}{" "}
+                  assigned, {submitResult.data.failedSlots.length} failed
                 </div>
               )}
               <Button
@@ -627,7 +711,8 @@ function TimeslotSelectionContent() {
                 ) : (
                   <>
                     <i className="fas fa-check mr-2"></i>
-                    Confirm {allocatedSlots.length} Selection{allocatedSlots.length !== 1 ? 's' : ''}
+                    Confirm {allocatedSlots.length} Selection
+                    {allocatedSlots.length !== 1 ? "s" : ""}
                   </>
                 )}
               </Button>

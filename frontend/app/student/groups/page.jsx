@@ -53,7 +53,12 @@ export default function StudentGroups() {
       setError(null);
       
       const authState = useAuthStore.getState();
-      const studentId = authState?.user?.id ?? 205; // fallback to mock current user id
+      const studentId = authState?.user?.id;
+      if (!studentId) {
+        setError('Your session is missing student identity. Please sign out and sign in again.');
+        setLoading(false);
+        return;
+      }
 
       const res = await studentGroupsService.getStudentGroups(studentId, {
         status: 'active',
