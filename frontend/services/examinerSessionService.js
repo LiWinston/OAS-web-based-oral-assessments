@@ -148,6 +148,53 @@ const examinerSessionService = {
   },
 
   /**
+   * Get examiner schedule (assignments and sessions)
+   * POST /api/examiners/{examinerId}/schedule
+   * 
+   * @param {number} examinerId - The examiner ID
+   * @param {object} payload - Request payload (e.g., {"assignmentId": 1})
+   * @returns {Promise} API response with examiner schedule
+   */
+  async getExaminerSchedule(examinerId, payload = {}) {
+    try {
+      const response = await apiClient.post(`/api/examiners/${examinerId}/schedule`, payload);
+      
+      console.log('📅 Examiner Schedule API response:', response.data);
+      
+      // Check if backend response has success/data structure
+      if (response.data?.success && response.data?.data) {
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data.data  // Extract the actual assignments data
+        };
+      } else if (response.data && typeof response.data === 'object') {
+        // If response.data is directly the schedule data
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          code: 'NO_DATA',
+          message: 'No schedule data found',
+          data: null
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching examiner schedule:', error);
+      return {
+        success: false,
+        code: error.response?.data?.code || 'ERROR',
+        message: error.response?.data?.message || 'Failed to fetch examiner schedule',
+        error: error.response?.data
+      };
+    }
+  },
+
+  /**
    * Get detailed session with assessments
    * POST /api/sessions/students/detailed
    * 
