@@ -64,9 +64,17 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        // 构建查询条件
+        // 首先获取该examiner参与的assignment IDs
+        List<Long> participantAssignmentIds = participantMapper.listAssignmentIdsByExaminer(examinerId);
+        if (participantAssignmentIds == null || participantAssignmentIds.isEmpty()) {
+            // 如果examiner没有参与任何assignment，返回空列表
+            return Collections.emptyList();
+        }
+        
+        // 构建查询条件，只查询examiner参与的assignments
         QueryWrapper<Assignment> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("is_released", true);
+        queryWrapper.in("id", participantAssignmentIds);
+        queryWrapper.ne("status", "PENDING"); // 排除PENDING状态的assignments
         
         // 添加课程筛选
         if (courseId != null) {
@@ -90,8 +98,8 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             queryWrapper.orderByDesc("start_date"); // 默认排序
         }
         
-        List<Assignment> all = assignmentMapper.selectList(queryWrapper);
-        return all.stream().map(this::toAssignmentDTO).collect(Collectors.toList());
+        List<Assignment> participantAssignments = assignmentMapper.selectList(queryWrapper);
+        return participantAssignments.stream().map(this::toAssignmentDTO).collect(Collectors.toList());
     }
 
     @Override

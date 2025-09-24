@@ -13,6 +13,10 @@ import org.swen90017.oas.enums.AssignMode;
 import org.swen90017.oas.enums.SessionStatus;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
+import org.swen90017.oas.mapper.SessionStudentMapper;
+import org.swen90017.oas.mapper.SysStudentMapper;
+import org.swen90017.oas.mapper.GroupMapper;
+import org.swen90017.oas.mapper.SysStudentGroupMapper;
 import org.swen90017.oas.mapper.VenueMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
 import org.swen90017.oas.mapper.AssignmentMapper;
@@ -30,6 +34,7 @@ import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.dto.request.SessionRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.enums.UserRole;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -43,6 +48,10 @@ import java.util.*;
 public class SessionServiceImpl implements SessionService {
 
     private final SessionExaminerMapper sessionExaminerMapper;
+    private final SessionStudentMapper sessionStudentMapper;
+    private final SysStudentMapper sysStudentMapper;
+    private final GroupMapper groupMapper;
+    private final SysStudentGroupMapper sysStudentGroupMapper;
     private final SlotSessionMapper slotSessionMapper;
     private final VenueMapper venueMapper;
     private final SysUserMapper sysUserMapper;
@@ -286,6 +295,44 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             it.setAssignedExaminers(assigned);
+            
+            // 获取enrolled students和groups
+            List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
+            List<AdminSessionsListResponseDTO.EnrolledStudentDTO> enrolledStudents = new ArrayList<>();
+            List<AdminSessionsListResponseDTO.EnrolledGroupDTO> enrolledGroups = new ArrayList<>();
+            
+            for (SessionStudent enrollment : enrollments) {
+                if ("INDIVIDUAL".equals(enrollment.getType())) {
+                    SysStudent student = sysStudentMapper.selectById(enrollment.getSubjectId());
+                    if (student != null) {
+                        SysUser user = sysUserMapper.selectById(student.getUserId());
+                        AdminSessionsListResponseDTO.EnrolledStudentDTO studentDTO = new AdminSessionsListResponseDTO.EnrolledStudentDTO();
+                        studentDTO.setId(student.getUserId());
+                        studentDTO.setName(user == null ? null : user.getUserName());
+                        studentDTO.setStudentNumber(student.getStudentNumber());
+                        enrolledStudents.add(studentDTO);
+                    }
+                } else if ("GROUP".equals(enrollment.getType())) {
+                    SysGroup group = groupMapper.selectById(enrollment.getSubjectId());
+                    if (group != null) {
+                        AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();
+                        groupDTO.setId(group.getGroupId());
+                        groupDTO.setName(group.getGroupName());
+                        // 获取组成员数量
+                        Long memberCountLong = sysStudentGroupMapper.selectCount(
+                            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<SysStudentGroup>()
+                                .eq("group_id", group.getGroupId())
+                        );
+                        int memberCount = memberCountLong.intValue();
+                        groupDTO.setMemberCount(memberCount);
+                        enrolledGroups.add(groupDTO);
+                    }
+                }
+            }
+            
+            it.setEnrolledStudents(enrolledStudents);
+            it.setEnrolledGroups(enrolledGroups);
+            
             int booked = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
             it.setBookedCount(booked);
             int cap = s.getCapacityGroups() == null ? 1 : s.getCapacityGroups();
@@ -408,6 +455,43 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             it.setAssignedExaminers(assigned);
+            
+            // 获取enrolled students和groups
+            List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
+            List<AdminSessionsListResponseDTO.EnrolledStudentDTO> enrolledStudents = new ArrayList<>();
+            List<AdminSessionsListResponseDTO.EnrolledGroupDTO> enrolledGroups = new ArrayList<>();
+            
+            for (SessionStudent enrollment : enrollments) {
+                if ("INDIVIDUAL".equals(enrollment.getType())) {
+                    SysStudent student = sysStudentMapper.selectById(enrollment.getSubjectId());
+                    if (student != null) {
+                        SysUser user = sysUserMapper.selectById(student.getUserId());
+                        AdminSessionsListResponseDTO.EnrolledStudentDTO studentDTO = new AdminSessionsListResponseDTO.EnrolledStudentDTO();
+                        studentDTO.setId(student.getUserId());
+                        studentDTO.setName(user == null ? null : user.getUserName());
+                        studentDTO.setStudentNumber(student.getStudentNumber());
+                        enrolledStudents.add(studentDTO);
+                    }
+                } else if ("GROUP".equals(enrollment.getType())) {
+                    SysGroup group = groupMapper.selectById(enrollment.getSubjectId());
+                    if (group != null) {
+                        AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();
+                        groupDTO.setId(group.getGroupId());
+                        groupDTO.setName(group.getGroupName());
+                        // 获取组成员数量
+                        Long memberCountLong = sysStudentGroupMapper.selectCount(
+                            new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<SysStudentGroup>()
+                                .eq("group_id", group.getGroupId())
+                        );
+                        int memberCount = memberCountLong.intValue();
+                        groupDTO.setMemberCount(memberCount);
+                        enrolledGroups.add(groupDTO);
+                    }
+                }
+            }
+            
+            it.setEnrolledStudents(enrolledStudents);
+            it.setEnrolledGroups(enrolledGroups);
             
             int booked = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
             it.setBookedCount(booked);

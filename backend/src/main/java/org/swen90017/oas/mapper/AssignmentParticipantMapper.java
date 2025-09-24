@@ -14,4 +14,9 @@ public interface AssignmentParticipantMapper extends BaseMapper<AssignmentPartic
 
     int countParticipantsByRoleAndJoin(@Param("assignmentId") Long assignmentId,
                                        @Param("roleId") Long roleId);
+    
+    /**
+     * List assignment IDs that an examiner participates in
+     */
+    List<Long> listAssignmentIdsByExaminer(@Param("examinerId") Long examinerId);
 }

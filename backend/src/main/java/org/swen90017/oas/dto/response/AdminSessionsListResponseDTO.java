@@ -31,6 +31,8 @@ public class AdminSessionsListResponseDTO {
         private Integer requiredExaminers;
         private Integer capacity;
         private List<ExaminerDTO> assignedExaminers;
+        private List<EnrolledStudentDTO> enrolledStudents;
+        private List<EnrolledGroupDTO> enrolledGroups;
         private Integer bookedCount;
         private Integer remainingCapacity;
         private String status;
@@ -44,6 +46,20 @@ public class AdminSessionsListResponseDTO {
     public static class ExaminerDTO {
         private Long id;
         private String name;
+    }
+
+    @Data
+    public static class EnrolledStudentDTO {
+        private Long id;
+        private String name;
+        private String studentNumber;
+    }
+
+    @Data
+    public static class EnrolledGroupDTO {
+        private Long id;
+        private String name;
+        private Integer memberCount;
     }
 
     @Data

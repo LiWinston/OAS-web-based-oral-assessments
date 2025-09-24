@@ -17,5 +17,13 @@
           AND if_join = 1
     </select>
 
+    <select id="listAssignmentIdsByExaminer" resultType="long">
+        SELECT ap.assignment_id
+        FROM assignment_participant ap
+        WHERE ap.user_id = #{examinerId}
+          AND ap.role_id = 3
+          AND ap.if_join = 1
+    </select>
+
 </mapper>
 
