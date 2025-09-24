@@ -52,6 +52,7 @@ public class AdminSessionsListResponseDTO {
         private Integer fullyStaffed;
         private Integer partiallyStaffed;
         private Integer unstaffed;
+        private Integer totalRequiredExaminers;
     }
 }
 

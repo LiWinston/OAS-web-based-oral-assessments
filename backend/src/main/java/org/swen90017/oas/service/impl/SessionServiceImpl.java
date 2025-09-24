@@ -256,7 +256,7 @@ public class SessionServiceImpl implements SessionService {
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
         AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
         List<AdminSessionsListResponseDTO.Item> items = new ArrayList<>();
-        int fully = 0, partial = 0, un = 0;
+        int fully = 0, partial = 0, un = 0,totalExaminers=0;
         for (SlotSession s : sessions) {
             if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
             if (status != null && !status.isEmpty() && !s.getStatus().name().equalsIgnoreCase(status)) continue;
@@ -294,7 +294,7 @@ public class SessionServiceImpl implements SessionService {
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
             // 基于 assignment.status 派生发布布尔位
-            org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(s.getAssignmentId());
+            Assignment a = assignmentMapper.selectById(s.getAssignmentId());
             String st = a == null ? null : a.getStatus();
             boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
             boolean toStudent = "RELEASED".equalsIgnoreCase(st);
@@ -302,6 +302,7 @@ public class SessionServiceImpl implements SessionService {
             it.setPublishedToStudent(toStudent);
             items.add(it);
             int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+            totalExaminers+=req;
             int cur = examinerIds == null ? 0 : examinerIds.size();
             if (cur == 0) un++; else if (cur >= req && req > 0) fully++; else partial++;
         }
@@ -311,6 +312,7 @@ public class SessionServiceImpl implements SessionService {
         sum.setFullyStaffed(fully);
         sum.setPartiallyStaffed(partial);
         sum.setUnstaffed(un);
+        sum.setTotalRequiredExaminers(totalExaminers);
         resp.setSummary(sum);
         return resp;
     }
