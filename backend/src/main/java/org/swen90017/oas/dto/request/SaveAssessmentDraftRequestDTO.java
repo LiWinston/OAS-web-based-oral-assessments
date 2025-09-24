@@ -112,15 +112,19 @@ public class SaveAssessmentDraftRequestDTO {
         private Double weight;
 
         @Schema(
-            description = "Points awarded for this criterion. For percentage scale: 0-100, for points scale: actual score value",
-            example = "100.0"
+            description = "Points awarded for this criterion. Required for all scale types. Must be within the selectedLevel range (0-100)",
+            example = "85.0",
+            required = true
         )
+        @NotNull(message = "Input points is required for all scale types")
         private Double inputPoints;
 
         @Schema(
-            description = "Selected performance level (used for 'descriptive', 'letter', 'numeric', and some 'percentage' scale types)"
+            description = "Selected performance level. Required for all scale types. The inputPoints must fall within this level's range",
+            required = true
         )
         @Valid
+        @NotNull(message = "Selected level is required for all scale types")
         private SelectedLevel selectedLevel;
 
         @Schema(

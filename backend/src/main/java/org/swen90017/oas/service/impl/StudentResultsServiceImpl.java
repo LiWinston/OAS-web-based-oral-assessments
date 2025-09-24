@@ -653,49 +653,36 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                 .orElse(null);
                 
             double normalizedScore = 0.0;
-            if (matchedScore != null) {
-                String scaleType = rubricItem.getScaleType();
-                if ("points".equalsIgnoreCase(scaleType) || "percentage".equalsIgnoreCase(scaleType)) {
-                    // For points/percentage scale
-                    if (matchedScore.getInputPoints() != null) {
-                        normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
-                    }
-                } else if ("descriptive".equalsIgnoreCase(scaleType)) {
-                    // For descriptive scale - prioritize inputPoints if available and valid
-                    if (matchedScore.getInputPoints() != null) {
-                        // Check if inputPoints is within selectedLevel range if both are provided
-                        if (matchedScore.getSelectedLevel() != null) {
-                            Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
-                            Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
-                            Double inputPoints = matchedScore.getInputPoints();
-                            
-                            if (startPoint != null && endPoint != null && 
-                                inputPoints >= startPoint && inputPoints <= endPoint) {
-                                normalizedScore = inputPoints;
-                            } else if (startPoint != null && endPoint != null) {
-                                // Use midpoint if inputPoints is outside range
-                                normalizedScore = (startPoint + endPoint) / 2.0;
-                                log.debug("InputPoints {} outside range [{}, {}] for {}, using midpoint", 
-                                    inputPoints, startPoint, endPoint, rubricItem.getDescription());
-                            } else {
-                                normalizedScore = Math.max(0.0, Math.min(100.0, inputPoints));
-                            }
-                        } else {
-                            normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
-                        }
-                    } else if (matchedScore.getSelectedLevel() != null) {
-                        // Only selectedLevel provided
-                        Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
-                        Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
-                        if (startPoint != null && endPoint != null) {
-                            normalizedScore = (startPoint + endPoint) / 2.0;
-                        } else if (startPoint != null) {
-                            normalizedScore = startPoint;
-                        } else if (endPoint != null) {
-                            normalizedScore = endPoint;
-                        }
-                    }
+            if (matchedScore != null && matchedScore.getInputPoints() != null && matchedScore.getSelectedLevel() != null) {
+                // 统一处理：所有类型都需要inputPoints和selectedLevel
+                normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
+                
+                // 验证inputPoints是否在selectedLevel区间内（用于日志记录）
+                Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
+                Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
+                Double inputPoints = matchedScore.getInputPoints();
+                
+                if (startPoint != null && endPoint != null && 
+                    (inputPoints < startPoint || inputPoints > endPoint)) {
+                    log.debug("InputPoints {} outside range [{}, {}] for {}, but using inputPoints directly", 
+                        inputPoints, startPoint, endPoint, rubricItem.getDescription());
                 }
+            } else if (matchedScore != null && matchedScore.getSelectedLevel() != null) {
+                // 向后兼容：如果只有selectedLevel，使用区间中位数
+                Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
+                Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
+                if (startPoint != null && endPoint != null) {
+                    normalizedScore = (startPoint + endPoint) / 2.0;
+                    log.debug("Using selectedLevel midpoint {} for {}", normalizedScore, rubricItem.getDescription());
+                } else if (startPoint != null) {
+                    normalizedScore = startPoint;
+                } else if (endPoint != null) {
+                    normalizedScore = endPoint;
+                }
+            } else if (matchedScore != null && matchedScore.getInputPoints() != null) {
+                // 向后兼容：如果只有inputPoints，直接使用
+                normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
+                log.debug("Using inputPoints only {} for {}", normalizedScore, rubricItem.getDescription());
             }
             
             total += normalizedScore * weight / 100.0;
@@ -1070,22 +1057,31 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                 double normalizedScore = 0.0;
                 String explanation = "";
                 
-                if ("points".equalsIgnoreCase(rubric.getScaleType())) {
+                // 统一处理：优先使用inputPoints和selectedLevel的组合
+                if (score.getInputPoints() != null && score.getSelectedLevel() != null) {
                     normalizedScore = score.getInputPoints();
-                    explanation = String.format("Direct points: %.1f", normalizedScore);
-                } else if ("descriptive".equalsIgnoreCase(rubric.getScaleType())) {
-                    if (score.getInputPoints() != null && score.getSelectedLevel() != null) {
-                        Double inputPoints = score.getInputPoints();
-                        Double startPoint = score.getSelectedLevel().getStartPoint();
-                        Double endPoint = score.getSelectedLevel().getEndPoint();
-                        
-                        if (inputPoints >= startPoint && inputPoints <= endPoint) {
-                            normalizedScore = inputPoints;
-                            explanation = String.format("InputPoints %.1f within range [%.1f, %.1f]", inputPoints, startPoint, endPoint);
+                    Double startPoint = score.getSelectedLevel().getStartPoint();
+                    Double endPoint = score.getSelectedLevel().getEndPoint();
+                    if (startPoint != null && endPoint != null) {
+                        if (normalizedScore >= startPoint && normalizedScore <= endPoint) {
+                            explanation = String.format("InputPoints %.1f within range [%.1f, %.1f]", normalizedScore, startPoint, endPoint);
                         } else {
-                            normalizedScore = (startPoint + endPoint) / 2.0;
-                            explanation = String.format("InputPoints %.1f outside range [%.1f, %.1f], using midpoint %.1f", inputPoints, startPoint, endPoint, normalizedScore);
+                            explanation = String.format("InputPoints %.1f outside range [%.1f, %.1f], but using inputPoints directly", normalizedScore, startPoint, endPoint);
                         }
+                    } else {
+                        explanation = String.format("InputPoints: %.1f", normalizedScore);
+                    }
+                } else if (score.getInputPoints() != null) {
+                    // 向后兼容：只有inputPoints
+                    normalizedScore = score.getInputPoints();
+                    explanation = String.format("InputPoints only: %.1f", normalizedScore);
+                } else if (score.getSelectedLevel() != null) {
+                    // 向后兼容：只有selectedLevel，使用中位数
+                    Double startPoint = score.getSelectedLevel().getStartPoint();
+                    Double endPoint = score.getSelectedLevel().getEndPoint();
+                    if (startPoint != null && endPoint != null) {
+                        normalizedScore = (startPoint + endPoint) / 2.0;
+                        explanation = String.format("SelectedLevel midpoint: %.1f (range [%.1f, %.1f])", normalizedScore, startPoint, endPoint);
                     }
                 }
                 

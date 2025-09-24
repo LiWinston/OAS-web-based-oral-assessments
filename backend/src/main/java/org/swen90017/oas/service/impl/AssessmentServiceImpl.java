@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Objects;
 
@@ -175,7 +177,27 @@ public class AssessmentServiceImpl implements AssessmentService {
     public List<AssessmentSubmissionDTO> listMySubmissions(ExaminerAssessmentsQueryDTO query, Long examinerId) {
         LocalDateTime from = query.getCreatedFrom() == null ? null : query.getCreatedFrom().atStartOfDay();
         LocalDateTime to = query.getCreatedTo() == null ? null : query.getCreatedTo().atTime(23,59,59);
-        List<AssessmentSubmission> list = submissionMapper.listByExaminer(examinerId, query.getAssignmentId(), query.getStatus(), from, to);
+        
+        // 只返回SUBMITTED和RELEASED状态的数据
+        String filterStatus = query.getStatus();
+        if (filterStatus == null || (!filterStatus.equals("SUBMITTED") && !filterStatus.equals("RELEASED"))) {
+            // 如果没有指定状态或指定的不是SUBMITTED/RELEASED，则返回空列表
+            if (filterStatus != null) {
+                return new ArrayList<>();
+            }
+            // 如果没有指定状态，则默认查询SUBMITTED和RELEASED
+            filterStatus = null; // 我们将在mapper调用后进行过滤
+        }
+        
+        List<AssessmentSubmission> list = submissionMapper.listByExaminer(examinerId, query.getAssignmentId(), filterStatus, from, to);
+        
+        // 如果原始查询没有指定状态，则过滤只保留SUBMITTED和RELEASED
+        if (query.getStatus() == null) {
+            list = list.stream()
+                    .filter(submission -> "SUBMITTED".equals(submission.getStatus()) || "RELEASED".equals(submission.getStatus()))
+                    .collect(Collectors.toList());
+        }
+        
         List<AssessmentSubmissionDTO> resp = new ArrayList<>();
         for (AssessmentSubmission r : list) resp.add(toDTO(r));
         return resp;
@@ -195,14 +217,58 @@ public class AssessmentServiceImpl implements AssessmentService {
         String sortBy = normalizeSortBy(query.getSortBy());
         String sortOrder = normalizeSortOrder(query.getSortOrder());
 
+        // 只返回SUBMITTED和RELEASED状态的数据
+        String filterStatus = query.getStatus();
+        List<String> filterStatuses = query.getStatuses();
+        
+        // 处理单个状态过滤
+        if (filterStatus != null && !filterStatus.equals("SUBMITTED") && !filterStatus.equals("RELEASED")) {
+            // 如果指定的状态不是SUBMITTED或RELEASED，返回空结果
+            ExaminerAssessmentsPageResponseDTO emptyResp = new ExaminerAssessmentsPageResponseDTO();
+            emptyResp.setItems(new ArrayList<>());
+            org.swen90017.oas.dto.response.PaginationDTO emptyPagination = new org.swen90017.oas.dto.response.PaginationDTO();
+            emptyPagination.setCurrentPage(page);
+            emptyPagination.setItemsPerPage(limit);
+            emptyPagination.setTotalItems(0L);
+            emptyPagination.setTotalPages(0);
+            emptyPagination.setHasPrev(false);
+            emptyPagination.setHasNext(false);
+            emptyResp.setPagination(emptyPagination);
+            return emptyResp;
+        }
+        
+        // 处理多个状态过滤
+        if (filterStatuses != null && !filterStatuses.isEmpty()) {
+            filterStatuses = filterStatuses.stream()
+                    .filter(status -> "SUBMITTED".equals(status) || "RELEASED".equals(status))
+                    .collect(Collectors.toList());
+            if (filterStatuses.isEmpty()) {
+                // 如果过滤后没有有效状态，返回空结果
+                ExaminerAssessmentsPageResponseDTO emptyResp = new ExaminerAssessmentsPageResponseDTO();
+                emptyResp.setItems(new ArrayList<>());
+                org.swen90017.oas.dto.response.PaginationDTO emptyPagination = new org.swen90017.oas.dto.response.PaginationDTO();
+                emptyPagination.setCurrentPage(page);
+                emptyPagination.setItemsPerPage(limit);
+                emptyPagination.setTotalItems(0L);
+                emptyPagination.setTotalPages(0);
+                emptyPagination.setHasPrev(false);
+                emptyPagination.setHasNext(false);
+                emptyResp.setPagination(emptyPagination);
+                return emptyResp;
+            }
+        } else if (filterStatus == null) {
+            // 如果没有指定状态，默认只查询SUBMITTED和RELEASED
+            filterStatuses = Arrays.asList("SUBMITTED", "RELEASED");
+        }
+
         List<AssessmentSubmission> rows = submissionMapper.pageByExaminer(
                 examinerId,
                 query.getAssignmentId(),
                 query.getSessionId(),
                 normalizeSubjectType(query.getSubjectType()),
                 query.getSubjectId(),
-                query.getStatus(),
-                query.getStatuses(),
+                filterStatus,
+                filterStatuses,
                 createdFrom,
                 createdTo,
                 submittedFrom,
@@ -221,8 +287,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                 query.getSessionId(),
                 normalizeSubjectType(query.getSubjectType()),
                 query.getSubjectId(),
-                query.getStatus(),
-                query.getStatuses(),
+                filterStatus,
+                filterStatuses,
                 createdFrom,
                 createdTo,
                 submittedFrom,
@@ -348,41 +414,50 @@ public class AssessmentServiceImpl implements AssessmentService {
                     throw new BusinessException(BusinessError.RUBRIC_MISMATCH);
                 }
 
-                if (isPointsLike(reqType)) {
-                    // points/percentage: 允许携带 selectedLevel，但会被忽略，仅校验 inputPoints
-                    if (s.getInputPoints() != null && (s.getInputPoints() < 0 || s.getInputPoints() > 100)) {
-                        throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
-                    }
-                } else if ("descriptive".equalsIgnoreCase(reqType)) {
-                    // descriptive: 若提供 inputPoints（0..100）则优先按分数计；否则可使用 selectedLevel
-                    if (s.getInputPoints() != null) {
-                        if (s.getInputPoints() < 0 || s.getInputPoints() > 100) {
-                            throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
-                        }
-                    }
-                    if (s.getSelectedLevel() != null) {
-                        Double st = s.getSelectedLevel().getStartPoint();
-                        Double ed = s.getSelectedLevel().getEndPoint();
-                        if (st == null || ed == null || st < 0 || ed > 100 || st > ed) {
-                            throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
-                        }
-                        // 校验所选档与 rubrics 中某一档完全匹配（description + 区间）
-                        boolean matchAny = false;
-                        if (matched.getPerformanceLevel() != null) {
-                            for (PerformanceDto p : matched.getPerformanceLevel()) {
-                                String pd = p.getDescription() == null ? null : p.getDescription().trim();
-                                String sd = s.getSelectedLevel().getDescription() == null ? null : s.getSelectedLevel().getDescription().trim();
-                                if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
-                                    Double pst = p.getStartPoint();
-                                    Double ped = p.getEndPoint();
-                                    if (pst != null && ped != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
-                                        matchAny = true; break;
-                                    }
-                                }
+                // 统一验证：所有评分都需要inputPoints和selectedLevel
+                if (s.getInputPoints() == null) {
+                    throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                }
+                
+                if (s.getSelectedLevel() == null) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // 验证inputPoints基本范围
+                if (s.getInputPoints() < 0 || s.getInputPoints() > 100) {
+                    throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
+                }
+                
+                // 验证selectedLevel的有效性
+                Double st = s.getSelectedLevel().getStartPoint();
+                Double ed = s.getSelectedLevel().getEndPoint();
+                if (st == null || ed == null || st < 0 || ed > 100 || st > ed) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // 校验所选档与 rubrics 中某一档完全匹配（description + 区间）
+                boolean matchAny = false;
+                if (matched.getPerformanceLevel() != null) {
+                    for (PerformanceDto p : matched.getPerformanceLevel()) {
+                        String pd = p.getDescription() == null ? null : p.getDescription().trim();
+                        String sd = s.getSelectedLevel().getDescription() == null ? null : s.getSelectedLevel().getDescription().trim();
+                        if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
+                            Double pst = p.getStartPoint();
+                            Double ped = p.getEndPoint();
+                            if (pst != null && ped != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
+                                matchAny = true; 
+                                break;
                             }
                         }
-                        if (!matchAny) throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                     }
+                }
+                if (!matchAny) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // 验证inputPoints是否在selectedLevel区间内
+                if (s.getInputPoints() < st || s.getInputPoints() > ed) {
+                    throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
                 }
             }
             return objectMapper.writeValueAsString(request.getScores());
@@ -405,22 +480,10 @@ public class AssessmentServiceImpl implements AssessmentService {
                         .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
                         .findFirst().orElse(null);
                 double normalized = 0.0;
-                if (matched != null) {
-                    String scale = r.getScaleType();
-                    if (isPointsLike(scale)) {
-                        Double p = matched.getInputPoints();
-                        normalized = p == null ? 0.0 : Math.max(0.0, Math.min(100.0, p));
-                    } else if ("descriptive".equalsIgnoreCase(scale)) {
-                        // 支持传 inputPoints 时直接按百分比计分，否则使用 selectedLevel 的区间中值
-                        if (matched.getInputPoints() != null) {
-                            Double p = matched.getInputPoints();
-                            normalized = p == null ? 0.0 : Math.max(0.0, Math.min(100.0, p));
-                        } else if (matched.getSelectedLevel() != null) {
-                            Double st = matched.getSelectedLevel().getStartPoint();
-                            Double ed = matched.getSelectedLevel().getEndPoint();
-                            if (st != null && ed != null) normalized = (st + ed) / 2.0;
-                        }
-                    }
+                if (matched != null && matched.getInputPoints() != null) {
+                    // 所有类型都直接使用inputPoints，不再使用区间中位数
+                    Double p = matched.getInputPoints();
+                    normalized = Math.max(0.0, Math.min(100.0, p));
                 }
                 total += normalized * weight / 100.0;
             }
@@ -444,34 +507,38 @@ public class AssessmentServiceImpl implements AssessmentService {
                 SaveAssessmentDraftRequestDTO.ScoreItem matched = scores.stream()
                         .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
                         .findFirst().orElse(null);
-                String scale = r.getScaleType();
-                if (isPointsLike(scale)) {
-                    if (matched == null || matched.getInputPoints() == null) {
-                        throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
-                    }
-                } else if ("descriptive".equalsIgnoreCase(scale)) {
-                    if (matched == null || matched.getSelectedLevel() == null) {
-                        throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
-                    }
-                    // 与 rubrics 档位严格匹配
-                    boolean ok = false;
-                    if (r.getPerformanceLevel() != null) {
-                        for (PerformanceDto p : r.getPerformanceLevel()) {
-                            String pd = p.getDescription() == null ? null : p.getDescription().trim();
-                            String sd = matched.getSelectedLevel().getDescription() == null ? null : matched.getSelectedLevel().getDescription().trim();
-                            if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
-                                Double pst = p.getStartPoint();
-                                Double ped = p.getEndPoint();
-                                Double st = matched.getSelectedLevel().getStartPoint();
-                                Double ed = matched.getSelectedLevel().getEndPoint();
-                                if (pst != null && ped != null && st != null && ed != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
-                                    ok = true; break;
+                
+                // 统一验证：所有类型都需要inputPoints和selectedLevel
+                if (matched == null || matched.getInputPoints() == null) {
+                    throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                }
+                
+                if (matched.getSelectedLevel() == null) {
+                    throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                }
+                
+                // 与 rubrics 档位严格匹配，并验证inputPoints在区间内
+                boolean ok = false;
+                if (r.getPerformanceLevel() != null) {
+                    for (PerformanceDto p : r.getPerformanceLevel()) {
+                        String pd = p.getDescription() == null ? null : p.getDescription().trim();
+                        String sd = matched.getSelectedLevel().getDescription() == null ? null : matched.getSelectedLevel().getDescription().trim();
+                        if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
+                            Double pst = p.getStartPoint();
+                            Double ped = p.getEndPoint();
+                            Double st = matched.getSelectedLevel().getStartPoint();
+                            Double ed = matched.getSelectedLevel().getEndPoint();
+                            if (pst != null && ped != null && st != null && ed != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
+                                // 验证inputPoints是否在selectedLevel区间内
+                                if (matched.getInputPoints() >= st && matched.getInputPoints() <= ed) {
+                                    ok = true; 
+                                    break;
                                 }
                             }
                         }
                     }
-                    if (!ok) throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                 }
+                if (!ok) throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
             }
         } catch (BusinessException be) {
             throw be;
