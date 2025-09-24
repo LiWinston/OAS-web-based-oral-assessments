@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useAuth from "@/hooks/useAuth";
 import { useNotification } from "@/hooks/useNotification";
 import { studentBookingServiceReal as studentBookingService } from "@/services/studentBookingReal";
+import { Button } from "@/components/ui/button";
 
 export default function StudentBookingSteps() {
   const { assignmentId } = useParams();
@@ -37,6 +38,25 @@ export default function StudentBookingSteps() {
   const availability = availabilityData?.data;
   const isGroupType =
     availability?.assessmentType === "GROUP" || availability?.assessmentType === "MIXED";
+  const {
+    data: currentBookingRes,
+    isLoading: loadingCurrentBooking,
+    error: currentBookingError,
+  } = useQuery({
+    queryKey: ["currentBookingGuard", assignmentId, studentId],
+    queryFn: () => studentBookingService.getCurrentBooking(assignmentId, studentId),
+    enabled: isAuthenticated && Boolean(studentId) && Boolean(assignmentId),
+    staleTime: 30 * 1000,
+    retry: 1,
+  });
+  const currentBookingPayload = currentBookingRes?.data || null;
+  const activeBookingEntity =
+    currentBookingPayload?.booking || currentBookingPayload || null;
+  const hasActiveBooking = Boolean(
+    currentBookingPayload?.hasActiveBooking ||
+      activeBookingEntity?.hasActiveBooking ||
+      activeBookingEntity?.bookingId
+  );
   const [groupContextEnabled, setGroupContextEnabled] = useState(true);
   const daysWithAvailability =
     availability?.summary?.daysWithAvailability || [];
@@ -256,6 +276,11 @@ export default function StudentBookingSteps() {
   };
 
   const onConfirm = () => {
+    if (hasActiveBooking) {
+      showNotification("error", "Already booked. Please reschedule via My Bookings.");
+      router.push(`/student/booking/${assignmentId}/confirmation`);
+      return;
+    }
     if (!selectedSession) return;
     const idempotencyKey = (typeof crypto !== "undefined" && crypto.randomUUID)
       ? crypto.randomUUID()
@@ -269,6 +294,80 @@ export default function StudentBookingSteps() {
     };
     bookMutation.mutate({ payload, idempotencyKey });
   };
+
+  if (loadingCurrentBooking && isAuthenticated) {
+    return (
+      <div className="space-y-6">
+        <div className="dashboard-card p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+          Checking current booking status…
+        </div>
+      </div>
+    );
+  }
+
+  if (!loadingCurrentBooking && hasActiveBooking && !currentBookingError) {
+    const session = activeBookingEntity?.session;
+    const viewConfirmation = () =>
+      router.push(`/student/booking/${assignmentId}/confirmation`);
+    const viewBoard = () => router.push(`/student/booking`);
+
+    return (
+      <div className="space-y-6">
+        <div className="dashboard-card p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center text-blue-600 dark:text-blue-300">
+              <i className="fas fa-info-circle text-3xl" />
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            Already booked. Please reschedule via My Bookings.
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xl mx-auto">
+            You already have an active booking for this assessment. To review or reschedule your booking, head to My Bookings.
+          </p>
+          {session ? (
+            <div className="mt-6 inline-block text-left bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
+              <div className="text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wide mb-1">
+                Current session
+              </div>
+              <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                {new Date(session.start).toLocaleDateString("en-AU", {
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+                {" · "}
+                {new Date(session.start).toLocaleTimeString("en-AU", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+                {" - "}
+                {new Date(session.end).toLocaleTimeString("en-AU", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </div>
+              {session?.venue && (
+                <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  {session.venue.name || session.venue.room || ""}
+                </div>
+              )}
+            </div>
+          ) : null}
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Button onClick={viewConfirmation} className="w-full sm:w-auto">
+              View booking
+            </Button>
+            <Button variant="outline" onClick={viewBoard} className="w-full sm:w-auto">
+              Go to My Bookings
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
