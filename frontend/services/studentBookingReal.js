@@ -83,7 +83,7 @@ export const studentBookingServiceReal = {
       params: {
         studentId,
         date,
-        pageNum: pageNum || 1,
+        pageNum: pageNum ? pageNum : 1,
         pageSize: pageSize || 200,
         includeReasons,
       },
@@ -106,10 +106,23 @@ export const studentBookingServiceReal = {
 
     // If backend already returns timeSlots shape, pass through
     if (Array.isArray(payload?.timeSlots)) return body;
+    const mapVenue = (venue) => {
+      if (!venue) return undefined;
+      if (venue.name || venue.room || venue.building) return venue;
+      return {
+        id: venue.id ?? venue.venueId,
+        name: venue.venueName || venue.name,
+        assignmentId: venue.assignmentId,
+      };
+    };
+
     // If backend returns flat sessions[], adapt to existing UI shape with synthetic one-to-one slot wrapping
     if (Array.isArray(payload?.sessions)) {
       const timeSlots = payload.sessions.map((s) => {
-        const venue = s.venue || ((s.venueId || s.venueName) ? { venueId: s.venueId, name: s.venueName } : undefined);
+        const venue = mapVenue(s.venue) ||
+          (s.venueId || s.venueName
+            ? { id: s.venueId, name: s.venueName }
+            : undefined);
         return {
           slotId: s.sessionId ?? s.id,
           start: normalizeDateTime(s.start),
@@ -123,16 +136,22 @@ export const studentBookingServiceReal = {
               sessionId: s.sessionId ?? s.id,
               start: normalizeDateTime(s.start),
               end: normalizeDateTime(s.end),
+              status: s.status,
               availability: s.availability || { canBook: true },
             },
           ],
         };
+      }).sort((a, b) => {
+        if (!a.start || !b.start) return 0;
+        return new Date(a.start) - new Date(b.start);
       });
       return {
         ...body,
         data: {
           assignment: payload.assignment,
+          calendar: payload.calendar,
           timeSlots,
+          sessions: payload.sessions,
           pollingHintSeconds: payload.pollingHintSeconds,
         },
       };

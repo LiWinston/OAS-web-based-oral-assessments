@@ -94,9 +94,9 @@ function transformAssessmentItems(backendItems) {
         })
       },
       
-      // Assessment status and scoring
-      assessmentStatus: item.status,
-      releaseStatus: item.releaseStatus || 'NOT_RELEASED',
+      // Assessment status and scoring - handle RELEASED status correctly
+      assessmentStatus: item.status === 'RELEASED' ? 'SUBMITTED' : item.status,
+      releaseStatus: item.status === 'RELEASED' ? 'RELEASED' : (item.releaseStatus || 'NOT_RELEASED'),
       revision: 1,
       examinerScorePct1dp: item.totalScore,
       totalScore: item.totalScore,
@@ -134,17 +134,25 @@ const examinerResultsServiceReal = {
    */
   async listResults(examinerId, params = {}) {
     try {
-      // 简化 payload，只保留基本的分页参数
-      const payload = {
-        page: (params.page || 1) - 1, // Backend uses 0-based pagination  
-        limit: params.pageSize || 20
-      };
+      // Build filters for assessment list API
+      const filters = {};
+      
+      // Map frontend parameters to backend filters
+      if (params.status && params.status !== 'all') {
+        filters.status = params.status;
+      }
+      if (params.q) {
+        filters.search = params.q;
+      }
+      if (params.from) {
+        filters.dateFrom = params.from;
+      }
+      if (params.to) {
+        filters.dateTo = params.to;
+      }
 
-      console.log('Calling examinerAssessmentService.getAssessmentsPage with payload:', payload);
       
-      const response = await examinerAssessmentService.getAssessmentsPage(examinerId, payload);
-      
-      console.log('Raw API response:', response);
+      const response = await examinerAssessmentService.getAssessmentsList(examinerId, filters);
       
       if (!response.success) {
         console.error('API response failed:', response);
@@ -152,51 +160,83 @@ const examinerResultsServiceReal = {
       }
 
       const { data } = response;
-      console.log('API response data:', data);
       
-      // Handle different response formats
+      // Handle assessment list API response format
       let items = [];
-      let pagination = {};
       
-      if (data.items && Array.isArray(data.items)) {
-        // Paginated response with items array
+      if (Array.isArray(data)) {
+        // Direct array response from getAssessmentsList
+        console.log('Using direct array format from assessments list');
+        items = data;
+      } else if (data.items && Array.isArray(data.items)) {
+        // Items array in data object
         console.log('Using items array format');
         items = data.items;
-        pagination = data.pagination || {};
-      } else if (Array.isArray(data)) {
-        // Direct array response
-        console.log('Using direct array format');
-        items = data;
       } else if (data.submissionId) {
         // Single assessment object - wrap in array
         console.log('Using single object format, wrapping in array');
         items = [data];
       } else {
         console.warn('Unexpected data format:', data);
-        // Try to handle any object as potential assessment
         items = data ? [data] : [];
       }
       
-      console.log('Items to transform:', items);
-
       // Transform items to match frontend expectations  
       const transformedItems = transformAssessmentItems(items);
 
-      console.log('Raw backend items:', items);
-      console.log('Transformed items:', transformedItems);
+      // Apply client-side filtering since backend may not support all filters
+      let filteredItems = transformedItems;
+      
+      // Client-side search filter
+      if (params.q && params.q.trim()) {
+        const searchTerm = params.q.toLowerCase().trim();
+        filteredItems = filteredItems.filter(item => {
+          const searchableFields = [
+            item.assignment?.name,
+            item.assignment?.courseCode,
+            item.assignment?.courseName,
+            item.entity?.group?.groupName,
+            item.entity?.student?.name,
+            item.assessmentId,
+            item.submissionId
+          ].filter(Boolean).map(field => String(field).toLowerCase());
+          
+          return searchableFields.some(field => field.includes(searchTerm));
+        });
+      }
+      
+      // Client-side date range filter
+      if (params.from || params.to) {
+        const fromDate = params.from ? new Date(params.from + 'T00:00:00') : null;
+        const toDate = params.to ? new Date(params.to + 'T23:59:59') : null;
+        
+        filteredItems = filteredItems.filter(item => {
+          const itemDate = new Date(item.submittedAt);
+          if (isNaN(itemDate.getTime())) return true; // Skip invalid dates
+          
+          if (fromDate && itemDate < fromDate) return false;
+          if (toDate && itemDate > toDate) return false;
+          return true;
+        });
+      }
+
+      // Apply client-side pagination  
+      const page = params.page || 1;
+      const pageSize = params.pageSize || 20;
+      const start = (page - 1) * pageSize;
+      const paginatedItems = filteredItems.slice(start, start + pageSize);
 
       const finalResult = {
         success: true,
         code: 'OK',
         data: {
-          page: (pagination.currentPage || 0) + 1, // Convert back to 1-based
-          pageSize: pagination.itemsPerPage || payload.limit || 20,
-          total: pagination.totalItems || transformedItems.length,
-          items: transformedItems
+          page: page,
+          pageSize: pageSize,
+          total: filteredItems.length, // Use filtered count for pagination
+          items: paginatedItems
         }
       };
       
-      console.log('Final result data:', finalResult);
       return finalResult;
     } catch (error) {
       console.error('Error in listResults:', error);
@@ -419,8 +459,15 @@ const examinerResultsServiceReal = {
         };
 
         // Handle level-based scoring
-        if (score.selectedLevel) {
-          item.levelId = `L1`; // Simplified for now
+        if (score.selectedLevel && criterion?.performanceLevel) {
+          // Find the correct levelId by matching the selectedLevel with criterion's performanceLevel
+          const levelIndex = criterion.performanceLevel.findIndex(level => 
+            level.description === score.selectedLevel.description &&
+            level.startPoint === score.selectedLevel.startPoint &&
+            level.endPoint === score.selectedLevel.endPoint
+          );
+          
+          item.levelId = levelIndex >= 0 ? `L${levelIndex + 1}` : `L1`;
           item.levelLabel = score.selectedLevel.description;
           item.levelRange = {
             min: score.selectedLevel.startPoint,
@@ -428,6 +475,20 @@ const examinerResultsServiceReal = {
           };
           if (!item.points) {
             item.points = (score.selectedLevel.startPoint + score.selectedLevel.endPoint) / 2;
+          }
+        } else if (score.inputPoints && criterion?.performanceLevel) {
+          // For points-based scoring, find the level that contains the points
+          const level = criterion.performanceLevel.find(level => 
+            score.inputPoints >= level.startPoint && score.inputPoints <= level.endPoint
+          );
+          if (level) {
+            const levelIndex = criterion.performanceLevel.indexOf(level);
+            item.levelId = `L${levelIndex + 1}`;
+            item.levelLabel = level.description;
+            item.levelRange = {
+              min: level.startPoint,
+              max: level.endPoint
+            };
           }
         }
 

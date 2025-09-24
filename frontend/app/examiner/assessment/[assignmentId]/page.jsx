@@ -28,11 +28,46 @@ export default function AssignmentSessionsList() {
     (async () => {
       setLoadingSessions(true);
       try {
-        // Call assignment sessions API
-        const response = await examinerSessionService.getAssignmentSessions(exId, assignmentId);
+        // Call examiner schedule API with assignmentId filter
+        console.log(`📅 Calling /api/examiners/${exId}/schedule with payload:`, { assignmentId: Number(assignmentId) });
+        const response = await examinerSessionService.getExaminerSchedule(exId, {
+          assignmentId: Number(assignmentId)
+        });
         
         if (response?.success && response?.data) {
-          setAssignmentSessions(response.data);
+          // Process schedule data to extract sessions for this assignment
+          const scheduleData = response.data;
+          const assignments = scheduleData.assignments || [];
+          
+          // Find the assignment and extract its sessions
+          const assignment = assignments.find(a => a.assignmentId === Number(assignmentId));
+          const sessions = assignment?.sessions || [];
+          
+          // Transform sessions to match the expected format
+          const transformedSessions = sessions.map(session => ({
+            id: session.sessionId,
+            sessionId: session.sessionId,
+            displayId: session.venue?.id || session.sessionId, // Use venue ID as display ID, fallback to session ID
+            date: session.start ? session.start.split('T')[0] : null,
+            startTime: session.start ? session.start.split('T')[1] : null,
+            endTime: session.end ? session.end.split('T')[1] : null,
+            start: session.start,
+            end: session.end,
+            venueName: session.venue?.venueName || 'No venue',
+            venue: session.venue,
+            requiredExaminers: session.requiredExaminers || 0,
+            currentExaminers: session.currentExaminers || 0,
+            capacity: session.capacity || 0,
+            bookedCount: session.bookingCount || 0,
+            remainingCapacity: (session.capacity || 0) - (session.bookingCount || 0),
+            isBooked: session.isBooked || false,
+            canWithdraw: session.canWithdraw || false,
+            cannotWithdrawReason: session.cannotWithdrawReason,
+            status: session.isBooked ? 'booked' : 'available',
+            assignedExaminers: session.assignedExaminers || []
+          }));
+          
+          setAssignmentSessions(transformedSessions);
         } else {
           setAssignmentSessions([]);
           if (!response?.success) {
@@ -86,8 +121,11 @@ export default function AssignmentSessionsList() {
 
   const formatTime = (timeString) => {
     if (!timeString) return 'No time';
-    // timeString format: "09:00:00"
-    return timeString.substring(0, 5); // Return "09:00"
+    // Handle both "09:00:00" and "09:00" formats
+    if (timeString.includes(':')) {
+      return timeString.substring(0, 5); // Return "09:00"
+    }
+    return timeString;
   };
 
   const handleViewAssessments = (session) => {
@@ -150,7 +188,7 @@ export default function AssignmentSessionsList() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
                         <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">
-                          {session.venueName || `Session ${session.id}`}
+                          {session.displayId}
                         </h3>
                         {session.status && (
                           <Badge variant="outline" className={getStatusBadgeVariant(session.status)}>
@@ -159,10 +197,11 @@ export default function AssignmentSessionsList() {
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      {/* First row: Session ID, Date, Time */}
+                      <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400 mb-2">
                         <div className="flex items-center">
                           <i className="fas fa-hashtag text-purple-600 mr-2"></i>
-                          Session ID: {session.id}
+                          Session ID: {session.sessionId}
                         </div>
                         {session.date && (
                           <div className="flex items-center">
@@ -176,16 +215,14 @@ export default function AssignmentSessionsList() {
                             {formatTime(session.startTime)} - {formatTime(session.endTime)}
                           </div>
                         )}
+                      </div>
+
+                      {/* Second row: Venue, Booked, Remaining */}
+                      <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
                         {session.venueName && (
                           <div className="flex items-center">
                             <i className="fas fa-map-marker-alt text-orange-600 mr-2"></i>
                             {session.venueName}
-                          </div>
-                        )}
-                        {session.capacity && (
-                          <div className="flex items-center">
-                            <i className="fas fa-users text-purple-600 mr-2"></i>
-                            Capacity: {session.capacity}
                           </div>
                         )}
                         {session.bookedCount !== undefined && (
@@ -198,12 +235,6 @@ export default function AssignmentSessionsList() {
                           <div className="flex items-center">
                             <i className="fas fa-users-slash text-amber-600 mr-2"></i>
                             Remaining: {session.remainingCapacity}
-                          </div>
-                        )}
-                        {session.assignedExaminers && session.assignedExaminers.length > 0 && (
-                          <div className="flex items-center">
-                            <i className="fas fa-user-tie text-indigo-600 mr-2"></i>
-                            Examiners: {session.assignedExaminers.map(e => e.name).join(', ')}
                           </div>
                         )}
                       </div>

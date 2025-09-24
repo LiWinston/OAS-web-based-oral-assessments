@@ -18,7 +18,6 @@ export default function ExaminerResultsPage() {
     if (filters?.q) p.q = filters.q;
     if (filters?.from) p.from = filters.from;
     if (filters?.to) p.to = filters.to;
-    if (filters?.assignmentId) p.assignmentId = filters.assignmentId;
     p.page = page;
     p.pageSize = pageSize;
     p.sort = 'sessionStart';
@@ -28,22 +27,16 @@ export default function ExaminerResultsPage() {
 
   const { data, isLoading, error } = useExaminerResultsQuery(userId, queryParams);
   
-  console.log('ExaminerResultsPage - userId:', userId);
-  console.log('ExaminerResultsPage - queryParams:', queryParams);
-  console.log('ExaminerResultsPage - data:', data);
-  console.log('ExaminerResultsPage - isLoading:', isLoading);
-  console.log('ExaminerResultsPage - error:', error);
-  
   const total = data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Breadcrumb */}
-      <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
+      <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <ol className="flex items-center space-x-2">
           <li>
-            <a href="/examiner" className="text-gray-500 dark:text-gray-400 hover:text-blue-600">Dashboard</a>
+            <a href="/examiner" className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</a>
           </li>
           <li className="flex items-center">
             <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
@@ -52,8 +45,10 @@ export default function ExaminerResultsPage() {
         </ol>
       </nav>
 
-      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">My Marking History</h1>
-      <p className="text-sm text-gray-600 dark:text-gray-400">Review your submitted assessments, drafts, and released results. View rubric breakdowns and versions.</p>
+      <div className="text-center md:text-left">
+        <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100 mb-2">My Marking History</h1>
+        <p className="text-gray-600 dark:text-gray-400 max-w-2xl">Review your submitted assessments, and released results. View rubric breakdowns.</p>
+      </div>
 
       <ResultsFilters value={filters} onChange={(v) => { setFilters(v); setPage(1); }} />
 
@@ -63,15 +58,32 @@ export default function ExaminerResultsPage() {
         </div>
       ) : (
         <>
-          <div className="mb-4 p-2 bg-gray-100 rounded text-xs">
-            Debug: {data?.items?.length || 0} items, total: {total}, loading: {isLoading ? 'yes' : 'no'}
-          </div>
           <ResultsTable items={data?.items || []} />
-          <div className="flex justify-between items-center mt-4">
-            <div className="text-xs text-gray-500">Page {page} of {totalPages} • {total} total</div>
+          <div className="flex justify-between items-center mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="font-medium">Page {page} of {totalPages}</span> • <span className="font-medium">{total}</span> total results
+            </div>
             <div className="flex gap-2">
-              <button className="px-3 py-1 rounded border text-sm disabled:opacity-50" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>Prev</button>
-              <button className="px-3 py-1 rounded border text-sm disabled:opacity-50" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>Next</button>
+              <button 
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                         bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" 
+                disabled={page <= 1} 
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <i className="fas fa-chevron-left mr-1"></i>Previous
+              </button>
+              <button 
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium
+                         disabled:opacity-50 disabled:cursor-not-allowed
+                         hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                         bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" 
+                disabled={page >= totalPages} 
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next<i className="fas fa-chevron-right ml-1"></i>
+              </button>
             </div>
           </div>
         </>

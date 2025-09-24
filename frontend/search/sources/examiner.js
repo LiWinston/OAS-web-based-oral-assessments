@@ -228,6 +228,15 @@ const loadScheduleAssignments = async (ctx) => {
     return ctx.cache.examinerScheduleAssignments;
   }
 
+  // Skip loading on Results and Assessment pages to avoid unnecessary API calls
+  if (typeof window !== 'undefined' && 
+      (window.location?.pathname?.includes('/results') || 
+       window.location?.pathname?.includes('/examiner/assessment'))) {
+    console.log('🚫 Skipping schedule assignments load on Results/Assessment page');
+    ctx.cache.examinerScheduleAssignments = [];
+    return [];
+  }
+
   const examinerId = ctx.user?.id;
   if (!examinerId) {
     ctx.cache.examinerScheduleAssignments = [];
@@ -235,11 +244,13 @@ const loadScheduleAssignments = async (ctx) => {
   }
 
   try {
+    console.log('📅 Loading schedule assignments for search');
     const response = await examinerTimeslotService.getExaminerSchedule(examinerId);
     const assignments = ensureArray(response?.data?.assignments || response?.data);
     ctx.cache.examinerScheduleAssignments = assignments;
     return assignments;
   } catch (error) {
+    console.error('❌ Error loading schedule assignments for search:', error);
     ctx.cache.examinerScheduleAssignments = [];
     return [];
   }
@@ -250,6 +261,15 @@ const loadAvailableAssignments = async (ctx) => {
     return ctx.cache.examinerAvailableAssignments;
   }
 
+  // Skip loading on Results and Assessment pages to avoid unnecessary API calls
+  if (typeof window !== 'undefined' && 
+      (window.location?.pathname?.includes('/results') || 
+       window.location?.pathname?.includes('/examiner/assessment'))) {
+    console.log('🚫 Skipping available assignments load on Results/Assessment page');
+    ctx.cache.examinerAvailableAssignments = [];
+    return [];
+  }
+
   const examinerId = ctx.user?.id;
   if (!examinerId) {
     ctx.cache.examinerAvailableAssignments = [];
@@ -257,6 +277,7 @@ const loadAvailableAssignments = async (ctx) => {
   }
 
   try {
+    console.log('📋 Loading available assignments for search');
     const response = await examinerTimeslotService.getAvailableAssignments(examinerId, {
       pageSize: 100,
     });
@@ -264,6 +285,7 @@ const loadAvailableAssignments = async (ctx) => {
     ctx.cache.examinerAvailableAssignments = assignments;
     return assignments;
   } catch (error) {
+    console.error('❌ Error loading available assignments for search:', error);
     ctx.cache.examinerAvailableAssignments = [];
     return [];
   }

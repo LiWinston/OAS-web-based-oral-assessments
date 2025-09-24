@@ -28,7 +28,6 @@ const examinerAssessmentServiceReal = {
         ...filters
       };
       
-      
       const response = await apiClient.post('/api/examiner/assessments/list', payload);
       return response.data;
     } catch (error) {
@@ -131,7 +130,7 @@ const examinerAssessmentServiceReal = {
         assessment = response.data;
       } else {
         // Fallback: return original response
-        return response.data;
+      return response.data;
       }
         
       if (!assessment) {
@@ -495,53 +494,65 @@ const examinerAssessmentServiceReal = {
               // Get the selected level details from the criterion's performance levels
               let selectedLevel = null;
               
-              console.log('DEBUG saveDraft - selectedLevel lookup:', {
-                criterionDescription: criterion?.description,
-                hasPerformanceLevel: !!criterion?.performanceLevel,
-                performanceLevelCount: criterion?.performanceLevel?.length,
-                performanceLevels: criterion?.performanceLevel,
-                itemLevelId: item.levelId,
-                itemLevelIdType: typeof item.levelId,
-                itemPoints: item.points,
-                itemPointsType: typeof item.points,
-                itemObject: item
+              // Debug: Log the search process
+              console.log('🔍 SEARCH - Looking for selectedLevel:', {
+                criterionId: item.criterionId,
+                levelId: item.levelId,
+                points: item.points,
+                availableLevels: criterion?.performanceLevel?.map(l => ({
+                  levelId: l.levelId,
+                  description: l.description,
+                  range: `${l.startPoint}-${l.endPoint}`
+                }))
               });
               
+              
               if (criterion?.performanceLevel && Array.isArray(criterion.performanceLevel)) {
+                // Strategy 1: Find by levelId field
                 if (item.levelId) {
-                  // Find by levelId field first (most common case)
-                  console.log('DEBUG saveDraft - Searching by levelId:', item.levelId);
-                  console.log('DEBUG saveDraft - Available levelIds:', criterion.performanceLevel.map(l => l.levelId));
                   selectedLevel = criterion.performanceLevel.find(level => level.levelId === item.levelId);
-                  console.log('DEBUG saveDraft - Found by levelId field:', selectedLevel);
+                  console.log('🔍 Strategy 1 (levelId):', { found: !!selectedLevel, searched: item.levelId });
                   
-                  // If not found by levelId, try by description as fallback
+                  // Strategy 2: Find by description as fallback
                   if (!selectedLevel) {
-                    console.log('DEBUG saveDraft - Fallback: searching by description:', item.levelId);
-                    console.log('DEBUG saveDraft - Available descriptions:', criterion.performanceLevel.map(l => l.description));
                     selectedLevel = criterion.performanceLevel.find(level => level.description === item.levelId);
-                    console.log('DEBUG saveDraft - Found by description:', selectedLevel);
+                    console.log('🔍 Strategy 2 (description):', { found: !!selectedLevel, searched: item.levelId });
                   }
-                } else if (item.points !== undefined && item.points !== null) {
-                  // If no levelId, find by points range
-                  console.log('DEBUG saveDraft - Searching by points range:', item.points);
-                  criterion.performanceLevel.forEach((level, index) => {
-                    console.log(`DEBUG saveDraft - Level ${index}:`, {
-                      description: level.description,
-                      range: `${level.startPoint}-${level.endPoint}`,
-                      matches: item.points >= level.startPoint && item.points <= level.endPoint
-                    });
-                  });
+                }
+                
+                // Strategy 3: Find by points range (always try as backup)
+                if (!selectedLevel && item.points !== undefined && item.points !== null) {
                   selectedLevel = criterion.performanceLevel.find(level => 
                     item.points >= level.startPoint && item.points <= level.endPoint
                   );
-                  console.log('DEBUG saveDraft - Found by points range:', selectedLevel);
+                  console.log('🔍 Strategy 3 (points range):', { found: !!selectedLevel, points: item.points });
                 }
-              } else {
-                console.log('DEBUG saveDraft - No valid performanceLevel array found');
+                
+                // Strategy 4: Find closest match by distance if still not found
+                if (!selectedLevel && item.points !== undefined && item.points !== null) {
+                  let closestLevel = null;
+                  let minDistance = Infinity;
+                  
+                  criterion.performanceLevel.forEach(level => {
+                    const midPoint = (level.startPoint + level.endPoint) / 2;
+                    const distance = Math.abs(item.points - midPoint);
+                    if (distance < minDistance) {
+                      minDistance = distance;
+                      closestLevel = level;
+                    }
+                  });
+                  
+                  selectedLevel = closestLevel;
+                  console.log('🔍 Strategy 4 (closest match):', { found: !!selectedLevel, points: item.points, closest: closestLevel?.description });
+                }
               }
               
-              // Build score entry based on scaleType - inputPoints and selectedLevel are mutually exclusive
+              console.log('🔍 FINAL RESULT - selectedLevel:', selectedLevel ? {
+                description: selectedLevel.description,
+                range: `${selectedLevel.startPoint}-${selectedLevel.endPoint}`
+              } : 'NULL - This will cause the error!');
+              
+              // Build score entry - all criteria now include both selectedLevel and inputPoints
               const baseEntry = {
                 description: criterion?.description || '',
                 scaleType: criterion?.scaleType || 'points',
@@ -549,26 +560,16 @@ const examinerAssessmentServiceReal = {
                 comment: item.comments && item.comments.length > 0 ? item.comments[0].text : ''
               };
 
-              let scoreEntry;
-              if (criterion?.scaleType === 'descriptive') {
-                // For descriptive scale: only selectedLevel, no inputPoints
-                scoreEntry = {
-                  ...baseEntry,
-                  selectedLevel: selectedLevel ? {
-                    description: selectedLevel.description,
-                    startPoint: selectedLevel.startPoint,
-                    endPoint: selectedLevel.endPoint
-                  } : null
-                };
-              } else {
-                // For points scale: only inputPoints, no selectedLevel
-                scoreEntry = {
-                  ...baseEntry,
-                  inputPoints: item.points || 0
-                };
-              }
-              
-              console.log('DEBUG saveDraft - Final score entry:', scoreEntry);
+              // All scale types now include both selectedLevel and inputPoints
+              const scoreEntry = {
+                ...baseEntry,
+                inputPoints: item.points || 0,
+                selectedLevel: selectedLevel ? {
+                  description: selectedLevel.description,
+                  startPoint: selectedLevel.startPoint,
+                  endPoint: selectedLevel.endPoint
+                } : null
+              };
               scores.push(scoreEntry);
             });
           }
@@ -577,9 +578,10 @@ const examinerAssessmentServiceReal = {
 
       // Build the request payload matching backend API format for Save Draft
       // Note: Save Draft does NOT include submissionId
+      // Use sessionId from route parameters (passed as submissionId parameter) instead of API response
       const payload = {
         assignmentId: assessmentData.assignmentId || sessionContext?.assignment?.id || 0,
-        sessionId: sessionContext?.sessionId || 0,
+        sessionId: assessmentData.sessionId || sessionContext?.sessionId || 0,
         subjectType: subjectType,
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
@@ -650,50 +652,65 @@ const examinerAssessmentServiceReal = {
               // Get the selected level details from the criterion's performance levels
               let selectedLevel = null;
               
-              console.log('DEBUG submitAssessment - selectedLevel lookup:', {
-                criterionDescription: criterion?.description,
-                hasPerformanceLevel: !!criterion?.performanceLevel,
-                performanceLevelCount: criterion?.performanceLevel?.length,
-                performanceLevels: criterion?.performanceLevel,
-                itemLevelId: item.levelId,
-                itemPoints: item.points
+              // Debug: Log the search process
+              console.log('🔍 SEARCH - Looking for selectedLevel:', {
+                criterionId: item.criterionId,
+                levelId: item.levelId,
+                points: item.points,
+                availableLevels: criterion?.performanceLevel?.map(l => ({
+                  levelId: l.levelId,
+                  description: l.description,
+                  range: `${l.startPoint}-${l.endPoint}`
+                }))
               });
               
+              
               if (criterion?.performanceLevel && Array.isArray(criterion.performanceLevel)) {
+                // Strategy 1: Find by levelId field
                 if (item.levelId) {
-                  // Find by levelId field first (most common case)
-                  console.log('DEBUG submitAssessment - Searching by levelId:', item.levelId);
-                  console.log('DEBUG submitAssessment - Available levelIds:', criterion.performanceLevel.map(l => l.levelId));
                   selectedLevel = criterion.performanceLevel.find(level => level.levelId === item.levelId);
-                  console.log('DEBUG submitAssessment - Found by levelId field:', selectedLevel);
+                  console.log('🔍 Strategy 1 (levelId):', { found: !!selectedLevel, searched: item.levelId });
                   
-                  // If not found by levelId, try by description as fallback
+                  // Strategy 2: Find by description as fallback
                   if (!selectedLevel) {
-                    console.log('DEBUG submitAssessment - Fallback: searching by description:', item.levelId);
-                    console.log('DEBUG submitAssessment - Available descriptions:', criterion.performanceLevel.map(l => l.description));
                     selectedLevel = criterion.performanceLevel.find(level => level.description === item.levelId);
-                    console.log('DEBUG submitAssessment - Found by description:', selectedLevel);
+                    console.log('🔍 Strategy 2 (description):', { found: !!selectedLevel, searched: item.levelId });
                   }
-                } else if (item.points !== undefined && item.points !== null) {
-                  // If no levelId, find by points range
-                  console.log('DEBUG submitAssessment - Searching by points range:', item.points);
-                  criterion.performanceLevel.forEach((level, index) => {
-                    console.log(`DEBUG submitAssessment - Level ${index}:`, {
-                      description: level.description,
-                      range: `${level.startPoint}-${level.endPoint}`,
-                      matches: item.points >= level.startPoint && item.points <= level.endPoint
-                    });
-                  });
+                }
+                
+                // Strategy 3: Find by points range (always try as backup)
+                if (!selectedLevel && item.points !== undefined && item.points !== null) {
                   selectedLevel = criterion.performanceLevel.find(level => 
                     item.points >= level.startPoint && item.points <= level.endPoint
                   );
-                  console.log('DEBUG submitAssessment - Found by points range:', selectedLevel);
+                  console.log('🔍 Strategy 3 (points range):', { found: !!selectedLevel, points: item.points });
                 }
-              } else {
-                console.log('DEBUG submitAssessment - No valid performanceLevel array found');
+                
+                // Strategy 4: Find closest match by distance if still not found
+                if (!selectedLevel && item.points !== undefined && item.points !== null) {
+                  let closestLevel = null;
+                  let minDistance = Infinity;
+                  
+                  criterion.performanceLevel.forEach(level => {
+                    const midPoint = (level.startPoint + level.endPoint) / 2;
+                    const distance = Math.abs(item.points - midPoint);
+                    if (distance < minDistance) {
+                      minDistance = distance;
+                      closestLevel = level;
+                    }
+                  });
+                  
+                  selectedLevel = closestLevel;
+                  console.log('🔍 Strategy 4 (closest match):', { found: !!selectedLevel, points: item.points, closest: closestLevel?.description });
+                }
               }
               
-              // Build score entry based on scaleType - inputPoints and selectedLevel are mutually exclusive
+              console.log('🔍 FINAL RESULT - selectedLevel:', selectedLevel ? {
+                description: selectedLevel.description,
+                range: `${selectedLevel.startPoint}-${selectedLevel.endPoint}`
+              } : 'NULL - This will cause the error!');
+              
+              // Build score entry - all criteria now include both selectedLevel and inputPoints
               const baseEntry = {
                 description: criterion?.description || '',
                 scaleType: criterion?.scaleType || 'points',
@@ -701,26 +718,16 @@ const examinerAssessmentServiceReal = {
                 comment: item.comments && item.comments.length > 0 ? item.comments[0].text : ''
               };
 
-              let scoreEntry;
-              if (criterion?.scaleType === 'descriptive') {
-                // For descriptive scale: only selectedLevel, no inputPoints
-                scoreEntry = {
-                  ...baseEntry,
-                  selectedLevel: selectedLevel ? {
-                    description: selectedLevel.description,
-                    startPoint: selectedLevel.startPoint,
-                    endPoint: selectedLevel.endPoint
-                  } : null
-                };
-              } else {
-                // For points scale: only inputPoints, no selectedLevel
-                scoreEntry = {
-                  ...baseEntry,
-                  inputPoints: item.points || 0
-                };
-              }
-              
-              console.log('DEBUG submitAssessment - Final score entry:', scoreEntry);
+              // All scale types now include both selectedLevel and inputPoints
+              const scoreEntry = {
+                ...baseEntry,
+                inputPoints: item.points || 0,
+                selectedLevel: selectedLevel ? {
+                  description: selectedLevel.description,
+                  startPoint: selectedLevel.startPoint,
+                  endPoint: selectedLevel.endPoint
+                } : null
+              };
               scores.push(scoreEntry);
             });
           }

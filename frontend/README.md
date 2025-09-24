@@ -200,7 +200,7 @@ frontend/
 │   │   ├── page.jsx             # Examiner dashboard
 │   │   ├── schedule/            # Self-assignment and availability management
 │   │   │   ├── page.jsx         # Schedule overview with multiple views
-│   │   │   └── select/page.jsx  # Two-step timeslot selection wizard
+│   │   │   └── select/page.jsx  # Session selection with preselected assignment context
 │   │   ├── assessment/          # Assessment conduct (marking UI)
 │   │   │   ├── page.jsx         # Session picker (choose a session to mark)
 │   │   │   └── [sessionId]/page.jsx # Marking page for a specific session
@@ -319,7 +319,6 @@ frontend/
 │   │       ├── WeekSchedule.jsx             # Week view with navigation and filtering
 │   │       ├── DaySchedule.jsx              # Detailed day view with booking management
 │   │       ├── ScheduleFilters.jsx          # Course, type, and search filtering system
-│   │       ├── AssessmentSelectionStep.jsx  # Two-step assignment selection wizard
 │   │       ├── TimeslotSelectionCalendar.jsx # Calendar interface for date browsing
 │   │       ├── SelectionSummary.jsx         # Session allocation summary with validation
 │   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
@@ -724,7 +723,7 @@ The following reflects the current state of the frontend implementation against 
 ### Examiner Self-Assignment — ✅ Complete (with mock services)
 
 - Current: Complete examiner timeslot self-assignment system with withdrawal functionality; comprehensive mock API layer with realistic test data.
-- Implementation: Two-step selection wizard (assignment selection → timeslot selection), calendar-based timeslot browsing, session limit management, conflict detection, and withdrawal functionality following API contracts.
+- Implementation: Single-step session selection with the assignment pre-selected from the schedule page, calendar-based timeslot browsing, session limit management, conflict detection, and withdrawal functionality following API contracts.
 - User can: Browse available assignments needing examiners; select timeslots via calendar interface; view assigned sessions in schedule; withdraw from slots when no students are booked; see real-time booking status and eligibility.
 - Features: `useExaminerAuth` and `useTimeslotAssignment` custom hooks; optimized polling (60s-3min intervals); comprehensive error handling; visual booking status indicators; withdrawal only when `bookingCount === 0`.
 
@@ -894,7 +893,6 @@ The following reflects the current state of the frontend implementation against 
     - **WeekSchedule**: Week view with navigation and filtering capabilities
     - **DaySchedule**: Detailed day view with booking status and withdrawal actions
     - **ScheduleFilters**: Course, assessment type, and search filtering system
-    - **AssessmentSelectionStep**: Two-step assignment selection wizard
     - **TimeslotSelectionCalendar**: Calendar interface for date-based timeslot browsing
     - **SelectionSummary**: Session allocation summary with validation and management
     - **UpcomingAssessments**: Near-term assessment overview with action buttons

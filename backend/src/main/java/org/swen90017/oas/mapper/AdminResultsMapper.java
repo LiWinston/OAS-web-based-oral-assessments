@@ -120,7 +120,18 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
     );
 
     /**
-     * Update assessment submission status to RELEASED for all submissions of an assessment
+     * Update assessment submission release status for all submissions of an assessment
+     */
+    Integer updateAssessmentSubmissionReleaseStatus(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("subjectType") String subjectType,
+            @Param("subjectId") Long subjectId,
+            @Param("releaseStatus") String releaseStatus
+    );
+
+    /**
+     * Update assessment submission status for all submissions of an assessment
      */
     Integer updateAssessmentSubmissionStatus(
             @Param("assignmentId") Long assignmentId,

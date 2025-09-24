@@ -35,9 +35,9 @@
             ss.venue_id as session_venue_id,
             v.room_name as venue_name,
             
-            -- Release status derived from assessment_submission.status
+            -- Release status derived from assessment_submission.release_status
             CASE 
-                WHEN SUM(CASE WHEN asub.status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
             END as release_status,
             
@@ -63,10 +63,10 @@
         <if test="isReleased != null">
             <choose>
                 <when test="isReleased == true">
-                    AND asub.status = 'RELEASED'
+                    AND asub.release_status = 'RELEASED'
                 </when>
                 <otherwise>
-                    AND asub.status != 'RELEASED'
+                    AND (asub.release_status != 'RELEASED' OR asub.release_status IS NULL)
                 </otherwise>
             </choose>
         </if>
@@ -141,6 +141,7 @@
             asub.subject_id,
             asub.id as submission_id,
             asub.status as status,
+            asub.release_status as release_status,
             
             -- Session timing info
             ss.start_at as session_start_at,
@@ -347,6 +348,29 @@
             a1.override_by_user_id = #{userId},
             a1.override_at = NOW(),
             a1.updated_at = NOW()
+    </update>
+
+    <!-- Update assessment submission release status for all submissions of an assessment -->
+    <update id="updateAssessmentSubmissionReleaseStatus">
+        UPDATE assessment_submission 
+        SET release_status = #{releaseStatus},
+            updated_at = NOW()
+        WHERE assignment_id = #{assignmentId}
+        AND session_id = #{sessionId}
+        AND (
+            -- For individual assessments, update the specific student's submissions
+            (subject_type = 'INDIVIDUAL' AND subject_id = #{subjectId} AND #{subjectType} = 'INDIVIDUAL')
+            OR
+            -- For group assessments, update all submissions for group members
+            (subject_type = 'INDIVIDUAL' AND #{subjectType} = 'GROUP' AND subject_id IN (
+                SELECT sg.user_id 
+                FROM sys_student_group sg 
+                WHERE sg.group_id = #{subjectId}
+            ))
+            OR
+            -- Also update the group-level submission if it exists
+            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+        )
     </update>
 
     <!-- Update assessment submission status for all submissions of an assessment -->

@@ -132,9 +132,12 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.EXAMINER_NOT_ASSIGNED_TO_SUBMISSION);
         }
         
-        // If assessment was released, set it back to NOT_RELEASED
+        // If assessment was released, set release_status back to NOT_RELEASED
+        // 使用已有的submission信息来更新对应的assessment_submission记录
+        adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
+                assignmentId, submission.getSessionId(), 
+                submission.getSubjectType(), submission.getSubjectId(), "NOT_RELEASED");
         String newReleaseStatus = "NOT_RELEASED";
-        adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, newReleaseStatus);
         
         // Send email notification to examiner
         boolean notified = false;
@@ -204,8 +207,8 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
-        // Update assessment_submission status to RELEASED
-        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionStatus(
+        // Update assessment_submission release_status to RELEASED (不影响 status)
+        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
                 assignmentId, submission.getSessionId(), 
                 submission.getSubjectType(), submission.getSubjectId(), "RELEASED");
         
@@ -451,8 +454,10 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         }
         
         detail.setComputed(computed);
-        String releaseStates = (assessmentData.get("status") + "").equals("RELEASE") ? "RELEASE" : "NOT_RELEASE";
-        detail.setReleaseStatus(releaseStates);
+        
+        // Set release status based on release_status field
+        String releaseStatus = (String) assessmentData.get("release_status");
+        detail.setReleaseStatus(releaseStatus != null ? releaseStatus : "NOT_RELEASED");
         
         // Map final grade information
         AssessmentDetailDTO.FinalGradeInfo finalGrade = new AssessmentDetailDTO.FinalGradeInfo();

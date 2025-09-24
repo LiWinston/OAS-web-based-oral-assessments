@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { cn } from '../../../lib/utils';
+import { assignmentService } from '../../../services/assignmentService';
 
 /**
  * RubricTable Component
@@ -19,14 +20,34 @@ export default function RubricTable({
   onSavePredefinedComment,
   disabled = false,
   assessmentType = 'GROUP',
-  showTotals = true
+  showTotals = true,
+  assignmentId = null
 }) {
   const [expandedComments, setExpandedComments] = useState({});
   const [localComments, setLocalComments] = useState(comments);
+  const [assignmentData, setAssignmentData] = useState(null);
+  const [loadingAssignment, setLoadingAssignment] = useState(false);
 
   useEffect(() => {
     setLocalComments(comments);
   }, [comments]);
+
+  // Function to fetch latest assignment data from API
+  const fetchAssignmentData = async () => {
+    if (!assignmentId || loadingAssignment) return;
+    
+    try {
+      setLoadingAssignment(true);
+      const response = await assignmentService.getAssignmentById(assignmentId);
+      if (response?.success && response?.data) {
+        setAssignmentData(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch assignment data:', error);
+    } finally {
+      setLoadingAssignment(false);
+    }
+  };
 
   const normalizeRange = (level) => {
     // Support either min/max on level or a nested levelRange
@@ -39,21 +60,21 @@ export default function RubricTable({
     return level?.levelLabel || level?.label || level?.description || (level?.levelId ? level.levelId.replace('L', 'Level ') : '');
   };
 
-  const handleRatingSelect = (criterionId, levelId, level) => {
+  const handleRatingSelect = async (criterionId, levelId, level) => {
     if (disabled) return;
     const { min, max } = normalizeRange(level);
     const midPoint = Math.floor((min + max) / 2);
     
-    // For points scale type, set wider range; for descriptive, use level range
-    const criterion = criteria?.find(c => c.criterionId === criterionId);
-    const isPointsScale = criterion?.scaleType === 'points';
-    
+    // Unified logic: both points and descriptive use the same approach
     onRatingChange(criterionId, {
       levelId,
       points: midPoint,
-      minPoints: isPointsScale ? 0 : min,
-      maxPoints: isPointsScale ? 100 : max
+      minPoints: min,
+      maxPoints: max
     });
+
+    // Fetch latest assignment data to get updated predefined comments
+    await fetchAssignmentData();
   };
 
   const handlePointsChange = (criterionId, points) => {
@@ -87,6 +108,44 @@ export default function RubricTable({
     }
   };
 
+  // New function that handles points change with automatic level selection
+  const handlePointsChangeWithLevelSelection = async (criterionId, points, criterion) => {
+    if (disabled) return;
+    
+    const pointsValue = parseInt(points) || 0;
+    
+    // Find the appropriate level based on the points value
+    const levels = criterion.levels || criterion.performanceLevel || [];
+    const matchingLevel = levels.find(level => {
+      const range = normalizeRange(level);
+      return pointsValue >= range.min && pointsValue <= range.max;
+    });
+
+    if (matchingLevel) {
+      const levelId = matchingLevel.levelId || `L${levels.indexOf(matchingLevel) + 1}`;
+      const range = normalizeRange(matchingLevel);
+      
+      // Unified logic: both points and descriptive use the same approach
+      onRatingChange(criterionId, {
+        levelId,
+        points: pointsValue,
+        minPoints: range.min,
+        maxPoints: range.max
+      });
+
+      // Fetch latest assignment data to get updated predefined comments
+      await fetchAssignmentData();
+    } else {
+      // If no matching level found, still update points but clear level selection
+      const current = selectedRatings[criterionId];
+      onRatingChange(criterionId, {
+        ...current,
+        points: pointsValue,
+        levelId: null // Clear level selection if points don't match any range
+      });
+    }
+  };
+
   const handleCommentChange = (criterionId, value) => {
     setLocalComments(prev => ({
       ...prev,
@@ -105,9 +164,39 @@ export default function RubricTable({
   };
 
   const addPredefinedComment = (criterionId, commentText) => {
-    const currentComment = localComments[criterionId] || '';
-    const newComment = currentComment ? `${currentComment}\n${commentText}` : commentText;
-    handleCommentChange(criterionId, newComment);
+    // Replace the entire comment instead of appending
+    handleCommentChange(criterionId, commentText);
+  };
+
+  // Extract predefined comments for current selected level from latest API data
+  const getPredefinedCommentsForLevel = (criterionId) => {
+    const selectedLevelId = selectedRatings[criterionId]?.levelId;
+    if (!selectedLevelId || !assignmentData) return [];
+
+    // Use fresh data from API instead of static criteria
+    const criterion = criteria.find(c => c.criterionId === criterionId);
+    if (!criterion) return [];
+
+    // Find matching criterion in API data by description
+    const apiCriterion = assignmentData.rubricsInfo?.find(c => 
+      c.description === criterion.description
+    );
+    
+    if (!apiCriterion) return [];
+
+    // Find the performance level that matches the selected levelId
+    const levels = criterion.levels || criterion.performanceLevel || [];
+    const levelIndex = levels.findIndex(level => {
+      const levelIdToMatch = level.levelId || `L${levels.indexOf(level) + 1}`;
+      return levelIdToMatch === selectedLevelId;
+    });
+
+    if (levelIndex === -1 || !apiCriterion.performanceLevel) return [];
+
+    // Get comments from API data using the same index
+    const apiPerformanceLevel = apiCriterion.performanceLevel[levelIndex];
+    const comments = apiPerformanceLevel?.preDefinedComment;
+    return Array.isArray(comments) ? comments : [];
   };
 
   // Filter criteria based on assessment type
@@ -159,49 +248,45 @@ export default function RubricTable({
                 </Button>
               </td>
               <td className="p-3">
-                {/* Only show level selection for descriptive scale types */}
-                {criterion.scaleType === 'descriptive' ? (
-                  <div
-                    className="grid gap-1"
-                    style={{ gridTemplateColumns: `repeat(${criterion.levels.length}, minmax(0, 1fr))` }}
-                  >
-                    {(criterion.levels || []).map((level) => (
+                {/* Show level selection for all scale types */}
+                <div
+                  className="grid gap-1"
+                  style={{ gridTemplateColumns: `repeat(${(criterion.levels || criterion.performanceLevel || []).length}, minmax(0, 1fr))` }}
+                >
+                  {((criterion.levels || criterion.performanceLevel || [])).map((level, levelIndex) => {
+                    const levelId = level.levelId || `L${levelIndex + 1}`;
+                    const isSelected = selectedRatings[criterion.criterionId]?.levelId === levelId;
+                    return (
                       <div
-                        key={level.levelId}
+                        key={levelId}
                         className={cn(
-                          "p-3 border rounded-lg cursor-pointer transition-all text-center",
+                          "p-2 border rounded-lg cursor-pointer transition-all text-center min-h-[80px] flex flex-col justify-center",
                           "hover:bg-gray-50 dark:hover:bg-gray-700",
-                          selectedRatings[criterion.criterionId]?.levelId === level.levelId
+                          isSelected
                             ? "bg-blue-50 dark:bg-blue-900/30 border-blue-500 dark:border-blue-400"
                             : "border-gray-300 dark:border-gray-600",
                           disabled && "cursor-not-allowed opacity-75"
                         )}
-                        onClick={() => handleRatingSelect(criterion.criterionId, level.levelId, level)}
+                        onClick={() => !disabled && handleRatingSelect(criterion.criterionId, levelId, level)}
                       >
-                        <div className="font-semibold text-sm mb-1 flex items-center justify-center gap-1">
-                          {selectedRatings[criterion.criterionId]?.levelId === level.levelId && (
-                            <i className="fas fa-check-circle text-blue-600 dark:text-blue-400"></i>
+                        <div className="font-semibold text-xs mb-1 flex items-center justify-center gap-1 leading-tight">
+                          {isSelected && (
+                            <i className="fas fa-check-circle text-blue-600 dark:text-blue-400 text-xs"></i>
                           )}
-                          <span>{getLevelLabel(level)}</span>
+                          <span className="break-words text-center">{getLevelLabel(level)}</span>
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
                           {(() => { const r = normalizeRange(level); return `${r.min}-${r.max}`; })()}
                         </div>
                         {level?.description && (
-                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          <div className="text-xs text-gray-500 dark:text-gray-500 mt-1 break-words leading-tight">
                             {level.description}
                           </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  /* For points scale type, show a simple message */
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-4">
-                    <i className="fas fa-edit mr-2"></i>
-                    Enter points directly in the Points column →
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
                 
                 {/* Comments Section */}
                 {expandedComments[criterion.criterionId] && (
@@ -209,6 +294,45 @@ export default function RubricTable({
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Criterion-specific comment
                     </label>
+                    
+                    {/* Predefined Comments Dropdown - Always show when a level is selected */}
+                    {!disabled && selectedRatings[criterion.criterionId]?.levelId && (
+                      <div className="mb-3">
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Select a predefined comment:
+                        </label>
+                        {(() => {
+                          const predefinedCommentsForLevel = getPredefinedCommentsForLevel(criterion.criterionId);
+                          return (
+                            <select
+                              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg 
+                                       bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200
+                                       focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  addPredefinedComment(criterion.criterionId, e.target.value);
+                                  e.target.value = ''; // Reset selection
+                                }
+                              }}
+                              disabled={disabled}
+                            >
+                              <option value="">
+                                {predefinedCommentsForLevel.length > 0 
+                                  ? "Choose a predefined comment..." 
+                                  : "No predefined comments for this level"
+                                }
+                              </option>
+                              {predefinedCommentsForLevel.map((comment, index) => (
+                                <option key={index} value={comment}>
+                                  {comment.length > 50 ? `${comment.substring(0, 50)}...` : comment}
+                                </option>
+                              ))}
+                            </select>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    
                     <textarea
                       className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg 
                                bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200
@@ -216,45 +340,21 @@ export default function RubricTable({
                       rows="3"
                       value={localComments[criterion.criterionId] || ''}
                       onChange={(e) => handleCommentChange(criterion.criterionId, e.target.value)}
-                      disabled={disabled}
-                      placeholder="Add your comment here..."
+                      disabled={disabled || !selectedRatings[criterion.criterionId]?.levelId}
+                      placeholder={
+                        !selectedRatings[criterion.criterionId]?.levelId 
+                          ? "Please select a level first to add comments..." 
+                          : "Add your comment here..."
+                      }
                     />
                     
-                    {/* Predefined Comments */}
-                    {!disabled && predefinedComments[criterion.criterionId] && 
-                     predefinedComments[criterion.criterionId][selectedRatings[criterion.criterionId]?.levelId] && (
-                      <div className="mt-3">
-                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-                          Quick Comments (click to add):
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {predefinedComments[criterion.criterionId][selectedRatings[criterion.criterionId]?.levelId].map((comment) => (
-                            <button
-                              key={comment.id}
-                              className="px-3 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900/30 
-                                       text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50
-                                       transition-colors"
-                              onClick={() => addPredefinedComment(criterion.criterionId, comment.text)}
-                              disabled={disabled}
-                            >
-                              {comment.text}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {!disabled && (
+                    {!disabled && false && ( // Temporarily disabled save comment feature
                       <div className="mt-3 flex items-center">
                         <input
                           type="checkbox"
                           id={`save-comment-${criterion.criterionId}`}
                           className="mr-2"
-                          disabled={
-                            disabled ||
-                            !selectedRatings[criterion.criterionId]?.levelId ||
-                            !(localComments[criterion.criterionId] && localComments[criterion.criterionId].trim())
-                          }
+                          disabled={true} // Always disabled for now
                           onChange={async (e) => {
                             if (!e.target.checked) return;
                             // Fire save to library callback if provided
@@ -262,7 +362,19 @@ export default function RubricTable({
                             const text = (localComments[criterion.criterionId] || '').trim();
                             if (onSavePredefinedComment && levelId && text) {
                               try {
-                                await onSavePredefinedComment(criterion.criterionId, levelId, text);
+                                // Find the performance level description for the selected level
+                                const performanceLevel = criterion.performanceLevel?.find(level => {
+                                  const levelIdToMatch = level.levelId || `L${criterion.performanceLevel.indexOf(level) + 1}`;
+                                  return levelIdToMatch === levelId;
+                                });
+                                
+                                if (performanceLevel) {
+                                  await onSavePredefinedComment(
+                                    criterion.description, 
+                                    performanceLevel.description, 
+                                    text
+                                  );
+                                }
                               } finally {
                                 // uncheck after attempting save
                                 e.target.checked = false;
@@ -289,51 +401,38 @@ export default function RubricTable({
                 )}
               </td>
               <td className="p-3 align-top text-center">
-                {selectedRatings[criterion.criterionId] || criterion.scaleType === 'points' ? (
-                  <div className="space-y-2">
-                    {disabled ? (
-                      <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
-                        <i className="fas fa-star text-amber-500"></i>
-                        <span>{selectedRatings[criterion.criterionId]?.points || 0}</span>
-                        <span className="text-xs text-gray-500">pts</span>
-                      </div>
-                    ) : criterion.scaleType === 'points' ? (
-                      /* Points scale type: Show editable input with 0-100 range */
-                      <div className="flex items-center justify-center space-x-2">
-                        <input
-                          type="number"
-                          className="w-16 p-1 border border-gray-300 dark:border-gray-600 rounded text-center
-                                   bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
-                          value={selectedRatings[criterion.criterionId]?.points || ''}
-                          onChange={(e) => handlePointsChange(criterion.criterionId, e.target.value)}
-                          min={0}
-                          max={100}
-                          placeholder="0"
-                        />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
-                      </div>
-                    ) : selectedRatings[criterion.criterionId] ? (
-                      /* Descriptive scale type: Show readonly calculated points */
-                      <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
-                        <i className="fas fa-calculator text-blue-500"></i>
-                        <span>{selectedRatings[criterion.criterionId].points}</span>
-                        <span className="text-xs text-gray-500">pts</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-400 dark:text-gray-600">-</span>
-                    )}
-                    <div className="text-xs text-gray-500 dark:text-gray-500">
-                      {criterion.scaleType === 'points' 
-                        ? '(0-100)' 
-                        : selectedRatings[criterion.criterionId]
-                          ? `(${selectedRatings[criterion.criterionId].minPoints}-${selectedRatings[criterion.criterionId].maxPoints})`
-                          : ''
-                      }
+                <div className="space-y-2">
+                  {disabled ? (
+                    <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
+                      <i className="fas fa-star text-amber-500"></i>
+                      <span>{selectedRatings[criterion.criterionId]?.points || 0}</span>
+                      <span className="text-xs text-gray-500">pts</span>
                     </div>
+                  ) : (
+                    /* All scale types: Show editable input */
+                    <div className="flex items-center justify-center space-x-2">
+                      <input
+                        type="number"
+                        className="w-16 p-1 border border-gray-300 dark:border-gray-600 rounded text-center
+                                 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+                        value={selectedRatings[criterion.criterionId]?.points || ''}
+                        onChange={(e) => handlePointsChangeWithLevelSelection(criterion.criterionId, e.target.value, criterion)}
+                        min={0}
+                        max={100}
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
+                    </div>
+                  )}
+                  <div className="text-xs text-gray-500 dark:text-gray-500">
+                    {criterion.scaleType === 'points' 
+                      ? '(0-100)' 
+                      : selectedRatings[criterion.criterionId]
+                        ? `(${selectedRatings[criterion.criterionId].minPoints}-${selectedRatings[criterion.criterionId].maxPoints})`
+                        : ''
+                    }
                   </div>
-                ) : (
-                  <span className="text-gray-400 dark:text-gray-600">-</span>
-                )}
+                </div>
               </td>
             </tr>
           ))}

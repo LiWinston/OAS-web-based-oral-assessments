@@ -161,14 +161,13 @@
         SELECT COUNT(1) > 0
         FROM slot_sessions ss
         INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
-        WHERE ts.assignment_id = #{assignmentId}
-          AND ss.status = 'booked'
-          AND (
-            (ss.booked_subject_type = 'STUDENT' AND ss.booked_subject_id = #{studentId})
+        WHERE ts.assignment_id = #{assignmentId} AND
+          (
+            (ss.booked_subject_type = 'INDIVIDUAL' AND ss.booked_subject_id = #{studentId})
             OR
             (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
-              SELECT sg.group_id 
-              FROM sys_student_group sg 
+              SELECT sg.group_id
+              FROM sys_student_group sg
               WHERE sg.user_id = #{studentId}
             ))
           )
@@ -180,7 +179,6 @@
         FROM slot_sessions ss
         INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
         WHERE ts.assignment_id = #{assignmentId}
-          AND ss.status = 'booked'
           AND ss.booked_subject_type = 'GROUP'
           AND ss.booked_subject_id = #{groupId}
     </select>
