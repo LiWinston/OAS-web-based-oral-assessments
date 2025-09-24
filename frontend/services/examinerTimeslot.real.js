@@ -217,34 +217,74 @@ export const examinerTimeslotServiceReal = {
 
       const mapped = filtered.map((a) => {
         const now = new Date();
-        const end = a.endDate ? new Date(a.endDate) : null;
-        const raw = (a.status || '').toString().toLowerCase();
-        const statusUi = (() => {
-          if (end && !isNaN(end) && end < now) return 'deadline_passed';
-          if (raw === 'released' || raw === 'in_progress' || raw === 'pending') return 'open';
-          if (raw === 'completed' || raw === 'cancelled') return 'deadline_passed';
+        const startDateObj = a.startDate ? new Date(a.startDate) : null;
+        const endDateObj = a.endDate ? new Date(a.endDate) : null;
+        const rawStatus = (a.status || '').toString().toUpperCase();
+        const statusCategory = (() => {
+          if (endDateObj && !Number.isNaN(endDateObj) && endDateObj < now) return 'closed';
+          if (startDateObj && !Number.isNaN(startDateObj) && startDateObj > now) return 'upcoming';
           return 'open';
         })();
-        const maxSessions = a.examinerInfo?.maxSessions ?? 12;
-        const currentAssignedSessions = a.examinerInfo?.currentAssignedSessions ?? 0;
-        const remainingCapacity = a.examinerInfo?.remainingCapacity ?? Math.max(0, maxSessions - currentAssignedSessions);
+        const statusLabel = rawStatus
+          ? rawStatus
+              .split('_')
+              .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+              .join(' ')
+          : 'Unknown';
+
+        const rawMaxSessions = Number(a.examinerInfo?.maxSessions);
+        const hasFiniteMaxSessions = Number.isFinite(rawMaxSessions) && rawMaxSessions >= 0;
+        const maxSessions = hasFiniteMaxSessions ? rawMaxSessions : Number.POSITIVE_INFINITY;
+        const rawCurrentAssigned = Number(a.examinerInfo?.currentAssignedSessions);
+        const currentAssignedSessions = Number.isFinite(rawCurrentAssigned)
+          ? rawCurrentAssigned
+          : null;
+        const rawRemainingCapacity = Number(a.examinerInfo?.remainingCapacity);
+        const remainingCapacity = Number.isFinite(rawRemainingCapacity)
+          ? rawRemainingCapacity
+          : (hasFiniteMaxSessions && currentAssignedSessions != null
+              ? Math.max(0, maxSessions - currentAssignedSessions)
+              : null);
+
+        const examinerInfo = {
+          ...(a.examinerInfo || {}),
+          maxSessions,
+          currentAssignedSessions,
+          remainingCapacity,
+        };
+
         return {
           assignmentId: a.id,
           assignmentName: a.name,
-          // Backend does not include course info here; leave undefined
           courseCode: a.subjectCode || a.subjectId || undefined,
           courseName: a.subjectName || undefined,
-          assessmentType: (a.type || '')?.toUpperCase(),
-          // Unknowns in this endpoint; set safe defaults
+          subjectCode: a.subjectCode || undefined,
+          subjectName: a.subjectName || undefined,
+          description: a.description || null,
+          assessmentType: (a.type || '').toString().toUpperCase(),
+          assessmentTypeRaw: a.type || null,
           sessionDurationMinutes: a.sessionDurationMinutes ?? null,
           requiredExaminers: a.requiredExaminers ?? null,
           availableTimeslots: a.availableTimeslots ?? 0,
           earliestTimeslot: a.startDate || null,
           latestTimeslot: a.endDate || null,
-          examinerInfo: a.examinerInfo || { maxSessions, currentAssignedSessions, remainingCapacity },
+          startDate: a.startDate || null,
+          endDate: a.endDate || null,
           signupDeadline: a.signupDeadline || null,
-          status: statusUi,
+          weight: typeof a.weight === 'number' ? a.weight : null,
+          progress: typeof a.progress === 'number' ? a.progress : null,
+          status: rawStatus || null,
+          statusLabel,
+          statusCategory,
           urgency: a.urgency || 'low',
+          examinerInfo,
+          rubricMetaInfo: a.rubricMetaInfo || null,
+          rubricsInfo: Array.isArray(a.rubricsInfo) ? a.rubricsInfo : [],
+          hasRubrics: Array.isArray(a.rubricsInfo) && a.rubricsInfo.length > 0,
+          creator: a.creator ?? null,
+          updater: a.updater ?? null,
+          createTime: a.createTime || null,
+          updateTime: a.updateTime || null,
         };
       });
 
