@@ -7,10 +7,8 @@ import { Button } from '../../ui/button';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All' },
-  { value: 'DRAFT', label: 'Draft' },
   { value: 'SUBMITTED', label: 'Submitted' },
   { value: 'RELEASED', label: 'Released' },
-  { value: 'REOPENED', label: 'Reopened' },
 ];
 
 export default function ResultsFilters({ value, onChange }) {
@@ -22,7 +20,7 @@ export default function ResultsFilters({ value, onChange }) {
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
         <div>
           <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Search</label>
           <Input
@@ -42,14 +40,6 @@ export default function ResultsFilters({ value, onChange }) {
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Assignment ID</label>
-          <Input
-            placeholder="e.g., 101"
-            value={local.assignmentId || ''}
-            onChange={(e) => setLocal((prev) => ({ ...prev, assignmentId: e.target.value }))}
-          />
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>

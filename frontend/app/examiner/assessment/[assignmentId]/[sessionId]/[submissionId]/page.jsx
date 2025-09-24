@@ -12,7 +12,6 @@ import { useNotification } from '../../../../../../hooks/useNotification';
 import SessionInfo from '../../../../../../components/examiner/assessment/SessionInfo';
 import HeaderStatusBar from '../../../../../../components/examiner/assessment/HeaderStatusBar';
 import RubricTable from '../../../../../../components/examiner/assessment/RubricTable';
-import TotalsPanel from '../../../../../../components/examiner/assessment/TotalsPanel';
 import SubmitDialog from '../../../../../../components/examiner/assessment/SubmitDialog';
 import StudentSwitcher from '../../../../../../components/examiner/assessment/StudentSwitcher';
 
@@ -100,10 +99,11 @@ export default function ExaminerAssessmentMarking() {
   const onSaveDraftClick = async () => {
     try {
       const payload = buildDraftPayload();
-      // Include sessionContext for backend API conversion
+      // Include sessionContext and sessionId for backend API conversion
       const draftData = { 
         ...payload, 
-        sessionContext 
+        sessionContext,
+        sessionId: sessionId // Pass route sessionId to override API response sessionId
       };
       
       const res = await saveDraftMutation.mutateAsync(draftData);
@@ -133,7 +133,8 @@ export default function ExaminerAssessmentMarking() {
         const draftPayload = buildDraftPayload();
         const draftData = { 
           ...draftPayload, 
-          sessionContext 
+          sessionContext,
+          sessionId: sessionId // Pass route sessionId to override API response sessionId
         };
         const draftRes = await saveDraftMutation.mutateAsync(draftData);
         id = draftRes?.submissionId;
@@ -176,19 +177,25 @@ export default function ExaminerAssessmentMarking() {
     }
   };
 
-  const handleSavePredefinedComment = async (criterionId, levelId, text) => {
+  const handleSavePredefinedComment = async (criterionDescription, levelDescription, text) => {
     if (!sessionContext?.assignment?.id) return;
     try {
-      const res = await (await import('../../../../../../services/examinerAssessmentService')).default.addPredefinedComment(
+      const { assignmentService } = await import('../../../../../../services/assignmentService');
+      const res = await assignmentService.savePredefinedComment(
         sessionContext.assignment.id,
-        criterionId,
-        levelId,
+        criterionDescription,
+        levelDescription,
         text
       );
       if (res?.success) {
         showNotification('success', 'Predefined comment saved');
+        // Optionally refresh the session context to get updated predefined comments
+        // queryClient.invalidateQueries({ queryKey: ["markingSessionContext"] });
+      } else {
+        showNotification('error', res?.message || 'Failed to save predefined comment');
       }
     } catch (e) {
+      console.error('Error saving predefined comment:', e);
       showNotification('error', 'Failed to save predefined comment');
     }
   };
@@ -275,20 +282,11 @@ export default function ExaminerAssessmentMarking() {
             existingAssessment={sessionContext?.existingAssessment}
           />
 
-          {/* Student Switcher for Individual Assessments */}
-          {assessmentType === 'INDIVIDUAL' && (
-            <StudentSwitcher
-              students={sessionContext?.entity?.individuals || []}
-              selectedStudent={selectedStudent}
-              onStudentChange={setSelectedStudent}
-              disabled={disabledInputs}
-            />
-          )}
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+          <div className="flex justify-center">
             {/* Assessment Panel */}
-            <div className="xl:col-span-3">
+            <div className="w-full max-w-6xl">
               <Card className="h-full">
                 <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
                   <div className="border-b px-6 py-4">
@@ -310,6 +308,7 @@ export default function ExaminerAssessmentMarking() {
                         onSavePredefinedComment={handleSavePredefinedComment}
                         disabled={disabledInputs}
                         assessmentType={assessmentType}
+                        assignmentId={assignmentId}
                       />
                     </TabsContent>
 
@@ -353,16 +352,6 @@ export default function ExaminerAssessmentMarking() {
                   </div>
                 </Tabs>
               </Card>
-            </div>
-
-            {/* Totals Panel */}
-            <div className="xl:col-span-1">
-              <TotalsPanel
-                criteria={criteria}
-                selectedRatings={selectedRatings}
-                assessmentType={assessmentType}
-                validation={validation}
-              />
             </div>
           </div>
 
