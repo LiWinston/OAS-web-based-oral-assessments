@@ -62,9 +62,13 @@ public class StudentResultsServiceImpl implements StudentResultsService {
             return dto;
         }
         
-        // Filter by assignment release status and convert to DTO format
+        // Filter by release status and convert to DTO format
         List<StudentResultOverviewDTO.Item> items = submissions.stream()
                 .filter(sub -> {
+                    // Only show results that are released to students
+                    if (!"RELEASED".equals(sub.getReleaseStatus())) {
+                        return false;
+                    }
                     Assignment assignment = assignmentMapper.selectById(sub.getAssignmentId());
                     return assignment != null;
                 })
@@ -125,8 +129,14 @@ public class StudentResultsServiceImpl implements StudentResultsService {
 
         // Get submitted assessments for this student and assignment
         List<AssessmentSubmission> submissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(studentId, assignmentId, "SUBMITTED");
+        
+        // Filter only released assessments
+        submissions = submissions.stream()
+                .filter(sub -> "RELEASED".equals(sub.getReleaseStatus()))
+                .collect(Collectors.toList());
+                
         if (submissions.isEmpty()) {
-            throw new BusinessException("423", "You weren't assessed for this assignment.");
+            throw new BusinessException("423", "You weren't assessed for this assignment or results haven't been released yet.");
         }
 
         StudentResultSummaryDTO response = new StudentResultSummaryDTO();
@@ -471,7 +481,10 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         
         // Get all submissions for this assignment and student to calculate aggregated scores
         List<AssessmentSubmission> allSubmissions = assessmentSubmissionMapper.listByStudentAndAssignmentWithGroups(
-            studentId, submission.getAssignmentId(), "SUBMITTED");
+            studentId, submission.getAssignmentId(), "SUBMITTED")
+            .stream()
+            .filter(sub -> "RELEASED".equals(sub.getReleaseStatus()))
+            .collect(Collectors.toList());
         
         // Parse rubrics to get correct max points
         Double maxPoints = 100.0;
