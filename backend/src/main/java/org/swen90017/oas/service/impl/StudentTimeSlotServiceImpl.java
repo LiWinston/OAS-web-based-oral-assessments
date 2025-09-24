@@ -115,7 +115,20 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             subjectId = request.getGroupId();
         }
 
-        // Check if already booked
+        // Check if already booked for this assignment (prevent duplicate assignment bookings)
+        if (bookingType.equals("INDIVIDUAL")) {
+            boolean hasBookedAssignment = slotSessionMapper.hasStudentBookedAssignment(request.getStudentId(), assignmentId);
+            if (hasBookedAssignment) {
+                throw new BusinessException(BusinessError.ALREADY_BOOKED);
+            }
+        } else {
+            boolean hasBookedAssignment = slotSessionMapper.hasGroupBookedAssignment(request.getGroupId(), assignmentId);
+            if (hasBookedAssignment) {
+                throw new BusinessException(BusinessError.ALREADY_BOOKED);
+            }
+        }
+
+        // Check if already booked for this specific session
         SessionStudent existingBooking = sessionStudentMapper.selectBySessionAndSubject(
             request.getSessionId(), bookingType, subjectId);
         if (existingBooking != null) {
@@ -255,15 +268,27 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     @Override
     @Transactional
     public Long cancelBooking(Long assignmentId, Long sessionId, Long studentId) {
-        // Find the existing booking record by sessionId to determine booking type
-        List<SessionStudent> sessionBookings = sessionStudentMapper.listBySession(sessionId);
-        if (sessionBookings.isEmpty()) {
+        // First try to find individual booking for this student
+        SessionStudent existingBooking = sessionStudentMapper.selectBySessionAndSubject(
+            sessionId, "INDIVIDUAL", studentId);
+        
+        // If no individual booking found, check for group booking
+        if (existingBooking == null) {
+            // Find the group ID for this student and assignment
+            Long studentGroupId = getStudentGroupId(studentId, assignmentId);
+            if (studentGroupId != null) {
+                existingBooking = sessionStudentMapper.selectBySessionAndSubject(
+                    sessionId, "GROUP", studentGroupId);
+            }
+        }
+        
+        // If no booking found for this student
+        if (existingBooking == null) {
             throw new BusinessException(CommonError.NOT_FOUND);
         }
         
-        SessionStudent existingBooking = sessionBookings.get(0); // Should only be one booking per session
+        // Validate ownership based on booking type
         String bookingType = existingBooking.getType();
-        
         if ("INDIVIDUAL".equals(bookingType)) {
             // For individual bookings, validate that the student making the request owns this booking
             if (!studentId.equals(existingBooking.getSubjectId())) {
@@ -384,20 +409,28 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             sessionDTO.setStart(session.getStartAt().toString());
             sessionDTO.setEnd(session.getEndAt().toString());
             
+            // Set venue information
+            if (session.getVenueId() != null) {
+                Venue venue = venueMapper.selectById(session.getVenueId());
+                if (venue != null) {
+                    BookableSessionsResponseDTO.VenueInfoDTO venueInfo = new BookableSessionsResponseDTO.VenueInfoDTO();
+                    venueInfo.setId(venue.getId());
+                    venueInfo.setVenueName(venue.getRoomName());
+                    venueInfo.setAssignmentId(venue.getAssignmentId());
+                    sessionDTO.setVenue(venueInfo);
+                }
+            }
+            
             BookableSessionsResponseDTO.AvailabilityDetailsDTO availability = new BookableSessionsResponseDTO.AvailabilityDetailsDTO();
             
-            if (session.getStatus() == SessionStatus.AVAILABLE) {
+            if (session.getCapacityGroups() > session.getEnrolledGroups()) {
                 sessionDTO.setStatus("available");
                 availability.setCanBook(true);
             } else {
                 sessionDTO.setStatus("unavailable");
                 availability.setCanBook(false);
                 if (Boolean.TRUE.equals(includeReasons)) {
-                    if (session.getStatus() == SessionStatus.BOOKED) {
-                        availability.setReason("SESSION_TAKEN");
-                    } else if (session.getStatus() == SessionStatus.BLOCKED) {
-                        availability.setReason("SESSION_BLOCKED");
-                    }
+                    availability.setReason("Session full booked");
                 }
             }
             

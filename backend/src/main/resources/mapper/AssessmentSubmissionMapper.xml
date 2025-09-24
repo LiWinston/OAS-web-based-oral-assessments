@@ -11,6 +11,7 @@
         <result column="subject_id" property="subjectId" />
         <result column="examiner_id" property="examinerId" />
         <result column="status" property="status" />
+        <result column="release_status" property="releaseStatus" />
         <result column="overall_feedback" property="overallFeedback" />
         <result column="admin_note" property="adminNote" />
         <result column="total_score" property="totalScore" />

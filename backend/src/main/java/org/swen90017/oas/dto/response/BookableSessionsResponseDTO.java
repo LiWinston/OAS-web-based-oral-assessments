@@ -125,6 +125,9 @@ public class BookableSessionsResponseDTO {
         @Schema(description = "Status", example = "available")
         private String status;
         
+        @Schema(description = "Venue information")
+        private VenueInfoDTO venue;
+        
         @Schema(description = "Availability details")
         private AvailabilityDetailsDTO availability;
     }
