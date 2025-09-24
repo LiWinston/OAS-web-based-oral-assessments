@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../../../../components/ui/button";
 import { examinerTimeslotService } from "../../../../services/examinerTimeslotService";
 import { useExaminerAuth } from "../../../../hooks/useExaminerAuth";
-import AssessmentSelectionStep from "../../../../components/examiner/schedule/AssessmentSelectionStep";
 import TimeslotSelectionCalendar from "../../../../components/examiner/schedule/TimeslotSelectionCalendar";
 import TimeslotList from "../../../../components/examiner/schedule/TimeslotList";
 import SelectionSummary from "../../../../components/examiner/schedule/SelectionSummary";
@@ -14,19 +13,26 @@ import OperationResultDialog from "@/components/examiner/schedule/OperationResul
 import { toLocalDateKey } from "@/utils/dateUtils";
 
 /**
- * SessionSelection Component (name retained in files for compatibility)
+ * SessionSelection Component (name retained for compatibility)
  *
- * Two-step wizard for examiner session self-assignment:
- * Step 1: Assessment Selection
- * Step 2: Session Selection
+ * The workflow now assumes the assignment has already been chosen on the
+ * schedule overview page and is passed via the query string.
  */
 function TimeslotSelectionContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { examinerId, isValidExaminer } = useExaminerAuth();
 
-  const [currentStep, setCurrentStep] = useState(1);
+  const assignmentIdParam = searchParams.get("assignmentId");
+  const parsedAssignmentId = assignmentIdParam
+    ? Number.parseInt(assignmentIdParam, 10)
+    : null;
+  const hasValidAssignmentId =
+    Number.isInteger(parsedAssignmentId) && parsedAssignmentId > 0;
+  const assignmentId = hasValidAssignmentId ? parsedAssignmentId : null;
+
   const [selectedAssignment, setSelectedAssignment] = useState(null);
+  const [assignmentNotFound, setAssignmentNotFound] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
   const [allocatedSlots, setAllocatedSlots] = useState([]);
   const [currentAllocation, setCurrentAllocation] = useState(0);
@@ -79,7 +85,7 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled: isValidExaminer && !!examinerId && currentStep === 1,
+    enabled: isValidExaminer && !!examinerId && hasValidAssignmentId,
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -96,6 +102,37 @@ function TimeslotSelectionContent() {
       });
     }
   }, [assignmentsData, assignmentsError]);
+
+  // Reset local selection state when the requested assignment changes
+  useEffect(() => {
+    setSelectedAssignment(null);
+    setAssignmentNotFound(false);
+    setSelectedDate(null);
+    setAllocatedSlots([]);
+    setCurrentAllocation(0);
+    setSelectionMessage(null);
+    setSubmitError(null);
+    setSubmitResult(null);
+    setIsSubmitting(false);
+    setResultDialogOpen(false);
+    setResultDialogProps({});
+  }, [assignmentId]);
+
+  // Once assignments are loaded, capture the selected assignment details
+  useEffect(() => {
+    if (!assignmentId || !assignmentsData?.success) return;
+
+    const list = assignmentsData?.data?.data || [];
+    const match = list.find((a) => a.assignmentId === assignmentId);
+
+    if (match) {
+      setSelectedAssignment(match);
+      setAssignmentNotFound(false);
+    } else {
+      setSelectedAssignment(null);
+      setAssignmentNotFound(true);
+    }
+  }, [assignmentId, assignmentsData]);
 
   // Fetch available sessions when assignment is selected and on step 2
   const {
@@ -132,18 +169,14 @@ function TimeslotSelectionContent() {
         throw error;
       }
     },
-    enabled:
-      !!selectedAssignment &&
-      isValidExaminer &&
-      !!examinerId &&
-      currentStep === 2,
+    enabled: !!selectedAssignment && isValidExaminer && !!examinerId,
     refetchInterval: 30000, // 30 seconds
     staleTime: 10000, // 10 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Availability summary for step 2 banner
+  // Availability summary used by the session availability banner
   const availabilitySummary = useMemo(() => {
     if (!timeslotsData?.success) return null;
     const sessions =
@@ -170,19 +203,13 @@ function TimeslotSelectionContent() {
     };
   }, [timeslotsData]);
 
-  // Pre-fill if coming from assignment link
-  useEffect(() => {
-    const assignmentId = searchParams.get("assignmentId");
-    if (assignmentId && assignmentsData?.success) {
-      const assignment = assignmentsData.data.data.find(
-        (a) => a.assignmentId === parseInt(assignmentId)
-      );
-      if (assignment) {
-        setSelectedAssignment(assignment);
-        setCurrentStep(2);
-      }
-    }
-  }, [searchParams, assignmentsData]);
+  const assignmentLoading = hasValidAssignmentId && isLoadingAssignments;
+  const showAssignmentError = hasValidAssignmentId && !!assignmentsError;
+  const showAssignmentNotFound =
+    hasValidAssignmentId &&
+    !assignmentLoading &&
+    !assignmentsError &&
+    assignmentNotFound;
 
   // Prefer assignment and examiner info from sessions API payload when available
   const maxSessions = useMemo(
@@ -276,27 +303,6 @@ function TimeslotSelectionContent() {
   const canSubmit = () => {
     // No minimum requirement as per MVP notes, just need at least one slot
     return allocatedSlots.length > 0;
-  };
-
-  const nextStep = () => {
-    if (currentStep === 1) {
-      if (selectedAssignment) {
-        setCurrentStep(2);
-      } else {
-        alert("Please select an assessment.");
-      }
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      // Clear session selections when going back
-      setAllocatedSlots([]);
-      setCurrentAllocation(0);
-      setSelectedDate(null);
-      setSelectionMessage(null);
-    }
   };
 
   const handleSubmit = async () => {
@@ -447,90 +453,75 @@ function TimeslotSelectionContent() {
         </p>
       </div>
 
-      {/* Progress indicator */}
-      <div className="dashboard-card p-5 mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-            <i className="fas fa-tasks text-blue-600 dark:text-blue-400 mr-2"></i>
-            Selection Process
-          </h2>
-          <div className="flex space-x-2">
-            {[1, 2].map((step) => (
-              <div
-                key={step}
-                className={`w-3 h-3 rounded-full ${
-                  currentStep >= step
-                    ? "bg-blue-600 dark:bg-blue-500"
-                    : "bg-gray-300 dark:bg-gray-600"
-                }`}
-              ></div>
-            ))}
+      {!hasValidAssignmentId && (
+        <div className="dashboard-card p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                Assignment required
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Select an assignment from your schedule before choosing
+                sessions.
+              </p>
+            </div>
+            <Button onClick={() => router.push("/examiner/schedule")}>Back to Schedule</Button>
           </div>
         </div>
-
-        <div className="relative pt-1">
-          <div className="flex mb-2 items-center justify-between">
-            <div>
-              <span
-                className={`text-xs font-semibold inline-block py-1 px-2 rounded-full ${
-                  currentStep >= 1
-                    ? "text-blue-600 bg-blue-200 dark:text-blue-300 dark:bg-blue-900/50"
-                    : "text-gray-600 bg-gray-200 dark:text-gray-400 dark:bg-gray-700"
-                }`}
-              >
-                Step 1
-              </span>
-            </div>
-            <div>
-              <span
-                className={`text-xs font-semibold inline-block py-1 px-2 rounded-full ${
-                  currentStep >= 2
-                    ? "text-blue-600 bg-blue-200 dark:text-blue-300 dark:bg-blue-900/50"
-                    : "text-gray-600 bg-gray-200 dark:text-gray-400 dark:bg-gray-700"
-                }`}
-              >
-                Step 2
-              </span>
-            </div>
-          </div>
-          <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200 dark:bg-gray-700">
-            <div
-              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 dark:bg-blue-600 transition-all duration-500"
-              style={{ width: `${currentStep === 1 ? 50 : 100}%` }}
-            ></div>
-          </div>
-          <div className="flex mb-2 items-center justify-between">
-            <div>
-              <span className="text-xs font-semibold inline-block text-gray-700 dark:text-gray-300">
-                Select Assessment
-              </span>
-            </div>
-            <div>
-              <span className="text-xs font-semibold inline-block text-gray-700 dark:text-gray-300">
-                Choose Sessions
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Step 1: Assessment Selection */}
-      {currentStep === 1 && (
-        <AssessmentSelectionStep
-          isLoading={isLoadingAssignments}
-          error={assignmentsError}
-          assignments={assignmentsData?.data?.data || []}
-          selectedAssignment={selectedAssignment}
-          onSelectAssignment={setSelectedAssignment}
-          onRetry={() => refetchAssignments()}
-          onNext={nextStep}
-          showDevInfo={process.env.NODE_ENV === "development"}
-          queryEnabled={!!examinerId && currentStep === 1}
-        />
       )}
 
-      {/* Step 2: Session Selection */}
-      {currentStep === 2 && (
+      {hasValidAssignmentId && assignmentLoading && (
+        <div className="dashboard-card p-5 mb-6">
+          <div className="flex items-center gap-3 text-gray-600 dark:text-gray-300">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span>Loading assignment details...</span>
+          </div>
+        </div>
+      )}
+
+      {showAssignmentError && (
+        <div className="dashboard-card p-5 mb-6">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-200">
+            <div className="flex items-start gap-3">
+              <i className="fas fa-exclamation-triangle mt-0.5"></i>
+              <div>
+                <p className="font-medium">Failed to load assignment</p>
+                <p className="mt-1">
+                  Please refresh or return to the schedule to pick another
+                  assignment.
+                </p>
+                <div className="mt-3 flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => refetchAssignments()}>
+                    Retry
+                  </Button>
+                  <Button size="sm" onClick={() => router.push("/examiner/schedule")}>
+                    Back to Schedule
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAssignmentNotFound && (
+        <div className="dashboard-card p-5 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                Assignment unavailable
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                This assignment is no longer available for self-assignment.
+              </p>
+            </div>
+            <Button onClick={() => router.push("/examiner/schedule")}>Back to Schedule</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Session Selection */}
+      {selectedAssignment && (
         <div className="space-y-6">
           {/* Assignment Summary */}
           <div className="dashboard-card p-5">
@@ -679,11 +670,11 @@ function TimeslotSelectionContent() {
           <div className="flex justify-between mt-6">
             <Button
               variant="outline"
-              onClick={prevStep}
+              onClick={() => router.push("/examiner/schedule")}
               className="flex items-center"
             >
               <i className="fas fa-arrow-left mr-2"></i>
-              Back to Assignment Selection
+              Back to Schedule
             </Button>
 
             <div className="flex flex-col items-end gap-2">
