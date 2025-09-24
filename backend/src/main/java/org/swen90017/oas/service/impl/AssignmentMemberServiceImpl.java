@@ -37,8 +37,7 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
     private final SysRoleMapper sysRoleMapper;
     private final SysStudentGroupMapper sysStudentGroupMapper;
     private final SlotSessionMapper slotSessionMapper;
-    private final TimeSlotExaminersMapper timeSlotExaminersMapper;
-    private final TimeSlotMapper timeSlotMapper;
+    private final SessionExaminerMapper sessionExaminersMapper;
     private final ExaminerMapper examinerMapper;
     private final SysStudentMapper sysStudentMapper;
     private final EmailService emailService;
@@ -100,7 +99,7 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
 
         // batch counts
         Map<Long, Integer> studentBookings = countStudentBookings(assignmentId, userIds);
-        Map<Long, Integer> examinerAssigned = countExaminerAssignedSlots(assignmentId, userIds);
+        Map<Long, Integer> examinerAssigned = countExaminerAssignedSessions(assignmentId, userIds);
 
         List<AssignmentMemberResponseDTO> data = new ArrayList<>();
         for (AssignmentParticipant ap : rows) {
@@ -127,13 +126,21 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
 
             if (r == UserRole.STUDENT) {
                 dto.setBookingsCount(studentBookings.getOrDefault(ap.getUserId(), 0));
+                dto.setAssignedSlotsCount(null); // 学生不需要assignedSlotsCount
                 // group id best-effort - get the first group the student belongs to
                 QueryWrapper<SysStudentGroup> groupWrapper = new QueryWrapper<>();
                 groupWrapper.eq("user_id", ap.getUserId()).last("limit 1");
                 SysStudentGroup sg = sysStudentGroupMapper.selectOne(groupWrapper);
                 dto.setGroupId(sg != null ? sg.getGroupId() : null);
             } else if (r == UserRole.EXAMINER) {
+                dto.setBookingsCount(null); // 考官不需要bookingsCount
                 dto.setAssignedSlotsCount(examinerAssigned.getOrDefault(ap.getUserId(), 0));
+                dto.setGroupId(null); // 考官不需要groupId
+            } else {
+                // 其他角色或角色判断失败的情况，设置默认值
+                dto.setBookingsCount(null);
+                dto.setAssignedSlotsCount(null);
+                dto.setGroupId(null);
             }
             data.add(dto);
         }
@@ -287,14 +294,14 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
                 canceled++;
             }
         } else if (r == UserRole.EXAMINER) {
-            List<TimeSlot> slots = timeSlotExaminersMapper.listSlotsByExaminer(ap.getUserId(), assignmentId);
-            for (TimeSlot ts : slots) {
-                int removed = timeSlotExaminersMapper.deleteOne(ts.getSlotId(), ap.getUserId());
+            List<SlotSession> sessions = sessionExaminersMapper.listSessionsByExaminer(ap.getUserId(), assignmentId);
+            for (SlotSession session : sessions) {
+                // 从session_examiners表中删除考官分配，使用sessionId
+                int removed = sessionExaminersMapper.deleteOne(session.getSessionId(), ap.getUserId());
                 if (removed > 0) {
-                    int newCurrent = Math.max(0, (ts.getCurrentExaminers() == null ? 0 : ts.getCurrentExaminers()) - 1);
-                    int booked = ts.getBookedSessions() == null ? 0 : ts.getBookedSessions();
-                    timeSlotMapper.updateCountersAndStatus(ts.getSlotId(), newCurrent, booked);
                     cleared++;
+                    // 注意：slot session模式下不需要更新time slot的计数器
+                    // 因为time slot概念已经被移除，每个session独立管理
                 }
             }
         }
@@ -339,11 +346,11 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         return out;
     }
 
-    private Map<Long, Integer> countExaminerAssignedSlots(Long assignmentId, List<Long> userIds) {
+    private Map<Long, Integer> countExaminerAssignedSessions(Long assignmentId, List<Long> userIds) {
         Map<Long, Integer> out = new HashMap<>();
         for (Long uid : userIds) {
-            List<TimeSlot> slots = timeSlotExaminersMapper.listSlotsByExaminer(uid, assignmentId);
-            if (slots != null && !slots.isEmpty()) out.put(uid, slots.size());
+            List<SlotSession> sessions = sessionExaminersMapper.listSessionsByExaminer(uid, assignmentId);
+            if (sessions != null && !sessions.isEmpty()) out.put(uid, sessions.size());
         }
         return out;
     }
