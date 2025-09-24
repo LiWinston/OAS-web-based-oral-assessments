@@ -14,6 +14,10 @@
         <result column="overall_feedback" property="overallFeedback" />
         <result column="admin_note" property="adminNote" />
         <result column="total_score" property="totalScore" />
+        <result column="final_score_override" property="finalScoreOverride" />
+        <result column="override_reason" property="overrideReason" />
+        <result column="override_by_user_id" property="overrideByUserId" />
+        <result column="override_at" property="overrideAt" />
         <result column="rubric_meta_snapshot" property="rubricMetaSnapshot" />
         <result column="rubrics_info_snapshot" property="rubricsInfoSnapshot" />
         <result column="scores_json" property="scoresJson" />

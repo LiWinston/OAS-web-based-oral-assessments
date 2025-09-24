@@ -11,10 +11,12 @@ export function buildAssessmentPayload({
 }) {
   const entities = [];
 
-  // Add group entity for GROUP or MIXED assignments
+  // Add group entity for GROUP assignments or when group ratings exist
   if (
     sessionContext?.entity?.kind === "GROUP" ||
-    sessionContext?.assignment?.type === "mixed"
+    sessionContext?.assignment?.type === "group" ||
+    sessionContext?.assignment?.type === "mixed" ||
+    (groupRatings && Object.keys(groupRatings).length > 0)
   ) {
     const groupItems = Object.entries(groupRatings || {}).map(
       ([criterionId, rating]) => {
@@ -32,19 +34,22 @@ export function buildAssessmentPayload({
       }
     );
 
-    entities.push({
-      kind: "GROUP",
-      groupId: sessionContext?.entity?.group?.groupId,
-      overallFeedback,
-      notes: privateNotes,
-      items: groupItems,
-    });
+    if (groupItems.length > 0) {
+      entities.push({
+        kind: "GROUP",
+        groupId: sessionContext?.entity?.groupId || sessionContext?.entity?.group?.groupId,
+        overallFeedback,
+        notes: privateNotes,
+        items: groupItems,
+      });
+    }
   }
 
   // Add per-student entities for INDIVIDUAL or MIXED assignments
   if (
     sessionContext?.assignment?.type === "individual" ||
-    sessionContext?.assignment?.type === "mixed"
+    sessionContext?.assignment?.type === "mixed" ||
+    (individualRatings && Object.keys(individualRatings).length > 0)
   ) {
     const students = sessionContext?.entity?.individuals || [];
     students.forEach((student) => {
@@ -63,17 +68,20 @@ export function buildAssessmentPayload({
           comments,
         };
       });
-      if (items.length) {
+      if (items.length > 0) {
         entities.push({ kind: "INDIVIDUAL", studentId: student.studentId, items });
       }
     });
   }
+
 
   return {
     examinerId,
     assignmentId: sessionContext?.assignment?.id,
     status,
     entities,
+    overallFeedback: overallFeedback || '',
+    privateNotes: privateNotes || '',
   };
 }
 

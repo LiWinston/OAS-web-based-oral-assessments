@@ -1,0 +1,200 @@
+import apiClient from './apiClient';
+
+/**
+ * Examiner Session Service
+ * Handles assignment and session-related operations for examiners
+ */
+const examinerSessionService = {
+  /**
+   * Get all assignments available to examiner
+   * POST /api/examiners/assignments/list
+   * 
+   * @param {number} examinerId - The examiner ID
+   * @returns {Promise} API response with assignments list
+   */
+  async getAssignmentsList(examinerId) {
+    try {
+      const response = await apiClient.post('/api/examiners/assignments/list', {
+        examinerId: Number(examinerId)
+      });
+      
+      
+      // Check if backend response has success/data structure
+      if (response.data?.success && response.data?.data) {
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data.data  // Extract the actual assignments array
+        };
+      } else if (Array.isArray(response.data)) {
+        // If response.data is directly an array
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          code: 'NO_DATA',
+          message: 'No assignments data found',
+          data: []
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching assignments list:', error);
+      return {
+        success: false,
+        code: error.response?.data?.code || 'ERROR',
+        message: error.response?.data?.message || 'Failed to fetch assignments list',
+        error: error.response?.data
+      };
+    }
+  },
+
+  /**
+   * Get sessions for a specific assignment
+   * POST /api/examiners/{examinerId}/assignments/{assignmentId}/sessions/query
+   * 
+   * @param {number} examinerId - The examiner ID
+   * @param {number} assignmentId - The assignment ID
+   * @param {object} filters - Optional filters for sessions
+   * @returns {Promise} API response with sessions for the assignment
+   */
+  async getAssignmentSessions(examinerId, assignmentId, filters = {}) {
+    try {
+      // Build payload with only non-null values to avoid backend validation issues
+      const payload = {};
+      if (filters.date) payload.date = filters.date;
+      if (filters.venueId !== undefined) payload.venueId = Number(filters.venueId);
+      if (filters.status) payload.status = filters.status;
+      
+      // Add any additional filters
+      Object.keys(filters).forEach(key => {
+        if (!['date', 'venueId', 'status'].includes(key) && filters[key] !== undefined) {
+          payload[key] = filters[key];
+        }
+      });
+
+
+      const response = await apiClient.post(
+        `/api/examiners/${examinerId}/assignments/${assignmentId}/sessions/query`,
+        payload
+      );
+      
+      
+      // Check if backend response has success/data structure
+      if (response.data?.success && response.data?.data) {
+        // Extract sessions array from data.sessions
+        const sessionsData = response.data.data.sessions || [];
+        return {
+          success: true,
+          code: 'OK',
+          data: sessionsData  // Return the actual sessions array
+        };
+      } else if (Array.isArray(response.data)) {
+        // If response.data is directly an array
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          code: 'NO_DATA',
+          message: 'No sessions data found',
+          data: []
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching assignment sessions:', error);
+      return {
+        success: false,
+        code: error.response?.data?.code || 'ERROR',
+        message: error.response?.data?.message || 'Failed to fetch assignment sessions',
+        error: error.response?.data
+      };
+    }
+  },
+
+  /**
+   * Get all sessions for examiner (legacy)
+   * POST /api/sessions/students
+   * 
+   * @param {number} sessionId - The session ID to query
+   * @returns {Promise} API response with session info
+   */
+  async getSessionStudents(sessionId) {
+    try {
+      const response = await apiClient.post('/api/sessions/students', {
+        sessionId: Number(sessionId)
+      });
+      
+      return {
+        success: true,
+        code: 'OK',
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error fetching session students:', error);
+      return {
+        success: false,
+        code: error.response?.data?.code || 'ERROR',
+        message: error.response?.data?.message || 'Failed to fetch session students',
+        error: error.response?.data
+      };
+    }
+  },
+
+  /**
+   * Get detailed session with assessments
+   * POST /api/sessions/students/detailed
+   * 
+   * @param {number} sessionId - The session ID
+   * @param {number} examinerId - The examiner ID
+   * @returns {Promise} API response with detailed session and assessments
+   */
+  async getSessionDetailed(sessionId, examinerId) {
+    try {
+      const response = await apiClient.post('/api/sessions/students/detailed', {
+        sessionId: Number(sessionId),
+        examinerId: Number(examinerId)
+      });
+      
+      
+      // Check if backend response has success/data structure
+      if (response.data?.success && response.data?.data) {
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data.data  // Extract the actual session data
+        };
+      } else if (response.data && typeof response.data === 'object') {
+        // If response.data is directly the session data
+        return {
+          success: true,
+          code: 'OK',
+          data: response.data
+        };
+      } else {
+        return {
+          success: false,
+          code: 'NO_DATA',
+          message: 'No session data found',
+          data: null
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching detailed session:', error);
+      return {
+        success: false,
+        code: error.response?.data?.code || 'ERROR',
+        message: error.response?.data?.message || 'Failed to fetch detailed session',
+        error: error.response?.data
+      };
+    }
+  }
+};
+
+export default examinerSessionService;

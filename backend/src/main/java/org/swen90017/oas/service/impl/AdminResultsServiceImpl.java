@@ -1,5 +1,6 @@
 package org.swen90017.oas.service.impl;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.swen90017.oas.dto.RubricsInfoDto;
 import org.swen90017.oas.dto.request.ReleaseAssessmentRequestDTO;
 import org.swen90017.oas.dto.request.ReviewExaminerRequestDTO;
 import org.swen90017.oas.dto.request.UpdateFinalScoreRequestDTO;
+import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.SysUser;
@@ -29,6 +31,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -46,7 +49,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     @Override
     public PageResult<AssessmentSummaryDTO> listAssessments(Long subjectId, Long assignmentId, 
                                                            Integer pageNum, Integer pageSize,
-                                                           String searchQuery, Long sessionId) {
+                                                           String searchQuery, Long sessionId, Boolean isReleased) {
         // Calculate offset
         int offset = (pageNum - 1) * pageSize;
         
@@ -55,36 +58,37 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Get assessment summaries
         List<Map<String, Object>> rawData = adminResultsMapper.listAssessmentSummaries(
-                subjectId, assignmentId, sessionId, searchQuery, offset, pageSize);
+                subjectId, assignmentId, sessionId, searchQuery, offset, pageSize, isReleased);
         
         // Convert to DTOs and compute scores
         List<AssessmentSummaryDTO> assessments = rawData.stream()
-                .map(this::mapToAssessmentSummary)
+                .map(rawDataMap -> {
+                    AssessmentSummaryDTO assessment = mapToAssessmentSummary(rawDataMap);
+                    computeAssessmentScores(assessment, rawDataMap);
+                    return assessment;
+                })
                 .collect(Collectors.toList());
-        
-        // Compute scores for each assessment
-        for (AssessmentSummaryDTO assessment : assessments) {
-            computeAssessmentScores(assessment);
-        }
         
         return new PageResult<>(pageNum, pageSize, total, assessments);
     }
 
     @Override
     public AssessmentDetailDTO getAssessmentDetail(Long subjectId, Long assignmentId, Long submissionId) {
-        // Get basic assessment info
-        Map<String, Object> assessmentData = adminResultsMapper.getAssessmentDetail(subjectId, assignmentId, submissionId);
+        // Get basic assessment info - only use submissionId
+        Map<String, Object> assessmentData = adminResultsMapper.getAssessmentDetail(submissionId);
         if (assessmentData == null || assessmentData.isEmpty()) {
             throw new BusinessException(BusinessError.SUBMISSION_NOT_FOUND);
         }
         
         // Get all examiner markings for this assessment
+        // Extract required info from assessmentData
+        Long actualAssignmentId = (Long) assessmentData.get("assignment_id");
         String subjectType = (String) assessmentData.get("subject_type");
         Long sessionId = (Long) assessmentData.get("session_id");
         Long entityId = (Long) assessmentData.get("subject_id");
         
         List<Map<String, Object>> examinerData = adminResultsMapper.getExaminerMarkings(
-                assignmentId, sessionId, subjectType, entityId);
+                actualAssignmentId, sessionId, subjectType, entityId);
         
         // Convert to DTO
         AssessmentDetailDTO detail = mapToAssessmentDetail(assessmentData, examinerData);
@@ -163,12 +167,10 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.SUBMISSION_NOT_FOUND);
         }
         
-        // Set final score override for all submissions of this assessment
-        // For group assessments, this will update all group members' individual submissions
-        // For individual assessments, this will update only the specific student's submissions
-        int updated = adminResultsMapper.setFinalScoreOverride(
-                assignmentId, submission.getSessionId(),
-                submission.getSubjectType(), submission.getSubjectId(),
+        // Set final score override for all examiner submissions of the same student in the same assignment
+        // This will update all examiner assessments for this student across all sessions in this assignment
+        int updated = adminResultsMapper.setFinalScoreOverrideForAllExaminers(
+                assignmentId, submissionId,
                 request.getFinalScorePct1dp(), request.getReason(), adminUserId);
         
         if (updated == 0) {
@@ -202,23 +204,41 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
-        // Update release status
-        adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
+        // Update assessment_submission status to RELEASED
+        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionStatus(
+                assignmentId, submission.getSessionId(), 
+                submission.getSubjectType(), submission.getSubjectId(), "RELEASED");
         
-        // Send notification to students if requested
+        // Count distinct students affected by the status update
         int notifiedStudents = 0;
-        if (request.getNotify() != null && request.getNotify()) {
+        if (updatedSubmissions > 0) {
+            notifiedStudents = adminResultsMapper.countDistinctStudentsForAssessment(
+                    assignmentId, submission.getSessionId(), 
+                    submission.getSubjectType(), submission.getSubjectId());
+        }
+        adminResultsMapper.updateAssignmentReleaseStatus(assignmentId, true);
+
+        // Only update assignment release status if we actually updated some submissions
+        boolean released = false;
+        if (notifiedStudents > 0) {
+            // Also update the assignment's is_released field to true
+            released = true;
+        }
+        
+        // Send notification to students if requested and we have students to notify
+        if (request.getNotify() != null && request.getNotify() && notifiedStudents > 0) {
             try {
                 // TODO: Implement student notification logic
-                // This would depend on how students are associated with assessments
-                notifiedStudents = 1; // Placeholder
+                // This would send notifications to the specific students affected
+                log.info("Would send release notification to {} students for assignment {}", 
+                        notifiedStudents, assignmentId);
             } catch (Exception e) {
                 log.warn("Failed to send release notification: {}", e.getMessage());
             }
         }
         
         ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
-        response.setReleased(true);
+        response.setReleased(released);
         response.setNotifiedStudents(notifiedStudents);
         
         return response;
@@ -234,35 +254,66 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AssessmentKeyDTO key = new AssessmentKeyDTO();
         key.setAssignmentId((Long) data.get("assignment_id"));
         key.setSessionId((Long) data.get("session_id"));
-        key.setSubmissionId(0L); // Will be set based on composite key
-        key.setKind("student".equals(data.get("subject_type")) ? "INDIVIDUAL" : "GROUP");
+        
+        // Parse submission_ids from GROUP_CONCAT result
+        String submissionIdsStr = (String) data.get("submission_ids");
+        if (submissionIdsStr != null && !submissionIdsStr.isEmpty()) {
+            List<Long> submissionIds = Arrays.stream(submissionIdsStr.split(","))
+                    .map(String::trim)
+                    .map(Long::parseLong)
+                    .collect(Collectors.toList());
+            // Set the first submission ID for backward compatibility
+            key.setSubmissionId(submissionIds.isEmpty() ? null : submissionIds.get(0));
+        }
+        
         key.setEntityId((Long) data.get("subject_id"));
         assessmentInfo.setKey(key);
         
         // Student/Group info
-        if ("student".equals(data.get("subject_type"))) {
+        if ("INDIVIDUAL".equals(data.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.StudentInfo student = 
                     new AssessmentSummaryDTO.AssessmentInfo.StudentInfo();
             student.setId((Long) data.get("subject_id"));
             student.setName((String) data.get("entity_name"));
             assessmentInfo.setStudent(student);
-        } else if ("group".equals(data.get("subject_type"))) {
+        } else if ("GROUP".equals(data.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.GroupInfo group = 
                     new AssessmentSummaryDTO.AssessmentInfo.GroupInfo();
             group.setId((Long) data.get("subject_id"));
             group.setName((String) data.get("entity_name"));
-            // group.setMemberCount() - would need additional query
+            // Set member count if available from query
+            if (data.get("group_member_count") != null) {
+                group.setMemberCount(((Number) data.get("group_member_count")).intValue());
+            }
             assessmentInfo.setGroup(group);
         }
         
         dto.setAssessment(assessmentInfo);
         
-        // Session info - simplified (session details can be fetched separately if needed)
+        // Session info with timing and venue details
         AssessmentSessionDTO session = new AssessmentSessionDTO();
         session.setId((Long) data.get("session_id"));
-        // Note: Session timing and venue details removed from assessment results view
-        // These can be fetched separately from slot_sessions table if needed for display
         session.setTimezone("Australia/Melbourne"); // Default timezone
+        
+        // Set session timing if available
+        LocalDateTime startAt = (LocalDateTime) data.get("session_start_at");
+        LocalDateTime endAt = (LocalDateTime) data.get("session_end_at");
+        if (startAt != null) {
+            session.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            session.setEnd(formatDateTime(endAt));
+        }
+        
+        // Set venue information if available
+        Long venueId = (Long) data.get("session_venue_id");
+        String venueName = (String) data.get("venue_name");
+        if (venueId != null) {
+            AssessmentSessionDTO.VenueInfo venue = new AssessmentSessionDTO.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            session.setVenue(venue);
+        }
         
         dto.setSession(session);
         
@@ -275,6 +326,20 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             override.setValuePct1dp(convertToDouble(data.get("final_score_override_pct")));
             override.setReason((String) data.get("final_score_override_reason"));
             override.setAt(formatDateTime((LocalDateTime) data.get("final_score_override_at")));
+            
+            // Populate user information for the override
+            Long overrideByUserId = (Long) data.get("final_score_override_by");
+            if (overrideByUserId != null) {
+                SysUser user = sysUserMapper.selectById(overrideByUserId);
+                if (user != null) {
+                    AssessmentComputedDTO.ManualOverrideInfo.UserInfo userInfo = 
+                        new AssessmentComputedDTO.ManualOverrideInfo.UserInfo();
+                    userInfo.setId(user.getUserId());
+                    userInfo.setName(user.getUserName());
+                    override.setBy(userInfo);
+                }
+            }
+            
             computed.setManualOverride(override);
         }
         
@@ -297,19 +362,18 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AssessmentKeyDTO key = new AssessmentKeyDTO();
         key.setAssignmentId((Long) assessmentData.get("assignment_id"));
         key.setSessionId((Long) assessmentData.get("session_id"));
-        key.setSubmissionId(0L); // Will be set based on composite key
-        key.setKind("student".equals(assessmentData.get("subject_type")) ? "INDIVIDUAL" : "GROUP");
+        key.setSubmissionId((Long)assessmentData.get("submission_id"));
         key.setEntityId((Long) assessmentData.get("subject_id"));
         assessmentInfo.setKey(key);
         
         // Map student/group info
-        if ("student".equals(assessmentData.get("subject_type"))) {
+        if ("INDIVIDUAL".equals(assessmentData.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.StudentInfo student = 
                     new AssessmentSummaryDTO.AssessmentInfo.StudentInfo();
             student.setId((Long) assessmentData.get("subject_id"));
             student.setName((String) assessmentData.get("entity_name"));
             assessmentInfo.setStudent(student);
-        } else if ("group".equals(assessmentData.get("subject_type"))) {
+        } else if ("GROUP".equals(assessmentData.get("subject_type"))) {
             AssessmentSummaryDTO.AssessmentInfo.GroupInfo group = 
                     new AssessmentSummaryDTO.AssessmentInfo.GroupInfo();
             group.setId((Long) assessmentData.get("subject_id"));
@@ -323,6 +387,33 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         detail.setAssessment(assessmentInfo);
         
+        // Map session info with timing and venue details
+        AssessmentSessionDTO session = new AssessmentSessionDTO();
+        session.setId((Long) assessmentData.get("session_id"));
+        session.setTimezone("Australia/Melbourne"); // Default timezone
+        
+        // Set session timing if available
+        LocalDateTime startAt = (LocalDateTime) assessmentData.get("session_start_at");
+        LocalDateTime endAt = (LocalDateTime) assessmentData.get("session_end_at");
+        if (startAt != null) {
+            session.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            session.setEnd(formatDateTime(endAt));
+        }
+        
+        // Set venue information if available
+        Long venueId = (Long) assessmentData.get("session_venue_id");
+        String venueName = (String) assessmentData.get("venue_name");
+        if (venueId != null) {
+            AssessmentSessionDTO.VenueInfo venue = new AssessmentSessionDTO.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            session.setVenue(venue);
+        }
+        
+        detail.setSession(session);
+        
         // Map rubric info
         AdminRubricDTO rubric = mapToRubricDTO(assessmentData);
         detail.setRubric(rubric);
@@ -333,9 +424,63 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 .collect(Collectors.toList());
         detail.setExaminers(examiners);
         
-        // Computed scores and release status will be set by caller
-        detail.setComputed(new AssessmentComputedDTO());
-        detail.setReleaseStatus("NOT_RELEASED");
+        // Computed scores (will be filled by computeDetailedAssessmentScores)
+        AssessmentComputedDTO computed = new AssessmentComputedDTO();
+        
+        // Check for manual override from query results
+        if (assessmentData.get("final_score_override_pct") != null) {
+            AssessmentComputedDTO.ManualOverrideInfo override = new AssessmentComputedDTO.ManualOverrideInfo();
+            override.setValuePct1dp(convertToDouble(assessmentData.get("final_score_override_pct")));
+            override.setReason((String) assessmentData.get("final_score_override_reason"));
+            override.setAt(formatDateTime((LocalDateTime) assessmentData.get("final_score_override_at")));
+            
+            // Populate user information for the override
+            Long overrideByUserId = (Long) assessmentData.get("final_score_override_by");
+            if (overrideByUserId != null) {
+                SysUser user = sysUserMapper.selectById(overrideByUserId);
+                if (user != null) {
+                    AssessmentComputedDTO.ManualOverrideInfo.UserInfo userInfo = 
+                        new AssessmentComputedDTO.ManualOverrideInfo.UserInfo();
+                    userInfo.setId(user.getUserId());
+                    userInfo.setName(user.getUserName());
+                    override.setBy(userInfo);
+                }
+            }
+            
+            computed.setManualOverride(override);
+        }
+        
+        detail.setComputed(computed);
+        String releaseStates = (assessmentData.get("status") + "").equals("RELEASE") ? "RELEASE" : "NOT_RELEASE";
+        detail.setReleaseStatus(releaseStates);
+        
+        // Map final grade information
+        AssessmentDetailDTO.FinalGradeInfo finalGrade = new AssessmentDetailDTO.FinalGradeInfo();
+        
+        // Set final grade percentage - use override if available, otherwise will be set by computeDetailedAssessmentScores
+        Double finalScoreOverride = convertToDouble(assessmentData.get("final_score_override_pct"));
+        if (finalScoreOverride != null) {
+            finalGrade.setGradePct1dp(finalScoreOverride);
+            finalGrade.setIsManualOverride(true);
+            finalGrade.setOverrideReason((String) assessmentData.get("final_score_override_reason"));
+        } else {
+            finalGrade.setIsManualOverride(false);
+        }
+        
+        // Set consolidated feedback from all examiners
+        String consolidatedFeedback = (String) assessmentData.get("consolidated_feedback");
+        finalGrade.setConsolidatedFeedback(consolidatedFeedback);
+        
+        // Set admin notes
+        String adminNotes = (String) assessmentData.get("admin_notes");
+        finalGrade.setAdminNotes(adminNotes);
+        
+        // Convert percentage to letter grade (if applicable)
+        if (finalGrade.getGradePct1dp() != null) {
+            finalGrade.setGradeLetter(convertPercentageToLetterGrade(finalGrade.getGradePct1dp()));
+        }
+        
+        detail.setFinalGrade(finalGrade);
         
         return detail;
     }
@@ -413,8 +558,39 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         // Parse scores JSON to get rubric items
         try {
             String scoresJson = (String) data.get("scores_json");
-            if (scoresJson != null) {
-                // TODO: Parse scores JSON and map to rubric items
+            if (scoresJson != null && !scoresJson.trim().isEmpty()) {
+                List<SaveAssessmentDraftRequestDTO.ScoreItem> scoreItems = objectMapper.readValue(
+                    scoresJson, 
+                    new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {}
+                );
+                
+                List<ExaminerMarkDetailDTO.RubricItem> rubricItems = new ArrayList<>();
+                for (SaveAssessmentDraftRequestDTO.ScoreItem scoreItem : scoreItems) {
+                    ExaminerMarkDetailDTO.RubricItem rubricItem = new ExaminerMarkDetailDTO.RubricItem();
+                    
+                    // Map basic fields
+                    rubricItem.setCriterionId(scoreItem.getDescription()); // Using description as criterion ID
+                    rubricItem.setPoints(scoreItem.getInputPoints());
+                    
+                    // Map selected level if available
+                    if (scoreItem.getSelectedLevel() != null) {
+                        rubricItem.setLevelId(scoreItem.getSelectedLevel().getDescription());
+                    }
+                    
+                    // Map comments
+                    List<ExaminerMarkDetailDTO.RubricItem.Comment> comments = new ArrayList<>();
+                    if (scoreItem.getComment() != null && !scoreItem.getComment().trim().isEmpty()) {
+                        ExaminerMarkDetailDTO.RubricItem.Comment comment = new ExaminerMarkDetailDTO.RubricItem.Comment();
+                        comment.setSource("custom");
+                        comment.setText(scoreItem.getComment());
+                        comments.add(comment);
+                    }
+                    rubricItem.setComments(comments);
+                    
+                    rubricItems.add(rubricItem);
+                }
+                detail.setItems(rubricItems);
+            } else {
                 detail.setItems(new ArrayList<>());
             }
         } catch (Exception e) {
@@ -425,11 +601,11 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         return detail;
     }
 
-    private void computeAssessmentScores(AssessmentSummaryDTO assessment) {
+    private void computeAssessmentScores(AssessmentSummaryDTO assessment, Map<String, Object> rawData) {
         // Get all examiner markings for this assessment
         Long assignmentId = assessment.getAssessment().getKey().getAssignmentId();
         Long sessionId = assessment.getAssessment().getKey().getSessionId();
-        String subjectType = assessment.getAssessment().getKey().getKind().toLowerCase();
+        String subjectType = (String) rawData.get("subject_type"); // INDIVIDUAL or GROUP
         Long subjectId = assessment.getAssessment().getKey().getEntityId();
         
         List<Map<String, Object>> examinerMarkings = adminResultsMapper.getExaminerMarkings(
@@ -467,11 +643,43 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         Double averageScore = submittedScores.isEmpty() ? null : 
                 submittedScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         
-        AssessmentComputedDTO computed = new AssessmentComputedDTO();
-        computed.setAverageScorePct1dp(averageScore);
-        computed.setEffectiveFinalScorePct1dp(averageScore); // TODO: Check for manual override
+        // Check if computed scores were already set in mapToAssessmentSummary (which includes override info)
+        AssessmentComputedDTO computed = detail.getComputed();
+        if (computed == null) {
+            computed = new AssessmentComputedDTO();
+            detail.setComputed(computed);
+        }
         
-        detail.setComputed(computed);
+        computed.setAverageScorePct1dp(averageScore);
+        
+        // Set effective final score - use manual override if available, otherwise use average
+        Double effectiveScore = computed.getManualOverride() != null ? 
+                computed.getManualOverride().getValuePct1dp() : averageScore;
+        computed.setEffectiveFinalScorePct1dp(effectiveScore);
+        
+        // Update final grade information if not a manual override
+        AssessmentDetailDTO.FinalGradeInfo finalGrade = detail.getFinalGrade();
+        if (finalGrade != null && !Boolean.TRUE.equals(finalGrade.getIsManualOverride())) {
+            finalGrade.setGradePct1dp(effectiveScore);
+            if (effectiveScore != null) {
+                finalGrade.setGradeLetter(convertPercentageToLetterGrade(effectiveScore));
+            }
+        }
+    }
+
+    /**
+     * Convert percentage to letter grade based on common Australian university grading scale
+     * @param percentage The percentage score (0-100)
+     * @return Letter grade (HD, D, C, P, F)
+     */
+    private String convertPercentageToLetterGrade(Double percentage) {
+        if (percentage == null) return null;
+        
+        if (percentage >= 80) return "HD";  // High Distinction
+        if (percentage >= 70) return "D";   // Distinction
+        if (percentage >= 60) return "C";   // Credit
+        if (percentage >= 50) return "P";   // Pass
+        return "F";                         // Fail
     }
 
     /**

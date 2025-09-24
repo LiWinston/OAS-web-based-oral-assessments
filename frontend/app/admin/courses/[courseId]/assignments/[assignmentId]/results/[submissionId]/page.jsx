@@ -34,11 +34,14 @@ const FALLBACK_ASSIGNMENTS = {
 
 function toFrozenRubric(rubric) {
   if (!rubric) return { criteria: [] };
+  const scale = rubric?.rubricMetaInfo?.scale || 'weight';
+  const scaleType = scale === 'points' ? 'points' : 'descriptive';
   const criteria = (rubric.criteria || []).map((c) => ({
     criterionId: c.criterionId,
     text: c.title || c.criterionId,
     weightPct: c.weightOrPoints ?? 0,
     appliesTo: 'BOTH',
+    scaleType,
     levels: (c.performanceLevels || []).map((pl) => ({
       levelId: pl.levelId,
       levelLabel: pl.label || pl.levelId,

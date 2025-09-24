@@ -34,28 +34,45 @@ function groupBy(items, fnKey) {
 }
 
 export default function ResultsTable({ items = [] }) {
+  console.log('ResultsTable received items:', items);
+  console.log('ResultsTable items length:', items?.length);
+  
   if (!items?.length) {
+    console.log('ResultsTable: No items, showing empty message');
     return (
       <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-8">No results found.</div>
     );
   }
 
-  const groups = groupBy(items, (it) => `${it.assignment?.id}-${it.session?.id}`);
+  // Debug the grouping logic
+  items.forEach((item, index) => {
+    console.log(`Item ${index}:`, {
+      assessmentId: item.assessmentId,
+      assignmentId: item.assignment?.id,
+      sessionId: item.session?.id,
+      assignmentName: item.assignment?.name,
+      groupKey: `${item.assignment?.id}-${item.session?.id}`
+    });
+  });
 
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      <div className="hidden md:block">
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
-              <th className="p-3">Assignment</th>
-              <th className="p-3">Entity</th>
-              <th className="p-3">Session</th>
-              <th className="p-3 text-center">Your Mark</th>
-              <th className="p-3">Status</th>
-            </tr>
-          </thead>
-          <tbody>
+  const groups = groupBy(items, (it) => `${it.assignment?.id}-${it.session?.id}`);
+  console.log('ResultsTable groups:', groups);
+
+  try {
+    return (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="hidden md:block">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900">
+                <th className="p-3">Assignment</th>
+                <th className="p-3">Entity</th>
+                <th className="p-3">Session</th>
+                <th className="p-3 text-center">Your Mark</th>
+                <th className="p-3">Status</th>
+              </tr>
+            </thead>
+            <tbody>
             {groups.map(({ key, group }) => (
               <Fragment key={key}>
                 <tr key={`hdr-${key}`} className="bg-gray-50 dark:bg-gray-900/50 border-t border-gray-200 dark:border-gray-700">
@@ -125,5 +142,22 @@ export default function ResultsTable({ items = [] }) {
         ))}
       </div>
     </div>
-  );
+    );
+  } catch (error) {
+    console.error('ResultsTable rendering error:', error);
+    return (
+      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <h3 className="text-red-800 font-medium">Rendering Error</h3>
+        <p className="text-red-600 text-sm mt-1">
+          Failed to render results table: {error.message}
+        </p>
+        <details className="mt-2">
+          <summary className="text-red-600 cursor-pointer text-sm">Raw Data</summary>
+          <pre className="text-xs bg-red-100 p-2 mt-1 rounded overflow-auto">
+            {JSON.stringify(items, null, 2)}
+          </pre>
+        </details>
+      </div>
+    );
+  }
 }

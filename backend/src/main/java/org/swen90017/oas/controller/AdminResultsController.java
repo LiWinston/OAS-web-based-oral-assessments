@@ -42,11 +42,11 @@ public class AdminResultsController {
             @RequestParam(defaultValue = "1") @Parameter(description = "Page number") Integer pageNum,
             @RequestParam(defaultValue = "20") @Parameter(description = "Page size") Integer pageSize,
             @RequestParam(required = false) @Parameter(description = "Search query (student/group name or ID)") String q,
-            @RequestParam(required = false) @Parameter(description = "Filter by session ID") Long sessionId) {
+            @RequestParam(required = false) @Parameter(description = "Filter by session ID") Long sessionId,
+            @RequestParam(required = false) @Parameter(description = "Filter by is released") Boolean isReleased) {
         
         PageResult<AssessmentSummaryDTO> result = adminResultsService.listAssessments(
-                subjectId, assignmentId, pageNum, pageSize, q, sessionId);
-        
+                subjectId, assignmentId, pageNum, pageSize, q, sessionId, isReleased);
         return Result.success(result);
     }
 
@@ -62,14 +62,18 @@ public class AdminResultsController {
             @PathVariable @Parameter(description = "Subject ID") Long subjectId,
             @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
             @PathVariable @Parameter(description = "Submission ID") Long submissionId) {
-        
         AssessmentDetailDTO result = adminResultsService.getAssessmentDetail(subjectId, assignmentId, submissionId);
         return Result.success(result);
     }
 
+    /**
+     * @deprecated This endpoint is deprecated and will be removed in a future version.
+     * Use alternative endpoints for accessing examiner marking details.
+     */
+    @Deprecated
     @GetMapping("/assessments/{submissionId}/examiners/{examinerId}")
-    @Operation(summary = "Get examiner marking detail", 
-               description = "Get detailed marking information for a specific examiner")
+    @Operation(summary = "Get examiner marking detail (DEPRECATED)", 
+               description = "Get detailed marking information for a specific examiner. This endpoint is deprecated.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner marking detail"),
         @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
@@ -110,10 +114,10 @@ public class AdminResultsController {
     }
 
     @PutMapping("/assessments/{submissionId}/final-score")
-    @Operation(summary = "Set final score", 
-               description = "Manually set the final score for an assessment (overrides computed average)")
+    @Operation(summary = "Set final score for all examiners", 
+               description = "Manually set the final score for all examiner assessments of the same student in the same assignment (overrides computed average for all examiners)")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully set final score"),
+        @ApiResponse(responseCode = "200", description = "Successfully set final score for all examiners"),
         @ApiResponse(responseCode = "400", description = "Invalid score value"),
         @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
         @ApiResponse(responseCode = "404", description = "Assessment not found")
@@ -126,7 +130,7 @@ public class AdminResultsController {
         
         LoginUser loginUser = SecurityUtils.getLoginUser();
         AssessmentDetailDTO result = adminResultsService.setFinalScore(
-                subjectId, assignmentId, submissionId, request, loginUser.getUserId());
+                subjectId, assignmentId, submissionId, request, 1l);//loginUser.getUserId());
         
         return Result.success(result);
     }
@@ -147,6 +151,7 @@ public class AdminResultsController {
             @Valid @RequestBody ReleaseAssessmentRequestDTO request) {
         
         LoginUser loginUser = SecurityUtils.getLoginUser();
+
         ReleaseAssessmentResponseDTO result = adminResultsService.releaseAssessment(
                 subjectId, assignmentId, submissionId, request, loginUser.getUserId());
         

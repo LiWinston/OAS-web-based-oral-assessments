@@ -91,24 +91,10 @@ export default function HeaderStatusBar({
           </div>
         </div>
 
-        {/* Auto-save status */}
+        {/* Manual save reminder */}
         <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-          {autoSaveStatus === 'saving' ? (
-            <>
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500 mr-2"></div>
-              Saving...
-            </>
-          ) : autoSaveStatus === 'saved' ? (
-            <>
-              <i className="fas fa-check-circle text-green-500 mr-2"></i>
-              All changes saved
-            </>
-          ) : (
-            <>
-              <i className="fas fa-exclamation-circle text-red-500 mr-2"></i>
-              Save failed
-            </>
-          )}
+          <i className="fas fa-info-circle text-blue-500 mr-2"></i>
+          Auto-save disabled - Please save manually
         </div>
       </div>
     </div>

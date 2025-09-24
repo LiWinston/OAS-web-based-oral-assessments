@@ -13,6 +13,7 @@ export default function RubricSnapshot({ title, rubricFrozen, items = [] }) {
     description: c.text || c.criterionId,
     weight: c.weightPct ?? 0,
     appliesTo: c.appliesTo || 'BOTH',
+    scaleType: c.scaleType || 'descriptive',
     levels: (c.levels || []).map((lvl) => ({
       levelId: lvl.levelId,
       levelLabel: lvl.levelLabel,

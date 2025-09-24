@@ -159,6 +159,154 @@ function buildDraftAssessment(type = 'mixed') {
 }
 
 const examinerAssessmentServiceMock = {
+  async getAssessmentsList(examinerId, filters = {}) {
+    await delay(300);
+    // Mock data that matches the backend JSON structure
+    const mockAssessments = [
+      {
+        submissionId: 12,
+        assignmentId: 1,
+        sessionId: 623,
+        subjectType: "GROUP",
+        subjectId: 1,
+        examinerId: 5,
+        status: "SUBMITTED",
+        overallFeedback: "Good work",
+        totalScore: 82.5,
+        submittedAt: "2025-09-14T16:13:42",
+        updatedAt: "2025-09-14T16:13:42",
+        rubricMetaSnapshot: JSON.stringify({
+          name: "Requirements Analysis Rubric",
+          description: "Evaluation of requirements documentation quality",
+          totalPoints: 100
+        }),
+        rubricsInfoSnapshot: JSON.stringify([
+          {
+            weight: 50.0,
+            scaleType: "points",
+            description: "Communication Skills1",
+            performanceLevel: [
+              { endPoint: 100.0, startPoint: 85.0, description: "Excellent" },
+              { endPoint: 84.0, startPoint: 70.0, description: "Good" },
+              { endPoint: 69.0, startPoint: 60.0, description: "Medium" }
+            ]
+          },
+          {
+            weight: 50.0,
+            scaleType: "descriptive",
+            description: "New Criterion1",
+            performanceLevel: [
+              { endPoint: 89.0, startPoint: 80.0, description: "Very Good" },
+              { endPoint: 79.0, startPoint: 70.0, description: "Good" },
+              { endPoint: 69.0, startPoint: 60.0, description: "Satisfactory" },
+              { endPoint: 59.0, startPoint: 0.0, description: "Needs Improvement" }
+            ]
+          }
+        ]),
+        scoresJson: JSON.stringify([
+          {
+            weight: 50.0,
+            comment: "Well done",
+            scaleType: "points",
+            description: "Communication Skills1",
+            inputPoints: 90.0,
+            selectedLevel: null
+          },
+          {
+            weight: 50.0,
+            comment: "Pass",
+            scaleType: "descriptive",
+            description: "New Criterion1",
+            inputPoints: 75.0,
+            selectedLevel: {
+              endPoint: 69.0,
+              startPoint: 60.0,
+              description: "Satisfactory"
+            }
+          }
+        ])
+      },
+      {
+        submissionId: 1,
+        assignmentId: 3,
+        sessionId: null,
+        subjectType: "INDIVIDUAL",
+        subjectId: 2,
+        examinerId: 5,
+        status: "SUBMITTED",
+        overallFeedback: "ok",
+        totalScore: 25,
+        submittedAt: "2025-09-12T02:33:13",
+        updatedAt: "2025-09-13T04:34:47",
+        rubricMetaSnapshot: JSON.stringify({
+          name: "Presentation Rubric",
+          description: "Client presentation evaluation",
+          totalPoints: 50
+        }),
+        rubricsInfoSnapshot: JSON.stringify({
+          criteria: [
+            {
+              weight: 25,
+              scaleType: "percentage",
+              description: "Communication",
+              performanceLevels: [{ level: "Excellent", points: 25 }]
+            }
+          ]
+        }),
+        scoresJson: JSON.stringify([
+          {
+            weight: null,
+            comment: "Excellent",
+            scaleType: "percentage",
+            description: "Communication",
+            inputPoints: 100.0,
+            selectedLevel: null
+          }
+        ])
+      },
+      {
+        submissionId: 13,
+        assignmentId: 3,
+        sessionId: null,
+        subjectType: "INDIVIDUAL",
+        subjectId: 2,
+        examinerId: 5,
+        status: "SUBMITTED",
+        overallFeedback: "ok",
+        totalScore: 25,
+        submittedAt: "2025-09-12T02:33:13",
+        updatedAt: "2025-09-13T04:34:47",
+        rubricMetaSnapshot: JSON.stringify({
+          name: "Presentation Rubric",
+          description: "Client presentation evaluation",
+          totalPoints: 50
+        }),
+        rubricsInfoSnapshot: JSON.stringify({
+          criteria: [
+            {
+              weight: 25,
+              scaleType: "percentage",
+              description: "Communication",
+              performanceLevels: [{ level: "Excellent", points: 25 }]
+            }
+          ]
+        }),
+        scoresJson: JSON.stringify([
+          {
+            weight: null,
+            comment: "Excellent",
+            scaleType: "percentage",
+            description: "Communication",
+            inputPoints: 100.0,
+            selectedLevel: null
+          }
+        ])
+      }
+    ];
+    
+    return { success: true, code: 'OK', data: mockAssessments };
+  },
+
   async getMarkingSessions(examinerId, assignmentId, params = {}) {
     await delay(300);
     const id = Number(assignmentId);
@@ -166,49 +314,112 @@ const examinerAssessmentServiceMock = {
     return { success: true, code: 'OK', data: bucket };
   },
 
-  async getSessionContext(sessionId, examinerId) {
+  async getSessionContext(submissionId, examinerId) {
     await delay(350);
-    const id = Number(sessionId);
-    if (id === 90011) {
-      // mixed, unmarked
-      return { success: true, code: 'OK', data: buildBaseContext('mixed') };
-    }
-    if (id === 90012) {
-      // individual draft
-      const ctx = buildBaseContext('individual');
-      ctx.existingAssessment = buildDraftAssessment('individual');
-      return { success: true, code: 'OK', data: ctx };
-    }
-    if (id === 90013) {
-      // group submitted
+    const id = Number(submissionId);
+    
+    // Mock data based on submission IDs from the backend
+    if (id === 12) {
+      // Group assessment - Requirements Analysis Rubric
       const ctx = buildBaseContext('group');
+      ctx.assignment.name = 'Requirements Analysis Rubric';
+      ctx.assignment.id = 1;
+      ctx.entity = { kind: 'GROUP', groupId: 'G-10', groupName: 'Group Assessment', members: 1 };
       ctx.existingAssessment = {
         ...buildDraftAssessment('group'),
-        assessmentId: 'A-777',
+        assessmentId: 'A-12',
         status: 'SUBMITTED',
-        submittedAt: new Date().toISOString(),
+        submittedAt: '2025-09-14T16:13:42',
+        totalScore: 82.5
       };
       return { success: true, code: 'OK', data: ctx };
     }
-    // default to mixed
-    return { success: true, code: 'OK', data: buildBaseContext('mixed') };
+    if (id === 1) {
+      // Individual assessment - Presentation Rubric  
+      const ctx = buildBaseContext('individual');
+      ctx.assignment.name = 'Presentation Rubric';
+      ctx.assignment.id = 3;
+      ctx.entity = { kind: 'INDIVIDUAL', individuals: [{ studentId: 2, name: 'Student 2' }] };
+      ctx.existingAssessment = {
+        ...buildDraftAssessment('individual'),
+        assessmentId: 'A-1',
+        status: 'SUBMITTED',
+        submittedAt: '2025-09-12T02:33:13',
+        totalScore: 25
+      };
+      return { success: true, code: 'OK', data: ctx };
+    }
+    if (id === 13) {
+      // Another individual assessment
+      const ctx = buildBaseContext('individual');
+      ctx.assignment.name = 'Presentation Rubric';
+      ctx.assignment.id = 3;
+      ctx.entity = { kind: 'INDIVIDUAL', individuals: [{ studentId: 2, name: 'Student 2' }] };
+      ctx.existingAssessment = {
+        ...buildDraftAssessment('individual'),
+        assessmentId: 'A-13',
+        status: 'SUBMITTED',
+        submittedAt: '2025-09-12T02:33:13',
+        totalScore: 25
+      };
+      return { success: true, code: 'OK', data: ctx };
+    }
+    
+    // Default: return individual assessment context for any other submission
+    const ctx = buildBaseContext('individual');
+    ctx.assignment.name = 'Assessment';
+    ctx.assignment.id = 1;
+    ctx.entity = { kind: 'INDIVIDUAL', individuals: [{ studentId: 2001, name: 'Alice Chen' }] };
+    return { success: true, code: 'OK', data: ctx };
   },
 
-  async saveDraft(sessionId, assessmentData) {
+  async saveDraft(submissionId, assessmentData) {
     await delay(400);
-    const id = String(sessionId);
+    const id = String(submissionId);
     const draftId = DB.drafts.get(id)?.assessmentId || `A-${Date.now()}`;
-    DB.drafts.set(id, { assessmentId: draftId, status: 'DRAFT', revision: (DB.drafts.get(id)?.revision || 1) + 1, updatedAt: new Date().toISOString(), payload: assessmentData });
-    return { success: true, code: 'OK', data: { assessmentId: draftId, status: 'DRAFT', revision: DB.drafts.get(id).revision, updatedAt: DB.drafts.get(id).updatedAt } };
+    DB.drafts.set(id, { 
+      assessmentId: draftId, 
+      status: 'DRAFT', 
+      revision: (DB.drafts.get(id)?.revision || 1) + 1, 
+      updatedAt: new Date().toISOString(), 
+      payload: assessmentData,
+      submissionId 
+    });
+    return { 
+      success: true, 
+      code: 'OK', 
+      data: { 
+        assessmentId: draftId, 
+        status: 'DRAFT', 
+        revision: DB.drafts.get(id).revision, 
+        updatedAt: DB.drafts.get(id).updatedAt,
+        submissionId 
+      } 
+    };
   },
 
-  async submitAssessment(sessionId, assessmentId) {
+  async submitAssessment(submissionId, assessmentData) {
     await delay(350);
-    const id = String(sessionId);
-    const existing = DB.drafts.get(id) || { assessmentId };
+    const id = String(submissionId);
+    const existing = DB.drafts.get(id) || { assessmentId: assessmentData.assessmentId || `A-${Date.now()}` };
     const submittedAt = new Date().toISOString();
-    DB.drafts.set(id, { ...existing, assessmentId: existing.assessmentId || assessmentId, status: 'SUBMITTED', submittedAt });
-    return { success: true, code: 'OK', data: { assessmentId: DB.drafts.get(id).assessmentId, status: 'SUBMITTED', submittedAt } };
+    DB.drafts.set(id, { 
+      ...existing, 
+      assessmentId: existing.assessmentId || assessmentData.assessmentId, 
+      status: 'SUBMITTED', 
+      submittedAt,
+      submissionId
+    });
+    return { 
+      success: true, 
+      code: 'OK', 
+      data: { 
+        assessmentId: DB.drafts.get(id).assessmentId, 
+        status: 'SUBMITTED', 
+        submittedAt,
+        submissionId 
+      } 
+    };
   },
 
   async getExaminerAssessment(sessionId, examinerId) {

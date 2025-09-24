@@ -14,13 +14,24 @@ export default function ExaminerResultDetailPage() {
   const router = useRouter();
   const versionParam = search?.get('version') || 'latest';
 
-  const { data: detail, isLoading } = useExaminerResultDetailQuery(userId, assessmentId, { version: versionParam });
+  const { data: detail, isLoading, error } = useExaminerResultDetailQuery(userId, assessmentId, { version: versionParam });
   const { data: versions } = useAssessmentVersionsQuery(userId, assessmentId);
+
+  console.log('ExaminerResultDetailPage - assessmentId:', assessmentId);
+  console.log('ExaminerResultDetailPage - userId:', userId);
+  console.log('ExaminerResultDetailPage - detail:', detail);
+  console.log('ExaminerResultDetailPage - isLoading:', isLoading);
+  console.log('ExaminerResultDetailPage - error:', error);
 
   if (isLoading || !detail) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        {error && (
+          <div className="mt-4 text-red-600 text-sm">
+            Error: {error.message}
+          </div>
+        )}
       </div>
     );
   }

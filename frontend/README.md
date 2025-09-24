@@ -324,7 +324,7 @@ frontend/
 │   │       ├── SelectionSummary.jsx         # Session allocation summary with validation
 │   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
 │   ├── admin/results/         # Course Admin results moderation & release UI
-│   │   ├── ResultsFilterBar.jsx      # Search/status/session filters for assessment list
+│   │   ├── ResultsFilterBar.jsx      # Search and status filters for assessment list
 │   │   ├── ScoreSummaryPanel.jsx     # Average vs final score with override/release actions
 │   │   ├── ExaminerPanel.jsx         # Read-only examiner cards with rubric snapshots
 │   │   ├── ReviewDialog.jsx          # Reason capture for reopening examiner markings

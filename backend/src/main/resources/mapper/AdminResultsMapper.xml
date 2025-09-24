@@ -6,48 +6,88 @@
     <select id="listAssessmentSummaries" resultType="java.util.Map">
         SELECT DISTINCT
             a.id as assignment_id,
+            GROUP_CONCAT(asub.id ORDER BY asub.id) as submission_ids,
             asub.session_id,
             asub.subject_type,
             asub.subject_id,
             
             -- Student/Group info
             CASE 
-                WHEN asub.subject_type = 'student' THEN su.user_name
-                WHEN asub.subject_type = 'group' THEN sg.group_name
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
+                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
             
-            -- Release status from assignment
-            CASE WHEN a.results_released = 1 THEN 'RELEASED' ELSE 'NOT_RELEASED' END as release_status,
+            -- Group member count for GROUP assessments
+            CASE 
+                WHEN asub.subject_type = 'GROUP' THEN (
+                    SELECT COUNT(*) FROM sys_student_group sgm 
+                    WHERE sgm.group_id = asub.subject_id
+                )
+                ELSE NULL
+            END as group_member_count,
             
-            -- Final score override info (set to NULL for now until columns are added)
-            NULL as final_score_override_pct,
-            NULL as final_score_override_reason,
-            NULL as final_score_override_at
+            -- Session timing info
+            ss.start_at as session_start_at,
+            ss.end_at as session_end_at,
+            
+            -- Venue info
+            ss.venue_id as session_venue_id,
+            v.room_name as venue_name,
+            
+            -- Release status derived from assessment_submission.status
+            CASE 
+                WHEN SUM(CASE WHEN asub.status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                ELSE 'NOT_RELEASED' 
+            END as release_status,
+            
+            -- Final score override info
+            asub.final_score_override as final_score_override_pct,
+            asub.override_reason as final_score_override_reason,
+            asub.override_at as final_score_override_at,
+            asub.override_by_user_id as final_score_override_by
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
+        WHERE a.id = #{assignmentId}
         
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
         </if>
-        
+
+        <if test="isReleased != null">
+            <choose>
+                <when test="isReleased == true">
+                    AND asub.status = 'RELEASED'
+                </when>
+                <otherwise>
+                    AND asub.status != 'RELEASED'
+                </otherwise>
+            </choose>
+        </if>
+
         <if test="searchQuery != null and searchQuery != ''">
             AND (
-                su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                st.student_number LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_id LIKE CONCAT('%', #{searchQuery}, '%')
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type = 'GROUP' AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
             )
         </if>
         
-        GROUP BY a.id, asub.session_id, asub.subject_type, asub.subject_id, entity_name
+        GROUP BY a.id, asub.session_id, asub.subject_type, asub.subject_id, entity_name, group_member_count,
+                 asub.final_score_override, asub.override_reason, 
+                 asub.override_at, asub.override_by_user_id, ss.start_at, ss.end_at, 
+                 ss.venue_id, v.room_name
         ORDER BY entity_name
         <if test="limit != null">
             LIMIT #{limit}
@@ -63,23 +103,27 @@
                                    asub.subject_type, '_', asub.subject_id))
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
-        
+        WHERE a.id = #{assignmentId}
+
         <if test="sessionId != null">
             AND asub.session_id = #{sessionId}
         </if>
         
         <if test="searchQuery != null and searchQuery != ''">
             AND (
-                su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                st.student_number LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                sg.group_id LIKE CONCAT('%', #{searchQuery}, '%')
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type = 'GROUP' AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
             )
         </if>
     </select>
@@ -95,31 +139,69 @@
             asub.session_id,
             asub.subject_type,
             asub.subject_id,
+            asub.id as submission_id,
+            asub.status as status,
+            
+            -- Session timing info
+            ss.start_at as session_start_at,
+            ss.end_at as session_end_at,
+            
+            -- Venue info
+            ss.venue_id as session_venue_id,
+            v.room_name as venue_name,
             
             -- Student/Group info
             CASE 
-                WHEN asub.subject_type = 'student' THEN su.user_name
-                WHEN asub.subject_type = 'group' THEN sg.group_name
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
+                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
             
             CASE 
-                WHEN asub.subject_type = 'group' THEN (
+                WHEN asub.subject_type = 'GROUP' THEN (
                     SELECT COUNT(*) FROM sys_student_group sgm 
                     WHERE sgm.group_id = asub.subject_id
                 )
                 ELSE NULL
-            END as group_member_count
+            END as group_member_count,
+            
+            -- Final score override info
+            asub.final_score_override as final_score_override_pct,
+            asub.override_reason as final_score_override_reason,
+            asub.override_at as final_score_override_at,
+            asub.override_by_user_id as final_score_override_by,
+            
+            -- Consolidated feedback from all examiners
+            (
+                SELECT GROUP_CONCAT(
+                    CASE 
+                        WHEN asub_all.overall_feedback IS NOT NULL AND asub_all.overall_feedback != '' 
+                        THEN CONCAT('Examiner ', u.user_name, ': ', asub_all.overall_feedback)
+                        ELSE NULL 
+                    END
+                    SEPARATOR '\n\n'
+                )
+                FROM assessment_submission asub_all
+                LEFT JOIN sys_user u ON asub_all.examiner_id = u.user_id
+                WHERE asub_all.assignment_id = asub.assignment_id
+                AND asub_all.subject_type = asub.subject_type
+                AND asub_all.subject_id = asub.subject_id
+                AND asub_all.status = 'SUBMITTED'
+                AND asub_all.overall_feedback IS NOT NULL
+                AND asub_all.overall_feedback != ''
+            ) as consolidated_feedback,
+            
+            -- Admin notes (get from any submission, they should be consistent)
+            asub.admin_note as admin_notes
             
         FROM assignment a
         JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN sys_student st ON asub.subject_type = 'student' AND asub.subject_id = st.user_id
-        LEFT JOIN sys_user su ON st.user_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'group' AND asub.subject_id = sg.group_id
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
         
-        WHERE a.subject_id = #{subjectId}
-        AND a.id = #{assignmentId}
-        AND asub.id = #{submissionId}
+        WHERE asub.id = #{submissionId}
         LIMIT 1
     </select>
 
@@ -210,12 +292,27 @@
         WHERE id = #{assignmentId}
     </update>
 
+    <!-- Update assignment release status (is_released field) -->
+    <update id="updateAssignmentReleaseStatus">
+        UPDATE assignment 
+        SET is_released = #{released},
+            released_at = CASE 
+                WHEN #{released} = TRUE THEN NOW()
+                ELSE NULL
+            END,
+            update_time = NOW()
+        WHERE id = #{assignmentId}
+    </update>
+
+
     <!-- Set final score override for all submissions of an assessment -->
-    <!-- TODO: Add final_score_override columns to assessment_submission table first -->
-    <!-- Temporarily simplified to avoid parameter mapping errors until columns are added -->
     <update id="setFinalScoreOverride">
         UPDATE assessment_submission 
-        SET updated_at = NOW()
+        SET final_score_override = #{finalScore},
+            override_reason = #{reason},
+            override_by_user_id = #{userId},
+            override_at = NOW(),
+            updated_at = NOW()
         WHERE assignment_id = #{assignmentId}
         AND session_id = #{sessionId}
         AND (
@@ -232,7 +329,76 @@
             -- Also update the group-level submission if it exists
             (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
         )
-        -- Note: finalScore, reason, userId parameters are ignored until database columns are added
     </update>
+
+    <!-- Set final score override for all examiner submissions of the same student in the same assignment -->
+    <update id="setFinalScoreOverrideForAllExaminers">
+        UPDATE assessment_submission a1
+        INNER JOIN (
+            SELECT assignment_id, subject_id, subject_type
+            FROM assessment_submission
+            WHERE id = #{submissionId}
+            LIMIT 1
+        ) a2 ON a1.assignment_id = a2.assignment_id 
+             AND a1.subject_id = a2.subject_id 
+             AND a1.subject_type = a2.subject_type
+        SET a1.final_score_override = #{finalScore},
+            a1.override_reason = #{reason},
+            a1.override_by_user_id = #{userId},
+            a1.override_at = NOW(),
+            a1.updated_at = NOW()
+    </update>
+
+    <!-- Update assessment submission status for all submissions of an assessment -->
+    <update id="updateAssessmentSubmissionStatus">
+        UPDATE assessment_submission 
+        SET status = #{status},
+            updated_at = NOW()
+        WHERE assignment_id = #{assignmentId}
+        AND session_id = #{sessionId}
+        AND (
+            -- For individual assessments, update the specific student's submissions
+            (subject_type = 'INDIVIDUAL' AND subject_id = #{subjectId} AND #{subjectType} = 'INDIVIDUAL')
+            OR
+            -- For group assessments, update all submissions for group members
+            (subject_type = 'INDIVIDUAL' AND #{subjectType} = 'GROUP' AND subject_id IN (
+                SELECT sg.user_id 
+                FROM sys_student_group sg 
+                WHERE sg.group_id = #{subjectId}
+            ))
+            OR
+            -- Also update the group-level submission if it exists
+            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+        )
+    </update>
+
+    <!-- Count distinct students affected by assessment submission status update -->
+    <select id="countDistinctStudentsForAssessment" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT 
+            CASE 
+                WHEN asub.subject_type = 'INDIVIDUAL' THEN asub.subject_id
+                WHEN asub.subject_type = 'GROUP' THEN sg.user_id
+                ELSE NULL
+            END
+        ) as student_count
+        FROM assessment_submission asub
+        LEFT JOIN sys_student_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.session_id = #{sessionId}
+        AND (
+            -- For individual assessments, count the specific student
+            (asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = #{subjectId} AND #{subjectType} = 'INDIVIDUAL')
+            OR
+            -- For group assessments, count all group members
+            (asub.subject_type = 'INDIVIDUAL' AND #{subjectType} = 'GROUP' AND asub.subject_id IN (
+                SELECT sg2.user_id 
+                FROM sys_student_group sg2 
+                WHERE sg2.group_id = #{subjectId}
+            ))
+            OR
+            -- For group-level submissions, count all group members
+            (asub.subject_type = 'GROUP' AND asub.subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+        )
+    </select>
 
 </mapper>

@@ -20,7 +20,8 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("sessionId") Long sessionId,
             @Param("searchQuery") String searchQuery,
             @Param("offset") Integer offset,
-            @Param("limit") Integer limit
+            @Param("limit") Integer limit,
+            @Param("isReleased") Boolean isReleased
     );
 
     /**
@@ -37,8 +38,6 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
      * Get detailed assessment information including all examiner markings
      */
     Map<String, Object> getAssessmentDetail(
-            @Param("subjectId") Long subjectId,
-            @Param("assignmentId") Long assignmentId,
             @Param("submissionId") Long submissionId
     );
 
@@ -88,6 +87,15 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
     );
 
     /**
+     * Update assignment release status (is_released field)
+     */
+    Integer updateAssignmentReleaseStatus(
+            @Param("assignmentId") Long assignmentId,
+            @Param("released") Boolean released
+    );
+
+
+    /**
      * Set final score override for assessment
      */
     Integer setFinalScoreOverride(
@@ -98,5 +106,37 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("finalScore") Double finalScore,
             @Param("reason") String reason,
             @Param("userId") Long userId
+    );
+
+    /**
+     * Set final score override for all examiner submissions of the same student in the same assignment
+     */
+    Integer setFinalScoreOverrideForAllExaminers(
+            @Param("assignmentId") Long assignmentId,
+            @Param("submissionId") Long submissionId,
+            @Param("finalScore") Double finalScore,
+            @Param("reason") String reason,
+            @Param("userId") Long userId
+    );
+
+    /**
+     * Update assessment submission status to RELEASED for all submissions of an assessment
+     */
+    Integer updateAssessmentSubmissionStatus(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("subjectType") String subjectType,
+            @Param("subjectId") Long subjectId,
+            @Param("status") String status
+    );
+
+    /**
+     * Count distinct students affected by assessment submission status update
+     */
+    Integer countDistinctStudentsForAssessment(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("subjectType") String subjectType,
+            @Param("subjectId") Long subjectId
     );
 }
