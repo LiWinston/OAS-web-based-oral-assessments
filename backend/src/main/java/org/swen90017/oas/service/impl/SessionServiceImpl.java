@@ -316,6 +316,134 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
+    public AdminSessionsListResponseDTO listExaminerSessions(Long examinerId, Long assignmentId, String date, String status, Long venueId) {
+        // 验证考官是否存在且具有EXAMINER角色
+        boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, Collections.singletonList(UserRole.EXAMINER.code()));
+        if (!isExaminer) {
+            throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
+        }
+        
+        // 验证assignment存在并获取assignment时间范围
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
+        
+        // 检查请求的日期是否在assignment时间范围内
+        LocalDate target = (date == null || date.isEmpty()) ? null : LocalDate.parse(date);
+        if (target != null) {
+            LocalDate assignmentStartDate = assignment.getStartDate() != null ? assignment.getStartDate().toLocalDate() : null;
+            LocalDate assignmentEndDate = assignment.getEndDate() != null ? assignment.getEndDate().toLocalDate() : null;
+            
+            if (assignmentStartDate != null && target.isBefore(assignmentStartDate)) {
+                AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
+                resp.setSessions(new ArrayList<>());
+                resp.setOutsideAssignmentRange(true);
+                resp.setMessage("Requested date is before assignment start date");
+                AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
+                sum.setTotalSessions(0);
+                sum.setFullyStaffed(0);
+                sum.setPartiallyStaffed(0);
+                sum.setUnstaffed(0);
+                resp.setSummary(sum);
+                return resp;
+            }
+            
+            if (assignmentEndDate != null && target.isAfter(assignmentEndDate)) {
+                AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
+                resp.setSessions(new ArrayList<>());
+                resp.setOutsideAssignmentRange(true);
+                resp.setMessage("Requested date is after assignment end date");
+                AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
+                sum.setTotalSessions(0);
+                sum.setFullyStaffed(0);
+                sum.setPartiallyStaffed(0);
+                sum.setUnstaffed(0);
+                resp.setSummary(sum);
+                return resp;
+            }
+        }
+        
+        // 获取该考官参与的sessions
+        List<SlotSession> examinerSessions = sessionExaminerMapper.listSessionsByExaminer(examinerId, assignmentId);
+        
+        AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
+        List<AdminSessionsListResponseDTO.Item> items = new ArrayList<>();
+        int fully = 0, partial = 0, un = 0;
+        
+        for (SlotSession s : examinerSessions) {
+            // 应用过滤条件
+            if (target != null && !s.getStartAt().toLocalDate().equals(target)) continue;
+            if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
+            if (status != null && !status.isEmpty() && !s.getStatus().name().equalsIgnoreCase(status)) continue;
+            
+            AdminSessionsListResponseDTO.Item it = new AdminSessionsListResponseDTO.Item();
+            it.setId(s.getSessionId());
+            it.setDate(s.getStartAt().toLocalDate());
+            it.setStartTime(s.getStartAt().toLocalTime());
+            it.setEndTime(s.getEndAt().toLocalTime());
+            it.setVenueId(s.getVenueId());
+            
+            if (s.getVenueId() != null) {
+                Venue v = venueMapper.selectById(s.getVenueId());
+                it.setVenueName(v == null ? null : v.getRoomName());
+            } else {
+                it.setVenueName(null);
+            }
+            
+            it.setRequiredExaminers(s.getRequiredExaminers());
+            it.setCapacity(s.getCapacityGroups());
+            
+            List<Long> examinerIds = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
+            List<AdminSessionsListResponseDTO.ExaminerDTO> assigned = new ArrayList<>();
+            if (examinerIds != null) {
+                for (Long id : examinerIds) {
+                    AdminSessionsListResponseDTO.ExaminerDTO e = new AdminSessionsListResponseDTO.ExaminerDTO();
+                    e.setId(id);
+                    SysUser u = sysUserMapper.selectById(id);
+                    e.setName(u == null ? null : u.getUserName());
+                    assigned.add(e);
+                }
+            }
+            it.setAssignedExaminers(assigned);
+            
+            int booked = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
+            it.setBookedCount(booked);
+            int cap = s.getCapacityGroups() == null ? 0 : s.getCapacityGroups();
+            it.setRemainingCapacity(Math.max(0, cap - booked));
+            it.setStatus(s.getStatus().name().toLowerCase());
+            it.setCreatedAt(s.getCreatedAt());
+            it.setLastModified(s.getUpdatedAt());
+            
+            // 基于assignment.status派生发布布尔位
+            String st = assignment.getStatus();
+            boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
+            boolean toStudent = "RELEASED".equalsIgnoreCase(st);
+            it.setPublishedToExaminer(toExaminer);
+            it.setPublishedToStudent(toStudent);
+            
+            items.add(it);
+            
+            // 计算统计信息
+            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+            int cur = examinerIds == null ? 0 : examinerIds.size();
+            if (cur == 0) un++; 
+            else if (cur >= req && req > 0) fully++; 
+            else partial++;
+        }
+        
+        resp.setSessions(items);
+        AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
+        sum.setTotalSessions(items.size());
+        sum.setFullyStaffed(fully);
+        sum.setPartiallyStaffed(partial);
+        sum.setUnstaffed(un);
+        resp.setSummary(sum);
+        
+        return resp;
+    }
+
+    @Override
     @Transactional
     public SessionDetailDTO updateSession(Long assignmentId, Long sessionId, SessionRequestDTO request) {
         SlotSession s = slotSessionMapper.selectById(sessionId);

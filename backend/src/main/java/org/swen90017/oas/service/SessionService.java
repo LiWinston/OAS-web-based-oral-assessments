@@ -21,6 +21,9 @@ public interface SessionService {
 
     // overlap + CRUD for admin
     AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId);
+    
+    // examiner-specific session listing
+    AdminSessionsListResponseDTO listExaminerSessions(Long examinerId, Long assignmentId, String date, String status, Long venueId);
     SessionDetailDTO updateSession(Long assignmentId, Long sessionId, SessionRequestDTO request);
     Map<String, Object> deleteSessions(Long assignmentId, List<Long> sessionIds);
     Map<String, Object> updateSessionsExaminers(Long assignmentId, UpdateSessionsExaminersRequestDTO request);

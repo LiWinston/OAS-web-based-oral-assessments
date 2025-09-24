@@ -45,7 +45,7 @@ public class ExaminerController {
             @Parameter(description = "Examiner ID") @PathVariable Long examinerId,
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @RequestBody ExaminerListSessionsRequestDTO request) {
-        return Result.success(sessionService.listAdminSessions(assignmentId, request.getDate(), request.getStatus(), request.getVenueId()));
+        return Result.success(sessionService.listExaminerSessions(examinerId, assignmentId, request.getDate(), request.getStatus(), request.getVenueId()));
     }
 
     @Operation(summary = "Batch self-assign sessions", description = "Assign examiner to multiple sessions using DTO")
