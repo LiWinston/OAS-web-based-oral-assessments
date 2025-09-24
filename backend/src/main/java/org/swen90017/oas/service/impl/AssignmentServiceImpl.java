@@ -646,7 +646,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         response.setPageNum(queryDTO.getPageNum());
         response.setPageSize(queryDTO.getPageSize());
         if ("bookable".equals(queryDTO.getStatus())) {
-            response.setTotal(assignmentDTOs.size());
+            response.setTotal((long) assignmentDTOs.size());
         } else {
             response.setTotal(result.getTotal());
         }
