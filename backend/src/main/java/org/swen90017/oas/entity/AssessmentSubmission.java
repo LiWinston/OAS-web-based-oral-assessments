@@ -41,6 +41,13 @@ public class AssessmentSubmission implements Serializable {
      * DRAFT | SUBMITTED | RETURNED
      */
     private String status;
+    
+    /**
+     * Release status: NOT_RELEASED | RELEASED
+     * Separate from status to control whether results are visible to students
+     */
+    @Schema(description = "Release status for student visibility", example = "NOT_RELEASED", allowableValues = {"NOT_RELEASED", "RELEASED"})
+    private String releaseStatus;
 
     private String overallFeedback; // 面向学生/组
     private String adminNote;       // 仅管理员可见
