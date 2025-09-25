@@ -227,7 +227,7 @@ export default function AdminResultsHubPage() {
               </div>
               <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">No results workflows yet</h3>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Create an assignment or finish configuring sessions to begin mark consolidation and release.
+                Create an assignment or finish configuring timeslots to begin mark consolidation and release.
               </p>
               {selectedCourse && (
                 <Button asChild className="mt-4">

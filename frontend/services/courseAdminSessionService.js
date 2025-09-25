@@ -32,6 +32,10 @@ export const courseAdminSessionService = {
   async getSessions(assignmentId, params = {}) {
     const resp = await apiClient.get(`${sessionsBase(assignmentId)}/sessions`, { params });
     const payload = extract(resp);
+    const outsideAssignmentRange = Boolean(
+      payload?.outsideAssignmentRange ?? resp?.data?.outsideAssignmentRange
+    );
+    const summary = payload?.summary ?? resp?.data?.summary ?? resp?.data?.data?.summary ?? null;
     const list = Array.isArray(payload?.sessions)
       ? payload.sessions
       : Array.isArray(payload)
@@ -52,7 +56,7 @@ export const courseAdminSessionService = {
       startTime: toTimeString(s.startTime),
       endTime: toTimeString(s.endTime),
     }));
-    return { success: true, data: sessions };
+    return { success: true, data: sessions, summary, outsideAssignmentRange };
   },
 
   async createSessionsBatch(assignmentId, body) {

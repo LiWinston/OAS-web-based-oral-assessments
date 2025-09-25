@@ -180,7 +180,7 @@ export default function AddTimeSlotModal({
             />
           </div>
 
-          {/* Time + Sessions */}
+          {/* Time + Timeslot count */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -197,13 +197,13 @@ export default function AddTimeSlotModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Number of Sessions <span className="text-red-500">*</span>
+                Number of Timeslots <span className="text-red-500">*</span>
               </label>
               <div className="flex items-center">
                 <button
                   onClick={() => setSessions((s) => Math.max(1, Number(s) - 1))}
                   className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-l-lg border border-gray-300 dark:border-gray-600"
-                  aria-label="Decrement sessions"
+                  aria-label="Decrement timeslots"
                   title="Decrease"
                 >
                   <i className="fas fa-minus" />
@@ -213,13 +213,13 @@ export default function AddTimeSlotModal({
                   min={1}
                   value={sessions}
                   onChange={(e) => setSessions(Number(e.target.value) || 1)}
-                  aria-label="Session count"
+                  aria-label="Timeslot count"
                   className="w-20 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                 />
                 <button
                   onClick={() => setSessions((s) => Number(s) + 1)}
                   className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-r-lg border border-gray-300 dark:border-gray-600"
-                  aria-label="Increment sessions"
+                  aria-label="Increment timeslots"
                   title="Increase"
                 >
                   <i className="fas fa-plus" />
@@ -233,7 +233,7 @@ export default function AddTimeSlotModal({
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Time (calculated)</label>
             <input type="time" readOnly value={endTime24h} className="w-full rounded-lg border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-2 px-3" />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Based on {sessionConfig?.sessionLength || 30}-minute sessions with {sessionConfig?.gapTime || 5}-minute gaps
+              Based on {sessionConfig?.sessionLength || 30}-minute timeslots with {sessionConfig?.gapTime || 5}-minute gaps
             </p>
           </div>
 

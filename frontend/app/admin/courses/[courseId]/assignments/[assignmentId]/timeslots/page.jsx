@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import CalendarMonth from '@/components/admin/schedule/CalendarMonth.jsx';
@@ -9,6 +10,8 @@ import SingleSessionModal from '@/components/admin/schedule/SingleSessionModal.j
 import ExaminerLimitsStep from '@/components/admin/schedule/ExaminerLimitsStep.jsx';
 // removed useScheduleRelease
 import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
+import { assignmentService } from '@/services/assignmentService.js';
+import { courseService } from '@/services/courseService.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
 
@@ -39,23 +42,115 @@ export default function AssignmentTimeSlotsPage() {
   const [openExaminerForSessionId, setOpenExaminerForSessionId] = useState(null);
   const [openBookedForSessionId, setOpenBookedForSessionId] = useState(null);
   const [availableExaminers, setAvailableExaminers] = useState([]);
+  const [assignmentWindow, setAssignmentWindow] = useState({ start: null, end: null });
+  const [assignmentMeta, setAssignmentMeta] = useState(null);
+  const [assignmentSummary, setAssignmentSummary] = useState(null);
+  const [courseMeta, setCourseMeta] = useState(null);
   // Status API temporarily disabled per request; no publish status is fetched
 
-  const [calendarRefresh, setCalendarRefresh] = useState(0);
-  const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false });
+const [calendarRefresh, setCalendarRefresh] = useState(0);
+const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false });
 
-  const refreshAssignmentPublish = useCallback(async () => {
+const refreshAssignmentPublish = useCallback(async () => {
+  try {
+    const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+    setAssignmentPublish(res?.data || { examiners: false, students: false });
+  } catch (e) {
+    // ignore status errors
+  }
+}, [assignmentId]);
+
+  const refreshCourseDetails = useCallback(async () => {
+    if (!courseId) return;
     try {
-      const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-      setAssignmentPublish(res?.data || { examiners: false, students: false });
+      const response = await courseService.getCourse(courseId);
+      let course = response;
+      if (course && typeof course === 'object' && Object.prototype.hasOwnProperty.call(course, 'data')) {
+        course = course.data ?? course;
+      }
+      setCourseMeta(course && typeof course === 'object' ? course : null);
     } catch (e) {
-      // ignore status errors
+      setCourseMeta(null);
+    }
+  }, [courseId]);
+
+  const refreshAssignmentSummary = useCallback(async () => {
+    if (!assignmentId) return;
+    try {
+      const res = await courseAdminSessionService.getSessions(assignmentId, {});
+      const summary = res?.summary ?? null;
+      setAssignmentSummary(summary);
+    } catch (e) {
+      setAssignmentSummary(null);
+    }
+  }, [assignmentId]);
+
+  const refreshAssignmentDetails = useCallback(async () => {
+    if (!assignmentId) return;
+    try {
+      const response = await assignmentService.getAssignmentById(assignmentId);
+      let assignment = response;
+      if (assignment && typeof assignment === 'object' && Object.prototype.hasOwnProperty.call(assignment, 'data')) {
+        assignment = assignment.data ?? assignment;
+      }
+      const normaliseDate = (value) => {
+        if (!value) return null;
+        const ensureDate = (input) => {
+          if (input instanceof Date && !Number.isNaN(input.getTime())) {
+            return new Date(input.getFullYear(), input.getMonth(), input.getDate());
+          }
+          if (typeof input === 'string') {
+            const base = input.includes('T') ? input.split('T')[0] : input;
+            const parts = base.split('-');
+            if (parts.length === 3) {
+              const [y, m, d] = parts.map((n) => Number.parseInt(n, 10));
+              if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+                return new Date(y, m - 1, d);
+              }
+            }
+            const parsed = new Date(input);
+            if (!Number.isNaN(parsed.getTime())) {
+              return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+            }
+            return null;
+          }
+          if (typeof input === 'number') {
+            const parsed = new Date(input);
+            if (!Number.isNaN(parsed.getTime())) {
+              return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+            }
+          }
+          return null;
+        };
+
+        const date = ensureDate(value);
+        if (!date) return null;
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      };
+
+      const start = normaliseDate(
+        assignment?.startDate ?? assignment?.start_date ?? assignment?.schedule?.startDate ?? assignment?.schedule?.start_date
+      );
+      const end = normaliseDate(
+        assignment?.endDate ?? assignment?.end_date ?? assignment?.schedule?.endDate ?? assignment?.schedule?.end_date
+      );
+      setAssignmentWindow({ start, end });
+      setAssignmentMeta(assignment && typeof assignment === 'object' ? assignment : null);
+    } catch (e) {
+      setAssignmentWindow({ start: null, end: null });
+      setAssignmentMeta(null);
+      setAssignmentSummary(null);
     }
   }, [assignmentId]);
 
   // Fetch/refresh sessions for the selected date
   const refreshSessions = useCallback(async () => {
-    if (!selectedDate) return;
+    if (!selectedDate) {
+      return;
+    }
     setIsLoadingSlots(true);
     try {
       const res = await courseAdminSessionService.getSessions(assignmentId, { date: selectedDate });
@@ -100,6 +195,32 @@ export default function AssignmentTimeSlotsPage() {
   // Ensure publish status is fetched on first load (or when list changes)
   // (placed after sessionsForSelectedDate is defined to avoid temporal dead zone)
 
+useEffect(() => {
+  refreshAssignmentDetails();
+  refreshAssignmentSummary();
+  refreshCourseDetails();
+}, [refreshAssignmentDetails, refreshAssignmentSummary, refreshCourseDetails]);
+
+  useEffect(() => {
+    const { start, end } = assignmentWindow || {};
+    if (!start && !end) return;
+    if (!selectedDate) {
+      if (start) {
+        setSelectedDate(start);
+      } else if (end) {
+        setSelectedDate(end);
+      }
+      return;
+    }
+    if (start && selectedDate < start) {
+      setSelectedDate(start);
+      return;
+    }
+    if (end && selectedDate > end) {
+      setSelectedDate(end);
+    }
+  }, [assignmentWindow, selectedDate]);
+
   // schedule-level release hook removed
 
   // Filter slots for selected date
@@ -108,6 +229,24 @@ export default function AssignmentTimeSlotsPage() {
     : [];
 
   // Assignment-level publish status drives header; per-session map only updates after toggles
+
+const assignmentLabel = useMemo(() => {
+  if (assignmentMeta && typeof assignmentMeta === 'object') {
+    return assignmentMeta.name || assignmentMeta.title || `Assignment ${assignmentId}`;
+  }
+  return `Assignment ${assignmentId}`;
+}, [assignmentId, assignmentMeta]);
+
+  const courseLabel = useMemo(() => {
+    if (courseMeta && typeof courseMeta === 'object') {
+      const code = courseMeta.courseCode ?? courseMeta.code ?? null;
+      const name = courseMeta.courseName ?? courseMeta.name ?? null;
+      if (code && name) return `${code} - ${name}`;
+      if (name) return name;
+      if (code) return code;
+    }
+    return `Course ${courseId}`;
+  }, [courseId, courseMeta]);
 
   const examinerLookup = useMemo(() => {
     const map = new Map();
@@ -141,9 +280,10 @@ export default function AssignmentTimeSlotsPage() {
       }
       // Always refresh from server so list shows IDs and latest state
       await refreshSessions();
+      await refreshAssignmentSummary();
       setCalendarRefresh((v) => v + 1);
     } catch (e) {
-      showError('Failed to create sessions');
+      showError('Failed to create timeslots');
     }
   };
   const handleAddSingleSession = async (session) => {
@@ -156,14 +296,15 @@ export default function AssignmentTimeSlotsPage() {
       }
       // Refresh to reflect backend-created session IDs and details
       await refreshSessions();
+      await refreshAssignmentSummary();
       setCalendarRefresh((v) => v + 1);
     } catch (e) {
-      showError('Failed to create session');
+      showError('Failed to create timeslot');
     }
   };
 
   const handleDeleteTimeSlot = async (id) => {
-    const confirmed = await confirm('Delete this session?');
+    const confirmed = await confirm('Delete this timeslot?');
     if (!confirmed) return;
     try {
       const res = await courseAdminSessionService.deleteSessions(assignmentId, [id]);
@@ -172,15 +313,16 @@ export default function AssignmentTimeSlotsPage() {
         return;
       }
       await refreshSessions();
+      await refreshAssignmentSummary();
       await reloadAvailableExaminers();
       setCalendarRefresh((v) => v + 1);
-      showSuccess('Session deleted');
+      showSuccess('Timeslot deleted');
     } catch (e) {
-      showError('Failed to delete session');
+      showError('Failed to delete timeslot');
     }
   };
 
-  // Duplicate/edit handlers for sessions
+  // Duplicate/edit handlers for timeslots
   const handleDuplicateSession = (session) => {
     setSingleMode('create');
     setEditingSession({ ...session, id: undefined });
@@ -202,9 +344,10 @@ export default function AssignmentTimeSlotsPage() {
         return;
       }
       await refreshSessions();
-      showSuccess('Session updated');
+      await refreshAssignmentSummary();
+      showSuccess('Timeslot updated');
     } catch (e) {
-      showError('Failed to update session');
+      showError('Failed to update timeslot');
     }
   };
 
@@ -308,21 +451,33 @@ export default function AssignmentTimeSlotsPage() {
   return (
     <div className="oas-schedule space-y-6">
       {/* Breadcrumb */}
-      <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
-        <span className="breadcrumb-link cursor-pointer">OAS Dashboard</span>
-        <i className="fas fa-chevron-right text-xs"></i>
-        <span className="breadcrumb-link cursor-pointer">Assignments</span>
-        <i className="fas fa-chevron-right text-xs"></i>
-        <span className="breadcrumb-link cursor-pointer">Assignment {assignmentId}</span>
-        <i className="fas fa-chevron-right text-xs"></i>
-        <span>Time Slot Management</span>
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm px-4 py-3">
+        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300" aria-label="Breadcrumb">
+          <Link href="/admin" className="font-semibold text-blue-600">
+            OAS
+          </Link>
+          <i className="fas fa-chevron-right text-xs text-gray-400" />
+          <Link href="/admin" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            Dashboard
+          </Link>
+          <i className="fas fa-chevron-right text-xs text-gray-400" />
+          <Link
+            href={`/admin/courses/${courseId}/assignments`}
+            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+          >
+            Assignments
+          </Link>
+          <i className="fas fa-chevron-right text-xs text-gray-400" />
+          <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{assignmentLabel}</span>
+          <i className="fas fa-chevron-right text-xs text-gray-400" />
+          <span className="font-semibold text-blue-600">Time Slot Management</span>
+        </nav>
       </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Time Slot Management</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">Manage assessment time slots and examiner assignments for Assignment {assignmentId}</p>
         </div>
         <div className="flex items-center space-x-2">
           <button
@@ -333,7 +488,7 @@ export default function AssignmentTimeSlotsPage() {
                 const res = await courseAdminSessionService.setAssignmentPublishToExaminers(assignmentId, next);
                 if (res?.success) {
                   await refreshAssignmentPublish();
-                  showSuccess(next ? 'Released all sessions to examiners for this date' : 'Withdrawn release from examiners for this date');
+                  showSuccess(next ? 'Released all timeslots to examiners for this date' : 'Withdrawn release from examiners for this date');
                 } else {
                   const reason = res?.message || res?.code || 'Unknown error';
                   showError(`Unable to ${next ? 'release' : 'withdraw'} to examiners: ${reason}`);
@@ -342,7 +497,7 @@ export default function AssignmentTimeSlotsPage() {
                 showError(next ? 'Failed to release to examiners' : 'Failed to withdraw examiner release');
               }
             }}
-            title={assignmentPublish.examiners ? 'Withdraw examiner release (this date)' : 'Release all sessions (this date) to examiners'}
+            title={assignmentPublish.examiners ? 'Withdraw examiner release (this date)' : 'Release all timeslots (this date) to examiners'}
           >
             {assignmentPublish.examiners ? 'Withdraw from Examiners' : 'Release to Examiners'}
           </button>
@@ -354,7 +509,7 @@ export default function AssignmentTimeSlotsPage() {
                 const res = await courseAdminSessionService.setAssignmentPublishToStudents(assignmentId, next);
                 if (res?.success) {
                   await refreshAssignmentPublish();
-                  showSuccess(next ? 'Released all sessions to students for this date' : 'Withdrawn release from students for this date');
+                  showSuccess(next ? 'Released all timeslots to students for this date' : 'Withdrawn release from students for this date');
                 } else {
                   const reason = res?.message || res?.code || 'Unknown error';
                   showError(`Unable to ${next ? 'release' : 'withdraw'} to students: ${reason}`);
@@ -363,7 +518,7 @@ export default function AssignmentTimeSlotsPage() {
                 showError(next ? 'Failed to release to students' : 'Failed to withdraw student release');
               }
             }}
-            title={assignmentPublish.students ? 'Withdraw student release (this date)' : 'Release all sessions (this date) to students'}
+            title={assignmentPublish.students ? 'Withdraw student release (this date)' : 'Release all timeslots (this date) to students'}
           >
             {assignmentPublish.students ? 'Withdraw from Students' : 'Release to Students'}
           </button>
@@ -378,8 +533,8 @@ export default function AssignmentTimeSlotsPage() {
               <i className="fas fa-shield-alt text-blue-600 dark:text-blue-400"></i>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200">Assignment {assignmentId}</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Course {courseId} - Oral Assessment</p>
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200">{assignmentLabel}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{courseLabel}</p>
             </div>
           </div>
           <div>
@@ -401,6 +556,8 @@ export default function AssignmentTimeSlotsPage() {
           selectedDate={selectedDate}
           onDateSelect={setSelectedDate}
           refreshKey={calendarRefresh}
+          minDate={assignmentWindow.start}
+          maxDate={assignmentWindow.end}
         />
 
         {/* Right - Time Slots List */}
@@ -408,15 +565,15 @@ export default function AssignmentTimeSlotsPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2" />
-              {selectedDate ? `Sessions - ${selectedDate}` : 'Sessions - Select a date'}
+              {selectedDate ? `Timeslots - ${selectedDate}` : 'Timeslots - Select a date'}
             </h2>
             {selectedDate && (
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                  <i className="fas fa-layer-group mr-1" /> Batch Create Sessions
+                  <i className="fas fa-layer-group mr-1" /> Batch Create Timeslots
                 </button>
                 <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
-                  <i className="fas fa-plus mr-1" /> Create Session
+                  <i className="fas fa-plus mr-1" /> Create Timeslot
                 </button>
               </div>
             )}
@@ -445,14 +602,14 @@ export default function AssignmentTimeSlotsPage() {
               <div className="empty-state-icon">
                 <i className="fas fa-calendar-plus text-xl" />
               </div>
-              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Sessions</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no sessions scheduled for this date yet.</p>
+              <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Timeslots</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no timeslots scheduled for this date yet.</p>
               <div className="flex items-center gap-2">
                 <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
-                  <i className="fas fa-layer-group mr-1" /> Batch Create Sessions
+                  <i className="fas fa-layer-group mr-1" /> Batch Create Timeslots
                 </button>
                 <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
-                  <i className="fas fa-plus mr-1" /> Create Session
+                  <i className="fas fa-plus mr-1" /> Create Timeslot
                 </button>
               </div>
             </div>
@@ -469,10 +626,10 @@ export default function AssignmentTimeSlotsPage() {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5"><i className="fas fa-map-marker-alt mr-1.5" /> {s.venue || s.venueName || (s.venueId != null ? `Venue #${s.venueId}` : 'Venue')}</div>
                     </div>
                     <div className="flex items-center gap-2 text-right">
-                      <button className="action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleEditSession(s)} title="Edit session">
+                      <button className="action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleEditSession(s)} title="Edit timeslot">
                         <i className="fas fa-pen" />
                       </button>
-                      <button className="action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDuplicateSession(s)} title="Duplicate session">
+                      <button className="action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDuplicateSession(s)} title="Duplicate timeslot">
                         <i className="fas fa-copy" />
                       </button>
                       <button className="action-btn text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDeleteTimeSlot(s.id)}>
@@ -483,13 +640,15 @@ export default function AssignmentTimeSlotsPage() {
                   <div className="mt-1 flex items-center gap-2 text-xs">
                     <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                       onClick={() => toggleExaminers(s.id)}
-                      title="View/edit examiners for this session">
+                      title="View/edit examiners for this timeslot">
                       <i className="fas fa-user-tie" /> {(s.assignedExaminers?.length || 0)}/{s.requiredExaminers || 1} examiners
+                      <i className={`fas fa-chevron-${openExaminerForSessionId === s.id ? 'up' : 'down'} text-[10px] ml-1`} />
                     </button>
                     <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                       onClick={() => toggleBooked(s.id)}
                       title="View booked groups">
                       <i className="fas fa-users" /> {(s.bookedCount || 0)}/{s.capacity || 1} booked
+                      <i className={`fas fa-chevron-${openBookedForSessionId === s.id ? 'up' : 'down'} text-[10px] ml-1`} />
                     </button>
                   </div>
 
@@ -540,13 +699,45 @@ export default function AssignmentTimeSlotsPage() {
                     className={`transition-all duration-300 ease-in-out overflow-hidden ${openBookedForSessionId === s.id ? 'mt-2 max-h-[320px] opacity-100' : 'max-h-0 opacity-0'
                       }`}
                   >
-                    <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Booked groups</div>
+                    <div className="w-full max-w-md bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg p-3 space-y-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Bookings</div>
                         <button className="text-gray-400 hover:text-gray-600" onClick={() => setOpenBookedForSessionId(null)} aria-label="Close"><i className="fas fa-times" /></button>
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-300">{s.bookedCount || 0} of {s.capacity || 1} booked.</div>
-                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Detailed list not available yet.</div>
+
+                      {Array.isArray(s.enrolledGroups) && s.enrolledGroups.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Groups</div>
+                          <ul className="space-y-1">
+                            {s.enrolledGroups.map((group) => (
+                              <li key={`group-${group?.id ?? group?.name ?? Math.random()}`} className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+                                <span>{group?.name || `Group ${group?.id ?? ''}`}</span>
+                                {group?.memberCount != null && (
+                                  <span className="text-[11px] text-gray-500 dark:text-gray-400">{group.memberCount} member{group.memberCount === 1 ? '' : 's'}</span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {Array.isArray(s.enrolledStudents) && s.enrolledStudents.length > 0 && (
+                        <div className="space-y-1">
+                          <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase">Students</div>
+                          <ul className="space-y-1">
+                            {s.enrolledStudents.map((student) => (
+                              <li key={`student-${student?.id ?? student?.name ?? Math.random()}`} className="text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded px-2 py-1">
+                                {student?.name || `Student ${student?.id ?? ''}`}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {(!Array.isArray(s.enrolledGroups) || s.enrolledGroups.length === 0) && (!Array.isArray(s.enrolledStudents) || s.enrolledStudents.length === 0) && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400">No bookings yet.</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -575,17 +766,20 @@ export default function AssignmentTimeSlotsPage() {
           <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setShowLimits(false)} />
           <div className="relative w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Examiner Session Limits</h3>
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Examiner Timeslot Limits</h3>
               <button onClick={() => setShowLimits(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label="Close">
                 <i className="fas fa-times" />
               </button>
             </div>
-            <ExaminerLimitsStep
-              assignmentId={assignmentId}
-              totalSessions={sessionsForSelectedDate.length || sessions.length}
-              onPrevious={() => setShowLimits(false)}
-              onComplete={() => setShowLimits(false)}
-            />
+            <div className="max-h-[75vh] overflow-y-auto pr-2">
+              <ExaminerLimitsStep
+                assignmentId={assignmentId}
+                totalSessions={sessionsForSelectedDate.length || sessions.length}
+                summary={assignmentSummary}
+                onPrevious={() => setShowLimits(false)}
+                onComplete={() => setShowLimits(false)}
+              />
+            </div>
           </div>
         </div>
       )}

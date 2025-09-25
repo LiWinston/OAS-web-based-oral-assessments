@@ -305,7 +305,7 @@ const buildAssignmentItems = (assignment, course) => {
         .filter(Boolean)
         .join(' • ') || 'Session scheduling',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/timeslots`,
-    keywords: `${baseKeywords} timeslots schedule sessions availability ${scheduleSummary || ''}`,
+    keywords: `${baseKeywords} timeslots schedule timeslots availability ${scheduleSummary || ''}`,
   };
 
   return {

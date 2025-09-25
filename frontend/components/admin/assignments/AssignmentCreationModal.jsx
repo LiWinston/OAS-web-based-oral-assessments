@@ -1668,7 +1668,7 @@ export function AssignmentCreationModal({
                       } else {
                         showNotification(
                           "info",
-                          "Create the assignment first to schedule sessions"
+                          "Create the assignment first to schedule timeslots"
                         );
                       }
                     }}
@@ -1680,10 +1680,10 @@ export function AssignmentCreationModal({
                       </div>
                       <div className="text-left">
                         <p className="font-medium text-gray-900 dark:text-white">
-                          Schedule Sessions
+                          Schedule Timeslots
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          Schedule assessment sessions
+                          Schedule assessment timeslots
                         </p>
                       </div>
                     </div>
@@ -1739,8 +1739,8 @@ export function AssignmentCreationModal({
                   Assignment Created!
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Next: Configure your rubric and schedule sessions Next:
-                  Configure your rubric and schedule sessions
+                  Next: Configure your rubric and schedule timeslots Next:
+                  Configure your rubric and schedule timeslots
                 </p>
                 <div className="mt-4">
                   <div className="inline-flex items-center justify-center space-x-1">

@@ -227,6 +227,183 @@ function TimeslotSelectionContent() {
     [timeslotsData, selectedAssignment]
   );
 
+  const assignmentWindow = useMemo(() => {
+    if (!summaryAssignment) {
+      return { start: null, end: null };
+    }
+    const start =
+      summaryAssignment.startDate ||
+      summaryAssignment.earliestTimeslot ||
+      summaryAssignment.earliestSession ||
+      null;
+    const end =
+      summaryAssignment.endDate ||
+      summaryAssignment.latestTimeslot ||
+      summaryAssignment.latestSession ||
+      null;
+    return { start, end };
+  }, [summaryAssignment]);
+
+  const formatDateRange = (startIso, endIso) => {
+    if (!startIso && !endIso) return null;
+
+    const formatDate = (value, withTime = false) =>
+      value
+        ? new Date(value).toLocaleDateString("en-AU", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            ...(withTime
+              ? {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                }
+              : {}),
+          })
+        : null;
+
+    const formatTime = (value) =>
+      value
+        ? new Date(value).toLocaleTimeString("en-AU", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : null;
+
+    const startDate = startIso ? new Date(startIso) : null;
+    const endDate = endIso ? new Date(endIso) : null;
+
+    if (startDate && endDate && startDate.toDateString() === endDate.toDateString()) {
+      return `${formatDate(startDate, false)} · ${formatTime(startDate)} – ${formatTime(endDate)}`;
+    }
+
+    const startPart = startDate ? formatDate(startDate, true) : null;
+    const endPart = endDate ? formatDate(endDate, true) : null;
+
+    if (startPart && endPart) return `${startPart} – ${endPart}`;
+    return startPart || endPart;
+  };
+
+  const formatAssessmentType = (assignment) => {
+    const rawType =
+      assignment?.assessmentType || assignment?.assessmentTypeRaw || assignment?.type;
+    return rawType ? rawType.toString().toUpperCase() : "UNKNOWN";
+  };
+
+  const formatStatusLabel = (assignment) => {
+    if (!assignment) return null;
+    if (assignment.statusLabel) return assignment.statusLabel;
+    if (assignment.status) {
+      return assignment.status
+        .toString()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(" ");
+    }
+    return null;
+  };
+
+  const summaryChips = useMemo(() => {
+    if (!summaryAssignment) return [];
+
+    const chips = [];
+
+    const subjectParts = [
+      summaryAssignment.courseCode || summaryAssignment.subjectCode,
+      summaryAssignment.courseName || summaryAssignment.subjectName,
+    ].filter(Boolean);
+    if (subjectParts.length > 0) {
+      chips.push({
+        key: "subject",
+        icon: "fa-graduation-cap",
+        text: subjectParts.join(" · "),
+      });
+    }
+
+    if (summaryAssignment.assignmentName) {
+      chips.push({
+        key: "assignmentName",
+        icon: "fa-clipboard-check",
+        text: summaryAssignment.assignmentName,
+      });
+    }
+
+    const assessmentType = formatAssessmentType(summaryAssignment);
+    if (assessmentType) {
+      chips.push({
+        key: "assessmentType",
+        icon:
+          assessmentType.toLowerCase() === "group" ? "fa-users" : "fa-user",
+        text: `${assessmentType} Assessment`,
+      });
+    }
+
+    const windowLabel = formatDateRange(assignmentWindow.start, assignmentWindow.end);
+    if (windowLabel) {
+      chips.push({
+        key: "window",
+        icon: "fa-calendar-alt",
+        text: windowLabel,
+      });
+    }
+
+    if (typeof summaryAssignment.weight === "number") {
+      chips.push({
+        key: "weight",
+        icon: "fa-scale-balanced",
+        text: `Weight: ${summaryAssignment.weight}%`,
+      });
+    }
+
+    const formattedStatus = formatStatusLabel(summaryAssignment);
+    if (formattedStatus) {
+      chips.push({
+        key: "status",
+        icon: "fa-info-circle",
+        text: `Status: ${formattedStatus}`,
+      });
+    }
+
+    const backendAssigned = selectedAssignment?.examinerInfo?.currentAssignedSessions;
+    if (Number.isFinite(backendAssigned) && backendAssigned >= 0) {
+      chips.push({
+        key: "assigned",
+        icon: "fa-briefcase",
+        text: `Already Assigned: ${backendAssigned}`,
+      });
+    }
+
+    const backendRemaining = selectedAssignment?.examinerInfo?.remainingCapacity;
+    if (Number.isFinite(backendRemaining) && backendRemaining >= 0) {
+      chips.push({
+        key: "remaining",
+        icon: "fa-hourglass-half",
+        text: `Remaining Capacity: ${backendRemaining}`,
+      });
+    }
+
+    const finiteMaxSessions = Number.isFinite(maxSessions) ? maxSessions : null;
+    const selectionText =
+      finiteMaxSessions != null
+        ? `Selected: ${currentAllocation}/${finiteMaxSessions}`
+        : `Selected: ${currentAllocation}`;
+    chips.push({
+      key: "selection",
+      icon: "fa-list-check",
+      text: selectionText,
+    });
+
+    return chips;
+  }, [
+    summaryAssignment,
+    assignmentWindow,
+    currentAllocation,
+    maxSessions,
+    selectedAssignment,
+  ]);
+
   // Get available dates from API data
   const getAvailableDates = () => {
     if (!timeslotsData?.success) {
@@ -533,39 +710,26 @@ function TimeslotSelectionContent() {
             </div>
 
             {summaryAssignment && (
-              <div className="flex flex-wrap gap-4">
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                  <i className="fas fa-book text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">
-                    {summaryAssignment.courseCode}
-                  </span>
+              <>
+                {summaryAssignment.description && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    {summaryAssignment.description}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-3">
+                  {summaryChips.map((chip) => (
+                    <div
+                      key={chip.key}
+                      className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg"
+                    >
+                      <i className={`fas ${chip.icon} text-gray-400 mr-2`}></i>
+                      <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                        {chip.text}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                  <i className="fas fa-clipboard-check text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">
-                    {summaryAssignment.assignmentName}
-                  </span>
-                </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                  <i className="fas fa-users text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">
-                    {(
-                      summaryAssignment.assessmentType ||
-                      summaryAssignment.type ||
-                      ""
-                    )
-                      .toString()
-                      .toUpperCase()}{" "}
-                    Assessment
-                  </span>
-                </div>
-                <div className="flex items-center bg-gray-50 dark:bg-gray-800 px-3 py-2 rounded-lg">
-                  <i className="fas fa-chart-bar text-gray-400 mr-2"></i>
-                  <span className="text-sm font-medium">
-                    Sessions: {currentAllocation}/{maxSessions}
-                  </span>
-                </div>
-              </div>
+              </>
             )}
           </div>
 
