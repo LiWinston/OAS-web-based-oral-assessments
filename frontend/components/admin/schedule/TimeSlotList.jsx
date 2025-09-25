@@ -97,10 +97,10 @@ export default function TimeSlotList({
                   </p>
                 </div>
                 <div>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">Sessions</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Timeslots</span>
                   <p className="text-sm text-gray-800 dark:text-gray-200">
                     <i className="fas fa-users text-gray-400 mr-1" />
-                    <span>{timeSlot.sessionCount} sessions</span>
+                    <span>{timeSlot.sessionCount} timeslots</span>
                   </p>
                 </div>
                 <div>
@@ -124,7 +124,7 @@ export default function TimeSlotList({
               <i className="fas fa-calendar-check text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Total Sessions</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Total Timeslots</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{totalSessions}</p>
             </div>
           </div>
@@ -136,7 +136,7 @@ export default function TimeSlotList({
               <i className="fas fa-user-check text-green-600 dark:text-green-400" />
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Assigned Sessions</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Assigned Timeslots</p>
               <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{totalAssignedSessions}</p>
             </div>
           </div>

@@ -70,7 +70,7 @@ export default function BatchCreateSessionsModal({ isOpen, onClose, onGenerate, 
       <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
       <div className="relative w-full max-w-3xl bg-white dark:bg-gray-800 rounded-lg shadow-xl p-5">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Batch Create Sessions</h3>
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Batch Create Timeslots</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" aria-label="Close">
             <i className="fas fa-times" />
           </button>
@@ -78,9 +78,9 @@ export default function BatchCreateSessionsModal({ isOpen, onClose, onGenerate, 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="form-field"><label className="text-sm font-medium">Date</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
           <div className="form-field"><label className="text-sm font-medium">Start Time</label><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Session Count</label><input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Length per session (minutes)</label><input type="number" min={1} value={length} onChange={(e) => setLength(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Gap in between sessions (minutes)</label><input type="number" min={0} value={gapTime} onChange={(e) => setGapTime(Number(e.target.value) || 0)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Timeslot Count</label><input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Length per timeslot (minutes)</label><input type="number" min={1} value={length} onChange={(e) => setLength(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Gap between timeslots (minutes)</label><input type="number" min={0} value={gapTime} onChange={(e) => setGapTime(Number(e.target.value) || 0)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
           <div className="form-field"><label className="text-sm font-medium">End Time (calculated)</label><input type="time" value={blockEndTime} readOnly disabled className="custom-input bg-gray-50 dark:bg-gray-800 text-gray-600 cursor-not-allowed" /></div>
           <div className="form-field md:col-span-2">
             <label className="text-sm font-medium">Venue</label>

@@ -16,6 +16,7 @@ import { courseAdminSessionService } from '@/services/courseAdminSessionService.
 export default function ExaminerLimitsStep({
   assignmentId,
   totalSessions = 0,
+  summary,
   onComplete,
   onPrevious
 }) {
@@ -29,6 +30,7 @@ export default function ExaminerLimitsStep({
 
   const [examiners, setExaminers] = useState([]);
   const [computedTotalSessions, setComputedTotalSessions] = useState(null);
+  const summaryTotalSessions = useMemo(() => summary?.totalSessions != null ? Number(summary.totalSessions) : null, [summary]);
 
   useEffect(() => {
     if (serverExaminers && serverExaminers.length) {
@@ -59,14 +61,18 @@ export default function ExaminerLimitsStep({
   }, [assignmentId]);
 
   const sessionsToAssign = useMemo(() => {
+    if (summaryTotalSessions != null) return summaryTotalSessions;
     return (computedTotalSessions != null ? computedTotalSessions : totalSessions) || 0;
-  }, [computedTotalSessions, totalSessions]);
+  }, [summaryTotalSessions, computedTotalSessions, totalSessions]);
+
+  const summaryRequiredCapacity = useMemo(() => summary?.totalRequiredExaminers != null ? Number(summary.totalRequiredExaminers) : null, [summary]);
 
   const perSession = useMemo(() => sessionConfig?.examinersPerSession || 2, [sessionConfig]);
 
   const neededCapacity = useMemo(() => {
+    if (summaryRequiredCapacity != null) return summaryRequiredCapacity;
     return sessionsToAssign * perSession;
-  }, [sessionsToAssign, perSession]);
+  }, [summaryRequiredCapacity, sessionsToAssign, perSession]);
 
   const totalCapacity = useMemo(() => {
     return (examiners || []).reduce((sum, ex) => sum + (parseInt(ex.maxSessions, 10) || 0), 0);
@@ -119,7 +125,7 @@ export default function ExaminerLimitsStep({
           <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mr-3">
             <i className="fas fa-users text-blue-600 dark:text-blue-400" />
           </div>
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Max Session Assignment for Examiners</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Max Timeslot Assignment for Examiners</h2>
         </div>
 
         {/* Capacity Validation Alerts */}
@@ -164,8 +170,8 @@ export default function ExaminerLimitsStep({
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Minimum Required Capacity</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{neededCapacity} examiner sessions</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Based on {sessionsToAssign} sessions × {perSession} examiners/session</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{neededCapacity} timeslots</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{summaryRequiredCapacity != null ? "From assignment summary" : `Based on ${sessionsToAssign} timeslots × ${perSession} examiners/timeslot`}</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -174,7 +180,7 @@ export default function ExaminerLimitsStep({
               </div>
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Total Capacity</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{totalCapacity} sessions</p>
+                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">{totalCapacity} timeslots</p>
               </div>
             </div>
             <div className="flex items-center">
@@ -191,7 +197,7 @@ export default function ExaminerLimitsStep({
           </div>
         </div>
 
-        {/* Examiner Session Assignments */}
+        {/* Examiner Timeslot Assignments */}
         <div className="space-y-3">
           {examiners.map((examiner) => (
             <div key={examiner.id} className="card-section">
@@ -214,11 +220,11 @@ export default function ExaminerLimitsStep({
 
               <div className="form-field">
                 <div className="number-input-container">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Max Sessions:</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Max Timeslots:</span>
                   <button
                     className="number-btn"
                     onClick={() => handleExaminerLimitChange(examiner.id, Math.max(0, examiner.maxSessions - 1))}
-                    title="Decrease max sessions"
+                    title="Decrease max timeslots"
                     disabled={isUpdating}
                   >
                     <i className="fas fa-minus" />
@@ -234,12 +240,12 @@ export default function ExaminerLimitsStep({
                   <button
                     className="number-btn"
                     onClick={() => handleExaminerLimitChange(examiner.id, examiner.maxSessions + 1)}
-                    title="Increase max sessions"
+                    title="Increase max timeslots"
                     disabled={isUpdating}
                   >
                     <i className="fas fa-plus" />
                   </button>
-                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">sessions</span>
+                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">timeslots</span>
                 </div>
               </div>
             </div>

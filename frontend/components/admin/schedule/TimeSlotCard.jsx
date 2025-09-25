@@ -53,7 +53,7 @@ export default function TimeSlotCard({
               required={timeSlot.requiredExaminers} 
             />
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              <i className="fas fa-users mr-1.5" /> {timeSlot.sessionCount} sessions
+              <i className="fas fa-users mr-1.5" /> {timeSlot.sessionCount} timeslots
             </div>
           </div>
           <div className="flex">
@@ -104,7 +104,7 @@ export default function TimeSlotCard({
         <div className="border-l border-gray-200 dark:border-gray-700 pl-6 flex flex-col items-start min-w-[180px]">
           <div className="flex items-center w-full justify-between">
             <div className="text-xs font-semibold text-gray-700 dark:text-gray-200">
-              0/{timeSlot.sessionCount} session booked
+              0/{timeSlot.sessionCount} timeslots booked
             </div>
             <button className="ml-2 px-2 py-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-xs text-blue-600 dark:text-blue-400">
               <i className="fas fa-chevron-down" />

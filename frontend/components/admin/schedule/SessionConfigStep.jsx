@@ -85,37 +85,37 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 dark:bg-opacity-30 flex items-center justify-center mr-3">
           <i className="fas fa-sliders-h text-blue-600 dark:text-blue-400" />
         </div>
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Session Configuration</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Timeslot Configuration</h2>
       </div>
 
       <div className="p-4 bg-blue-50 dark:bg-blue-900 dark:bg-opacity-20 rounded-lg border border-blue-100 dark:border-blue-800 mb-5">
         <p className="text-sm text-blue-800 dark:text-blue-200">
-          <i className="fas fa-info-circle mr-2" /> Define the parameters for each oral assessment session. These settings will apply to all sessions created in the next step.
+          <i className="fas fa-info-circle mr-2" /> Define the parameters for each oral assessment timeslot. These settings will apply to all timeslots created in the next step.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Session length */}
+        {/* Timeslot length */}
         <div className="card-section">
           <div className="card-section-header">
             <div className="card-section-icon icon-blue">
               <i className="fas fa-clock" />
             </div>
-            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Session Length</h3>
+            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Timeslot Length</h3>
           </div>
           <div className="form-field">
             <label htmlFor="sessionLength" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Minutes per session
+              Minutes per timeslot
               <span className="info-tooltip">
                 <i className="fas fa-info-circle" />
-                <span className="tooltip-text">How long each individual assessment session will last</span>
+                <span className="tooltip-text">How long each individual assessment timeslot will last</span>
               </span>
             </label>
             <div className="number-input-container">
               <button 
                 className="number-btn" 
                 onClick={() => handleSessionLengthChange(Math.max(1, formSessionLength - 5))} 
-                title="Decrease session length"
+                title="Decrease timeslot length"
                 disabled={isSaving}
               >
                 <i className="fas fa-minus" />
@@ -133,7 +133,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
               <button 
                 className="number-btn" 
                 onClick={() => handleSessionLengthChange(formSessionLength + 5)} 
-                title="Increase session length"
+                title="Increase timeslot length"
                 disabled={isSaving}
               >
                 <i className="fas fa-plus" />
@@ -154,10 +154,10 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
           </div>
           <div className="form-field">
             <label htmlFor="gapTime" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Minutes between sessions
+              Minutes between timeslots
               <span className="info-tooltip">
                 <i className="fas fa-info-circle" />
-                <span className="tooltip-text">Time between consecutive sessions for examiners to prepare</span>
+                <span className="tooltip-text">Time between consecutive timeslots for examiners to prepare</span>
               </span>
             </label>
             <div className="number-input-container">
@@ -199,14 +199,14 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
             <div className="card-section-icon icon-green">
               <i className="fas fa-user-tie" />
             </div>
-            <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Examiners</h3>
+          <h3 className="text-base font-medium text-gray-800 dark:text-gray-200">Examiners</h3>
           </div>
           <div className="form-field">
             <label htmlFor="examinersCount" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Examiners per session
+              Examiners per timeslot
               <span className="info-tooltip">
                 <i className="fas fa-info-circle" />
-                <span className="tooltip-text">Number of examiners required for each assessment session</span>
+                <span className="tooltip-text">Number of examiners required for each assessment timeslot</span>
               </span>
             </label>
             <div className="number-input-container">
@@ -242,20 +242,20 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
           </div>
         </div>
 
-        {/* Session summary */}
+        {/* Timeslot summary */}
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg" style={{ height: '185px' }}>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Session Summary</h3>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Timeslot Summary</h3>
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Session duration:</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Timeslot duration:</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formSessionLength} minutes</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Gap between sessions:</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Gap between timeslots:</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formGapTime} minutes</span>
             </div>
             <div className="flex justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
-              <span className="text-sm text-gray-500 dark:text-gray-400">Total time per session:</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Total time per timeslot:</span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{Number(formSessionLength) + Number(formGapTime)} minutes</span>
             </div>
           </div>

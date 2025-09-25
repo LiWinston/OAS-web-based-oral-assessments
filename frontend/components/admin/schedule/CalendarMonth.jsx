@@ -3,12 +3,45 @@
 import { useEffect, useMemo, useState } from 'react';
 import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
 
+const normaliseDateOnly = (value) => {
+  if (!value) return null;
+  const ensureDate = (input) => {
+    if (input instanceof Date && !Number.isNaN(input.getTime())) {
+      return new Date(input.getFullYear(), input.getMonth(), input.getDate());
+    }
+    if (typeof input === 'string') {
+      const base = input.includes('T') ? input.split('T')[0] : input;
+      const parts = base.split('-');
+      if (parts.length === 3) {
+        const [y, m, d] = parts.map((n) => Number.parseInt(n, 10));
+        if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+          return new Date(y, m - 1, d);
+        }
+      }
+      const parsed = new Date(input);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      }
+      return null;
+    }
+    if (typeof input === 'number') {
+      const parsed = new Date(input);
+      if (!Number.isNaN(parsed.getTime())) {
+        return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+      }
+    }
+    return null;
+  };
+
+  return ensureDate(value);
+};
+
 /**
  * CalendarMonth - Dynamic calendar component for timeslot management
  * Consumes useCalendar hook, not hard-coded month or fixed "today"
  */
 
-export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect, disableFetch = false, refreshKey = 0 }) {
+export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect, disableFetch = false, refreshKey = 0, minDate = null, maxDate = null }) {
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -16,6 +49,8 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
 
   const [calendarData, setCalendarData] = useState({});
   const [isLoading, setIsLoading] = useState(false);
+  const minDateObj = useMemo(() => normaliseDateOnly(minDate), [minDate]);
+  const maxDateObj = useMemo(() => normaliseDateOnly(maxDate), [maxDate]);
   const getStatusForDate = (date) => {
     const d = calendarData?.[date];
     if (!d) return null;
@@ -104,12 +139,6 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
     setCurrentMonth(newMonth);
   };
 
-  const handleDateClick = (dateStr, isCurrentMonth) => {
-    if (isCurrentMonth) {
-      onDateSelect?.(dateStr);
-    }
-  };
-
   return (
     <div className="dashboard-card p-5">
       {/* Header */}
@@ -162,24 +191,33 @@ export default function CalendarMonth({ assignmentId, selectedDate, onDateSelect
           const partialCount = Number(dayData.partialStaffed || 0);
           const noneCount = Number(dayData.noStaffed || 0);
           const isSelected = selectedDate === dayInfo.date;
-          
+          const dateObj = normaliseDateOnly(dayInfo.date);
+          const isDisabled = dayInfo.isCurrentMonth && (
+            (minDateObj && dateObj && dateObj < minDateObj) ||
+            (maxDateObj && dateObj && dateObj > maxDateObj)
+          );
+          const canSelect = dayInfo.isCurrentMonth && !isDisabled;
+
+          const dayClass = [
+            'calendar-day',
+            !dayInfo.isCurrentMonth ? 'text-gray-300 dark:text-gray-600' : '',
+            isSelected ? 'selected' : '',
+            dayInfo.isToday ? 'border-2 border-blue-400' : '',
+            dayInfo.isCurrentMonth
+              ? canSelect
+                ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'cursor-not-allowed opacity-50 text-gray-400 dark:text-gray-500'
+              : 'cursor-default'
+          ].filter(Boolean).join(' ');
+
           return (
             <div
               key={`${dayInfo.date}-${index}`}
-              className={`calendar-day ${
-                !dayInfo.isCurrentMonth 
-                  ? 'text-gray-300 dark:text-gray-600' 
-                  : ''
-              } ${
-                isSelected ? 'selected' : ''
-              } ${
-                dayInfo.isToday ? 'border-2 border-blue-400' : ''
-              } ${
-                dayInfo.isCurrentMonth ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700' : 'cursor-default'
-              }`}
-              onClick={() => handleDateClick(dayInfo.date, dayInfo.isCurrentMonth)}
-              role={dayInfo.isCurrentMonth ? "button" : undefined}
-              aria-label={dayInfo.isCurrentMonth ? `Select ${dayInfo.date}` : undefined}
+              className={dayClass}
+              onClick={() => { if (canSelect) onDateSelect?.(dayInfo.date); }}
+              role={canSelect ? 'button' : undefined}
+              aria-label={canSelect ? `Select ${dayInfo.date}` : undefined}
+              aria-disabled={canSelect ? undefined : true}
             >
               <span className="date">{dayInfo.day}</span>
               {(fullyCount + partialCount + noneCount) > 0 && (

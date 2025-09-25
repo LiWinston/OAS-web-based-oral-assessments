@@ -18,7 +18,7 @@ export default function OnboardingWelcome({
           icon: <UserCheck className="w-10 h-10 text-white" />,
           title: 'Welcome Course Administrator',
           subtitle: 'You have been invited to manage courses and assessments',
-          description: 'As a Course Admin, you will be able to create and manage oral assessments, configure rubrics, schedule sessions, and oversee the entire assessment process.',
+          description: 'As a Course Admin, you will be able to create and manage oral assessments, configure rubrics, schedule timeslots, and oversee the entire assessment process.',
           color: 'from-blue-500 to-blue-600',
           emoji: '🎓'
         };

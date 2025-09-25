@@ -454,7 +454,7 @@ export function AssignmentList({
                               const rect = e.currentTarget.getBoundingClientRect();
                             setTooltip({
                               show: true,
-                              text: 'Schedule Sessions',
+                              text: 'Schedule Timeslots',
                               x: rect.left + rect.width / 2,
                               y: rect.top
                             });
@@ -731,7 +731,7 @@ export function AssignmentList({
                             const rect = e.currentTarget.getBoundingClientRect();
                             setTooltip({
                               show: true,
-                              text: 'Schedule Sessions',
+                              text: 'Schedule Timeslots',
                               x: rect.left + rect.width / 2,
                               y: rect.top
                             });
