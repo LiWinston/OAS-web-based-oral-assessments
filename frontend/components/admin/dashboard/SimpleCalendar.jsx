@@ -152,37 +152,38 @@ function buildEventsForDate(entry) {
     .map((assignment) => {
       let type = "session-ready";
       if (assignment.sessions > 0) {
-        type = assignment.staffing.none > 0
-          ? "session-critical"
-          : assignment.staffing.partial > 0
-        ? "session-warning"
-        : "session-ready";
-    } else if (assignment.due) {
-      type = "due";
-    } else if (assignment.start) {
-      type = "start";
-    }
-
-    const detailParts = [];
-    if (assignment.sessions > 0) {
-      detailParts.push(
-        `${assignment.sessions} session${assignment.sessions > 1 ? "s" : ""}`
-      );
-      if (assignment.staffing.none > 0) {
-        detailParts.push(`${assignment.staffing.none} unstaffed`);
-      } else if (assignment.staffing.partial > 0) {
-        detailParts.push(`${assignment.staffing.partial} partially staffed`);
-      } else {
-        detailParts.push("Fully staffed");
+        type =
+          assignment.staffing.none > 0
+            ? "session-critical"
+            : assignment.staffing.partial > 0
+            ? "session-warning"
+            : "session-ready";
+      } else if (assignment.due) {
+        type = "due";
+      } else if (assignment.start) {
+        type = "start";
       }
-    }
 
-    if (assignment.start) {
-      detailParts.push("Opens");
-    }
-    if (assignment.due) {
-      detailParts.push("Due");
-    }
+      const detailParts = [];
+      if (assignment.sessions > 0) {
+        detailParts.push(
+          `${assignment.sessions} session${assignment.sessions > 1 ? "s" : ""}`
+        );
+        if (assignment.staffing.none > 0) {
+          detailParts.push(`${assignment.staffing.none} unstaffed`);
+        } else if (assignment.staffing.partial > 0) {
+          detailParts.push(`${assignment.staffing.partial} partially staffed`);
+        } else {
+          detailParts.push("Fully staffed");
+        }
+      }
+
+      if (assignment.start) {
+        detailParts.push("Opens");
+      }
+      if (assignment.due) {
+        detailParts.push("Due");
+      }
 
       return {
         type,
@@ -243,10 +244,11 @@ export function SimpleCalendar({
         const results = await Promise.all(
           assignments.map(async (assignment) => {
             try {
-              const response = await courseAdminSessionService.getSessionsCalendar(
-                assignment.id,
-                monthKey
-              );
+              const response =
+                await courseAdminSessionService.getSessionsCalendar(
+                  assignment.id,
+                  monthKey
+                );
               return { assignment, response };
             } catch (error) {
               return {
@@ -270,7 +272,8 @@ export function SimpleCalendar({
               const entry = ensureEntry(map, normalizedDate);
               const summary = ensureAssignmentSummary(entry, assignment);
 
-              const fully = Number(counts.fullyStaffed ?? counts.fully ?? 0) || 0;
+              const fully =
+                Number(counts.fullyStaffed ?? counts.fully ?? 0) || 0;
               const partial =
                 Number(counts.partialStaffed ?? counts.partial ?? 0) || 0;
               const none = Number(counts.noStaffed ?? counts.none ?? 0) || 0;
@@ -556,11 +559,15 @@ export function SimpleCalendar({
             <div className="flex items-center space-x-4">
               <span className="flex items-center space-x-2">
                 <i className="fas fa-layer-group text-blue-500"></i>
-                <span>{summary.totalSessions} assignment sessions scheduled</span>
+                <span>
+                  {summary.totalSessions} assignment Timeslots scheduled
+                </span>
               </span>
               <span className="flex items-center space-x-2">
                 <i className="fas fa-bell text-amber-500"></i>
-                <span>{summary.attentionDays} days need staffing attention</span>
+                <span>
+                  {summary.attentionDays} days need staffing attention
+                </span>
               </span>
               <span className="flex items-center space-x-2">
                 <i className="fas fa-flag text-purple-500"></i>
@@ -611,7 +618,9 @@ export function SimpleCalendar({
                   onKeyDown={(event) => handleDayKeyDown(event, day.fullDate)}
                   role="button"
                   tabIndex={0}
-                  aria-label={`Assignment activity for ${formatLongDate(day.fullDate)}`}
+                  aria-label={`Assignment activity for ${formatLongDate(
+                    day.fullDate
+                  )}`}
                 >
                   <div
                     className={`
@@ -630,14 +639,21 @@ export function SimpleCalendar({
 
                   <div className="space-y-1">
                     {events.slice(0, 2).map((event, eventIndex) => {
-                      const style = eventStyles[event.type] || eventStyles["session-ready"];
+                      const style =
+                        eventStyles[event.type] || eventStyles["session-ready"];
                       const isHighlighted =
                         highlightAssignmentId != null &&
                         event.assignment?.id === highlightAssignmentId;
                       return (
                         <div
-                          key={`${event.type}-${event.assignment?.id ?? eventIndex}`}
-                          className={`calendar-event text-xs p-1 rounded-md ${style.bg} ${style.border} hover:opacity-90 transition-all duration-200 transform hover:scale-105 animate-fadeInUp group-hover:shadow-sm ${
+                          key={`${event.type}-${
+                            event.assignment?.id ?? eventIndex
+                          }`}
+                          className={`calendar-event text-xs p-1 rounded-md ${
+                            style.bg
+                          } ${
+                            style.border
+                          } hover:opacity-90 transition-all duration-200 transform hover:scale-105 animate-fadeInUp group-hover:shadow-sm ${
                             isHighlighted ? "ring-2 ring-blue-500" : ""
                           }`}
                           style={{ animationDelay: `${eventIndex * 90}ms` }}
@@ -657,7 +673,9 @@ export function SimpleCalendar({
                         >
                           <div className="flex items-center space-x-1">
                             <i className={`${style.icon} text-xs`}></i>
-                            <span className="truncate font-medium">{event.title}</span>
+                            <span className="truncate font-medium">
+                              {event.title}
+                            </span>
                           </div>
                           {event.detail && (
                             <div className="text-[11px] opacity-75 mt-0.5 truncate">
@@ -716,8 +734,9 @@ export function SimpleCalendar({
               <div className="flex items-center">
                 <i className="fas fa-info-circle mr-2 text-blue-500"></i>
                 <span>
-                  Assignments bundle multiple sessions and assessments. Select a date to review coverage,
-                  openings, and deadlines across your courses.
+                  Assignments bundle multiple sessions and assessments. Select a
+                  date to review coverage, openings, and deadlines across your
+                  courses.
                 </span>
               </div>
               <div className="flex items-center space-x-3">
@@ -744,7 +763,8 @@ export function SimpleCalendar({
                 : "Assignment Calendar"}
             </DialogTitle>
             <DialogDescription>
-              Explore the assignments, sessions, and assessments scheduled for this date.
+              Explore the assignments, sessions, and assessments scheduled for
+              this date.
             </DialogDescription>
           </DialogHeader>
 
@@ -788,7 +808,9 @@ export function SimpleCalendar({
                           {assignment.name || `Assignment ${assignment.id}`}
                         </h4>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {assignment.courseCode || assignment.courseName || "Unassigned course"}
+                          {assignment.courseCode ||
+                            assignment.courseName ||
+                            "Unassigned course"}
                         </p>
                       </div>
                       <Badge variant={severity.variant}>{severity.label}</Badge>
@@ -801,20 +823,27 @@ export function SimpleCalendar({
 
                     <div className="mt-3 grid grid-cols-1 gap-3 text-xs text-gray-500 dark:text-gray-400 sm:grid-cols-2">
                       <div>
-                        <span className="font-semibold text-gray-700 dark:text-gray-200">Sessions:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                          Sessions:
+                        </span>
                         <span className="ml-1 text-gray-600 dark:text-gray-300">
                           {assignment.sessions || 0}
                         </span>
                       </div>
                       <div>
-                        <span className="font-semibold text-gray-700 dark:text-gray-200">Staffing:</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-200">
+                          Staffing:
+                        </span>
                         <span className="ml-1 text-gray-600 dark:text-gray-300">
-                          {staffing.full} full · {staffing.partial} partial · {staffing.none} unstaffed
+                          {staffing.full} full · {staffing.partial} partial ·{" "}
+                          {staffing.none} unstaffed
                         </span>
                       </div>
                       {assignment.weight != null && (
                         <div>
-                          <span className="font-semibold text-gray-700 dark:text-gray-200">Weight:</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-200">
+                            Weight:
+                          </span>
                           <span className="ml-1 text-gray-600 dark:text-gray-300">
                             {assignment.weight}%
                           </span>
@@ -822,7 +851,9 @@ export function SimpleCalendar({
                       )}
                       {assignment.status && (
                         <div>
-                          <span className="font-semibold text-gray-700 dark:text-gray-200">Status:</span>
+                          <span className="font-semibold text-gray-700 dark:text-gray-200">
+                            Status:
+                          </span>
                           <span className="ml-1 text-gray-600 dark:text-gray-300">
                             {formatStatusLabel(assignment.status)}
                           </span>
@@ -831,14 +862,20 @@ export function SimpleCalendar({
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {assignment.start && <Badge variant="secondary">Opens this date</Badge>}
-                      {assignment.due && <Badge variant="outline">Due this date</Badge>}
+                      {assignment.start && (
+                        <Badge variant="secondary">Opens this date</Badge>
+                      )}
+                      {assignment.due && (
+                        <Badge variant="outline">Due this date</Badge>
+                      )}
                     </div>
 
                     {basePath && (
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`${basePath}/timeslots`}>Manage sessions</Link>
+                          <Link href={`${basePath}/timeslots`}>
+                            Manage sessions
+                          </Link>
                         </Button>
                         <Button asChild size="sm" variant="ghost">
                           <Link href={`${basePath}/results`}>View results</Link>
@@ -853,7 +890,11 @@ export function SimpleCalendar({
 
           {onRefreshAssignments && (
             <DialogFooter>
-              <Button variant="outline" size="sm" onClick={onRefreshAssignments}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefreshAssignments}
+              >
                 Refresh assignments
               </Button>
             </DialogFooter>

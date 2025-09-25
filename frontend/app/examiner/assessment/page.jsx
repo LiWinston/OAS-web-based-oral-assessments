@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import useAuth from '../../../hooks/useAuth';
-import { useNotification } from '../../../hooks/useNotification';
-import examinerSessionService from '../../../services/examinerSessionService';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { Button } from '../../../components/ui/button';
-import { Badge } from '../../../components/ui/badge';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import useAuth from "../../../hooks/useAuth";
+import { useNotification } from "../../../hooks/useNotification";
+import examinerSessionService from "../../../services/examinerSessionService";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Badge } from "../../../components/ui/badge";
 
 export default function ExaminerAssignmentsList() {
   const router = useRouter();
@@ -25,18 +30,21 @@ export default function ExaminerAssignmentsList() {
       try {
         // Call the assignments API to get available assignments
         const response = await examinerSessionService.getAssignmentsList(exId);
-        
+
         if (response?.success && response?.data) {
           setAvailableAssignments(response.data);
         } else {
           setAvailableAssignments([]);
           if (!response?.success) {
-            showNotification('error', response?.message || 'Failed to load assignments');
+            showNotification(
+              "error",
+              response?.message || "Failed to load assignments"
+            );
           }
         }
       } catch (e) {
-        console.error('Error loading assignments:', e);
-        showNotification('error', 'Error loading assignments');
+        console.error("Error loading assignments:", e);
+        showNotification("error", "Error loading assignments");
         setAvailableAssignments([]);
       } finally {
         setLoadingAssignments(false);
@@ -45,24 +53,30 @@ export default function ExaminerAssignmentsList() {
   }, [user, userId, showNotification]);
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return 'No date';
+    if (!dateString) return "No date";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', { 
-      weekday: 'short', 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString("en-AU", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const getStatusBadgeVariant = (status) => {
     switch (status?.toLowerCase()) {
-      case 'released': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800';
-      case 'published': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800';
-      case 'active': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800';
-      case 'draft': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800';
-      case 'completed': return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+      case "released":
+        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800";
+      case "published":
+        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800";
+      case "active":
+        return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800";
+      case "draft":
+        return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800";
+      case "completed":
+        return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
     }
   };
 
@@ -78,8 +92,12 @@ export default function ExaminerAssignmentsList() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">Assessment Assignments</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Select an assignment to view available sessions</p>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+            Assessment Assignments
+          </h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Select an assignment to view available timeslots
+          </p>
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
           Total: {availableAssignments.length} assignment(s)
@@ -93,7 +111,8 @@ export default function ExaminerAssignmentsList() {
             Available Assignments
           </CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            These are your assigned assessments. Click to view sessions for each assignment.
+            These are your assigned assessments. Click to view timeslots for
+            each assignment.
           </p>
         </CardHeader>
         <CardContent>
@@ -112,12 +131,20 @@ export default function ExaminerAssignmentsList() {
                             {assignment.name || `Assignment ${assignment.id}`}
                           </h3>
                           {assignment.status && (
-                            <Badge variant="outline" className={getStatusBadgeVariant(assignment.status)}>
+                            <Badge
+                              variant="outline"
+                              className={getStatusBadgeVariant(
+                                assignment.status
+                              )}
+                            >
                               {assignment.status?.toUpperCase()}
                             </Badge>
                           )}
                           {assignment.type && (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800">
+                            <Badge
+                              variant="outline"
+                              className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
+                            >
                               {assignment.type?.toUpperCase()}
                             </Badge>
                           )}
@@ -173,12 +200,14 @@ export default function ExaminerAssignmentsList() {
                         </div>
                       </div>
 
-                      <Button 
-                        onClick={() => router.push(`/examiner/assessment/${assignment.id}`)} 
+                      <Button
+                        onClick={() =>
+                          router.push(`/examiner/assessment/${assignment.id}`)
+                        }
                         variant="default"
                       >
                         <i className="fas fa-calendar-week mr-2"></i>
-                        View Sessions
+                        View Timeslots
                       </Button>
                     </div>
                   </div>
@@ -190,9 +219,15 @@ export default function ExaminerAssignmentsList() {
               <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-clipboard-times text-gray-400 dark:text-gray-500 text-3xl"></i>
               </div>
-              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">No Assignments Available</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">You don't have any assignments assigned yet.</p>
-              <Button onClick={() => router.push('/examiner/schedule')}>Go to Schedule</Button>
+              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+                No Assignments Available
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                You don't have any assignments assigned yet.
+              </p>
+              <Button onClick={() => router.push("/examiner/schedule")}>
+                Go to Schedule
+              </Button>
             </div>
           )}
         </CardContent>

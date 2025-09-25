@@ -124,10 +124,10 @@ export default function DaySchedule() {
                 hour: "numeric",
                 minute: "2-digit",
               })}`
-            : `Session #${session.sessionId}`;
+            : `Timeslot #${session.sessionId}`;
         setResultProps({
           status: "success",
-          title: "Withdrawn from Session",
+          title: "Withdrawn from Timeslot",
           message: "Your schedule has been updated.",
           details: [detail],
           autoDismiss: true,
@@ -140,7 +140,7 @@ export default function DaySchedule() {
         status: "error",
         title: "Withdraw Failed",
         message:
-          withdrawError?.message || "Unable to withdraw from this session.",
+          withdrawError?.message || "Unable to withdraw from this timeslot.",
         autoDismiss: false,
         primaryActionLabel: "Close",
       });
@@ -166,7 +166,7 @@ export default function DaySchedule() {
           <i className="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
         </div>
         <div className="text-sm text-red-600 dark:text-red-400">
-          Failed to load today’s sessions
+          Failed to load today’s timeslots
         </div>
         <button
           onClick={() => refetch()}
@@ -208,7 +208,7 @@ export default function DaySchedule() {
             <i className="fas fa-calendar-check text-gray-400 dark:text-gray-500 text-2xl"></i>
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            No sessions scheduled for today
+            No timeslots scheduled for today
           </div>
         </div>
       ) : (
@@ -216,7 +216,7 @@ export default function DaySchedule() {
           {upcomingSessions.length > 0 && (
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-arrow-right text-green-600 mr-2"></i>
-              Upcoming Sessions ({upcomingSessions.length})
+              Upcoming Timeslots ({upcomingSessions.length})
             </h3>
           )}
 
@@ -296,7 +296,7 @@ export default function DaySchedule() {
                     title={
                       !canWithdraw(session)
                         ? "Cannot withdraw: Students are already booked"
-                        : "Click to withdraw from this session"
+                        : "Click to withdraw from this timeslot"
                     }
                   >
                     {isSubmitting ? (
@@ -314,7 +314,7 @@ export default function DaySchedule() {
           {pastSessions.length > 0 && (
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-history text-gray-600 mr-2"></i>
-              Past Sessions ({pastSessions.length})
+              Past Timeslots ({pastSessions.length})
             </h3>
           )}
 

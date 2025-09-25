@@ -1,13 +1,18 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import useAuth from '../../../../hooks/useAuth';
-import { useNotification } from '../../../../hooks/useNotification';
-import examinerSessionService from '../../../../services/examinerSessionService';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
-import { Button } from '../../../../components/ui/button';
-import { Badge } from '../../../../components/ui/badge';
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import useAuth from "../../../../hooks/useAuth";
+import { useNotification } from "../../../../hooks/useNotification";
+import examinerSessionService from "../../../../services/examinerSessionService";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../../../components/ui/card";
+import { Button } from "../../../../components/ui/button";
+import { Badge } from "../../../../components/ui/badge";
 
 export default function AssignmentSessionsList() {
   const router = useRouter();
@@ -16,7 +21,7 @@ export default function AssignmentSessionsList() {
   const { showNotification } = useNotification();
 
   const assignmentId = params.assignmentId;
-  
+
   const [assignmentSessions, setAssignmentSessions] = useState([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
 
@@ -24,59 +29,71 @@ export default function AssignmentSessionsList() {
   useEffect(() => {
     const exId = userId || user?.id;
     if (!assignmentId || !exId) return;
-    
+
     (async () => {
       setLoadingSessions(true);
       try {
         // Call examiner schedule API with assignmentId filter
-        console.log(`📅 Calling /api/examiners/${exId}/schedule with payload:`, { assignmentId: Number(assignmentId) });
-        const response = await examinerSessionService.getExaminerSchedule(exId, {
-          assignmentId: Number(assignmentId)
-        });
-        
+        console.log(
+          `📅 Calling /api/examiners/${exId}/schedule with payload:`,
+          { assignmentId: Number(assignmentId) }
+        );
+        const response = await examinerSessionService.getExaminerSchedule(
+          exId,
+          {
+            assignmentId: Number(assignmentId),
+          }
+        );
+
         if (response?.success && response?.data) {
           // Process schedule data to extract sessions for this assignment
           const scheduleData = response.data;
           const assignments = scheduleData.assignments || [];
-          
+
           // Find the assignment and extract its sessions
-          const assignment = assignments.find(a => a.assignmentId === Number(assignmentId));
+          const assignment = assignments.find(
+            (a) => a.assignmentId === Number(assignmentId)
+          );
           const sessions = assignment?.sessions || [];
-          
+
           // Transform sessions to match the expected format
-          const transformedSessions = sessions.map(session => ({
+          const transformedSessions = sessions.map((session) => ({
             id: session.sessionId,
             sessionId: session.sessionId,
             displayId: session.venue?.id || session.sessionId, // Use venue ID as display ID, fallback to session ID
-            date: session.start ? session.start.split('T')[0] : null,
-            startTime: session.start ? session.start.split('T')[1] : null,
-            endTime: session.end ? session.end.split('T')[1] : null,
+            date: session.start ? session.start.split("T")[0] : null,
+            startTime: session.start ? session.start.split("T")[1] : null,
+            endTime: session.end ? session.end.split("T")[1] : null,
             start: session.start,
             end: session.end,
-            venueName: session.venue?.venueName || 'No venue',
+            venueName: session.venue?.venueName || "No venue",
             venue: session.venue,
             requiredExaminers: session.requiredExaminers || 0,
             currentExaminers: session.currentExaminers || 0,
             capacity: session.capacity || 0,
             bookedCount: session.bookingCount || 0,
-            remainingCapacity: (session.capacity || 0) - (session.bookingCount || 0),
+            remainingCapacity:
+              (session.capacity || 0) - (session.bookingCount || 0),
             isBooked: session.isBooked || false,
             canWithdraw: session.canWithdraw || false,
             cannotWithdrawReason: session.cannotWithdrawReason,
-            status: session.isBooked ? 'booked' : 'available',
-            assignedExaminers: session.assignedExaminers || []
+            status: session.isBooked ? "booked" : "available",
+            assignedExaminers: session.assignedExaminers || [],
           }));
-          
+
           setAssignmentSessions(transformedSessions);
         } else {
           setAssignmentSessions([]);
           if (!response?.success) {
-            showNotification('error', response?.message || 'Failed to load sessions');
+            showNotification(
+              "error",
+              response?.message || "Failed to load timeslots"
+            );
           }
         }
       } catch (e) {
-        console.error('Error loading sessions:', e);
-        showNotification('error', 'Error loading sessions');
+        console.error("Error loading timeslots:", e);
+        showNotification("error", "Error loading timeslots");
         setAssignmentSessions([]);
       } finally {
         setLoadingSessions(false);
@@ -86,43 +103,50 @@ export default function AssignmentSessionsList() {
 
   const getStatusBadgeVariant = (status) => {
     switch (status?.toLowerCase()) {
-      case 'booked': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800';
-      case 'available': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800';
-      case 'active': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800';
-      case 'scheduled': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800';
-      case 'cancelled': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700';
+      case "booked":
+        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800";
+      case "available":
+        return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800";
+      case "active":
+        return "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800";
+      case "completed":
+        return "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800";
+      case "scheduled":
+        return "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700";
     }
   };
 
   const formatDateTime = (dateString) => {
-    if (!dateString) return 'No date';
+    if (!dateString) return "No date";
     const date = new Date(dateString);
-    return date.toLocaleString('en-AU', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleString("en-AU", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const formatDate = (dateString) => {
-    if (!dateString) return 'No date';
+    if (!dateString) return "No date";
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-AU', {
-      weekday: 'short',
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return date.toLocaleDateString("en-AU", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
   const formatTime = (timeString) => {
-    if (!timeString) return 'No time';
+    if (!timeString) return "No time";
     // Handle both "09:00:00" and "09:00" formats
-    if (timeString.includes(':')) {
+    if (timeString.includes(":")) {
       return timeString.substring(0, 5); // Return "09:00"
     }
     return timeString;
@@ -144,9 +168,9 @@ export default function AssignmentSessionsList() {
     <div className="space-y-6">
       {/* Header with back button */}
       <div className="flex items-center gap-4">
-        <Button 
-          variant="outline" 
-          onClick={() => router.push('/examiner/assessment')}
+        <Button
+          variant="outline"
+          onClick={() => router.push("/examiner/assessment")}
           className="flex items-center gap-2"
         >
           <i className="fas fa-arrow-left"></i>
@@ -154,7 +178,7 @@ export default function AssignmentSessionsList() {
         </Button>
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-            Assignment Sessions
+            Assignment Timeslots
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Assignment ID: {assignmentId}
@@ -170,7 +194,7 @@ export default function AssignmentSessionsList() {
         <CardHeader>
           <CardTitle>
             <i className="fas fa-calendar-week text-blue-600 mr-2"></i>
-            Available Sessions
+            Available Timeslots
           </CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Click on a session to view and manage assessments
@@ -191,7 +215,10 @@ export default function AssignmentSessionsList() {
                           {session.displayId}
                         </h3>
                         {session.status && (
-                          <Badge variant="outline" className={getStatusBadgeVariant(session.status)}>
+                          <Badge
+                            variant="outline"
+                            className={getStatusBadgeVariant(session.status)}
+                          >
                             {session.status?.toUpperCase()}
                           </Badge>
                         )}
@@ -212,7 +239,8 @@ export default function AssignmentSessionsList() {
                         {session.startTime && (
                           <div className="flex items-center">
                             <i className="fas fa-clock text-green-600 mr-2"></i>
-                            {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                            {formatTime(session.startTime)} -{" "}
+                            {formatTime(session.endTime)}
                           </div>
                         )}
                       </div>
@@ -228,7 +256,8 @@ export default function AssignmentSessionsList() {
                         {session.bookedCount !== undefined && (
                           <div className="flex items-center">
                             <i className="fas fa-user-check text-green-600 mr-2"></i>
-                            Booked: {session.bookedCount}/{session.capacity || 0}
+                            Booked: {session.bookedCount}/
+                            {session.capacity || 0}
                           </div>
                         )}
                         {session.remainingCapacity !== undefined && (
@@ -240,7 +269,7 @@ export default function AssignmentSessionsList() {
                       </div>
                     </div>
 
-                    <Button 
+                    <Button
                       onClick={() => handleViewAssessments(session)}
                       variant="default"
                     >
@@ -256,7 +285,9 @@ export default function AssignmentSessionsList() {
               <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i className="fas fa-calendar-times text-gray-400 dark:text-gray-500 text-3xl"></i>
               </div>
-              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">No Sessions Found</h3>
+              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
+                No Sessions Found
+              </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 There are no sessions available for this assignment yet.
               </p>

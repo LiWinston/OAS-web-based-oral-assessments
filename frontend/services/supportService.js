@@ -26,7 +26,7 @@ const seedTickets = [
     priority: 'urgent',
     name: 'Jasdeep Kaur',
     email: 'jasdeep.kaur@unimelb.edu.au',
-    subject: 'Rubric freeze during live session 10:30am',
+    subject: 'Rubric freeze during live timeslot 10:30am',
     message:
       'Marking interface locked when submitting criterion 3 for student 812345. Browser Chrome 123. Please unlock so I can finish results.',
     submittedAt: '2025-04-06T00:15:00.000Z',
@@ -50,9 +50,9 @@ const seedTickets = [
     priority: 'normal',
     name: 'Liam Chen',
     email: 'liam.chen@student.unimelb.edu.au',
-    subject: 'No sessions available for SWEN90017 Assignment 1',
+    subject: 'No timeslots available for SWEN90017 Assignment 1',
     message:
-      'I logged in at 9:05am and the booking page says sessions unavailable. Friends can still see them. Could someone check if my group is configured?',
+      'I logged in at 9:05am and the booking page says timeslots unavailable. Friends can still see them. Could someone check if my group is configured?',
     submittedAt: '2025-04-07T00:05:00.000Z',
     updatedAt: '2025-04-07T00:05:00.000Z',
     context: {

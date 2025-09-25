@@ -14,12 +14,12 @@ export default function ResultsFilterBar({ value, onChange }) {
   return (
     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div className="flex-1">
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search student / group or session time</label>
+        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search student / group or timeslot time</label>
         <input
           type="search"
           value={current.q || ""}
           onChange={(e) => onChange({ ...current, q: e.target.value })}
-          placeholder="Search by name or session time..."
+          placeholder="Search by name or timeslot time..."
           className="form-control w-full"
         />
       </div>

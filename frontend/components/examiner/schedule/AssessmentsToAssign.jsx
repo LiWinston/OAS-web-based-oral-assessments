@@ -97,7 +97,7 @@ const AssessmentsToAssign = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assignments to Assign Sessions
+            Assignments to Assign Timeslots
           </h2>
         </div>
         <div className="p-8 text-center">
@@ -143,7 +143,7 @@ const AssessmentsToAssign = () => {
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assignments to Assign Sessions
+            Assignments to Assign Timeslots
           </h2>
         </div>
         <div className="p-8 text-center">
@@ -192,7 +192,7 @@ const AssessmentsToAssign = () => {
         <div className="flex items-center">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-clock text-blue-600 dark:text-blue-400 mr-2"></i>
-            Assignments to Assign Sessions
+            Assignments to Assign Timeslots
           </h2>
           <span className="ml-3 px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
             {renderAssignments.length} available

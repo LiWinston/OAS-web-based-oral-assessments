@@ -127,7 +127,7 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
 
           <div className="flex flex-wrap gap-2">
             <ReadinessChip label="Rubric" active={rubricReady} />
-            <ReadinessChip label="Sessions" active={sessionsReady} />
+            <ReadinessChip label="Timeslots" active={sessionsReady} />
             <ReadinessChip label="Results" active={resultsReleased} />
           </div>
         </div>

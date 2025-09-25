@@ -32,24 +32,60 @@ const FALLBACK_ASSIGNMENTS = {
   103: { name: 'Team Demo', type: 'group' },
 };
 
+const deriveLevelRanges = (performanceLevels = []) => {
+  if (!Array.isArray(performanceLevels)) return [];
+
+  return performanceLevels.map((level, index) => {
+    const currentValueRaw = Number(level?.value);
+    const currentValue = Number.isFinite(currentValueRaw) ? currentValueRaw : 0;
+
+    const nextValueRaw = Number(performanceLevels?.[index + 1]?.value);
+    const nextValue = Number.isFinite(nextValueRaw) ? nextValueRaw : 0;
+
+    // Treat backend provided "value" as the upper bound for the level.
+    // Until the API supplies explicit ranges, approximate the lower bound using the
+    // next performance level's value (or zero for the final band). This keeps the
+    // admin view aligned with the examiner UI expectations.
+    const upperBound = Math.max(0, currentValue);
+    const inferredLower = nextValue <= upperBound ? nextValue : 0;
+    const lowerBound = Math.max(0, inferredLower);
+
+    const levelId = level?.levelId || `L${index + 1}`;
+    const levelLabel = level?.label || level?.levelId || `Level ${index + 1}`;
+
+    return {
+      levelId,
+      levelLabel,
+      description: level?.description,
+      // Provide both range representations for compatibility with RubricTable.
+      levelRange: { min: lowerBound, max: upperBound },
+      minPoints: lowerBound,
+      maxPoints: upperBound,
+      value: upperBound,
+    };
+  });
+};
+
 function toFrozenRubric(rubric) {
   if (!rubric) return { criteria: [] };
+
   const scale = rubric?.rubricMetaInfo?.scale || 'weight';
   const scaleType = scale === 'points' ? 'points' : 'descriptive';
-  const criteria = (rubric.criteria || []).map((c) => ({
-    criterionId: c.criterionId,
-    text: c.title || c.criterionId,
-    weightPct: c.weightOrPoints ?? 0,
+
+  const criteria = (rubric.criteria || []).map((criterion) => ({
+    criterionId: criterion.criterionId,
+    text: criterion.title || criterion.criterionId,
+    weightPct: criterion.weightOrPoints ?? 0,
     appliesTo: 'BOTH',
     scaleType,
-    levels: (c.performanceLevels || []).map((pl) => ({
-      levelId: pl.levelId,
-      levelLabel: pl.label || pl.levelId,
-      levelRange: { min: 0, max: Number(pl.value) || 0 },
-      description: pl.description,
-    })),
+    levels: deriveLevelRanges(criterion.performanceLevels),
   }));
-  return { rubricId: rubric?.rubricMetaInfo?.rubricId, version: 1, criteria };
+
+  return {
+    rubricId: rubric?.rubricMetaInfo?.rubricId,
+    version: 1,
+    criteria,
+  };
 }
 
 function StatusChip({ releaseStatus, examiners }) {

@@ -20,7 +20,7 @@ import { useNotification } from "../../../hooks/useNotification";
  *
  * Complete schedule management page for examiners featuring:
  * - Assessments needing time slot assignment
- * - Monthly calendar view of scheduled sessions
+ * - Monthly calendar view of scheduled timeslots
  * - Upcoming assessments list with real-time status
  */
 export default function ExaminerSchedule() {
@@ -225,7 +225,7 @@ export default function ExaminerSchedule() {
               Assessment Schedule
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Manage and view your upcoming assessment sessions
+              Manage and view your upcoming assessment timeslots
             </p>
           </div>
 
@@ -364,7 +364,7 @@ export default function ExaminerSchedule() {
           </div>
           <div className="flex items-center">
             <i className="fas fa-times-circle mr-2"></i>
-            Use "My Assigned Sessions" to withdraw from unbooked sessions
+            Use "My Assigned Timeslots" to withdraw from unbooked timeslots
           </div>
           {selectedCourse && (
             <div className="flex items-center text-blue-600 dark:text-blue-400">

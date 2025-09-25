@@ -16,7 +16,7 @@ import { studentBookingServiceReal as studentBookingService } from "@/services/s
  * Main entry for student booking management, following the examiner schedule page layout:
  * - Assignments Available to Book
  * - My Bookings (upcoming)
- * - Calendar view of booked sessions
+ * - Calendar view of booked timeslots
  */
 export default function StudentBooking() {
   const { user, isAuthenticated } = useAuth();
@@ -83,7 +83,7 @@ export default function StudentBooking() {
               My Booking Board
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Book and manage your assessment sessions
+              Book and manage your assessment timeslots
             </p>
           </div>
 

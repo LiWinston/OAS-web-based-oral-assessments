@@ -79,7 +79,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
                 hour: "numeric",
                 minute: "2-digit",
               })}`
-            : `Session #${slot.sessionId ?? slot.slotId}`;
+            : `Timeslot #${slot.sessionId ?? slot.slotId}`;
         setResultProps({
           status: "success",
           title: "Withdrawn from Session",
@@ -94,7 +94,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
       setResultProps({
         status: "error",
         title: "Withdraw Failed",
-        message: error?.message || "Unable to withdraw from this session.",
+        message: error?.message || "Unable to withdraw from this timeslot.",
         autoDismiss: false,
         primaryActionLabel: "Close",
       });
@@ -119,11 +119,14 @@ export default function AssignedSlots({ showDebugSection = false }) {
         (assignment.sessions || assignment.slots || []).map((slot) => {
           const required =
             slot.requiredExaminers ?? slot.coverage?.required ?? null;
-          const derivedType = (slot.assessmentType || (() => {
-            if (required === 1) return 'INDIVIDUAL';
-            if (required === 0) return 'MIX';
-            return 'GROUP';
-          })())
+          const derivedType = (
+            slot.assessmentType ||
+            (() => {
+              if (required === 1) return "INDIVIDUAL";
+              if (required === 0) return "MIX";
+              return "GROUP";
+            })()
+          )
             .toString()
             .toUpperCase();
           return {
@@ -137,7 +140,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
         })
       )
       .filter((slot) => {
-        if (!assessmentType || assessmentType === 'ALL') return true;
+        if (!assessmentType || assessmentType === "ALL") return true;
         return slot.assessmentType === assessmentType;
       });
 
@@ -168,7 +171,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             <span className="ml-3 text-gray-600 dark:text-gray-400">
-              Loading assigned sessions...
+              Loading assigned timeslots...
             </span>
           </div>
         </div>
@@ -182,7 +185,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
         <div className="p-6">
           <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-800 dark:text-red-200">
             <i className="fas fa-exclamation-triangle mr-2"></i>
-            Failed to load assigned sessions.
+            Failed to load assigned timeslots.
             <button
               onClick={() => refetch()}
               className="underline hover:no-underline ml-1"
@@ -214,10 +217,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
           <div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center">
               <i className="fas fa-calendar-check text-blue-600 dark:text-blue-400 mr-2"></i>
-              My Assigned Sessions
+              My Assigned Timeslots
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Manage your assigned examination sessions
+              Manage your assigned examination timeslots
             </p>
           </div>
           <div className="flex items-center space-x-4">
@@ -244,8 +247,8 @@ export default function AssignedSlots({ showDebugSection = false }) {
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {selectedCourse
-                ? `No assigned sessions found for ${selectedCourse}. Try clearing the filter or assign yourself to some sessions.`
-                : "You have no assigned sessions yet. Visit the Assessments to Assign section above to get started."}
+                ? `No assigned timeslots found for ${selectedCourse}. Try clearing the filter or assign yourself to some timeslots.`
+                : "You have no assigned timeslots yet. Visit the Assessments to Assign section above to get started."}
             </p>
             {selectedCourse && (
               <Button
@@ -268,7 +271,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
                   <i className="fas fa-arrow-right text-green-600 mr-2"></i>
-                  Upcoming Sessions ({upcomingSlots.length})
+                  Upcoming Timeslots ({upcomingSlots.length})
                 </h3>
                 <div className="space-y-3">
                   {upcomingSlots.map((slot) => (
@@ -356,8 +359,8 @@ export default function AssignedSlots({ showDebugSection = false }) {
                             }
                             title={
                               !canWithdraw(slot)
-                                ? "Cannot withdraw: Students are already booked for this session"
-                                : "Click to withdraw from this session"
+                                ? "Cannot withdraw: Students are already booked for this timeslot"
+                                : "Click to withdraw from this timeslot"
                             }
                           >
                             {isSubmitting ? (
@@ -387,7 +390,7 @@ export default function AssignedSlots({ showDebugSection = false }) {
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
                   <i className="fas fa-history text-gray-600 mr-2"></i>
-                  Past Sessions ({pastSlots.length})
+                  Past Timeslots ({pastSlots.length})
                 </h3>
                 <div className="space-y-3">
                   {visiblePastSlots.map((slot) => (
@@ -449,8 +452,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
                         onClick={() => setShowAllPast((prev) => !prev)}
                       >
                         {showAllPast
-                          ? 'Show less'
-                          : `Show ${pastSlots.length - 5} more past session${pastSlots.length - 5 === 1 ? '' : 's'}`}
+                          ? "Show less"
+                          : `Show ${pastSlots.length - 5} more past timeslot${
+                              pastSlots.length - 5 === 1 ? "" : "s"
+                            }`}
                       </button>
                     </div>
                   )}

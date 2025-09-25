@@ -423,7 +423,7 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || 'Failed to fetch available sessions',
+        message: error.response?.data?.message || 'Failed to fetch available timeslots',
       };
     }
   },
@@ -440,7 +440,7 @@ export const examinerTimeslotServiceReal = {
 
       const examinerId = data?.examinerId;
       if (examinerId == null) {
-        throw new Error('examinerId is required to assign sessions');
+        throw new Error('examinerId is required to assign timeslots');
       }
 
       const res = await apiClient.post(
@@ -483,7 +483,7 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || error.message || 'Failed to assign sessions',
+        message: error.response?.data?.message || error.message || 'Failed to assign timeslots',
       };
     }
   },
@@ -600,7 +600,7 @@ export const examinerTimeslotServiceReal = {
         data: ok
           ? { assignmentId: Number(assignmentId), sessionId: returnedSessionId, examinerId }
           : null,
-        message: ok ? undefined : 'Failed to unassign from session',
+        message: ok ? undefined : 'Failed to unassign from timeslot',
       };
     } catch (error) {
       // Fallback to legacy claim endpoint if new DTO-based API is unavailable
@@ -614,14 +614,14 @@ export const examinerTimeslotServiceReal = {
             data: legacyOk
               ? { assignmentId: Number(assignmentId), sessionId: Number(sessionId), examinerId }
               : null,
-            message: legacyOk ? undefined : 'Failed to unassign from session',
+            message: legacyOk ? undefined : 'Failed to unassign from timeslot',
           };
         } catch (legacyError) {
           return {
             success: false,
             code: 'SERVER_ERROR',
             data: null,
-            message: legacyError.response?.data?.message || legacyError.message || 'Failed to unassign from session',
+            message: legacyError.response?.data?.message || legacyError.message || 'Failed to unassign from timeslot',
           };
         }
       }
@@ -629,7 +629,7 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'SERVER_ERROR',
         data: null,
-        message: error.response?.data?.message || error.message || 'Failed to unassign from session',
+        message: error.response?.data?.message || error.message || 'Failed to unassign from timeslot',
       };
     }
   },
@@ -642,7 +642,7 @@ export const examinerTimeslotServiceReal = {
         success: false,
         code: 'BAD_REQUEST',
         data: null,
-        message: 'assignmentId is required to withdraw from a session',
+        message: 'assignmentId is required to withdraw from a timeslot',
       };
     }
     return this.unassignExaminerFromSession(assignmentId, sessionId, examinerId);

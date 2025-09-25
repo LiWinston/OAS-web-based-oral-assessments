@@ -255,7 +255,7 @@ export default function ExaminerAssessmentMarking() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <h1 className="text-2xl font-bold text-red-600">No Students Found</h1>
-        <p className="text-gray-600">This assessment session has no students assigned.</p>
+        <p className="text-gray-600">This assessment timeslot has no students assigned.</p>
         <Button onClick={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}>
           Back to Assessments
         </Button>

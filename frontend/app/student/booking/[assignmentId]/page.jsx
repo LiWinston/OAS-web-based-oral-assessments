@@ -213,7 +213,7 @@ export default function StudentBookingSteps() {
     },
     onError: (err) => {
       const code = err?.response?.data?.code;
-      showNotification("error", mapErrorCodeToMessage(code) || "Failed to book the session");
+      showNotification("error", mapErrorCodeToMessage(code) || "Failed to book the timeslot");
     },
   });
 
@@ -238,20 +238,20 @@ export default function StudentBookingSteps() {
   const mapErrorCodeToMessage = (code) => {
     switch (code) {
       case "SESSION_TAKEN":
-        return "This session was just booked by someone else.";
+        return "This timeslot was just booked by someone else.";
       case "ALREADY_BOOKED":
         return "You already have an active booking for this assessment.";
       case "SLOT_UNSTAFFED":
       case "SESSION_CLOSED":
-        return "This session is not available.";
+        return "This timeslot is not available.";
       case "LOCKOUT_WINDOW":
-        return "Bookings are closed within the final hours before the session.";
+        return "Bookings are closed within the final hours before the timeslot.";
       case "DEADLINE_PASSED":
         return "The booking window is closed.";
       case "FORBIDDEN":
         return "You’re not eligible to book this assessment.";
       case "NOT_FOUND":
-        return "This session is no longer available.";
+        return "This timeslot is no longer available.";
       default:
         return null;
     }
@@ -328,7 +328,7 @@ export default function StudentBookingSteps() {
           {session ? (
             <div className="mt-6 inline-block text-left bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-5 py-4">
               <div className="text-xs uppercase text-gray-500 dark:text-gray-400 tracking-wide mb-1">
-                Current session
+                Current timeslot
               </div>
               <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
                 {new Date(session.start).toLocaleDateString("en-AU", {
@@ -696,10 +696,10 @@ export default function StudentBookingSteps() {
             </div>
           )}
           {loadingSessions ? (
-            <div className="text-sm text-gray-500">Loading sessions…</div>
+            <div className="text-sm text-gray-500">Loading timeslots…</div>
           ) : listSessions.length === 0 ? (
             <div className="text-sm text-gray-500">
-              No sessions available for this date.
+              No timeslots available for this date.
             </div>
           ) : (
             <div className="space-y-4">
@@ -728,7 +728,7 @@ export default function StudentBookingSteps() {
                       )}
                       {Array.isArray(slot.sessions) && (
                         <span className="ml-2 text-[11px] text-gray-500">
-                          {slot.sessions.filter(s => sessionIsBookable(s)).length} of {slot.sessions.length} sessions available
+                          {slot.sessions.filter(s => sessionIsBookable(s)).length} of {slot.sessions.length} timeslots available
                         </span>
                       )}
                     </div>

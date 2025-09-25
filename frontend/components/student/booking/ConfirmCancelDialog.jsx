@@ -69,7 +69,7 @@ export default function ConfirmCancelDialog({
   // Don't render until mounted and open
   if (!mounted || !isOpen || !booking) return null;
 
-  // Calculate time until session
+  // Calculate time until timeslot
   const now = new Date();
   const sessionStart = new Date(booking.session?.start);
   const hoursUntilSession = Math.floor((sessionStart - now) / (1000 * 60 * 60));
@@ -91,7 +91,7 @@ export default function ConfirmCancelDialog({
         iconColor: "text-orange-600 dark:text-orange-400",
         bgColor: "bg-orange-100 dark:bg-orange-900",
         title: "Important Cancellation Notice",
-        message: "Your assessment is approaching. Limited alternative sessions may be available if you cancel now."
+        message: "Your assessment is approaching. Limited alternative timeslots may be available if you cancel now."
       };
     } else {
       return {
@@ -99,7 +99,7 @@ export default function ConfirmCancelDialog({
         iconColor: "text-blue-600 dark:text-blue-400",
         bgColor: "bg-blue-100 dark:bg-blue-900",
         title: "Cancel Booking Confirmation",
-        message: "You are about to cancel your booking. You will need to book a new session if you wish to complete this assessment."
+        message: "You are about to cancel your booking. You will need to book a new timeslot if you wish to complete this assessment."
       };
     }
   };
@@ -187,10 +187,10 @@ export default function ConfirmCancelDialog({
                   Important Information
                 </h4>
                 <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1">
-                  <li>• Once cancelled, this session will become available to other students</li>
-                  <li>• You will need to book a new session to complete this assessment</li>
+                  <li>• Once cancelled, this timeslot will become available to other students</li>
+                  <li>• You will need to book a new timeslot to complete this assessment</li>
                   {booking.lockoutEnabled && (
-                    <li>• New bookings cannot be made within {booking.lockoutWindowHours || 24} hours of a session start time</li>
+                    <li>• New bookings cannot be made within {booking.lockoutWindowHours || 24} hours of a timeslot start time</li>
                   )}
                   {booking.bookingDeadline && (
                     <li>• All bookings must be completed before the deadline: {new Date(booking.bookingDeadline).toLocaleString("en-AU", { 

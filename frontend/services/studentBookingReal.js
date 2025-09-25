@@ -75,7 +75,7 @@ export const studentBookingServiceReal = {
   ) {
     // Date is required by the backend API
     if (!date) {
-      throw new Error("Date parameter is required for fetching bookable sessions");
+      throw new Error("Date parameter is required for fetching bookable timeslots");
     }
 
     // Backend defaults pageNum=1; use 1-based and larger page size by default

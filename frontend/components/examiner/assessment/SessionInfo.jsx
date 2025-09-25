@@ -40,13 +40,13 @@ export default function SessionInfo({ sessionContext }) {
     <Card className="dashboard-card">
       <CardContent className="p-5">
         <div className="md:flex md:justify-between md:items-start">
-          {/* Left column: Assessment Session Info */}
+          {/* Left column: Assessment Timeslot Info */}
           <div className="mb-5 md:mb-0 md:mr-8 flex-1">
             <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-              {assignment?.name || 'Assessment Session'}
+              {assignment?.name || 'Assessment Timeslot'}
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {assignment?.rubricMeta?.description || 'Oral assessment session'}
+              {assignment?.rubricMeta?.description || 'Oral assessment timeslot'}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

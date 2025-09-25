@@ -130,7 +130,7 @@ export default function OnboardingComplete({ role, fullName }) {
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Self-assign to available sessions</span>
+                  <span>Self-assign to available timeslots</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -146,7 +146,7 @@ export default function OnboardingComplete({ role, fullName }) {
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Book your preferred session</span>
+                  <span>Book your preferred timeslot</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ArrowRight className="w-4 h-4 mt-0.5 flex-shrink-0" />

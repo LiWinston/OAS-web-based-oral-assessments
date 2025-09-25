@@ -28,7 +28,7 @@ export default function OnboardingWelcome({
           icon: <Users className="w-10 h-10 text-white" />,
           title: 'Welcome Examiner',
           subtitle: courseContext ? `You've been assigned to ${courseContext.courseName}` : 'You have been invited as an examiner',
-          description: 'As an Examiner, you will be able to self-assign to sessions, conduct oral assessments, and provide marks and feedback to students.',
+          description: 'As an Examiner, you will be able to self-assign to timeslots, conduct oral assessments, and provide marks and feedback to students.',
           color: 'from-purple-500 to-purple-600',
           emoji: '📋'
         };
@@ -38,7 +38,7 @@ export default function OnboardingWelcome({
           icon: <GraduationCap className="w-10 h-10 text-white" />,
           title: 'Welcome Student',
           subtitle: courseContext ? `New assessment in ${courseContext.courseName}` : 'You have been invited to an assessment',
-          description: 'As a Student, you will be able to book your oral exam session, view assessment details, and receive your results and feedback.',
+          description: 'As a Student, you will be able to book your oral exam timeslot, view assessment details, and receive your results and feedback.',
           color: 'from-green-500 to-green-600',
           emoji: '📚'
         };

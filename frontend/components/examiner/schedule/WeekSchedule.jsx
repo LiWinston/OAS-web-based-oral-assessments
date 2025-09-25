@@ -90,12 +90,12 @@ export default function WeekSchedule() {
         const end = slot.end ? new Date(slot.end) : null;
         const detail = start && end
           ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
-          : `Session #${slot.sessionId ?? slot.slotId}`;
+          : `Timeslot #${slot.sessionId ?? slot.slotId}`;
         setDialogProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
         setDialogOpen(true);
       }
     } catch (error) {
-      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this session.', autoDismiss: false, primaryActionLabel: 'Close' });
+      setDialogProps({ status: 'error', title: 'Withdraw Failed', message: error?.message || 'Unable to withdraw from this timeslot.', autoDismiss: false, primaryActionLabel: 'Close' });
       setDialogOpen(true);
     }
   };
@@ -149,7 +149,7 @@ export default function WeekSchedule() {
               )}
             </div>
             {list.length === 0 ? (
-              <div className="text-xs text-gray-500 dark:text-gray-400">No sessions</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">No timeslots</div>
             ) : (
               <div className="space-y-2">
                 {list.map(slot => (
@@ -169,7 +169,7 @@ export default function WeekSchedule() {
                           title={
                             !canWithdraw(slot) 
                               ? 'Cannot withdraw: Students are already booked'
-                              : 'Click to withdraw from this session'
+                              : 'Click to withdraw from this timeslot'
                           }
                         >
                           {isSubmitting ? (

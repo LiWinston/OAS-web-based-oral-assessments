@@ -14,15 +14,15 @@ function formatRange(slot) {
     const e = end.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' });
     return `${d} • ${s} – ${e}`;
   } catch {
-    return `Session #${slot.sessionId ?? slot.slotId}`;
+    return `Timeslot #${slot.sessionId ?? slot.slotId}`;
   }
 }
 
 export default function ConfirmWithdrawDialog({ open, onOpenChange, slot, canWithdraw = true, blockingReason = null, onConfirm }) {
   const reasonText = (() => {
     if (!blockingReason) return null;
-    if (blockingReason === 'STUDENT_BOOKED') return 'Students have already booked this session.';
-    if (blockingReason === 'SESSION_STARTED') return 'This session has already started.';
+    if (blockingReason === 'STUDENT_BOOKED') return 'Students have already booked this timeslot.';
+    if (blockingReason === 'SESSION_STARTED') return 'This timeslot has already started.';
     return null;
   })();
 
@@ -32,7 +32,7 @@ export default function ConfirmWithdrawDialog({ open, onOpenChange, slot, canWit
         <DialogHeader>
           <DialogTitle className="text-amber-700 dark:text-amber-300">Withdraw from Session?</DialogTitle>
           <DialogDescription>
-            You are about to withdraw from this session. Withdrawal is allowed only when no students are booked. This may affect staffing for the assessment.
+            You are about to withdraw from this timeslot. Withdrawal is allowed only when no students are booked. This may affect staffing for the assessment.
           </DialogDescription>
         </DialogHeader>
         {slot && (
@@ -44,7 +44,7 @@ export default function ConfirmWithdrawDialog({ open, onOpenChange, slot, canWit
         {!canWithdraw && (
           <div className="mt-3 text-sm text-red-700 dark:text-red-300">
             <i className="fas fa-exclamation-triangle mr-1"></i>
-            {reasonText || 'Withdrawal is not permitted for this session.'}
+            {reasonText || 'Withdrawal is not permitted for this timeslot.'}
           </div>
         )}
         <DialogFooter>

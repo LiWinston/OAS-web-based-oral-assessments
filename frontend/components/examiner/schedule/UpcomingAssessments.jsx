@@ -397,7 +397,7 @@ const UpcomingAssessments = () => {
           {groupedSlots.today.some(slot => getSlotStatus(slot) === 'active') && (
             <div className="flex items-center text-xs text-green-600 dark:text-green-400">
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              Live session
+              Live timeslot
             </div>
           )}
           {allSlots.some(slot => getSlotStatus(slot) === 'starting-soon') && (
@@ -422,7 +422,7 @@ const UpcomingAssessments = () => {
             No Upcoming Assessments
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            You have no scheduled assessment sessions in the next two weeks. Check back later or review available assignments.
+            You have no scheduled assessment timeslots in the next two weeks. Check back later or review available assignments.
           </p>
         </div>
       ) : (
@@ -452,7 +452,7 @@ const UpcomingAssessments = () => {
               {groupedSlots.today.length} today • {groupedSlots.tomorrow.length} tomorrow • {groupedSlots.nextWeek.length} next week
               {groupedSlots.today.some(slot => getSlotStatus(slot) === 'active') && (
                 <span className="ml-2 text-green-600 dark:text-green-400">
-                  • <i className="fas fa-circle animate-pulse" style={{fontSize: '6px'}}></i> Live session
+                  • <i className="fas fa-circle animate-pulse" style={{fontSize: '6px'}}></i> Live timeslot
                 </span>
               )}
             </span>

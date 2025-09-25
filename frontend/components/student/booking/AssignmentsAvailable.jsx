@@ -29,7 +29,7 @@ export default function AssignmentsAvailable() {
     // Only apply client-side filters for display preferences and additional safety checks
     // Check if assignment is released (safety check)
     if (!a?.availability?.released) return false;
-    // Check if there are available sessions (safety check)
+    // Check if there are available timeslots (safety check)
     if (typeof a?.availability?.availableSessions === 'number' && a.availability.availableSessions <= 0) return false;
     if (selectedCourse && a.courseCode !== selectedCourse) return false;
     if (assessmentType && assessmentType !== "ALL" && a.assessmentType !== assessmentType) return false;
@@ -165,7 +165,7 @@ export default function AssignmentsAvailable() {
                   </span>
                   <span className="flex items-center">
                     <i className="fas fa-clock mr-1.5"></i>
-                    {a.availability.availableSessions} sessions available
+                    {a.availability.availableSessions} timeslots available
                   </span>
                   <span className="flex items-center">
                     <i className="fas fa-calendar-day mr-1.5"></i>

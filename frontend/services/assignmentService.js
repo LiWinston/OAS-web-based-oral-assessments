@@ -110,7 +110,7 @@ const mockAssignments = [
     id: 3,
     courseId: 1,
     name: "Final Project Deliverable & Demo",
-    description: "Group demo and individual Q&A session",
+    description: "Group demo and individual Q&A timeslot",
     type: "mixed",
     startDate: "2025-05-20",
     endDate: "2025-06-05",

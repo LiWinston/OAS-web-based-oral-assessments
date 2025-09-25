@@ -33,7 +33,7 @@ export default function SelectionSummary({ allocatedSlots = [], totalSessions = 
               <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
               <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Time</th>
               <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Venue</th>
-              <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Sessions</th>
+              <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Timeslots</th>
               <th className="px-3 py-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
@@ -56,7 +56,7 @@ export default function SelectionSummary({ allocatedSlots = [], totalSessions = 
           </tbody>
           <tfoot className="bg-gray-50 dark:bg-gray-800">
             <tr>
-              <td colSpan="3" className="px-3 py-2 text-sm font-medium text-right">Total Sessions</td>
+              <td colSpan="3" className="px-3 py-2 text-sm font-medium text-right">Total Timeslots</td>
               <td className="px-3 py-2 text-sm font-medium">{totalSessions}</td>
               <td></td>
             </tr>

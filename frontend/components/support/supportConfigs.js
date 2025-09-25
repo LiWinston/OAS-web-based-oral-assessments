@@ -153,7 +153,7 @@ export const supportConfigs = {
     quickLinks: [
       {
         title: 'Self-assign to timeslots',
-        description: 'Pick up open sessions and confirm coverage with live availability indicators.',
+        description: 'Pick up open timeslots and confirm coverage with live availability indicators.',
         href: '/examiner/schedule',
         icon: 'fas fa-calendar-plus',
       },
@@ -181,7 +181,7 @@ export const supportConfigs = {
     channels: [
       {
         title: 'Live exam hotline',
-        description: 'Urgent only. Call if a session is in progress and you cannot access the marking interface or recordings.',
+        description: 'Urgent only. Call if a timeslot is in progress and you cannot access the marking interface or recordings.',
         actionLabel: '+61 3 9000 1234',
         href: 'tel:+61390001234',
         icon: 'fas fa-phone-volume',
@@ -222,7 +222,7 @@ export const supportConfigs = {
       {
         question: 'What if I lose connection during a live exam?',
         answer:
-          'Switch to the hotline immediately so we can preserve the session state. The form is a good follow-up for detailed notes once the student is rescheduled.',
+          'Switch to the hotline immediately so we can preserve the timeslot state. The form is a good follow-up for detailed notes once the student is rescheduled.',
       },
       {
         question: 'How do I reopen a submitted rubric?',
@@ -238,14 +238,14 @@ export const supportConfigs = {
     form: {
       title: 'Something interrupting your marking?',
       description:
-        'Share the situation and we will help you resolve it before your next session starts.',
-      subjectPlaceholder: 'Example: Cannot open rubric for 10:30 AM SWEN90017 session',
+        'Share the situation and we will help you resolve it before your next timeslot starts.',
+      subjectPlaceholder: 'Example: Cannot open rubric for 10:30 AM SWEN90017 timeslot',
       messagePlaceholder:
         'Outline the flow you followed, what you expected, what happened instead, and any students affected. Mention browser/device if relevant.',
       submitLabel: 'Send to support',
       successTitle: 'We are on it — hang tight',
       successDescription:
-        'Our team will review your notes and respond by email. If a session is live, call the hotline so we can bridge while you wait.',
+        'Our team will review your notes and respond by email. If a timeslot is live, call the hotline so we can bridge while you wait.',
       followUp:
         'Add any follow-up screenshots or logs by replying to the confirmation email — everything stays threaded to the same ticket.',
       successToast: 'Thanks! Support has your examiner ticket.',
@@ -365,7 +365,7 @@ export const supportConfigs = {
       title: 'Send a message to support',
       description:
         'We are here to help with bookings, technology, or anything that feels unclear about your assessment.',
-      subjectPlaceholder: 'Example: Booking page says no sessions, but others can still book',
+      subjectPlaceholder: 'Example: Booking page says no timeslots, but others can still book',
       messagePlaceholder:
         'Explain what you were trying to do, what happened, and any error messages you saw. Add dates or times if it helps.',
       submitLabel: 'Send message',

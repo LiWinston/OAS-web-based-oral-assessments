@@ -89,11 +89,11 @@ const examinerAssessmentServiceReal = {
       );
       return response.data;
     } catch (error) {
-      console.error('Error fetching marking sessions:', error);
+      console.error('Error fetching marking timeslots:', error);
       return {
         success: false,
         code: error.response?.data?.code || 'ERROR',
-        message: error.response?.data?.message || 'Failed to fetch marking sessions',
+        message: error.response?.data?.message || 'Failed to fetch marking timeslots',
         error: error.response?.data
       };
     }
@@ -451,11 +451,11 @@ const examinerAssessmentServiceReal = {
         data: sessionContext
       };
     } catch (error) {
-      console.error('Error fetching session context:', error);
+      console.error('Error fetching timeslot context:', error);
       return {
         success: false,
         code: error.response?.data?.code || 'ERROR',
-        message: error.response?.data?.message || 'Failed to fetch session context',
+        message: error.response?.data?.message || 'Failed to fetch timeslot context',
         error: error.response?.data
       };
     }

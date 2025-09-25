@@ -16,7 +16,7 @@ export default function ExaminerDocumentation() {
   const heroActions = useMemo(() => ([
     {
       href: '/examiner/schedule',
-      label: 'Assign Sessions',
+      label: 'Assign Timeslots',
       icon: 'fas fa-calendar-plus',
       variant: 'solid'
     },
@@ -44,7 +44,7 @@ export default function ExaminerDocumentation() {
     {
       href: '/examiner/schedule',
       icon: 'fas fa-calendar-alt',
-      title: 'Session Self-Assignment',
+      title: 'Timeslot Self-Assignment',
       description: 'View availability, avoid clashes, and submit coverage in one action.'
     },
     {
@@ -84,10 +84,10 @@ export default function ExaminerDocumentation() {
       id: 'prepare',
       title: 'Before the Assessment',
       icon: 'fas fa-calendar-alt',
-      summary: 'Claim the sessions you can cover, confirm rubric context, and warm up your comment library.',
+      summary: 'Claim the timeslots you can cover, confirm rubric context, and warm up your comment library.',
       checklist: [
-        'Use Schedule → Assign Sessions to self-assign fully staffed sessions. Conflicting or full sessions are disabled with reasons.',
-        'Respect max session limits per assignment—progress bar shows how many 15-minute sessions you have committed (updates every 30s).',
+        'Use Schedule → Assign Timeslots to self-assign fully staffed timeslots. Conflicting or full timeslots are disabled with reasons.',
+        'Respect max timeslot limits per assignment—progress bar shows how many 15-minute timeslots you have committed (updates every 30s).',
         'Preview the rubric, weighting, and predefined comments set by the Course Admin so you mark consistently from day one.'
       ]
     },
@@ -119,11 +119,11 @@ export default function ExaminerDocumentation() {
     {
       id: 'schedule',
       title: 'Schedule Ownership',
-      description: 'Pick sessions confidently with overlap detection, coverage indicators, and atomic submissions.',
+      description: 'Pick timeslots confidently with overlap detection, coverage indicators, and atomic submissions.',
       bullets: [
-        'Calendar view surfaces days with available sessions; list view details venue, staffing, capacity, and conflicts.',
-        'Bulk submit performs a single API call validating eligibility → overlap → max sessions → coverage.',
-        'Withdrawal remains available until a student books the session—inline reasons explain when it is blocked.'
+        'Calendar view surfaces days with available timeslots; list view details venue, staffing, capacity, and conflicts.',
+        'Bulk submit performs a single API call validating eligibility → overlap → max timeslots → coverage.',
+        'Withdrawal remains available until a student books the timeslot—inline reasons explain when it is blocked.'
       ]
     },
     {
@@ -150,8 +150,8 @@ export default function ExaminerDocumentation() {
 
   const faqItems = useMemo(() => ([
     {
-      question: 'How does session selection respect my existing commitments?',
-      answer: 'The system compares requested sessions against your confirmed schedule before submission. If a conflict is detected, the slot is highlighted with the overlapping time range and cannot be saved. Server validation repeats this check to keep data authoritative.'
+      question: 'How does timeslot selection respect my existing commitments?',
+      answer: 'The system compares requested timeslots against your confirmed schedule before submission. If a conflict is detected, the slot is highlighted with the overlapping time range and cannot be saved. Server validation repeats this check to keep data authoritative.'
     },
     {
       question: 'What happens if I need to adjust a submitted assessment?',
@@ -159,7 +159,7 @@ export default function ExaminerDocumentation() {
     },
     {
       question: 'Can I mark offline or during network hiccups?',
-      answer: 'Draft saving stores work-in-progress to the server frequently. If connectivity drops mid-session, the UI warns you and retains unsent changes locally until the connection resumes.'
+      answer: 'Draft saving stores work-in-progress to the server frequently. If connectivity drops during a live timeslot, the UI warns you and retains unsent changes locally until the connection resumes.'
     }
   ]), []);
 
@@ -184,7 +184,7 @@ export default function ExaminerDocumentation() {
           <div>
             <h1 className="text-3xl font-semibold">Examiner Playbook</h1>
             <p className="mt-2 text-sm text-indigo-100">
-              Everything you need to self-assign sessions, deliver high quality marking, and collaborate with Course Admins.
+              Everything you need to self-assign timeslots, deliver high quality marking, and collaborate with Course Admins.
             </p>
             <div className="flex flex-wrap gap-3 mt-4">
               {heroActions.map((action) => (

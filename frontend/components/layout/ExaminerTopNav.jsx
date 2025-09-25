@@ -77,7 +77,7 @@ export function ExaminerTopNav({ onSidebarToggle }) {
             className="w-48 md:w-72 pl-10 pr-12 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-transparent hover:border-blue-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20 text-left"
             aria-label="Open global search"
           >
-            <span className="text-gray-500 dark:text-gray-400">Search sessions, assessments...</span>
+            <span className="text-gray-500 dark:text-gray-400">Search timeslots, assessments...</span>
             <span className="absolute inset-y-0 right-3 hidden md:flex items-center text-xs text-gray-400 dark:text-gray-500">⌘K</span>
           </button>
         </div>

@@ -148,7 +148,7 @@ function TimeslotSelectionContent() {
     ],
     queryFn: async () => {
       if (process.env.NODE_ENV === "development") {
-        console.log("🌐 API Call - Getting available sessions:", {
+        console.log("🌐 API Call - Getting available timeslots:", {
           assignmentId: selectedAssignment.assignmentId,
           examinerId: examinerId,
         });
@@ -159,12 +159,12 @@ function TimeslotSelectionContent() {
           { examinerId }
         );
         if (process.env.NODE_ENV === "development") {
-          console.log("📦 API Response - Available sessions:", result);
+          console.log("📦 API Response - Available timeslots:", result);
         }
         return result;
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
-          console.error("❌ API Error - Failed to fetch sessions:", error);
+          console.error("❌ API Error - Failed to fetch timeslots:", error);
         }
         throw error;
       }
@@ -446,7 +446,7 @@ function TimeslotSelectionContent() {
       if (currentAllocation + slot.sessionCount > cap) {
         setSelectionMessage({
           type: "error",
-          text: `You have reached your maximum allocation of ${maxSessions} sessions.`,
+          text: `You have reached your maximum allocation of ${maxSessions} timeslots.`,
         });
         return;
       }
@@ -454,7 +454,7 @@ function TimeslotSelectionContent() {
       if (conflict) {
         setSelectionMessage({
           type: "error",
-          text: "This session conflicts with another selected session. Please choose a different time.",
+          text: "This timeslot conflicts with another selected timeslot. Please choose a different time.",
         });
         return;
       }
@@ -540,10 +540,10 @@ function TimeslotSelectionContent() {
           status: result.data?.partial ? "warning" : "success",
           title: result.data?.partial
             ? "Partial Assignment Completed"
-            : "Sessions Assigned",
+            : "Timeslots Assigned",
           message: result.data?.partial
-            ? `Assigned ${result.data.assignedSlots.length} session(s), ${result.data.failedSlots.length} failed.`
-            : `Successfully assigned ${result.data.assignedSlots.length} session(s).`,
+            ? `Assigned ${result.data.assignedSlots.length} timeslot(s), ${result.data.failedSlots.length} failed.`
+            : `Successfully assigned ${result.data.assignedSlots.length} timeslot(s).`,
           details,
           autoDismiss: true,
           autoDismissMs: 5000,
@@ -612,7 +612,7 @@ function TimeslotSelectionContent() {
             <li className="flex items-center">
               <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
               <span className="text-blue-600 dark:text-blue-400 font-medium">
-                Session Selection
+                Timeslot Selection
               </span>
             </li>
           </ol>
@@ -622,10 +622,10 @@ function TimeslotSelectionContent() {
       {/* Page Title */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-          Session Selection
+          Timeslot Selection
         </h1>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Browse and select sessions for upcoming assessments within your
+          Browse and select timeslots for upcoming assessments within your
           allocation limits.
         </p>
       </div>
@@ -639,7 +639,7 @@ function TimeslotSelectionContent() {
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Select an assignment from your schedule before choosing
-                sessions.
+                timeslots.
               </p>
             </div>
             <Button onClick={() => router.push("/examiner/schedule")}>Back to Schedule</Button>
@@ -697,7 +697,7 @@ function TimeslotSelectionContent() {
         </div>
       )}
 
-      {/* Session Selection */}
+      {/* Timeslot Selection */}
       {selectedAssignment && (
         <div className="space-y-6">
           {/* Assignment Summary */}
@@ -761,7 +761,7 @@ function TimeslotSelectionContent() {
                         "Try a different time range, or withdraw from conflicting slots in your schedule."}
                       {availabilitySummary.primaryReason ===
                         "ALREADY_ASSIGNED" &&
-                        "You are already assigned across the current sessions."}
+                        "You are already assigned across the current timeslots."}
                       {!availabilitySummary.primaryReason &&
                         (availabilitySummary.hasAny
                           ? "All current slots are unavailable for selection."
@@ -772,7 +772,7 @@ function TimeslotSelectionContent() {
               </div>
             )}
 
-          {/* Session Selection Interface */}
+          {/* Timeslot Selection Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <TimeslotSelectionCalendar
               currentMonth={currentMonth}
@@ -785,7 +785,7 @@ function TimeslotSelectionContent() {
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg mb-4">
                 <p className="text-sm text-gray-700 dark:text-gray-300">
                   <i className="fas fa-info-circle text-gray-500 mr-2"></i>
-                  Click on sessions to select them. Your selections will be
+                  Click on timeslots to select them. Your selections will be
                   shown in the summary below.
                   {isLoadingTimeslots && (
                     <span className="text-blue-600 dark:text-blue-400">

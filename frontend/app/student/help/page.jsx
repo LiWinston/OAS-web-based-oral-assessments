@@ -39,7 +39,7 @@ export default function StudentHelp() {
       href: '/student/booking',
       icon: 'fas fa-calendar-check',
       title: 'Manage Bookings',
-      description: 'Browse staffed sessions, book or reschedule with atomic swaps.'
+      description: 'Browse staffed timeslots, book or reschedule with atomic swaps.'
     },
     {
       href: '/student/groups',
@@ -87,13 +87,13 @@ export default function StudentHelp() {
     },
     {
       id: 'book',
-      title: 'Book & Manage Sessions',
+      title: 'Book & Manage Timeslots',
       icon: 'fas fa-calendar-check',
-      summary: 'Browse fully staffed sessions, secure a slot, and reschedule with confidence thanks to atomic bookings.',
+      summary: 'Browse fully staffed timeslots, secure a slot, and reschedule with confidence thanks to atomic bookings.',
       highlights: [
-        'Calendar + list view updates every 30 seconds so you never see unstaffed sessions.',
+        'Calendar + list view updates every 30 seconds so you never see unstaffed timeslots.',
         'Booking confirmation summarises timezone, venue, and lockout/deadline policies before you commit.',
-        'Rescheduling swaps old and new sessions atomically—if the new slot fails, you keep your original booking.'
+        'Rescheduling swaps old and new timeslots atomically—if the new slot fails, you keep your original booking.'
       ]
     },
     {
@@ -124,7 +124,7 @@ export default function StudentHelp() {
     {
       icon: 'fas fa-bolt',
       title: 'Live Availability',
-      description: 'Session list refreshes automatically and disables slots that just filled, preventing double bookings.'
+      description: 'Timeslot list refreshes automatically and disables slots that just filled, preventing double bookings.'
     },
     {
       icon: 'fas fa-clock',
@@ -144,7 +144,7 @@ export default function StudentHelp() {
     {
       icon: 'fas fa-clipboard-list',
       title: 'Assessment Checklist',
-      description: 'Dashboard tasks highlight next steps—book, upload prep, join session, review feedback.'
+      description: 'Dashboard tasks highlight next steps—book, upload prep, join your timeslot, review feedback.'
     },
     {
       icon: 'fas fa-universal-access',
@@ -167,7 +167,7 @@ export default function StudentHelp() {
       points: [
         'Reschedule performs an atomic swap—your original slot is only released after the new booking is confirmed.',
         'If a slot changes while you are selecting it, inline messaging explains the reason and offers a quick refresh.',
-        'Cancelled sessions notify group members and free capacity immediately for classmates.'
+        'Cancelled timeslots notify group members and free capacity immediately for classmates.'
       ]
     },
     {
@@ -205,7 +205,7 @@ export default function StudentHelp() {
     {
       id: 'calendar',
       title: 'Calendar Sync in One Click',
-      blurb: 'Add sessions to your favourite calendar straight from the booking confirmation so reminders travel with you.'
+      blurb: 'Add timeslots to your favourite calendar straight from the booking confirmation so reminders travel with you.'
     },
     {
       id: 'groupSnapshot',

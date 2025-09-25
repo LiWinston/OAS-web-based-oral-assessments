@@ -134,15 +134,15 @@ const examinerSessionService = {
       return {
         success: false,
         code: 'NO_DATA',
-        message: 'No sessions data found',
+        message: 'No timeslot data found',
         data: []
       };
     } catch (error) {
-      console.error('Error fetching assignment sessions:', error);
+      console.error('Error fetching assignment timeslots:', error);
       return {
         success: false,
         code: error.response?.data?.code || 'ERROR',
-        message: error.response?.data?.message || 'Failed to fetch assignment sessions',
+        message: error.response?.data?.message || 'Failed to fetch assignment timeslots',
         error: error.response?.data
       };
     }
@@ -167,11 +167,11 @@ const examinerSessionService = {
         data: response.data
       };
     } catch (error) {
-      console.error('Error fetching session students:', error);
+      console.error('Error fetching timeslot students:', error);
       return {
         success: false,
         code: error.response?.data?.code || 'ERROR',
-        message: error.response?.data?.message || 'Failed to fetch session students',
+        message: error.response?.data?.message || 'Failed to fetch timeslot students',
         error: error.response?.data
       };
     }
@@ -258,16 +258,16 @@ const examinerSessionService = {
         return {
           success: false,
           code: 'NO_DATA',
-          message: 'No session data found',
+          message: 'No timeslot data found',
           data: null
         };
       }
     } catch (error) {
-      console.error('Error fetching detailed session:', error);
+      console.error('Error fetching detailed timeslot:', error);
       return {
         success: false,
         code: error.response?.data?.code || 'ERROR',
-        message: error.response?.data?.message || 'Failed to fetch detailed session',
+        message: error.response?.data?.message || 'Failed to fetch detailed timeslot',
         error: error.response?.data
       };
     }

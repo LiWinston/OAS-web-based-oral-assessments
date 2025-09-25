@@ -19,7 +19,8 @@ export default function MyBookings() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["studentMyBookings", studentId],
-    queryFn: () => studentBookingService.getMyBookings(studentId, { status: "upcoming" }),
+    queryFn: () =>
+      studentBookingService.getMyBookings(studentId, { status: "upcoming" }),
     enabled: isAuthenticated && Boolean(studentId),
     staleTime: 60 * 1000,
   });
@@ -50,7 +51,19 @@ export default function MyBookings() {
       .toLowerCase()
       .split(/\s+/)
       .map((w) => {
-        const keep = ["st", "rd", "dr", "ave", "blvd", "pde", "ct", "ln", "pl", "hwy", "sq"];
+        const keep = [
+          "st",
+          "rd",
+          "dr",
+          "ave",
+          "blvd",
+          "pde",
+          "ct",
+          "ln",
+          "pl",
+          "hwy",
+          "sq",
+        ];
         if (keep.includes(w)) return w[0].toUpperCase() + w.slice(1);
         if (/^[0-9\-]+$/.test(w)) return w;
         return w.charAt(0).toUpperCase() + w.slice(1);
@@ -61,7 +74,8 @@ export default function MyBookings() {
     if (!v) return "";
     let room = "";
     if (v.room) {
-      if (isUrlValue(v.room)) room = extractRoomFromUrl(v.room) || ""; else room = v.room;
+      if (isUrlValue(v.room)) room = extractRoomFromUrl(v.room) || "";
+      else room = v.room;
     } else if (v.name) {
       room = v.name;
     }
@@ -77,19 +91,31 @@ export default function MyBookings() {
   const formatDateTime = (start, end) => {
     const s = new Date(start);
     const e = new Date(end);
-    return `${s.toLocaleString("en-AU", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })} - ${e.toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", hour12: true })}`;
+    return `${s.toLocaleString("en-AU", {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })} - ${e.toLocaleTimeString("en-AU", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    })}`;
   };
 
-  const onView = (assignmentId) => router.push(`/student/booking/${assignmentId}/confirmation`);
+  const onView = (assignmentId) =>
+    router.push(`/student/booking/${assignmentId}/confirmation`);
 
   const onCancelClick = (booking) => {
     // Add all necessary booking data including policies
     const bookingWithPolicies = {
       ...booking,
       bookingDeadline: booking.bookingDeadline || null,
-      lockoutEnabled: booking.lockoutEnabled !== undefined ? booking.lockoutEnabled : true,
+      lockoutEnabled:
+        booking.lockoutEnabled !== undefined ? booking.lockoutEnabled : true,
       lockoutWindowHours: booking.lockoutWindowHours || 24,
-      entity: booking.entity || { type: "INDIVIDUAL" }
+      entity: booking.entity || { type: "INDIVIDUAL" },
     };
     setSelectedBooking(bookingWithPolicies);
     setCancelDialogOpen(true);
@@ -97,13 +123,16 @@ export default function MyBookings() {
 
   const onCancelConfirm = async () => {
     if (!selectedBooking) return;
-    
+
     setIsProcessingCancel(true);
     try {
       // Backend requires sessionId, not bookingId
       const sessionId = selectedBooking.session?.sessionId;
       if (!sessionId) {
-        showNotification("error", "Cannot cancel booking: Session information missing");
+        showNotification(
+          "error",
+          "Cannot cancel booking: Timeslot information missing"
+        );
         setIsProcessingCancel(false);
         return;
       }
@@ -115,17 +144,27 @@ export default function MyBookings() {
       );
       if (res?.success) {
         showNotification("success", "Booking cancelled successfully");
-        await queryClient.invalidateQueries({ queryKey: ["studentMyBookings", studentId] });
-        await queryClient.invalidateQueries({ queryKey: ["studentAssignments", studentId] });
+        await queryClient.invalidateQueries({
+          queryKey: ["studentMyBookings", studentId],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: ["studentAssignments", studentId],
+        });
         setCancelDialogOpen(false);
         setSelectedBooking(null);
       } else {
-        const msg = mapErrorCodeToMessage(res?.code) || res?.message || "Failed to cancel";
+        const msg =
+          mapErrorCodeToMessage(res?.code) ||
+          res?.message ||
+          "Failed to cancel";
         showNotification("error", msg);
       }
     } catch (e) {
       const code = e?.response?.data?.code;
-      showNotification("error", mapErrorCodeToMessage(code) || "Failed to cancel booking");
+      showNotification(
+        "error",
+        mapErrorCodeToMessage(code) || "Failed to cancel booking"
+      );
     } finally {
       setIsProcessingCancel(false);
     }
@@ -146,11 +185,16 @@ export default function MyBookings() {
     const now = new Date();
     const start = new Date(b.session?.start);
     const deadline = b.bookingDeadline ? new Date(b.bookingDeadline) : null;
-    if (deadline && now > deadline) return { disabled: true, reason: "Booking deadline passed" };
-    if (b.lockoutEnabled && typeof b.lockoutWindowHours === 'number') {
+    if (deadline && now > deadline)
+      return { disabled: true, reason: "Booking deadline passed" };
+    if (b.lockoutEnabled && typeof b.lockoutWindowHours === "number") {
       const msUntil = start - now;
       const hoursUntil = msUntil / (1000 * 60 * 60);
-      if (hoursUntil <= b.lockoutWindowHours) return { disabled: true, reason: `Within ${b.lockoutWindowHours}h lockout` };
+      if (hoursUntil <= b.lockoutWindowHours)
+        return {
+          disabled: true,
+          reason: `Within ${b.lockoutWindowHours}h lockout`,
+        };
     }
     return { disabled: false, reason: null };
   };
@@ -166,7 +210,9 @@ export default function MyBookings() {
         </div>
         <div className="p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading bookings...</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            Loading bookings...
+          </p>
         </div>
       </div>
     );
@@ -185,8 +231,13 @@ export default function MyBookings() {
           <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-exclamation-triangle text-red-600 dark:text-red-400 text-2xl"></i>
           </div>
-          <p className="text-sm text-red-600 dark:text-red-400">Failed to load bookings</p>
-          <button onClick={() => window.location.reload()} className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline">
+          <p className="text-sm text-red-600 dark:text-red-400">
+            Failed to load bookings
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-2 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          >
             Try again
           </button>
         </div>
@@ -207,8 +258,12 @@ export default function MyBookings() {
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <i className="fas fa-calendar text-gray-400 dark:text-gray-500 text-2xl"></i>
           </div>
-          <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No upcoming bookings</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">Book your assessment sessions from the list above.</p>
+          <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+            No upcoming bookings
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+            Book your assessment timeslots from the list above.
+          </p>
         </div>
       </div>
     );
@@ -230,18 +285,32 @@ export default function MyBookings() {
 
       <div className="space-y-4 p-4">
         {bookings.map((b) => (
-          <div key={b.bookingId} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700">
+          <div
+            key={b.bookingId}
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-200 dark:border-gray-700"
+          >
             <div className="flex flex-col md:flex-row md:items-center justify-between">
               <div className="mb-3 md:mb-0">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{b.assignmentName}</h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">{b.courseCode} {b.courseName ? `- ${b.courseName}` : ""}</p>
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                  {b.assignmentName}
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {b.courseCode} {b.courseName ? `- ${b.courseName}` : ""}
+                </p>
                 <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
-                  <i className="fas fa-calendar-alt mr-1"></i> {formatDateTime(b.session.start, b.session.end)}
+                  <i className="fas fa-calendar-alt mr-1"></i>{" "}
+                  {formatDateTime(b.session.start, b.session.end)}
                 </p>
                 {b.session.venue && (
                   <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
                     {venueLink(b.session.venue) ? (
-                      <a href={venueLink(b.session.venue)} target="_blank" rel="noopener noreferrer" title="View map" className="text-blue-600 hover:underline mr-1">
+                      <a
+                        href={venueLink(b.session.venue)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="View map"
+                        className="text-blue-600 hover:underline mr-1"
+                      >
                         <i className="fas fa-location-dot" />
                       </a>
                     ) : (
@@ -252,20 +321,44 @@ export default function MyBookings() {
                 )}
               </div>
               <div className="flex items-center space-x-2">
-                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">Upcoming</span>
-                <button onClick={() => onView(b.assignmentId)} className="px-3 py-1.5 text-xs rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30">
+                <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  Upcoming
+                </span>
+                <button
+                  onClick={() => onView(b.assignmentId)}
+                  className="px-3 py-1.5 text-xs rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                >
                   View Details
                 </button>
-                {(() => { const g = isCancelDisabled(b); return (
-                  <button onClick={() => !g.disabled && onCancelClick(b)} disabled={g.disabled} className={`px-3 py-1.5 text-xs rounded-md ${g.disabled ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-red-500 text-white hover:bg-red-600'}`}>
-                  Cancel Booking
-                  </button>
-                )})()}
+                {(() => {
+                  const g = isCancelDisabled(b);
+                  return (
+                    <button
+                      onClick={() => !g.disabled && onCancelClick(b)}
+                      disabled={g.disabled}
+                      className={`px-3 py-1.5 text-xs rounded-md ${
+                        g.disabled
+                          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                          : "bg-red-500 text-white hover:bg-red-600"
+                      }`}
+                    >
+                      Cancel Booking
+                    </button>
+                  );
+                })()}
               </div>
             </div>
-            {(() => { const g = isCancelDisabled(b); return g.disabled && (
-              <div className="text-xs text-gray-500 mt-2">{g.reason}. To change your time, cancel earlier or contact your course admin.</div>
-            )})()}
+            {(() => {
+              const g = isCancelDisabled(b);
+              return (
+                g.disabled && (
+                  <div className="text-xs text-gray-500 mt-2">
+                    {g.reason}. To change your time, cancel earlier or contact
+                    your course admin.
+                  </div>
+                )
+              );
+            })()}
           </div>
         ))}
       </div>

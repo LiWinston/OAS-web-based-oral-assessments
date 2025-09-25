@@ -67,7 +67,7 @@ function StudentNextSessionWidget({ title, description, data, onAction }) {
         <CardContent>
           <div className="text-center py-8">
             <i className="fas fa-calendar-check text-4xl text-gray-300 mb-4"></i>
-            <p className="text-gray-500 dark:text-gray-400">{description || 'No upcoming sessions'}</p>
+            <p className="text-gray-500 dark:text-gray-400">{description || 'No upcoming timeslots'}</p>
           </div>
         </CardContent>
       </Card>
@@ -136,7 +136,7 @@ function StudentRecentSessionsWidget({ title, description, data, onAction }) {
         <CardContent>
           <div className="text-center py-8">
             <i className="fas fa-clipboard-list text-4xl text-gray-300 mb-4"></i>
-            <p className="text-gray-500 dark:text-gray-400">{description || 'No recent sessions'}</p>
+            <p className="text-gray-500 dark:text-gray-400">{description || 'No recent timeslots'}</p>
           </div>
         </CardContent>
       </Card>
@@ -195,7 +195,7 @@ function ExaminerNextSessionWidget({ title, description, data, onAction }) {
         <CardContent>
           <div className="text-center py-8">
             <i className="fas fa-calendar-check text-4xl text-gray-300 mb-4"></i>
-            <p className="text-gray-500 dark:text-gray-400">{description || 'No upcoming sessions'}</p>
+            <p className="text-gray-500 dark:text-gray-400">{description || 'No upcoming timeslots'}</p>
           </div>
         </CardContent>
       </Card>
@@ -272,7 +272,7 @@ function ExaminerRecentSessionsWidget({ title, description, data, onAction }) {
         <CardContent>
           <div className="text-center py-8">
             <i className="fas fa-chalkboard text-4xl text-gray-300 mb-4"></i>
-            <p className="text-gray-500 dark:text-gray-400">{description || 'No recent sessions'}</p>
+            <p className="text-gray-500 dark:text-gray-400">{description || 'No recent timeslots'}</p>
           </div>
         </CardContent>
       </Card>
