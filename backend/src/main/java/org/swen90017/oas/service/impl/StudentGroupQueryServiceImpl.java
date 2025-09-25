@@ -43,7 +43,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
             throw new BusinessException(BusinessError.USER_NOT_FOUND);
         }
 
-        // 1) 所有该学生的组关系（一次查）
+        // 1) All group relationships for this student (single query)
         List<SysStudentGroup> relations = sysStudentGroupMapper.selectList(
                 new LambdaQueryWrapper<SysStudentGroup>().eq(SysStudentGroup::getUserId, studentId));
         if (relations.isEmpty()) {
@@ -58,7 +58,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
         Map<Long, SysGroup> groupById = groupMapper.selectBatchIds(groupIds).stream()
                 .collect(Collectors.toMap(SysGroup::getGroupId, Function.identity()));
 
-        // 2) 该学生参与的 assignment（一次查）
+        // 2) Assignments the student participates in (single query)
         List<AssignmentParticipant> participants = assignmentParticipantMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<AssignmentParticipant>()
                         .eq("user_id", studentId));
@@ -71,18 +71,18 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
                 .filter(a -> isAssignmentActive(a, now)) // Only include active assignments
                 .collect(Collectors.toList());
 
-        // 3) 批量查 subject 并建映射
+        // 3) Batch query subjects and build a mapping
         Set<Long> subjectIds = assignments.stream().map(Assignment::getSubjectId).filter(Objects::nonNull).collect(Collectors.toSet());
         Map<Long, Subject> subjectById = subjectIds.isEmpty() ? java.util.Collections.emptyMap()
                 : subjectMapper.selectBatchIds(subjectIds).stream().collect(Collectors.toMap(Subject::getSubjectId, Function.identity()));
 
-        // 4) 批量查所有这些 group 的成员关系并统计人数
+        // 4) Batch query membership relations for these groups and count members
         List<SysStudentGroup> allGroupMembers = sysStudentGroupMapper.selectList(
                 new LambdaQueryWrapper<SysStudentGroup>().in(SysStudentGroup::getGroupId, groupIds));
         Map<Long, Long> memberCountByGroup = allGroupMembers.stream()
                 .collect(Collectors.groupingBy(SysStudentGroup::getGroupId, Collectors.counting()));
 
-        // 5) 组合：为每个 group 与学生参与的所有符合条件的 assignment 生成一条概览
+        // 5) Compose: for each group and each eligible assignment the student participates in, generate an overview entry
         List<GroupSummaryDTO> all = new ArrayList<>();
         for (Long gid : groupIds) {
             SysGroup group = groupById.get(gid);
@@ -103,7 +103,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
             }
         }
 
-        // Status filtering is now handled by assignment filtering above
+        // Status filtering is handled by the assignment filtering above
         // Only active groups (with active assignments) are included
         if (!"all".equalsIgnoreCase(status) && !"active".equalsIgnoreCase(status)) {
             // If status is something other than "all" or "active", return empty list
@@ -153,8 +153,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
         dto.setGroupId(group.getGroupId());
         dto.setGroupName(group.getGroupName());
 
-        // Best-effort pick latest assignment supporting group this semester (placeholder)
-        // 选取该学生参与且支持 group/mixed 的一个 assignment（若存在），批量模式下减少往返
+        // Best-effort: pick one assignment supporting group/mixed that the student participates in (if any) to reduce roundtrips in batch mode
         List<AssignmentParticipant> parts = assignmentParticipantMapper.selectList(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<AssignmentParticipant>()
                         .eq("user_id", studentId)

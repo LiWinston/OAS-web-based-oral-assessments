@@ -32,7 +32,7 @@ public class GlobalExceptionHandler {
     @ResponseBody
     public Result<Object> handleBusinessException(BusinessException e) {
         logger.error("Business exception", e);
-        // 将部分业务错误映射为 HTTP 409（冲突）
+        // Map certain business errors to HTTP 409 (Conflict)
         String code = e.getCode();
         if (code != null && (
                 code.equals(org.swen90017.oas.common.BusinessError.SESSION_CONFLICT.getCode()) ||
@@ -44,7 +44,7 @@ public class GlobalExceptionHandler {
                 code.equals(org.swen90017.oas.common.BusinessError.ALREADY_RELEASED.getCode()) ||
                 code.equals(org.swen90017.oas.common.BusinessError.EXAMINER_TIME_CONFLICT.getCode())
         )) {
-            // 仍按统一 Result 返回，网关/前端据 code 识别 409 语义
+            // Still return unified Result; gateway/frontend infers 409 semantics by code
             return Result.error(e.getCode(), e.getMessage());
         }
         return Result.error(e.getCode(), e.getMessage());

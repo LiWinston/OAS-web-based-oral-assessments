@@ -81,7 +81,7 @@ token:
   expireTime: 1500
   refreshExpireTime: 30
 
-# 邮箱后缀校验开关（true 开启校验，false 关闭校验）
+# Email domain suffix validation switch (true: enable, false: disable)
 email:
   domain-validation:
     enabled: ${EMAIL_DOMAIN_VALIDATION_ENABLED:false}

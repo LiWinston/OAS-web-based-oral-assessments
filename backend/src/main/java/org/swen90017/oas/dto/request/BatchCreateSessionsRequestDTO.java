@@ -25,10 +25,10 @@ public class BatchCreateSessionsRequestDTO {
         @NotNull
         @Schema(type = "string", format = "time", example = "10:00:00")
         private LocalTime endTime;
-        private Integer sessionCount; // 可选；若为空，根据配置自动计算最大可容纳
-        private Long venueId; // 可空
-        private Integer requiredExaminers; // 可空
-        private Integer capacity; // 可空
+        private Integer sessionCount; // Optional; if null, compute max capacity based on config
+        private Long venueId; // Nullable
+        private Integer requiredExaminers; // Nullable
+        private Integer capacity; // Nullable
     }
 }
 

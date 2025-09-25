@@ -581,12 +581,12 @@ public class Convert
             case "yes":
             case "ok":
             case "1":
-            case "是":
+            case "是": // yes (Chinese)
                 return true;
             case "false":
             case "no":
             case "0":
-            case "否":
+            case "否": // no (Chinese)
                 return false;
             default:
                 return defaultValue;

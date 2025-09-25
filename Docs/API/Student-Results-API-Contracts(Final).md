@@ -92,7 +92,7 @@ interface StudentRubricBreakdownDTO {
       criterionId: number;
       name: string;
       description: string;
-      scaleType?: "points" | "descriptive"; //这个有可能要改动 this may need to change
+      scaleType?: "points" | "descriptive"; // this may need to change
       weight: number | null;
       maxPoints: number | null;
       earnedPoints: number;

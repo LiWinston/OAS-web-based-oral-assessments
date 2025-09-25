@@ -61,7 +61,7 @@ public class ExaminerServiceImpl implements ExaminerService {
             if (userId == null) {
                 continue;
             }
-            // 1) 确保 sys_user 存在；若不存在则创建
+            // 1) Ensure sys_user exists; create if not
             SysUser user = sysUserMapper.selectById(userId);
             if (user != null) {
                 if (assignmentId != null) {
@@ -86,29 +86,29 @@ public class ExaminerServiceImpl implements ExaminerService {
                 user.setEmail(dto.getSisLoginId() + "@unimelb.edu.au");
                 user.setStatus(UserStatus.INACTIVE.code());
                 user.setRegistrationStatus(RegistrationStatus.Pending.code());
-                user.setInvitedAt(new Date()); // 设置邀请时间
+                user.setInvitedAt(new Date()); // Set invitation time
                 sysUserMapper.insert(user);
             }
 
-            // 2) 赋予 EXAMINER 角色（若未赋予）
+            // 2) Grant EXAMINER role if not already granted
             Long examinerRoleId = getRoleIdByKey(UserRole.EXAMINER.code());
             SysUserRole existingRole = sysUserRoleMapper.selectByUserId(user.getUserId());
             if (existingRole == null || !examinerRoleId.equals(existingRole.getRoleId())) {
                 sysUserRoleMapper.insert(new SysUserRole(user.getUserId(), examinerRoleId));
             }
 
-            // 3) 插入 sys_examiner
+            // 3) Insert into sys_examiner
             SysExaminer ex = new SysExaminer();
             ex.setUserId(user.getUserId());
             ex.setSisUserId(dto.getSisUserId());
-            // 生成激活 token
+            // Generate activation token
             byte[] bytes = new byte[32];
             random.nextBytes(bytes);
             String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
             ex.setToken(token);
             toInsert.add(ex);
 
-            // 4) 若传入 assignmentId，则在 assignment_participant 建立关系（roleId=EXAMINER）
+            // 4) If assignmentId provided, create relation in assignment_participant (roleId=EXAMINER)
             if (assignmentId != null) {
                 QueryWrapper<AssignmentParticipant> exists = new QueryWrapper<>();
                 exists.eq("assignment_id", assignmentId).eq("user_id", user.getUserId()).last("limit 1");
@@ -132,7 +132,7 @@ public class ExaminerServiceImpl implements ExaminerService {
 
     @Override
     public PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS) {
-        // 简化：仅返回计数等占位信息（该 DTO 为学生预览结构，这里仅设置计数）
+        // Simplified: return counts and placeholders only (DTO is student preview structure; set counts only here)
         PreviewCSVResponseDTO preview = new PreviewCSVResponseDTO();
         if (examinerCSVRequestDTOS == null || examinerCSVRequestDTOS.isEmpty()) {
             preview.setTotalCount(0);
@@ -141,8 +141,8 @@ public class ExaminerServiceImpl implements ExaminerService {
             return preview;
         }
         
-        // 过滤掉空行（与ExaminerCsvHandler.validate()逻辑一致）
-        // 只有当Name、ID和SisUserId都为空时才认为是空行
+        // Filter out blank rows (consistent with ExaminerCsvHandler.validate())
+        // A row is blank only when Name, ID and SisUserId are all empty
         long validCount = examinerCSVRequestDTOS.stream()
                 .filter(dto -> dto != null && !(
                     (dto.getName() == null || dto.getName().trim().isEmpty()) &&
@@ -173,7 +173,7 @@ public class ExaminerServiceImpl implements ExaminerService {
             return;
         }
         
-        // 获取课程和作业信息
+        // Fetch course and assignment information
         org.swen90017.oas.entity.Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) return;
         
@@ -181,7 +181,7 @@ public class ExaminerServiceImpl implements ExaminerService {
         String courseName = subject != null ? subject.getSubjectName() : null;
         String assignmentName = assignment.getName();
         
-        // 查找已注册的现有用户（通过email）
+        // Find existing registered users (by email)
         List<String> emails = examinerDTOs.stream()
                 .map(dto -> {
                     String sisLoginId = dto.getSisLoginId();
@@ -192,12 +192,12 @@ public class ExaminerServiceImpl implements ExaminerService {
         
         if (emails.isEmpty()) return;
         
-        // 查询现有用户
+        // Query existing users
         QueryWrapper<org.swen90017.oas.entity.SysUser> wrapper = new QueryWrapper<>();
         wrapper.in("email", emails);
         List<org.swen90017.oas.entity.SysUser> existingUsers = sysUserMapper.selectList(wrapper);
         
-        // 筛选出已注册的用户
+        // Filter registered users
         List<org.swen90017.oas.entity.SysUser> registeredUsers = existingUsers.stream()
                 .filter(user -> org.swen90017.oas.enums.UserStatus.ACTIVE.code().equals(user.getStatus()) 
                         && org.swen90017.oas.enums.RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus()))

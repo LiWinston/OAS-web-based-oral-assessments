@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @TableName("session_examiners")
 public class SessionExaminer implements Serializable {
     @TableId(type = IdType.AUTO)
-    private Long id;                 // 可选自增，若数据库使用复合主键也可省略
+    private Long id;                 // Optional auto-increment; can be omitted if DB uses composite key
     private Long sessionId;
     private Long examinerId;
     private LocalDateTime assignedAt;

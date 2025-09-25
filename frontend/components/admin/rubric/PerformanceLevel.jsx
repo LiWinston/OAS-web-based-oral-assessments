@@ -10,7 +10,7 @@ export default function PerformanceLevel({
   markingScale,
   onUpdate,
   onDelete,
-  allLevels, // 新增：所有的performance levels，用于验证重合
+  allLevels, // Added: all performance levels for overlap validation
 }) {
   const [validationError, setValidationError] = useState("");
   const [showComments, setShowComments] = useState(false);
@@ -19,7 +19,7 @@ export default function PerformanceLevel({
   const [editText, setEditText] = useState("");
   const [duplicateError, setDuplicateError] = useState("");
 
-  // 统一使用浅蓝色
+  // Use a uniform light blue theme
   const colorClasses = {
     bg: "bg-blue-50 dark:bg-blue-900/20",
     border: "border-blue-200 dark:border-blue-700",
@@ -99,7 +99,7 @@ export default function PerformanceLevel({
     setEditText(comment.text);
   };
 
-  // 验证分数段是否与其他levels重合
+  // Validate whether the score range overlaps with other levels
   const validateScoreRange = (minPoints, maxPoints, currentIndex) => {
     if (!allLevels || allLevels.length <= 1) return "";
     
@@ -108,17 +108,17 @@ export default function PerformanceLevel({
     }
 
     for (let i = 0; i < allLevels.length; i++) {
-      if (i === currentIndex) continue; // 跳过当前level
+      if (i === currentIndex) continue; // Skip current level
       
       const otherLevel = allLevels[i];
       const otherMin = otherLevel.minPoints || 0;
       const otherMax = otherLevel.maxPoints || 0;
       
-      // 检查是否有重合
+      // Check for overlap
       const hasOverlap = 
-        (minPoints >= otherMin && minPoints <= otherMax) || // 当前最小值在其他范围内
-        (maxPoints >= otherMin && maxPoints <= otherMax) || // 当前最大值在其他范围内
-        (minPoints <= otherMin && maxPoints >= otherMax);   // 当前范围包含其他范围
+        (minPoints >= otherMin && minPoints <= otherMax) || // current min within other range
+        (maxPoints >= otherMin && maxPoints <= otherMax) || // current max within other range
+        (minPoints <= otherMin && maxPoints >= otherMax);   // current range contains other range
       
       if (hasOverlap) {
         return `Score range ${minPoints}-${maxPoints} overlaps with ${otherMin}-${otherMax}`;
@@ -132,7 +132,7 @@ export default function PerformanceLevel({
     const numValue = parseInt(value) || 0;
     const updatedLevel = { ...level, [field]: numValue };
     
-    // 验证分数段
+    // Validate score range
     const error = validateScoreRange(
       field === 'minPoints' ? numValue : level.minPoints || 0,
       field === 'maxPoints' ? numValue : level.maxPoints || 0,
@@ -141,7 +141,7 @@ export default function PerformanceLevel({
     
     setValidationError(error);
     
-    // 即使有错误也更新值，让用户看到实时反馈
+    // Update value even if error exists to provide live feedback
     onUpdate(updatedLevel);
   };
 
@@ -222,7 +222,7 @@ export default function PerformanceLevel({
                 </div>
               </div>
               
-              {/* 验证错误提示 */}
+              {/* Validation error hint */}
               {validationError && (
                 <div className="flex items-center gap-2 text-red-600 text-xs">
                   <AlertCircle className="w-3 h-3" />

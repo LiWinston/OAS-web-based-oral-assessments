@@ -124,10 +124,10 @@ export default function SessionAssessmentsList() {
 
           // If no assessments found from detailed API, try fallback
           if (assessmentsList.length === 0) {
-            // 继续到fallback逻辑
+            // Continue to fallback logic
           } else {
             setAssessments(assessmentsList);
-            return; // 成功获取数据，直接返回
+            return; // Data retrieved successfully; return immediately
           }
         }
 

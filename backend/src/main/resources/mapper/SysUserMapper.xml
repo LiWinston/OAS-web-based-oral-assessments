@@ -21,7 +21,7 @@
         </foreach>
     </insert>
 
-    <!-- 覆盖单条插入，强制使用数据库自增主键并回填 -->
+    <!-- Override single insert: force DB auto-increment primary key with key backfill -->
     <insert id="insert" parameterType="org.swen90017.oas.entity.SysUser" useGeneratedKeys="true" keyProperty="userId" keyColumn="user_id">
         INSERT INTO sys_user
         (user_name, email, password, status, registration_status, invited_at, registered_at, create_time, creator, update_time, updater, last_login_at)

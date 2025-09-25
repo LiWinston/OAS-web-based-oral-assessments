@@ -135,10 +135,10 @@ public class BaseCsvImportService {
     }
     
     /**
-     * 检查是否存在重复的邮箱地址
+     * Check whether duplicate email addresses exist
      */
     private <T> Set<String> getExistingUserEmails(List<T> csvData, Function<T, String> sisUserIdExtractor) {
-        // 构建邮箱地址列表
+        // Build email list
         List<String> emails = csvData.stream()
                 .map(dto -> {
                     String sisUserId = sisUserIdExtractor.apply(dto);
@@ -152,7 +152,7 @@ public class BaseCsvImportService {
             return new HashSet<>();
         }
         
-        // 查询数据库中已存在的邮箱
+        // Query existing emails in database
         QueryWrapper<SysUser> wrapper = new QueryWrapper<>();
         wrapper.in("email", emails);
         List<SysUser> existingUsers = sysUserMapper.selectList(wrapper);

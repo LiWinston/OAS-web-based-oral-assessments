@@ -180,7 +180,7 @@ export default function RubricConfigurationPage() {
     return () => clearTimeout(welcomeTimer);
   }, [fetchData]);
 
-  // 生成criterion自动命名
+  // Generate automatic criterion naming
   const generateCriteriaTitle = (existingCriteria, isNew = true) => {
     if (isNew) {
       const nextNumber = existingCriteria.length + 1;
@@ -302,31 +302,31 @@ export default function RubricConfigurationPage() {
 
 
 
-  // 检查是否有分数段重合
+  // Check for overlapping score ranges
   const hasScoreRangeOverlap = () => {
     if (!rubric.criteria || rubric.criteria.length === 0) return false;
     
     for (const criterion of rubric.criteria) {
       if (!criterion.levels || criterion.levels.length <= 1) continue;
       
-      // 检查当前criterion的levels是否有重合
+      // Check if current criterion's levels overlap
       for (let i = 0; i < criterion.levels.length; i++) {
         const level1 = criterion.levels[i];
         const min1 = level1.minPoints || 0;
         const max1 = level1.maxPoints || 0;
         
-        if (min1 > max1) return true; // 最小值大于最大值
+        if (min1 > max1) return true; // Min greater than max
         
         for (let j = i + 1; j < criterion.levels.length; j++) {
           const level2 = criterion.levels[j];
           const min2 = level2.minPoints || 0;
           const max2 = level2.maxPoints || 0;
           
-          // 检查是否有重合
+          // Check for overlap
           const hasOverlap = 
-            (min1 >= min2 && min1 <= max2) || // level1最小值在level2范围内
-            (max1 >= min2 && max1 <= max2) || // level1最大值在level2范围内
-            (min1 <= min2 && max1 >= max2);   // level1范围包含level2范围
+            (min1 >= min2 && min1 <= max2) || // level1 min within level2 range
+            (max1 >= min2 && max1 <= max2) || // level1 max within level2 range
+            (min1 <= min2 && max1 >= max2);   // level1 range contains level2 range
           
           if (hasOverlap) return true;
         }
@@ -414,7 +414,7 @@ export default function RubricConfigurationPage() {
 
       showNotification("success", "The rubric has been saved successfully");
       
-      // 自动刷新数据以确保UI与后端同步
+      // Auto refresh data to keep UI in sync with backend
       await fetchData();
     } catch (error) {
       console.error("Save rubric error:", error);

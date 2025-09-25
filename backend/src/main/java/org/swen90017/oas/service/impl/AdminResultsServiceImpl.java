@@ -133,7 +133,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         }
         
         // If assessment was released, set release_status back to NOT_RELEASED
-        // 使用已有的submission信息来更新对应的assessment_submission记录
+        // Use existing submission info to update the corresponding assessment_submission record
         adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
                 assignmentId, submission.getSessionId(), 
                 submission.getSubjectType(), submission.getSubjectId(), "NOT_RELEASED");
@@ -207,7 +207,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
-        // Update assessment_submission release_status to RELEASED (不影响 status)
+        // Update assessment_submission release_status to RELEASED (without changing status)
         int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
                 assignmentId, submission.getSessionId(), 
                 submission.getSubjectType(), submission.getSubjectId(), "RELEASED");

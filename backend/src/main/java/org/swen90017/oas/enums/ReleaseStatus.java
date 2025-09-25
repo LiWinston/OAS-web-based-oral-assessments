@@ -37,6 +37,6 @@ public enum ReleaseStatus {
                 return status;
             }
         }
-        return NOT_RELEASED; // 默认返回未发布状态
+        return NOT_RELEASED; // Default to NOT_RELEASED
     }
 }

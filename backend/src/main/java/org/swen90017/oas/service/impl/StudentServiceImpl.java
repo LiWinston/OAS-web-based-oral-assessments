@@ -64,13 +64,13 @@ public class StudentServiceImpl implements StudentService {
             dto.setAssignmentId(assignmentIdParam != null ? String.valueOf(assignmentIdParam) : dto.getAssignmentId());
             SysStudent sysStudent = studentIdToStudent.get(dto.getStudentId());
             if (sysStudent == null) {
-                continue; // 仅对新插入的学生创建参与关系
+                continue; // Create participation relation only for newly inserted students
             }
 
-            // 优先使用上传接口传入的 assignmentId，如果没有则回退到每行的 assignmentId
+            // Prefer assignmentId from API parameter; fallback to per-row assignmentId if absent
             if (assignmentIdParam != null) {
                 Long assignmentId = assignmentIdParam;
-                // 避免重复插入：检查是否已存在该 assignment 与 user 的关系
+                // Avoid duplicate insertion: check if assignment-user relation already exists
                 QueryWrapper<AssignmentParticipant> existsWrapper = new QueryWrapper<>();
                 existsWrapper.eq("assignment_id", assignmentId)
                         .eq("user_id", sysStudent.getUserId())
@@ -84,7 +84,7 @@ public class StudentServiceImpl implements StudentService {
                 participant.setAssignmentId(assignmentId);
                 participant.setUserId(sysStudent.getUserId());
                 participant.setRoleId(UserRole.STUDENT.sort());
-                participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
+                participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
                 assignmentParticipantMapper.insert(participant);
                 log.info("Linked user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
             } else {
@@ -94,7 +94,7 @@ public class StudentServiceImpl implements StudentService {
                 }
                 try {
                     Long assignmentId = Long.valueOf(assignmentIdStr);
-                    // 避免重复插入：检查是否已存在该 assignment 与 user 的关系
+                    // Avoid duplicate insertion: check if assignment-user relation already exists
                     QueryWrapper<AssignmentParticipant> existsWrapper = new QueryWrapper<>();
                     existsWrapper.eq("assignment_id", assignmentId)
                             .eq("user_id", sysStudent.getUserId())
@@ -108,7 +108,7 @@ public class StudentServiceImpl implements StudentService {
                     participant.setAssignmentId(assignmentId);
                     participant.setUserId(sysStudent.getUserId());
                     participant.setRoleId(UserRole.STUDENT.sort());
-                    participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
+                    participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
                     assignmentParticipantMapper.insert(participant);
                     log.info("Linked user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                 } catch (NumberFormatException ex) {
@@ -117,7 +117,7 @@ public class StudentServiceImpl implements StudentService {
             }
         }
 
-        // 为已存在学生创建 AssignmentParticipant 关系
+        // Create AssignmentParticipant relations for existing students
         Set<String> allIds = studentDTOs.stream().map(StudentCSVRequestDTO::getStudentId).collect(Collectors.toSet());
         Set<String> newIds = invitedStudents.stream().map(SysStudent::getStudentNumber).collect(Collectors.toSet());
         Set<String> existingIds = new HashSet<>(allIds);
@@ -152,7 +152,7 @@ public class StudentServiceImpl implements StudentService {
                     participant.setAssignmentId(assignmentId);
                     participant.setUserId(sysStudent.getUserId());
                     participant.setRoleId(UserRole.STUDENT.sort());
-                    participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
+                    participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
                     assignmentParticipantMapper.insert(participant);
                     log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                 } else {
@@ -175,7 +175,7 @@ public class StudentServiceImpl implements StudentService {
                         participant.setAssignmentId(assignmentId);
                         participant.setUserId(sysStudent.getUserId());
                         participant.setRoleId(UserRole.STUDENT.sort());
-                        participant.setIfJoin(0); // 导入时设置为0，release to student时才改为1
+                        participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
                         assignmentParticipantMapper.insert(participant);
                         log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
                     } catch (NumberFormatException ex) {
@@ -218,7 +218,7 @@ public class StudentServiceImpl implements StudentService {
             return;
         }
         
-        // 获取课程和作业信息
+        // Fetch course and assignment info
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             return;
@@ -228,7 +228,7 @@ public class StudentServiceImpl implements StudentService {
         String courseName = subject != null ? subject.getSubjectName() : null;
         String assignmentName = assignment.getName();
 
-        // 查找已注册的现有用户
+        // Find existing registered users
         List<String> studentIds = studentDTOs.stream()
                 .map(StudentCSVRequestDTO::getStudentId)
                 .filter(Objects::nonNull)
@@ -238,7 +238,7 @@ public class StudentServiceImpl implements StudentService {
             return;
         }
         
-        // 查询现有学生
+        // Query existing students
         QueryWrapper<SysStudent> wrapper = new QueryWrapper<>();
         wrapper.in("student_number", studentIds);
         List<SysStudent> existingStudents = studentMapper.selectList(wrapper);
@@ -247,14 +247,14 @@ public class StudentServiceImpl implements StudentService {
             return;
         }
         
-        // 获取这些学生的用户信息
+        // Get user info for these students
         List<Long> userIds = existingStudents.stream()
                 .map(SysStudent::getUserId)
                 .collect(Collectors.toList());
         
         List<SysUser> users = userMapper.selectBatchIds(userIds);
 
-        // 筛选出已注册的用户
+        // Filter registered users
         List<SysUser> registeredUsers = users.stream()
                 .filter(user -> {
                     boolean isActive = org.swen90017.oas.enums.UserStatus.ACTIVE.code().equals(user.getStatus());

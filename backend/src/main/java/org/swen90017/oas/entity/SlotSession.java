@@ -18,23 +18,23 @@ public class SlotSession implements Serializable {
 
     private Long assignmentId;
     private Long slotId;
-    private Integer sessionNumber;             // 从1开始
+    private Integer sessionNumber;             // Starts from 1
 
     private LocalDateTime startAt;
     private LocalDateTime endAt;
 
     private SessionStatus status;              // available/blocked/booked
-    // 新增字段以支持会话级容量与发布/指派等（已落库）
-    private Long venueId;                       // 会话级场地，可空
-    private Integer capacityGroups;             // 组容量
-    private Integer enrolledGroups;             // 已报名的组数
-    private Integer requiredExaminers;          // 需要考官数
+    // Additional fields to support session-level capacity and publish/assignment (persisted)
+    private Long venueId;                       // Session-level venue, nullable
+    private Integer capacityGroups;             // Group capacity
+    private Integer enrolledGroups;             // Number of enrolled groups
+    private Integer requiredExaminers;          // Required number of examiners
     private AssignMode assignMode;              // INDIVIDUAL / GROUP
-    private Boolean isPublishedToExaminer;      // 对考官是否发布
-    private Boolean isPublishedToStudent;       // 对学生是否发布
-    private Boolean isStaffed;                  // 是否已配员（存在至少一位考官）
+    private Boolean isPublishedToExaminer;      // Published to examiners
+    private Boolean isPublishedToStudent;       // Published to students
+    private Boolean isStaffed;                  // Staffed (at least one examiner exists)
 
-    private Long bookedSubjectId;                     // 学生/小组 id
+    private Long bookedSubjectId;                     // Student/group id
     private String bookedSubjectType;               // "student" or "group"
     private LocalDateTime bookedAt;
 

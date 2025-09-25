@@ -18,7 +18,7 @@
         WHERE slot_id = #{slotId}
         ORDER BY session_number ASC
     </select>
-    <!-- 按 assignment + 时间范围列出 sessions -->
+    <!-- List sessions by assignment and time range -->
     <select id="listSessionsByAssignmentAndRange" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT ss.*
         FROM slot_sessions ss
@@ -28,7 +28,7 @@
         ORDER BY ss.start_at ASC, ss.session_number ASC
     </select>
 
-    <!-- 并发：容量可用时自增已占用计数，并在达到容量时可将状态置为 booked -->
+    <!-- Concurrency: increment enrollment if capacity available; set status to 'booked' when reaching capacity -->
     <update id="incrementBookedIfAvailable">
         <![CDATA[
         UPDATE slot_sessions
@@ -41,7 +41,7 @@
         ]]>
     </update>
 
-    <!-- 并发：有已占用则自减；若回落到未满，可按需要恢复 available（这里不强制改 status） -->
+    <!-- Concurrency: decrement if there is enrollment; when no longer full, keep status as-is (no forced change here) -->
     <update id="decrementBookedIfExists">
         <![CDATA[
         UPDATE slot_sessions
@@ -52,7 +52,7 @@
         ]]>
     </update>
 
-    <!-- 查询同 venue+日期 的时间重叠会话计数（排除可选的 sessionId） -->
+    <!-- Count overlapping sessions for same venue and date (optionally excluding a sessionId) -->
     <select id="countVenueOverlap" resultType="int">
         SELECT COUNT(1)
         FROM slot_sessions ss
@@ -68,7 +68,7 @@
         WHERE slot_id = #{slotId}
     </delete>
 
-    <!-- 查询该 slot 下超出给定时间范围的 sessions -->
+    <!-- Find sessions under this slot that fall outside the given time range -->
     <select id="findOutOfRangeBySlot" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT *
         FROM slot_sessions
@@ -79,7 +79,7 @@
         ORDER BY session_number ASC
     </select>
 
-    <!-- 批量删除该 slot 下超出给定时间范围的 sessions -->
+    <!-- Batch delete sessions under this slot that fall outside the given time range -->
     <delete id="deleteOutOfRangeBySlot">
         DELETE FROM slot_sessions
         WHERE slot_id = #{slotId}
@@ -125,7 +125,7 @@
         ORDER BY ss.start_at ASC, ss.session_number ASC
     </select>
 
-    <!-- 按 assignment 列出所有 sessions（兼容：通过 time_slots 关联） -->
+    <!-- List all sessions by assignment -->
     <select id="listSessionsByAssignment" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT ss.*
         FROM slot_sessions ss
@@ -133,7 +133,7 @@
         ORDER BY ss.start_at ASC, ss.session_number ASC
     </select>
 
-    <!-- 统计对学生发布但未配员的会话数：is_published_to_student=1 且 session_examiners 无记录 -->
+    <!-- Count sessions published to students but without examiners: is_published_to_student=1 and no records in session_examiners -->
     <select id="countUnstaffedPublishedSessions" resultType="int">
         SELECT COUNT(1)
         FROM slot_sessions ss
@@ -156,7 +156,7 @@
         ORDER BY ts.start_at ASC, ss.session_number ASC
     </select>
 
-    <!-- 检查学生是否已经为某个assignment预定过（包括个人预定和组预定） -->
+    <!-- Check whether a student has already booked for an assignment (individual or group booking) -->
     <select id="hasStudentBookedAssignment" resultType="boolean">
         SELECT COUNT(1) > 0
         FROM slot_sessions ss
@@ -173,7 +173,7 @@
           )
     </select>
 
-    <!-- 检查组是否已经为某个assignment预定过 -->
+    <!-- Check whether a group has already booked for an assignment -->
     <select id="hasGroupBookedAssignment" resultType="boolean">
         SELECT COUNT(1) > 0
         FROM slot_sessions ss
@@ -183,7 +183,7 @@
           AND ss.booked_subject_id = #{groupId}
     </select>
 
-    <!-- 批量检查学生对多个assignment的预定状态（包括个人预定和组预定） -->
+    <!-- Batch check a student's booking status across multiple assignments (individual or group) -->
     <select id="getStudentBookedAssignmentIds" resultType="java.lang.Long">
         SELECT DISTINCT ss.assignment_id
         FROM session_student st

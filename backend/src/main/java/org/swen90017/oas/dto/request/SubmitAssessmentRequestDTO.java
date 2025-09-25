@@ -10,13 +10,13 @@ import java.util.List;
 public class SubmitAssessmentRequestDTO {
     private Long submissionId; // preferred
 
-    // 或者使用定位键（当 submissionId 未传）
+    // Or use locator keys (when submissionId is not provided)
     private Long assignmentId;
     private Long sessionId;
     private String subjectType;
     private Long subjectId;
 
-    // 直接提交时可一并携带与草稿相同的内容
+    // For direct submit, payload may include the same content as draft
     @Schema(description = "Overall feedback for student/group")
     private String overallFeedback;
     @Schema(description = "Admin-only note")

@@ -59,29 +59,29 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     public List<AssignmentResponseDTO> listAssignmentsAvailable(Long examinerId, Long courseId, String sort) {
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        // 首先获取该examiner参与的assignment IDs
+        // First, fetch assignment IDs that this examiner participates in
         List<Long> participantAssignmentIds = participantMapper.listAssignmentIdsByExaminer(examinerId);
         if (participantAssignmentIds == null || participantAssignmentIds.isEmpty()) {
-            // 如果examiner没有参与任何assignment，返回空列表
+            // If the examiner doesn't participate in any assignments, return empty list
             return Collections.emptyList();
         }
         
-        // 构建查询条件，只查询examiner参与的assignments
+        // Build query conditions: only query assignments the examiner participates in
         QueryWrapper<Assignment> queryWrapper = new QueryWrapper<>();
         queryWrapper.in("id", participantAssignmentIds);
-        queryWrapper.ne("status", "PENDING"); // 排除PENDING状态的assignments
+        queryWrapper.ne("status", "PENDING"); // Exclude assignments with PENDING status
         
-        // 添加课程筛选
+        // Add course filter
         if (courseId != null) {
             queryWrapper.eq("subject_id", courseId);
         }
         
-        // 添加排序
+        // Add sorting
         if (sort != null) {
             switch (sort.toLowerCase()) {
                 case "date_asc":
@@ -91,11 +91,11 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                     queryWrapper.orderByDesc("start_date");
                     break;
                 default:
-                    queryWrapper.orderByDesc("start_date"); // 默认排序
+                    queryWrapper.orderByDesc("start_date"); // Default sorting
                     break;
             }
         } else {
-            queryWrapper.orderByDesc("start_date"); // 默认排序
+            queryWrapper.orderByDesc("start_date"); // Default sorting
         }
         
         List<Assignment> participantAssignments = assignmentMapper.selectList(queryWrapper);
@@ -104,15 +104,15 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     public TimeSlotsSelectionResponseDTO listSelectableTimeSlots(Long assignmentId, Long examinerId, String date, Boolean includeFullSlots) {
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        // 构建响应DTO
+        // Build response DTO
         TimeSlotsSelectionResponseDTO response = new TimeSlotsSelectionResponseDTO();
         
-        // 1. 获取Assignment信息
+        // 1) Get Assignment information
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
@@ -123,7 +123,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         assignmentInfo.setAssignmentName(assignment.getName());
         assignmentInfo.setAssessmentType(assignment.getType() != null ? assignment.getType().toUpperCase() : "INDIVIDUAL");
         
-        // 获取课程信息
+        // Get course information
         if (assignment.getSubjectId() != null) {
             try {
                 Subject subject = subjectService.getSubjectById(assignment.getSubjectId());
@@ -138,20 +138,20 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         }
         response.setAssignment(assignmentInfo);
         
-        // 2. 获取考官容量信息
+        // 2) Get examiner capacity information
         TimeSlotsSelectionResponseDTO.ExaminerCapacityInfoDTO examinerInfo = new TimeSlotsSelectionResponseDTO.ExaminerCapacityInfoDTO();
         
-        // 查找考官限制
+        // Look up examiner limit
         QueryWrapper<ExaminerAssignmentLimit> limitQuery = new QueryWrapper<>();
         limitQuery.eq("examiner_id", examinerId).eq("assignment_id", assignmentId);
         ExaminerAssignmentLimit limit = examinerAssignmentLimitMapper.selectOne(limitQuery);
         
-        int maxSessions = 10; // 默认值
+        int maxSessions = 10; // Default value
         if (limit != null && limit.getMaxSessions() != null) {
             maxSessions = limit.getMaxSessions();
         }
         
-        // 计算当前已分配的session数量
+        // Calculate the number of sessions currently assigned
         int currentAssigned = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
         
         examinerInfo.setMaxSessions(maxSessions);
@@ -159,18 +159,18 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         examinerInfo.setRemainingCapacity(Math.max(0, maxSessions - currentAssigned));
         response.setExaminerInfo(examinerInfo);
         
-        // 3. 获取时间段信息
+        // 3) Get time slot information
         List<TimeSlot> slots = timeSlotMapper.listByAssignment(assignmentId);
         Set<Long> alreadyAssigned = new HashSet<>(tseMapper.listSlotsByExaminer(examinerId, assignmentId)
                 .stream().map(TimeSlot::getSlotId).collect(Collectors.toSet()));
 
-        // 解析日期过滤参数
+        // Parse date filter parameter
         LocalDate filterDate = null;
         if (date != null && !date.trim().isEmpty()) {
             try {
                 filterDate = LocalDate.parse(date);
             } catch (Exception e) {
-                // 忽略无效日期格式，不进行日期过滤
+                // Ignore invalid date formats; skip date filtering
             }
         }
 
@@ -179,7 +179,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         ZoneId timezone = ZoneId.of("Australia/Melbourne");
         
         for (TimeSlot ts : slots) {
-            // 日期过滤
+            // Date filtering
             if (filterDate != null && ts.getStartAt() != null) {
                 LocalDate slotDate = ts.getStartAt().toLocalDate();
                 if (!slotDate.equals(filterDate)) {
@@ -190,7 +190,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             boolean isFull = ts.getCurrentExaminers() != null && ts.getRequiredExaminers() != null
                     && ts.getCurrentExaminers() >= ts.getRequiredExaminers();
             
-            // 满员过滤：如果includeFullSlots为false且当前slot已满，则跳过
+            // Full-capacity filter: skip if includeFullSlots=false and slot is already full
             if (includeFullSlots != null && !includeFullSlots && isFull) {
                 continue;
             }
@@ -198,7 +198,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             TimeSlotsSelectionResponseDTO.TimeSlotSelectionDTO slotDTO = new TimeSlotsSelectionResponseDTO.TimeSlotSelectionDTO();
             slotDTO.setSlotId(ts.getSlotId());
             
-            // 格式化时间
+            // Format time
             if (ts.getStartAt() != null) {
                 slotDTO.setStart(ts.getStartAt().atZone(timezone).format(formatter));
             }
@@ -207,7 +207,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             }
             slotDTO.setTimezone("Australia/Melbourne");
             
-            // 设置venue信息
+            // Set venue information
             TimeSlotsSelectionResponseDTO.VenueInfoDTO venueDTO = new TimeSlotsSelectionResponseDTO.VenueInfoDTO();
             if (ts.getVenueId() != null) {
                 Venue venue = venueMapper.selectById(ts.getVenueId());
@@ -224,7 +224,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             slotDTO.setCurrentExaminers(ts.getCurrentExaminers() != null ? ts.getCurrentExaminers() : 0);
             slotDTO.setIsFull(isFull);
             
-            // 设置可选性
+            // Set availability
             TimeSlotsSelectionResponseDTO.AvailabilityInfoDTO availability = new TimeSlotsSelectionResponseDTO.AvailabilityInfoDTO();
             boolean isAssigned = alreadyAssigned.contains(ts.getSlotId());
             boolean hasConflict = !tseMapper.findConflictedSlotsForExaminer(examinerId, ts.getStartAt(), ts.getEndAt()).isEmpty();
@@ -255,32 +255,32 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     public PartialAssignmentResultDTO bulkAssign(Long assignmentId, ExaminerBulkAssignRequestDTO request) {
         Long examinerId = request.getExaminerId();
         
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        // 1) 校验 examiner 属于 assignment（存在参与关系或全局放行）
+        // 1) Validate that the examiner belongs to the assignment (has participation relation)
         AssignmentParticipant rel = participantMapper.selectOne(new QueryWrapper<AssignmentParticipant>()
                 .eq("assignment_id", assignmentId).eq("user_id", examinerId).last("limit 1"));
         if (rel == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
-        // 2) 读取 maxSessions 配置 - 优先读取个性化限制，否则读取默认配置
+        // 2) Read maxSessions configuration - prefer personalized limit, otherwise use default
         ExaminerAssignmentLimit personalLimit = examinerAssignmentLimitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
         Integer maxSessions = null;
         
         if (personalLimit != null && personalLimit.getMaxSessions() != null) {
-            // 使用个性化限制
+            // Use personalized limit
             maxSessions = personalLimit.getMaxSessions();
         } else {
-            // 使用默认配置
+            // Use default configuration
             AssignmentSessionConfig cfg = configMapper.selectById(assignmentId);
             maxSessions = cfg == null ? null : cfg.getDefaultMaxSessionsPerExaminer();
         }
 
-        // 3) 统计已分配 session 数
+        // 3) Count already-assigned sessions
         int currentSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
 
         PartialAssignmentResultDTO result = new PartialAssignmentResultDTO();
@@ -292,15 +292,15 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 continue;
             }
             if (Boolean.TRUE.equals(ts.getBookingOpen()) == Boolean.FALSE) {
-                // 若有开放开关，未开放时可视作不可报名
+            // If there is an open switch and it's off, treat as not selectable
             }
-            // 容量
+            // Capacity
             if (ts.getCurrentExaminers() != null && ts.getRequiredExaminers() != null
                     && ts.getCurrentExaminers() >= ts.getRequiredExaminers()) {
                 addFailure(result, slotId, "slot_full");
                 continue;
             }
-            // 冲突
+            // Conflict
             if (!tseMapper.findConflictedSlotsForExaminer(examinerId, ts.getStartAt(), ts.getEndAt()).isEmpty()) {
                 addFailure(result, slotId, "time_conflict");
                 continue;
@@ -314,7 +314,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 }
             }
 
-            // 执行分配：插入关系，更新计数
+            // Perform assignment: insert relation and update counters
             TimeSlotExaminer link = new TimeSlotExaminer();
             link.setSlotId(slotId);
             link.setExaminerId(examinerId);
@@ -345,7 +345,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     public ExaminerScheduleResponseDTO getScheduleV2(Long examinerId, Long assignmentId) {
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
@@ -361,7 +361,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             as.setAssignmentId(aId);
             as.setAssignmentName(a != null ? a.getName() : null);
 
-            // 补充课程信息
+            // Add course information
             if (a != null && a.getSubjectId() != null) {
                 try {
                     Subject subj = subjectService.getSubjectById(a.getSubjectId());
@@ -370,7 +370,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                         as.setCourseName(subj.getSubjectName());
                     }
                 } catch (BusinessException ex) {
-                    // 如果课程不存在或已删除，设置默认值继续处理
+                    // If course does not exist or was deleted, set default values and continue
                     as.setCourseCode("N/A");
                     as.setCourseName("Course Unavailable");
                 }
@@ -410,7 +410,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     @Override
     @Transactional
     public ExaminerUnassignResponseDTO unassign(Long assignmentId, Long slotId, Long examinerId) {
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
@@ -419,7 +419,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         if (ts == null || !Objects.equals(ts.getAssignmentId(), assignmentId)) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
-        // TODO: 截止时间与学生 booking 限制（无相关结构，先略过）
+        // TODO: Deadline and student booking constraints (no related structure yet, skip for now)
         int removed = tseMapper.deleteOne(slotId, examinerId);
         if (removed > 0) {
             int newCurrent = Math.max(0, (ts.getCurrentExaminers() == null ? 0 : ts.getCurrentExaminers()) - 1);
@@ -427,10 +427,10 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             timeSlotMapper.updateCountersAndStatus(slotId, newCurrent, booked);
         }
 
-        // 计算更新后的总分配session数
+        // Calculate updated total assigned sessions
         int updatedAssignedSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
 
-        // 构造响应DTO
+        // Build response DTO
         ExaminerUnassignResponseDTO response = new ExaminerUnassignResponseDTO();
         response.setAssignmentId(assignmentId);
         response.setSlotId(slotId);
@@ -441,7 +441,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
     }
 
     /**
-     * 验证用户是否为有效的考官
+     * Validate whether the user is a valid examiner
      */
     private boolean isValidExaminer(Long examinerId) {
         List<SysUser> examiners = sysUserMapper.selectByRoleKey(UserRole.EXAMINER.code());
@@ -453,7 +453,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         dto.setId(a.getId());
         dto.setSubjectId(a.getSubjectId());
         
-        // 获取并设置subject信息
+        // Fetch and set subject information
         if (a.getSubjectId() != null) {
             try {
                 Subject subject = subjectService.getSubjectById(a.getSubjectId());
@@ -462,7 +462,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                     dto.setSubjectName(subject.getSubjectName());
                 }
             } catch (BusinessException ex) {
-                // 如果subject不存在或已删除，设置默认值
+                // If subject does not exist or was deleted, set default values
                 dto.setSubjectCode("N/A");
                 dto.setSubjectName("Course Unavailable");
             }
@@ -478,7 +478,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         dto.setStatus(a.getStatus());
         dto.setRubricMetaInfo(a.getRubricMetaInfo());
 
-        // 补上rubric info
+        // Populate rubric info
         if (a.getRubricsInfo() != null && !a.getRubricsInfo().trim().isEmpty()) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
@@ -533,23 +533,23 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
 
     @Override
     public SessionStudentsResponseDTO getSessionStudents(Long sessionId, Long examinerId) {
-        // 验证参数不为空
+        // Validate parameters are not null
         if (sessionId == null || examinerId == null) {
             throw new BusinessException(BusinessError.INVALID_PARAM);
         }
 
-        // 验证examiner是否有效
+        // Validate examiner is valid
         if (!isValidExaminer(examinerId)) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
 
-        // 获取session信息以获取assignmentId
+        // Fetch session to get assignmentId
         SlotSession session = slotSessionMapper.selectById(sessionId);
         if (session == null) {
             throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         }
 
-        // 1. 获取该session的所有预定记录
+        // 1) Get all booking records for this session
         List<SessionStudent> sessionStudents = sessionStudentMapper.listBySession(sessionId);
         
         SessionStudentsResponseDTO response = new SessionStudentsResponseDTO();

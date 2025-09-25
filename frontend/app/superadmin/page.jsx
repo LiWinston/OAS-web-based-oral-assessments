@@ -16,8 +16,8 @@ export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({
     totalCourses: 0,
     activeCourses: 0,
-    totalAdmins: 12, // 暂时保持硬编码，待后续API完善
-    pendingInvitations: 2, // 暂时保持硬编码，待后续API完善
+    totalAdmins: 12, // Temporarily hardcoded; to be replaced when API is ready
+    pendingInvitations: 2, // Temporarily hardcoded; to be replaced when API is ready
     totalStudents: 0,
     totalAssignments: 0,
     systemHealth: "excellent",
@@ -37,7 +37,7 @@ export default function SuperAdminDashboard() {
       setLoading(true);
       setError('');
       
-      // SuperAdmin获取全局统计数据（不传adminUserId参数）
+      // SuperAdmin fetches global stats (without adminUserId parameter)
       const result = await superadminCourseService.getCourseStats();
       
       if (result.success && result.data) {

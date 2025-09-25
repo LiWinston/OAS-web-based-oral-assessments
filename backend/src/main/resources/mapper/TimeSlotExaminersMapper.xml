@@ -14,7 +14,7 @@
         WHERE slot_id = #{slotId}
     </select>
 
-    <!-- 查找某考官与给定时间窗冲突的 slot（用于自助报名/管理员分配校验） -->
+    <!-- Find slots that conflict with the given time window for an examiner (used for self-assign/admin checks) -->
     <select id="findConflictedSlotsForExaminer" resultType="long">
         SELECT ts.slot_id
         FROM time_slot_examiners tse

@@ -11,7 +11,7 @@ import Pagination from "../../ui/Pagination";
 export function CourseOverviewTable() {
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeSearchTerm, setActiveSearchTerm] = useState(""); // 实际用于搜索的术语
+  const [activeSearchTerm, setActiveSearchTerm] = useState(""); // Term actually used for searching
   const [filterDepartment, setFilterDepartment] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -21,7 +21,7 @@ export function CourseOverviewTable() {
   const [isLoading, setIsLoading] = useState(true);
   const [filteredCourses, setFilteredCourses] = useState([]);
   
-  // 课程统计状态
+  // Course statistics state
   const [courseStats, setCourseStats] = useState({
     totalCourses: 0,
     activeCourses: 0,
@@ -31,7 +31,7 @@ export function CourseOverviewTable() {
   });
   const [statsLoading, setStatsLoading] = useState(true);
   
-  // 分页状态
+  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const [pagination, setPagination] = useState({
@@ -43,9 +43,9 @@ export function CourseOverviewTable() {
     hasPrev: false
   });
 
-  // 手动搜索 - 移除防抖，改为点击按钮触发
+  // Manual search - debounce removed; triggered by button click
 
-  // 构建筛选参数
+  // Build filter parameters
   const buildFilters = useCallback((searchTermOverride = null) => {
     const filters = {};
     
@@ -65,55 +65,55 @@ export function CourseOverviewTable() {
     return filters;
   }, [activeSearchTerm, filterDepartment, filterStatus]);
 
-  // 初始加载
+  // Initial load
   useEffect(() => {
-    // 初始加载逻辑将在 loadCourses 定义后处理
+    // Initial load logic handled after loadCourses is defined
   }, []);
 
-  // 当筛选条件改变时，重新加载数据（搜索除外，需要手动触发）
+  // Reload when filters change (excluding search which requires manual trigger)
   useEffect(() => {
-    setCurrentPage(1); // 重置到第一页
-    // 筛选逻辑将在 loadCourses 定义后处理
+    setCurrentPage(1); // Reset to first page
+    // Filtering logic handled after loadCourses is defined
   }, [filterDepartment, filterStatus, pageSize]);
 
-  // 处理分页变化
+  // Handle page change
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
-    loadCourses(newPage, pageSize); // 使用当前的activeSearchTerm
+    loadCourses(newPage, pageSize); // Use current activeSearchTerm
   };
 
-  // 处理页面大小变化
+  // Handle page size change
   const handlePageSizeChange = (newPageSize) => {
     setPageSize(newPageSize);
-    setCurrentPage(1); // 重置到第一页
-    loadCourses(1, newPageSize); // 使用当前的activeSearchTerm
+    setCurrentPage(1); // Reset to first page
+    loadCourses(1, newPageSize); // Use current activeSearchTerm
   };
 
-  // 处理搜索按钮点击
+  // Handle search button click
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm);
     setCurrentPage(1);
-    loadCourses(1, pageSize, searchTerm); // 直接传递搜索词
+    loadCourses(1, pageSize, searchTerm); // Pass search term directly
   };
 
-  // 处理回车键搜索
+  // Handle Enter key to search
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
       handleSearch();
     }
   };
 
-  // 清除所有筛选
+  // Clear all filters
   const clearAllFilters = () => {
     setSearchTerm("");
     setActiveSearchTerm("");
     setFilterDepartment("all");
     setFilterStatus("all");
     setCurrentPage(1);
-    // 不需要手动调用 loadCourses，useEffect 会自动触发
+    // No need to call loadCourses manually; useEffect will trigger automatically
   };
 
-  // 加载课程数据（支持筛选和分页）
+  // Load course data (supports filters and pagination)
   const loadCourses = useCallback(async (page = 1, size = pageSize, searchTermOverride = null) => {
     try {
       setIsLoading(true);
@@ -132,7 +132,7 @@ export function CourseOverviewTable() {
         setCourses(response.data || []);
         setFilteredCourses(response.data || []);
         
-        // 更新分页信息
+        // Update pagination
         if (response.pagination) {
           setPagination(response.pagination);
           setCurrentPage(response.pagination.currentPage || page);
@@ -168,7 +168,7 @@ export function CourseOverviewTable() {
     }
   }, [pageSize, buildFilters]);
 
-  // 加载课程统计数据
+  // Load course statistics
   const loadCourseStats = useCallback(async () => {
     try {
       setStatsLoading(true);
@@ -219,17 +219,17 @@ export function CourseOverviewTable() {
     }
   }, []);
 
-  // 在 loadCourses 定义后，处理初始加载和筛选变化
+  // After loadCourses is defined, handle initial load and filter change
   useEffect(() => {
-    loadCourses(1, pageSize); // 使用当前的activeSearchTerm
-    loadCourseStats(); // 同时加载课程统计
+    loadCourses(1, pageSize); // Use current activeSearchTerm
+    loadCourseStats(); // Also load stats
   }, [loadCourses, loadCourseStats]);
 
-  // 当筛选条件改变时，重新加载数据（搜索除外，需要手动触发）
+  // When filters change, reload data (search requires manual trigger)
   useEffect(() => {
     if (loadCourses) {
-      setCurrentPage(1); // 重置到第一页
-      loadCourses(1, pageSize); // 使用当前的activeSearchTerm
+      setCurrentPage(1); // Reset to first page
+      loadCourses(1, pageSize); // Use current activeSearchTerm
     }
   }, [filterDepartment, filterStatus, pageSize, loadCourses]);
 
@@ -239,7 +239,7 @@ export function CourseOverviewTable() {
       ? [...new Set(courses.map((course) => course.department))]
       : [];
 
-  // 前端筛选逻辑已移除，现在由后端处理
+  // Frontend filtering removed; handled by backend
 
   const getStatusBadge = (status) => {
 

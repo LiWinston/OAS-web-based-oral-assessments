@@ -53,13 +53,13 @@ public class StudentCsvHandler implements CsvHandler<StudentCSVRequestDTO,Studen
                     cleanedHeader.add((h == null ? "" : h.replace("\uFEFF", "").trim()));
                 }
 
-                // 必须包含 required 中的所有列；可选包含 Email 列
+                // Must include all columns listed in 'required'; 'Email' column is optional
                 for (String req : required) {
                     if (!cleanedHeader.contains(req)) {
                         throw new BusinessException(BusinessError.INVALID_CSV_TYPE);
                     }
                 }
-                // 允许多出 "Email" 列或其他列，无需报错
+                // Allow extra columns like "Email" or others without throwing error
             }
 
             // Parse after validation

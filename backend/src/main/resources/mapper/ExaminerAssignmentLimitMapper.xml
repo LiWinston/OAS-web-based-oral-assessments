@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper">
 
-    <!-- 根据 (examiner_id, assignment_id) 更新 max_sessions，不存在时不做任何操作 -->
+    <!-- Update max_sessions by (examiner_id, assignment_id); no-op if pair not exists -->
     <update id="updateMaxSessionsByPair">
         UPDATE examiner_assignment_limit
         SET max_sessions = #{maxSessions}

@@ -162,12 +162,12 @@ CREATE TABLE assignment (
                             create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
                             update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
 
-    -- 外键约束，级联删除
+-- Foreign key constraint with cascade delete
                             CONSTRAINT fk_assignment_subject
                             FOREIGN KEY (subject_id) REFERENCES subject(subject_id)
                             ON DELETE CASCADE,
 
-    -- 索引
+-- Indexes
                             KEY idx_assignment_subject (subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Assignment table';
 
@@ -212,12 +212,12 @@ CREATE TABLE session_student (
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT 'Creation timestamp',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT 'Last update timestamp',
 
-    -- 索引
+-- Indexes
     KEY idx_session_student_session (session_id),
     KEY idx_session_student_subject (type, subject_id),
     KEY idx_session_student_booked_time (booked_time),
     
-    -- 唯一约束：同一个session不能被同一个subject重复预订
+-- Unique constraint: the same session cannot be booked by the same subject twice
     UNIQUE KEY uk_session_subject (session_id, type, subject_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Session student booking table';
 

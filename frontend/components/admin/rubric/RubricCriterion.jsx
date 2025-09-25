@@ -213,7 +213,7 @@ export default function RubricCriterion({
                   markingScale={criterion.markingScale}
                   onUpdate={(updated) => handleUpdateLevel(levelIndex, updated)}
                   onDelete={() => handleDeleteLevel(levelIndex)}
-                  allLevels={criterion.levels} // 传递所有levels用于重合验证
+                  allLevels={criterion.levels} // Pass all levels for overlap validation
                 />
               ))}
             </div>

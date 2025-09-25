@@ -135,7 +135,7 @@ export const courseService = {
     }
     
     const params = {
-      pageSize: 60, // 卡片视图一页显示60个
+      pageSize: 60, // Card view shows 60 items per page
       pageNum: 1,
     };
     

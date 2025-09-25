@@ -114,7 +114,7 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
-        <!-- macOS DNS 原生库：消除 Netty 启动错误日志（Apple Silicon） -->
+        <!-- macOS DNS native library: suppress Netty startup error logs (Apple Silicon) -->
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-resolver-dns-native-macos</artifactId>

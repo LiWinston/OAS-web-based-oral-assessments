@@ -13,13 +13,13 @@ public class MybatisPlusConfig {
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
         
-        // 乐观锁插件 - 必须在分页插件之前添加
+        // Optimistic locker - must be added before the pagination interceptor
         interceptor.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
         
-        // 分页插件
+        // Pagination interceptor
         PaginationInnerInterceptor p = new PaginationInnerInterceptor(DbType.MYSQL);
-        p.setMaxLimit(100L);   // 结合你的 limit 上限
-        p.setOverflow(true);   // 页码溢出时回到最后一页
+        p.setMaxLimit(100L);   // Align with your upper limit for page size
+        p.setOverflow(true);   // When page number overflows, go to the last page
         interceptor.addInnerInterceptor(p);
         
         return interceptor;

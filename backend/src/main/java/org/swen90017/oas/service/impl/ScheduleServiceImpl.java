@@ -55,7 +55,7 @@ public class ScheduleServiceImpl implements ScheduleService {
 
         Boolean isReleased = assignmentMapper.isReleased(assignmentId);
         
-        // 获取会话进行分析（过渡期仍通过 slot 关联取 sessions）
+        // Fetch sessions for analysis (transition period still uses slot link to retrieve sessions)
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
         List<String> issues = new ArrayList<>();
         ScheduleStatusResponseDTO.ScheduleSummaryDTO summary = analyzeSessions(sessions, issues);
@@ -64,7 +64,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         response.setAssignmentId(assignmentId);
         response.setScheduleStatus(isReleased ? "released" : "draft");
         response.setIsReleased(isReleased);
-        response.setTotalTimeSlots(null); // timeslot已逐步移除，此字段置空或改名（保持DTO兼容）
+        response.setTotalTimeSlots(null); // timeslot is being phased out; keep null or rename to keep DTO compatible
         response.setReadyForRelease(issues.isEmpty());
         response.setIssues(issues);
         response.setSummary(summary);
@@ -78,7 +78,7 @@ public class ScheduleServiceImpl implements ScheduleService {
         String audience = request.getAudience() == null ? "examiners" : request.getAudience().toLowerCase();
         LocalDateTime releasedAt = LocalDateTime.now();
         if ("examiners".equals(audience)) {
-            // 发布给考官：将所有会话标记 is_published_to_examiner = true
+            // Publish to examiners: mark all sessions is_published_to_examiner = true
             List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
             if (sessions == null || sessions.isEmpty()) {
                 throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
@@ -90,7 +90,7 @@ public class ScheduleServiceImpl implements ScheduleService {
                 slotSessionMapper.updateById(s);
             }
         } else if ("students".equals(audience)) {
-            // 发布给学生：要求所有会话 fully staffed
+            // Publish to students: require all sessions to be fully staffed
             List<org.swen90017.oas.entity.SlotSession> sessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
             if (sessions == null || sessions.isEmpty()) {
                 throw new BusinessException(BusinessError.SCHEDULE_NOT_READY);
@@ -138,11 +138,11 @@ public class ScheduleServiceImpl implements ScheduleService {
             return false; // No time slots defined
         }
 
-        // 新校验：任意会话无考官视为不可发布
+        // New validation: any session without examiners is not publishable
         for (SlotSession s : sessions) {
             List<Long> examinerIds = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
             if (examinerIds == null || examinerIds.isEmpty()) {
-                return false; // 存在未配员的 session
+                return false; // There exists an unstaffed session
             }
         }
 
@@ -163,7 +163,7 @@ public class ScheduleServiceImpl implements ScheduleService {
             if (limit.getExaminerId() == null || limit.getMaxSessions() == null || limit.getMaxSessions() < 0) {
                 throw new BusinessException(BusinessError.EXAMINER_LIMIT_INVALID);
             }
-            // 先尝试更新；若更新行数为 0，则插入
+            // Try update first; if affected rows == 0, then insert
             int rows = examinerAssignmentLimitMapper.updateMaxSessionsByPair(limit.getExaminerId(), assignmentId, limit.getMaxSessions());
             if (rows == 0) {
                 ExaminerAssignmentLimit record = new ExaminerAssignmentLimit();

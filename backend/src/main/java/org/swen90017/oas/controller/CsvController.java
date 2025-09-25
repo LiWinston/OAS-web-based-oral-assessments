@@ -109,10 +109,10 @@ public class CsvController {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {
             List<SysStudent> invited = studentService.inviteStudent(studentDTOs, assignmentId);
             String reason = csvService.buildInviteReason(assignmentId);
-            // 发送激活邮件给新用户
+            // Send activation emails to new users
             emailService.sendActivationEmail(invited, reason);
             
-            // 注意：学生的课程加入通知将在 "Release to Student" 时发送，这里不发送
+            // Note: student course-join notifications are sent at "Release to Student", not here
             
             return invited;
         });
@@ -135,10 +135,10 @@ public class CsvController {
     private Result<List<SysExaminer>> importExaminerCsv(List<ExaminerCSVRequestDTO> csvData, Long assignmentId) {
         List<SysExaminer> examiners = TransactionUtil.doTransactionWithRequired(() -> examinerService.inviteExaminer(csvData, assignmentId));
         String reason = csvService.buildInviteReason(assignmentId);
-        // 发送激活邮件给新用户
+        // Send activation emails to new users
         emailService.sendExaminerActivationEmail(examiners, reason);
         
-        // 发送课程加入通知给已注册的现有用户
+        // Send course-join notifications to existing registered users
         examinerService.sendCourseJoinNotificationForExistingExaminers(csvData, assignmentId);
         
         return Result.success(examiners);

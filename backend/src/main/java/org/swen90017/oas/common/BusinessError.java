@@ -109,7 +109,7 @@ public enum BusinessError implements Error {
     ALREADY_REOPENED("9016", "Examiner marking is already reopened"),
     NO_SUBMITTED_EXAMINERS("9017", "No examiners have submitted new markings for this assessment"),
     ASSESSMENT_ALREADY_RELEASED("9018", "Assessment is already released to students");
-    // 9013 预留：总限额不满足
+    // 9013 reserved: total capacity not sufficient
     // TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient")
     // add more below as needed
 

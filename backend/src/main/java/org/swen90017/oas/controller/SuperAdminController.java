@@ -105,7 +105,7 @@ public class SuperAdminController {
     }
 
     @GetMapping("admins/status")
-    @Operation(summary = "Get admin status list (先别测这个！！！)", description = "Placeholder endpoint for future use")
+    @Operation(summary = "Get admin status list (Do not test yet)", description = "Placeholder endpoint for future use")
     public String getAdminStatus() {
         // This is a placeholder method. In a real application, you would return the status of all admins.
         return "Status of all super admins";

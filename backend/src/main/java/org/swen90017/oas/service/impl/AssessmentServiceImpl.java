@@ -47,11 +47,11 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Override
     @Transactional
     public AssessmentSubmissionDTO saveDraft(SaveAssessmentDraftRequestDTO request, Long examinerId) {
-        // 1) 作业存在性
+        // 1) Assignment existence
         Assignment assignment = assignmentMapper.selectById(request.getAssignmentId());
         if (assignment == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
 
-        // 2) 会话指派校验（如传 sessionId）
+        // 2) Session assignment validation (when sessionId is provided)
         if (request.getSessionId() != null) {
             List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(request.getSessionId());
             if (examiners == null || !examiners.contains(examinerId)) {
@@ -59,10 +59,10 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 2.1 兼容 subjectType 同义词
+        // 2.1 Normalize subjectType synonyms
         String normalizedSubjectType = normalizeSubjectType(request.getSubjectType());
 
-        // 2.2 查询 enrollment_id (如果提供了 sessionId)
+        // 2.2 Query enrollment_id (if sessionId provided)
         Long enrollmentId = null;
         if (request.getSessionId() != null) {
             SessionStudent enrollment = sessionStudentMapper.selectBySessionAndSubject(
@@ -72,13 +72,13 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 3) 查询是否已有草稿（优先使用新方法）
+        // 3) Check if a draft already exists (prefer new method)
         AssessmentSubmission existing = null;
         if (enrollmentId != null) {
-            // 使用新的基于 enrollment_id 的查询方法
+            // Use new enrollment_id-based query method
             existing = submissionMapper.selectByEnrollmentAndExaminer(enrollmentId, examinerId);
         } else {
-            // 回退到旧的唯一键查询方法
+            // Fallback to old unique-key query method
             existing = submissionMapper.selectByUniqueTarget(
                     request.getAssignmentId(), request.getSessionId(), normalizedSubjectType, request.getSubjectId(), examinerId);
         }
@@ -89,7 +89,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (isCreate) {
             record.setAssignmentId(request.getAssignmentId());
             record.setSessionId(request.getSessionId());
-            record.setEnrollmentId(enrollmentId); // 设置 enrollment_id
+            record.setEnrollmentId(enrollmentId); // Set enrollment_id
             record.setSubjectType(normalizedSubjectType);
             record.setSubjectId(request.getSubjectId());
             record.setExaminerId(examinerId);
@@ -98,7 +98,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             record.setVersion(record.getVersion() == null ? 0 : record.getVersion());
         }
 
-        // 4) 生成/维持 Rubric 快照
+        // 4) Generate/maintain rubric snapshots
         if (isCreate || record.getRubricMetaSnapshot() == null) {
             record.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
         }
@@ -106,17 +106,17 @@ public class AssessmentServiceImpl implements AssessmentService {
             record.setRubricsInfoSnapshot(assignment.getRubricsInfo());
         }
 
-        // 5) 校验 scores，并计算总分（草稿可不完整，此处允许部分为空）
+        // 5) Validate scores and compute total (draft can be incomplete; partial nulls allowed here)
         String normalizedScoresJson = normalizeAndValidateScores(record.getRubricsInfoSnapshot(), request);
         record.setScoresJson(normalizedScoresJson);
         Double total = computeTotalScore(record.getRubricsInfoSnapshot(), normalizedScoresJson);
         record.setTotalScore(total);
 
-        // 6) 备注与反馈
+        // 6) Notes and feedback
         record.setOverallFeedback(request.getOverallFeedback());
         record.setAdminNote(request.getAdminNote());
 
-        // 7) 保存
+        // 7) Persist
         if (isCreate) {
             submissionMapper.insert(record);
         } else {
@@ -131,10 +131,10 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Transactional
     public AssessmentSubmissionDTO submit(SubmitAssessmentRequestDTO request, Long examinerId) {
         AssessmentSubmission target = resolveTargetSubmission(request, examinerId);
-        // 若本次提交携带了评分/反馈内容，同步写入到记录再提交
+        // If this submission carries scores/feedback, sync them into the record before submit
         boolean needUpdateContent = request.getScores() != null || request.getOverallFeedback() != null || request.getAdminNote() != null;
         if (needUpdateContent) {
-            // 使用 saveDraft 的校验与归一逻辑进行一次标准化
+            // Use saveDraft validation/normalization once
             SaveAssessmentDraftRequestDTO save = new SaveAssessmentDraftRequestDTO();
             save.setAssignmentId(target.getAssignmentId());
             save.setSessionId(target.getSessionId());
@@ -144,7 +144,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             save.setAdminNote(request.getAdminNote());
             save.setScores(request.getScores());
             AssessmentSubmissionDTO updated = saveDraft(save, examinerId);
-            // 重新读取最新实体
+            // Reload latest entity
             target = submissionMapper.selectById(updated.getSubmissionId());
         }
         if (!Objects.equals(target.getExaminerId(), examinerId)) {
@@ -154,7 +154,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             throw new BusinessException(BusinessError.ASSESSMENT_ALREADY_SUBMITTED);
         }
 
-        // 提交校验：需可计算总分；若有缺漏，直接报未完成（避免空项默认0分）
+        // Submission validation: must be able to compute total; if missing, mark incomplete (avoid defaulting to 0)
         ensureAllCriteriaCompleted(target.getRubricsInfoSnapshot(), target.getScoresJson());
         Double total = computeTotalScore(target.getRubricsInfoSnapshot(), target.getScoresJson());
         target.setTotalScore(total);
@@ -178,20 +178,20 @@ public class AssessmentServiceImpl implements AssessmentService {
         LocalDateTime from = query.getCreatedFrom() == null ? null : query.getCreatedFrom().atStartOfDay();
         LocalDateTime to = query.getCreatedTo() == null ? null : query.getCreatedTo().atTime(23,59,59);
         
-        // 只返回SUBMITTED和RELEASED状态的数据
+        // Return only SUBMITTED and RELEASED statuses
         String filterStatus = query.getStatus();
         if (filterStatus == null || (!filterStatus.equals("SUBMITTED") && !filterStatus.equals("RELEASED"))) {
-            // 如果没有指定状态或指定的不是SUBMITTED/RELEASED，则返回空列表
+            // If status is not specified or not SUBMITTED/RELEASED, return empty list
             if (filterStatus != null) {
                 return new ArrayList<>();
             }
-            // 如果没有指定状态，则默认查询SUBMITTED和RELEASED
-            filterStatus = null; // 我们将在mapper调用后进行过滤
+            // If status is not specified, default to query SUBMITTED and RELEASED
+            filterStatus = null; // We'll filter after mapper call
         }
         
         List<AssessmentSubmission> list = submissionMapper.listByExaminer(examinerId, query.getAssignmentId(), filterStatus, from, to);
         
-        // 如果原始查询没有指定状态，则过滤只保留SUBMITTED和RELEASED
+        // If original query didn't specify status, filter to keep only SUBMITTED/RELEASED
         if (query.getStatus() == null) {
             list = list.stream()
                     .filter(submission -> "SUBMITTED".equals(submission.getStatus()) || "RELEASED".equals(submission.getStatus()))
@@ -217,13 +217,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         String sortBy = normalizeSortBy(query.getSortBy());
         String sortOrder = normalizeSortOrder(query.getSortOrder());
 
-        // 只返回SUBMITTED和RELEASED状态的数据
+        // Return only SUBMITTED and RELEASED statuses
+        // Return only SUBMITTED and RELEASED statuses
         String filterStatus = query.getStatus();
         List<String> filterStatuses = query.getStatuses();
         
-        // 处理单个状态过滤
+        // Handle single status filter
         if (filterStatus != null && !filterStatus.equals("SUBMITTED") && !filterStatus.equals("RELEASED")) {
-            // 如果指定的状态不是SUBMITTED或RELEASED，返回空结果
+            // If specified status is not SUBMITTED/RELEASED, return empty result
             ExaminerAssessmentsPageResponseDTO emptyResp = new ExaminerAssessmentsPageResponseDTO();
             emptyResp.setItems(new ArrayList<>());
             org.swen90017.oas.dto.response.PaginationDTO emptyPagination = new org.swen90017.oas.dto.response.PaginationDTO();
@@ -237,13 +238,13 @@ public class AssessmentServiceImpl implements AssessmentService {
             return emptyResp;
         }
         
-        // 处理多个状态过滤
+        // Handle multi-status filter
         if (filterStatuses != null && !filterStatuses.isEmpty()) {
             filterStatuses = filterStatuses.stream()
                     .filter(status -> "SUBMITTED".equals(status) || "RELEASED".equals(status))
                     .collect(Collectors.toList());
             if (filterStatuses.isEmpty()) {
-                // 如果过滤后没有有效状态，返回空结果
+                // If no valid statuses remain after filtering, return empty result
                 ExaminerAssessmentsPageResponseDTO emptyResp = new ExaminerAssessmentsPageResponseDTO();
                 emptyResp.setItems(new ArrayList<>());
                 org.swen90017.oas.dto.response.PaginationDTO emptyPagination = new org.swen90017.oas.dto.response.PaginationDTO();
@@ -257,7 +258,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                 return emptyResp;
             }
         } else if (filterStatus == null) {
-            // 如果没有指定状态，默认只查询SUBMITTED和RELEASED
+            // If status is not specified, default to SUBMITTED and RELEASED
             filterStatuses = Arrays.asList("SUBMITTED", "RELEASED");
         }
 
@@ -326,7 +327,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         ExaminerSummaryDTO dto = new ExaminerSummaryDTO();
         dto.setDraftCount(draft);
         dto.setSubmittedCount(submitted);
-        dto.setByAssignment(null); // 简化：如需按作业聚合，可在 Mapper 加聚合 SQL
+        dto.setByAssignment(null); // Simplification: to aggregate by assignment, add aggregate SQL in Mapper
         return dto;
     }
 
@@ -354,14 +355,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (request.getSubmissionId() != null) {
             target = submissionMapper.selectById(request.getSubmissionId());
             if (target == null) {
-                // 明确要求：传了 submissionId 不创建，查不到即报错
+                // Explicit requirement: do not create when submissionId is provided; throw if not found
                 throw new BusinessException(BusinessError.INVALID_PARAM);
             }
         } else {
             target = submissionMapper.selectByUniqueTarget(request.getAssignmentId(), request.getSessionId(), normalizeSubjectType(request.getSubjectType()), request.getSubjectId(), examinerId);
-            // 若不存在，允许在提交时自动创建一条草稿记录，支持“直接提交”的流程
+            // If not exists, allow creating a draft on submit to support "direct submit"
             if (target == null) {
-                // 严格：仅当提供了 assignmentId + subjectType(INDIVIDUAL/GROUP) + subjectId 才允许自动创建
+                // Strict: only allow auto-create when assignmentId + subjectType(INDIVIDUAL/GROUP) + subjectId are provided
                 String normalizedType = normalizeSubjectType(request.getSubjectType());
                 if (request.getAssignmentId() == null || normalizedType == null || request.getSubjectId() == null) {
                     throw new BusinessException(BusinessError.INVALID_PARAM);
@@ -407,14 +408,14 @@ public class AssessmentServiceImpl implements AssessmentService {
                         .findFirst().orElse(null);
                 if (matched == null) throw new BusinessException(BusinessError.RUBRIC_CRITERION_NOT_FOUND.getMessage() + ": " + s.getDescription(), BusinessError.RUBRIC_CRITERION_NOT_FOUND.getCode());
 
-                // scaleType 合法性（支持 percentage 作为 points 同义）
+                // scaleType validity (support percentage as a synonym of points)
                 String reqType = s.getScaleType();
                 String rubType = matched.getScaleType();
                 if (reqType == null || rubType == null || !isScaleTypeCompatible(reqType, rubType)) {
                     throw new BusinessException(BusinessError.RUBRIC_MISMATCH);
                 }
 
-                // 统一验证：所有评分都需要inputPoints和selectedLevel
+                // Unified validation: all scores require inputPoints and selectedLevel
                 if (s.getInputPoints() == null) {
                     throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
                 }
@@ -423,19 +424,19 @@ public class AssessmentServiceImpl implements AssessmentService {
                     throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                 }
                 
-                // 验证inputPoints基本范围
+                // Validate basic range of inputPoints
                 if (s.getInputPoints() < 0 || s.getInputPoints() > 100) {
                     throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
                 }
                 
-                // 验证selectedLevel的有效性
+                // Validate validity of selectedLevel
                 Double st = s.getSelectedLevel().getStartPoint();
                 Double ed = s.getSelectedLevel().getEndPoint();
                 if (st == null || ed == null || st < 0 || ed > 100 || st > ed) {
                     throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                 }
                 
-                // 校验所选档与 rubrics 中某一档完全匹配（description + 区间）
+                // Validate that the selected level exactly matches a rubric band (description + range)
                 boolean matchAny = false;
                 if (matched.getPerformanceLevel() != null) {
                     for (PerformanceDto p : matched.getPerformanceLevel()) {
@@ -455,7 +456,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                     throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
                 }
                 
-                // 验证inputPoints是否在selectedLevel区间内
+                // Validate that inputPoints is within selectedLevel range
                 if (s.getInputPoints() < st || s.getInputPoints() > ed) {
                     throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
                 }
@@ -481,7 +482,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                         .findFirst().orElse(null);
                 double normalized = 0.0;
                 if (matched != null && matched.getInputPoints() != null) {
-                    // 所有类型都直接使用inputPoints，不再使用区间中位数
+                    // For all types, use inputPoints directly; no longer use range midpoint
                     Double p = matched.getInputPoints();
                     normalized = Math.max(0.0, Math.min(100.0, p));
                 }
@@ -495,9 +496,9 @@ public class AssessmentServiceImpl implements AssessmentService {
     }
 
     /**
-     * 确保每个 rubric 项都已选择有效分值：
-     * - points/percentage: 需要 inputPoints 非空且 0..100；
-     * - descriptive: 需要 selectedLevel 与 rubrics 中某档完全匹配。
+     * Ensure each rubric item has a valid score:
+     * - points/percentage: requires non-null inputPoints within 0..100
+     * - descriptive: requires selectedLevel exactly matching a rubric band.
      */
     private void ensureAllCriteriaCompleted(String rubricsInfoSnapshot, String scoresJson) {
         try {
@@ -508,7 +509,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                         .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
                         .findFirst().orElse(null);
                 
-                // 统一验证：所有类型都需要inputPoints和selectedLevel
+                // Unified validation: all types require inputPoints and selectedLevel
                 if (matched == null || matched.getInputPoints() == null) {
                     throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
                 }
@@ -517,7 +518,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                     throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
                 }
                 
-                // 与 rubrics 档位严格匹配，并验证inputPoints在区间内
+                // Strictly match rubric bands and validate inputPoints within range
                 boolean ok = false;
                 if (r.getPerformanceLevel() != null) {
                     for (PerformanceDto p : r.getPerformanceLevel()) {
@@ -529,7 +530,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                             Double st = matched.getSelectedLevel().getStartPoint();
                             Double ed = matched.getSelectedLevel().getEndPoint();
                             if (pst != null && ped != null && st != null && ed != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
-                                // 验证inputPoints是否在selectedLevel区间内
+                                // Validate that inputPoints is within selectedLevel range
                                 if (matched.getInputPoints() >= st && matched.getInputPoints() <= ed) {
                                     ok = true; 
                                     break;
@@ -563,7 +564,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
     private String normalizeSubjectType(String subjectType) {
         if (subjectType == null) return null;
-        // 对齐 AssignMode：INDIVIDUAL / GROUP
+        // Align with AssignMode: INDIVIDUAL / GROUP
         if (subjectType.equalsIgnoreCase("INDIVIDUAL") || subjectType.equalsIgnoreCase("STUDENT") || subjectType.equalsIgnoreCase("PERSONAL")) return "INDIVIDUAL";
         if (subjectType.equalsIgnoreCase("GROUP")) return "GROUP";
         return subjectType;
@@ -574,7 +575,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private String normalizeSortBy(String sortBy) {
         if (sortBy == null || sortBy.trim().isEmpty()) return "updated_at";
         String col = sortBy.trim().toLowerCase();
-        // 允许的排序列白名单，避免注入
+        // Whitelisted sortable columns to avoid injection
         if (col.equals("updated_at") || col.equals("created_at") || col.equals("submitted_at") || col.equals("total_score")) {
             return col;
         }

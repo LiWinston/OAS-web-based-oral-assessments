@@ -13,7 +13,7 @@ public interface ExaminerService {
     PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS);
     
     /**
-     * 为CSV导入中已注册的现有考官发送课程加入通知
+     * Send course-join notifications to existing registered examiners from CSV import
      */
     void sendCourseJoinNotificationForExistingExaminers(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId);
 }

@@ -8,8 +8,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
 /**
- * 支持多次读取请求体的Request Wrapper
- * 解决在同一请求中多次调用getInputStream()或getReader()的问题
+ * Request wrapper that allows multiple reads of the request body.
+ * Solves issues when getInputStream() or getReader() is called multiple times in the same request.
  *
  * @author Yongchun Li
  */
@@ -40,7 +40,7 @@ public class CachingRequestWrapper extends HttpServletRequestWrapper {
     }
     
     /**
-     * 获取缓存的请求体内容（字符串格式）
+     * Get cached request body (as String)
      */
     public String getCachedBody() {
         try {
@@ -54,7 +54,7 @@ public class CachingRequestWrapper extends HttpServletRequestWrapper {
     }
     
     /**
-     * 设置缓存的请求体内容（用于XSS过滤后的内容）
+     * Set cached request body (used for content after XSS filtering)
      */
     public void setCachedBody(String body) {
         this.cachedBody = body != null ? body.getBytes(StandardCharsets.UTF_8) : new byte[0];
@@ -62,7 +62,7 @@ public class CachingRequestWrapper extends HttpServletRequestWrapper {
     }
     
     /**
-     * 缓存请求体内容
+     * Cache request body content
      */
     private void cacheRequestBody() throws IOException {
         if (bodyRead) {
@@ -84,7 +84,7 @@ public class CachingRequestWrapper extends HttpServletRequestWrapper {
     }
     
     /**
-     * 自定义ServletInputStream实现，支持从缓存的字节数组读取
+     * Custom ServletInputStream implementation; reads from cached byte array
      */
     private static class CachedBodyServletInputStream extends ServletInputStream {
         
