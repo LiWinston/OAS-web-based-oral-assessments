@@ -86,7 +86,7 @@ export function useTimeslotAssignment() {
           } else {
             showNotification(
               "success",
-              `Assigned ${result.data.assignedSessions.length} session(s) successfully`
+              `Assigned ${result.data.assignedSessions.length} timeslot(s) successfully`
             );
           }
 

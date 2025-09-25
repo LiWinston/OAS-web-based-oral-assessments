@@ -185,7 +185,7 @@ export default function AssignmentSessionsList() {
           </p>
         </div>
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          Total: {assignmentSessions.length} session(s)
+          Total: {assignmentSessions.length} timeslot(s)
         </div>
       </div>
 
@@ -197,7 +197,7 @@ export default function AssignmentSessionsList() {
             Available Timeslots
           </CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Click on a session to view and manage assessments
+            Click on a Timeslot to view and manage assessments
           </p>
         </CardHeader>
         <CardContent>
@@ -286,10 +286,10 @@ export default function AssignmentSessionsList() {
                 <i className="fas fa-calendar-times text-gray-400 dark:text-gray-500 text-3xl"></i>
               </div>
               <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
-                No Sessions Found
+                No Timeslots Found
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                There are no sessions available for this assignment yet.
+                There are no timeslots available for this assignment yet.
               </p>
             </div>
           )}
