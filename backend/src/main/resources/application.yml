@@ -87,7 +87,7 @@ email:
     enabled: ${EMAIL_DOMAIN_VALIDATION_ENABLED:false}
 csv:
   import:
-    use-email-column: ${CSV_IMPORT_USE_EMAIL_COLUMN:true}
+    use-email-column: ${CSV_IMPORT_USE_EMAIL_COLUMN:false}
 
 # CORS Configuration
 cors:
