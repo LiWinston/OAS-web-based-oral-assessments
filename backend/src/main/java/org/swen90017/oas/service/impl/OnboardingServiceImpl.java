@@ -50,7 +50,7 @@ public class OnboardingServiceImpl implements OnboardingService {
         if (student != null) {
             SysUser user = userMapper.selectById(student.getUserId());
             if (user == null) {
-                // 数据不一致，视为 invalid
+                // Data inconsistency, treat as invalid
                 resp.setSuccess(false);
                 resp.setStatus("invalid");
                 resp.setMessage("Invalid link");
@@ -71,8 +71,8 @@ public class OnboardingServiceImpl implements OnboardingService {
             resp.setEmail(user.getEmail());
             resp.setFullName(user.getUserName());
 
-            // 课程/作业上下文：当前后端暂无课程/作业实体，留空占位
-            // 可在将来通过关联查询填充
+            // Course/assignment context: currently no course/assignment entity in backend, leave as placeholder
+            // Can be populated via associated queries in the future
             return resp;
         }
         // 2) Examiner token
@@ -100,7 +100,7 @@ public class OnboardingServiceImpl implements OnboardingService {
             resp.setEmail(user.getEmail());
             resp.setFullName(user.getUserName());
 
-            // 课程/作业上下文：当前后端暂无课程/作业实体，留空占位
+            // Course/assignment context: currently no course/assignment entity in backend, leave as placeholder
             return resp;
         }
 
@@ -144,7 +144,7 @@ public class OnboardingServiceImpl implements OnboardingService {
         String token = requestDTO.getToken();
         String rawPassword = requestDTO.getPassword();
         if (token == null || token.isEmpty() || rawPassword == null || rawPassword.isEmpty()) {
-            throw new BusinessException(BusinessError.BOOKING_VALIDATION_FAILED); // 复用已有错误码
+            throw new BusinessException(BusinessError.BOOKING_VALIDATION_FAILED); // Reuse existing error code
         }
 
         // 1) Try student
@@ -157,7 +157,7 @@ public class OnboardingServiceImpl implements OnboardingService {
             user.setRegisteredAt(new java.util.Date());
             user.setPassword(passwordEncoder.encode(rawPassword));
             userMapper.updateById(user);
-            //TODO:这里的逻辑需要讨论
+            // TODO: This logic needs further discussion
             List<AssignmentParticipant> participant = assignmentParticipantMapper.selectList(
                     new QueryWrapper<AssignmentParticipant>().eq("user_id", user.getUserId())
             );
@@ -177,7 +177,7 @@ public class OnboardingServiceImpl implements OnboardingService {
             user.setRegisteredAt(new java.util.Date());
             user.setPassword(passwordEncoder.encode(rawPassword));
             userMapper.updateById(user);
-            // 与学生一致：标记所有关联的 assignment 参与记录为未确认/未加入（ifJoin=0）
+            // Same as student: mark all related assignment participation records as unconfirmed/not joined (ifJoin=0)
             List<AssignmentParticipant> participant = assignmentParticipantMapper.selectList(
                     new QueryWrapper<AssignmentParticipant>().eq("user_id", user.getUserId())
             );

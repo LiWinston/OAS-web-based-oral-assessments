@@ -227,7 +227,7 @@ export default function ProfileInfoCard({ user, onSave, isLoading = false }) {
               className="mt-1 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm disabled:bg-gray-50 dark:disabled:bg-gray-800"
             >
               <option value="English">English</option>
-              <option value="Chinese">中文</option>
+              <option value="Chinese">Chinese</option>
             </select>
             {isEditing && (
               <p className="mt-1 text-xs text-amber-600 dark:text-amber-400 flex items-center">

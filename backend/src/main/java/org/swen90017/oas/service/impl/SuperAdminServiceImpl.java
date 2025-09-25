@@ -461,7 +461,7 @@ public class SuperAdminServiceImpl implements SuperAdminService {
                 req.getSearch(),
                 req.getAdminId(),
                 req.getStatus(),
-                null // SuperAdmin可以看到所有状态的课程，包括非活跃的
+                null // SuperAdmin can view courses of all statuses, including inactive
         );
 
         List<SuperAdminCourseItemDTO> items = pageResult.getRecords().stream()

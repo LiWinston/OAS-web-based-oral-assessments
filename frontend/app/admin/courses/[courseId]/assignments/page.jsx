@@ -355,7 +355,7 @@ export default function CourseAssignmentsPage() {
     try {
       const result = await assignmentService.previewStudentCsv(file, type);
       if (!result.success) {
-        // 创建一个保留所有错误信息的错误对象
+        // Create an error object preserving all error details
         const error = new Error(result.message || "Failed to preview CSV");
         error.code = result.code;
         error.data = result.data;

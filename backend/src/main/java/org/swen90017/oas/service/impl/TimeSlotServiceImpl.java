@@ -85,7 +85,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         LocalDate end = (query != null && query.getDateTo() != null && !query.getDateTo().isEmpty())
                 ? LocalDate.parse(query.getDateTo()) : null;
         String status = (query != null) ? query.getStatus() : null;
-        // 将 dateFrom/dateTo 透传到 mapper 的 startAt/endAt 参数（复用签名，但用于按 slot_date 过滤）
+        // Pass dateFrom/dateTo through to mapper's startAt/endAt parameters (reuse signature, but filter by slot_date)
 
         return getTimeSlots(assignmentId, status,
                 start != null ? start.atStartOfDay() : null,
@@ -102,7 +102,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
         Map<String, CalendarResponseDTO.DateInfoDTO> result = new LinkedHashMap<>();
 
-        // 按天聚合，同时通过 requiredExaminers 与 currentExaminers 动态评估状态，并统计各类计数
+        // Aggregate by day; dynamically evaluate status via requiredExaminers and currentExaminers, and count each category
         for (TimeSlot slot : timeSlots) {
             String dateKey = slot.getSlotDate().toString();
             CalendarResponseDTO.DateInfoDTO dateInfo = result.get(dateKey);
@@ -119,11 +119,11 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 result.put(dateKey, dateInfo);
             }
 
-            // 累加当天 slots 与 sessions
+            // Accumulate slots and sessions for the day
             dateInfo.setTimeSlots(dateInfo.getTimeSlots() + 1);
             dateInfo.setSessions(dateInfo.getSessions() + (slot.getSessionCount() == null ? 0 : slot.getSessionCount()));
 
-            // 动态状态计算：基于 requiredExaminers 与 currentExaminers
+            // Dynamic status calculation based on requiredExaminers and currentExaminers
             int required = slot.getRequiredExaminers() == null ? 0 : slot.getRequiredExaminers();
             int current = slot.getCurrentExaminers() == null ? 0 : slot.getCurrentExaminers();
             boolean isFull = required > 0 && current >= required;
@@ -133,12 +133,12 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             } else if (isHalfOrMore) {
                 dateInfo.setPartialStaffed(dateInfo.getPartialStaffed() + 1);
             } else if (current == 0) {
-                // 保持/设为 empty
+                // Keep/set to empty
                 dateInfo.setNoStaffed(dateInfo.getNoStaffed() + 1);
             }
         }
 
-        // 追加：会话级聚合（不依赖 timeslot）。按月份时间窗查询会话，统计可订/已满/未配员
+        // Additionally: session-level aggregation (independent of time slots). Query sessions within the monthly window and count bookable/full/unstaffed
         LocalDateTime rangeStart = startDate.atStartOfDay();
         LocalDateTime rangeEnd = endDate.atTime(23,59,59);
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, rangeStart, rangeEnd);
@@ -157,7 +157,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
                 dateInfo.setUnstaffedSessions(0);
                 result.put(key, dateInfo);
             }
-            // 计算会话级三态
+            // Compute session-level tri-state
             boolean published = s.getIsPublishedToStudent() == null ? true : s.getIsPublishedToStudent();
             List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
             boolean staffed = examiners != null && !examiners.isEmpty();
@@ -194,13 +194,13 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             throw new BusinessException(BusinessError.SESSION_CONFIG_NOT_FOUND);
         }
 
-        // 1) assignment 必须已存在至少一个 venue
+        // 1) The assignment must have at least one venue
         List<Venue> venuesOfAssignment = venueMapper.listByAssignmentId(assignmentId);
         if (venuesOfAssignment == null || venuesOfAssignment.isEmpty()) {
             throw new BusinessException(BusinessError.ASSIGNMENT_HAS_NO_VENUE);
         }
 
-        // 2) 如果该 assignment 下已有任何 time slot，先全部删除，再用本次请求替换
+        // 2) If the assignment already has any time slots, delete all and replace with this request
         List<TimeSlot> existing = timeSlotMapper.listByAssignment(assignmentId);
         if (existing != null && !existing.isEmpty()) {
             List<Long> toDeleteIds = new ArrayList<>();
@@ -215,7 +215,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         
         for (TimeSlotRequestDTO timeSlotRequest : request.getTimeSlots()) {
             try {
-                // 3) 校验传入的 venueId 必须存在，且归属于该 assignment
+                // 3) Validate that the provided venueId exists and belongs to the assignment
                 Venue v = venueMapper.selectById(timeSlotRequest.getVenueId());
                 if (v == null) {
                     throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
@@ -274,7 +274,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         }
         ensureAssignmentNotReleased(existingSlot.getAssignmentId());
 
-        // 1) 校验 venueId 必须存在且属于该 assignment
+        // 1) Validate venueId exists and belongs to the assignment
         Venue v = venueMapper.selectById(request.getVenueId());
         if (v == null) {
             throw new BusinessException(BusinessError.VENUE_NOT_FOUND);
@@ -307,7 +307,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         
         timeSlotMapper.updateById(existingSlot);
 
-        // 删除该 slot 的全部旧 sessions，并记录被删除的会话用于响应
+        // Delete all old sessions of this slot and record the deleted sessions for the response
         List<SlotSession> oldSessions = slotSessionMapper.findBySlotId(timeSlotId);
         List<SessionDetailDTO> deleted = new ArrayList<>();
         if (!CollectionUtils.isEmpty(oldSessions)) {
@@ -317,18 +317,18 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             slotSessionMapper.deleteBySlotId(timeSlotId);
         }
 
-        // 按请求的 sessionCount 重新生成 sessions
+        // Regenerate sessions according to the requested sessionCount
         generateSessions(existingSlot, request.getSessionCount());
 
-        // 若提供 assignExaminerIds，则进行替换式分配（先清空后重建）
+        // If assignExaminerIds are provided, perform replace-style assignment (clear existing then rebuild)
         if (request.getAssignExaminerIds() != null) {
-            // 清空原有分配
+            // Clear existing assignments
             timeSlotExaminersMapper.delete(
                 new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<TimeSlotExaminer>()
                     .eq("slot_id", timeSlotId));
 
             if (!request.getAssignExaminerIds().isEmpty()) {
-                // 不得超出 requiredExaminers 限制
+                // Must not exceed the requiredExaminers limit
                 Integer required = existingSlot.getRequiredExaminers();
                 if (required != null && required > 0 && request.getAssignExaminerIds().size() > required) {
                     throw new BusinessException(BusinessError.EXCEEDS_REQUIRED_EXAMINERS);
@@ -351,14 +351,14 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             }
         }
 
-        // 统一在最后根据最新数据更新计数与状态（避免上面分支未覆盖的情况，如仅修改 requiredExaminers）
+        // Finally, update counters and status based on the latest data (covers cases like only modifying requiredExaminers)
         java.util.List<Long> assignedIds = timeSlotExaminersMapper.listExaminerIdsBySlot(timeSlotId);
         int currentExaminers = assignedIds == null ? 0 : assignedIds.size();
         int booked = slotSessionMapper.countBookedBySlot(timeSlotId);
         timeSlotMapper.updateCountersAndStatus(timeSlotId, currentExaminers, booked);
 
         UpdateTimeSlotResponseDTO response = new UpdateTimeSlotResponseDTO();
-        // 返回最新数据，避免使用内存旧对象导致的 status 等字段不一致
+        // Return the latest data to avoid inconsistencies (e.g., status) caused by stale in-memory objects
         TimeSlot latest = timeSlotMapper.selectById(timeSlotId);
         response.setTimeSlot(convertToDetailDTO(latest));
         response.setDeletedSessions(deleted);
@@ -467,7 +467,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         // Use the smaller of requested count and maximum possible
         int actualSessionCount = (int) Math.min(sessionCount, maxPossibleSessions);
         
-        // 将实际生成的场次数写回 slot 并持久化，保证数据库中为 min(请求值, 可容纳最大值)
+        // Write back the actual generated session count to the slot and persist it, ensuring DB value is min(requested, maximum possible)
         timeSlot.setSessionCount(actualSessionCount);
         timeSlotMapper.updateById(timeSlot);
 
@@ -525,8 +525,8 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
 
         // Overlap check
         LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
-        // End time: 根据 session 配置/请求的 sessionCount 由 generateSessions 负责写回 sessionCount 与生成场次；此处仅做窗口冲突使用 request 的 date+start/end(估算)
-        // 估算 endAt 使用 config 中 sessionLength+gap 近似: sessionCount * (sessionLength+gap) - gap
+        // End time: sessionCount updates and session generation are handled by generateSessions; here we only estimate the time window for overlap detection using request's date+start/end
+        // Estimate endAt using sessionLength+gap: sessionCount * (sessionLength + gap) - gap
         int sessionLengthMin = config.getSessionLengthMin();
         int gapTimeMin = config.getGapTimeMin();
         int blocks = Math.max(1, request.getSessionCount());
@@ -619,7 +619,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
         dto.setStartTime(timeSlot.getStartAt().toLocalTime());
         dto.setEndTime(timeSlot.getEndAt().toLocalTime());
         dto.setVenueId(timeSlot.getVenueId());
-        // 填充场地名称
+        // Populate venue name
         try {
             Venue v = venueMapper.selectById(timeSlot.getVenueId());
             if (v != null) {
@@ -704,7 +704,7 @@ public class TimeSlotServiceImpl extends ServiceImpl<TimeSlotMapper, TimeSlot> i
             return;
         }
         
-        // Create examiner assignments(分配) for the new slot
+        // Create examiner assignments for the new slot
         List<TimeSlotExaminer> newAssignments = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
         // TODO: Get current operator ID from security context

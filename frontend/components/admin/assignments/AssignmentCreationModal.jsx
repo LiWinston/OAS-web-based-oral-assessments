@@ -367,7 +367,7 @@ export function AssignmentCreationModal({
       } catch (error) {
         console.error("CSV upload error:", error);
 
-        // 检测格式错误
+        // Detect format errors
         const isFormatError =
           error.code === "2002" ||
           error.data === "CSV header does not match expected format" ||
@@ -413,7 +413,7 @@ export function AssignmentCreationModal({
       } catch (error) {
         console.error("Examiner CSV upload error:", error);
 
-        // 检测格式错误
+        // Detect format errors
         const isFormatError =
           error.code === "2002" ||
           error.data === "CSV header does not match expected format" ||

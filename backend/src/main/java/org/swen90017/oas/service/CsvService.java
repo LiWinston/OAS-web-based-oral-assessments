@@ -17,7 +17,7 @@ public interface CsvService {
     <T,R> List<T> importCsv(InputStream inputStream, String type) throws IOException;
     
     /**
-     * 构建邀请原因描述
+     * Build invitation reason description
      */
     String buildInviteReason(Long assignmentId);
 }

@@ -23,7 +23,7 @@
           AND examiner_id = #{examinerId}
     </delete>
 
-    <!-- 查找某考官与给定时间窗冲突的 session（会话级冲突校验） -->
+    <!-- Find sessions that conflict with the given time window for an examiner (session-level conflict check) -->
     <select id="findConflictedSessionsForExaminer" resultType="long">
         SELECT ss.session_id
         FROM session_examiners se
@@ -40,7 +40,7 @@
           AND se.examiner_id = #{examinerId}
     </select>
     
-    <!-- 查询考官被分配的sessions，可选按assignmentId过滤 -->
+    <!-- List sessions assigned to an examiner, optionally filtered by assignmentId -->
     <select id="listSessionsByExaminer" resultType="org.swen90017.oas.entity.SlotSession">
         SELECT ss.*
         FROM session_examiners se

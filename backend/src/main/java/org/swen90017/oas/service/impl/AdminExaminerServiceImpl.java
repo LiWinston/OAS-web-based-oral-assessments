@@ -72,20 +72,20 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
             dto.setId(u.getUserId());
             dto.setName(u.getUserName());
             dto.setEmail(u.getEmail());
-            // 个性化上限优先，否则用默认
+            // Personalized limit takes precedence; otherwise use default
             ExaminerAssignmentLimit lim = limitMapper.findByExaminerAndAssignment(u.getUserId(), assignmentId);
             int max = (lim != null && lim.getMaxSessions() != null) ? lim.getMaxSessions() : defaultMax;
             dto.setMaxSessions(max);
-            // 当前任务已分配的 session 总数（基于 session_examiners 按 assignment 统计）
+            // Total number of sessions assigned for this assignment (count via session_examiners by assignment)
             int assigned = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, u.getUserId());
             dto.setCurrentAssignments(assigned);
-            // 冲突检测：若提供 timeSlotId，则检查 examiner 在该时段是否与已分配 slot 冲突
+            // Conflict check: if timeSlotId is provided, check conflicts with already assigned slots within that time window
             boolean hasConflict = false;
             if (slotStart != null && slotEnd != null) {
                 List<Long> conflicted = tseMapper.findConflictedSlotsForExaminer(u.getUserId(), slotStart, slotEnd);
                 hasConflict = conflicted != null && !conflicted.isEmpty();
             }
-            // 可用性：需同时满足容量与无冲突
+            // Availability: must satisfy capacity and have no conflicts
             String availability = (max == 0 || assigned < max) && !hasConflict ? "available" : "unavailable";
             dto.setAvailability(availability);
             list.add(dto);
@@ -102,17 +102,17 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
     @Override
     @Transactional
     public TimeSlotDetailDTO assignExaminersToSlot(Long assignmentId, Long timeSlotId, AssignExaminersRequestDTO request) {
-        // 校验 slot 属于该 assignment
+        // Validate that the slot belongs to the assignment
         TimeSlot slot = timeSlotMapper.selectById(timeSlotId);
         if (slot == null || !slot.getAssignmentId().equals(assignmentId)) {
             throw new BusinessException(BusinessError.TIME_SLOT_NOT_FOUND);
         }
-        // Released 后不允许调整分配
+        // Disallow assignment changes after Released
         if (Boolean.TRUE.equals(assignmentMapper.isReleased(assignmentId))) {
             throw new BusinessException(CommonError.FORBIDDEN);
         }
 
-        // 读取已分配考官，准备增量插入列表（去重并排除已存在）
+        // Read already assigned examiners and prepare incremental insert list (dedupe and exclude existing)
         List<Long> alreadyAssigned = tseMapper.listExaminerIdsBySlot(timeSlotId);
         Set<Long> uniqueIds = new HashSet<>(request.getExaminerIds());
         Set<Long> toInsertIds = new HashSet<>();
@@ -126,7 +126,7 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
             }
         }
 
-        // 校验不得超过 requiredExaminers 上限
+        // Validate that we do not exceed requiredExaminers limit
         int currentCount = alreadyAssigned == null ? 0 : alreadyAssigned.size();
         int finalCount = currentCount + toInsertIds.size();
         if (slot.getRequiredExaminers() != null && finalCount > slot.getRequiredExaminers()) {
@@ -135,7 +135,7 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
 
         List<TimeSlotExaminer> rows = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
-        Long operatorId = null; // 可从登录上下文获取
+        Long operatorId = null; // Can be obtained from login context
         for (Long examinerId : toInsertIds) {
             TimeSlotExaminer e = new TimeSlotExaminer();
             e.setSlotId(timeSlotId);
@@ -148,13 +148,13 @@ public class AdminExaminerServiceImpl implements AdminExaminerService {
             tseMapper.batchInsert(rows);
         }
 
-        // 更新 slot 的 currentExaminers 与状态
+        // Update slot's currentExaminers and status
         List<Long> assignedIds = tseMapper.listExaminerIdsBySlot(timeSlotId);
         int currentExaminers = assignedIds == null ? 0 : assignedIds.size();
         int booked = slotSessionMapper.countBookedBySlot(timeSlotId);
         timeSlotMapper.updateCountersAndStatus(timeSlotId, currentExaminers, booked);
 
-        // 返回最新详情（包含 sessions 与已分配考官）
+        // Return latest detail (including sessions and assigned examiners)
         TimeSlot refreshed = timeSlotMapper.selectById(timeSlotId);
         return buildTimeSlotDetail(refreshed);
     }

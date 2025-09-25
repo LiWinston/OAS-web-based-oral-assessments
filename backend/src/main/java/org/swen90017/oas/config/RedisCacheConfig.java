@@ -37,28 +37,28 @@ public class RedisCacheConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(redisConnectionFactory);
 
-        // 创建Jackson2JsonRedisSerializer
+        // Create Jackson2JsonRedisSerializer
         Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<>(
                 Object.class);
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
 
-        // 修改类型信息的序列化方式
+        // Configure type info serialization strategy
         objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL,
-                JsonTypeInfo.As.PROPERTY // 使用属性方式而不是数组
+                JsonTypeInfo.As.PROPERTY // Use property mode rather than array
         );
 
-        // 注册JavaTimeModule以支持Java 8日期/时间类型
+        // Register JavaTimeModule to support Java 8 date/time types
         objectMapper.registerModule(new JavaTimeModule());
         jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
 
-        // 设置key和value的序列化规则
+        // Set key/value serialization rules
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(jackson2JsonRedisSerializer);
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(jackson2JsonRedisSerializer);
 
-        // 初始化RedisTemplate
+        // Initialize RedisTemplate
         template.afterPropertiesSet();
 
         return template;
@@ -74,7 +74,7 @@ public class RedisCacheConfig {
         cacheObjectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         cacheObjectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, 
             ObjectMapper.DefaultTyping.NON_FINAL, JsonTypeInfo.As.PROPERTY);
-        // 重要：为缓存的ObjectMapper也注册JavaTimeModule
+        // Important: register JavaTimeModule for the cache ObjectMapper as well
         cacheObjectMapper.registerModule(new JavaTimeModule());
         
         // Create GenericJackson2JsonRedisSerializer with configured ObjectMapper

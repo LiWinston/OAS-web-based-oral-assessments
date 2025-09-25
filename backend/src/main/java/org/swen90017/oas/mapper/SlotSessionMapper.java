@@ -30,17 +30,17 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     List<SlotSession> findAvailableSessionsByAssignment(@Param("assignmentId") Long assignmentId);
     
     /**
-     * 按 assignment 列出所有 sessions（兼容阶段：通过 time_slots 关联）
+     * List all sessions by assignment (compatibility phase: joined via time_slots)
      */
     List<SlotSession> listSessionsByAssignment(@Param("assignmentId") Long assignmentId);
     
     /**
-     * 统计某作业下标记对学生发布但未配员的会话数（会话级发布校验）
+     * Count sessions under an assignment that are published to students but unstaffed (session-level publish validation)
      */
     int countUnstaffedPublishedSessions(@Param("assignmentId") Long assignmentId);
 
     /**
-     * 按日期范围查询 assignment 下 sessions（用于日历/学生视图）
+     * Query sessions under an assignment by date range (for calendar/student views)
      */
     List<SlotSession> listSessionsByAssignmentAndRange(@Param("assignmentId") Long assignmentId,
                                                        @Param("startAt") java.time.LocalDateTime startAt,
@@ -59,18 +59,18 @@ public interface SlotSessionMapper extends BaseMapper<SlotSession> {
     List<SlotSession> findActiveBookingsByStudent(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
     
     /**
-     * 检查学生是否已经为某个assignment预定过（包括个人预定和组预定）
+     * Check if a student has already booked an assignment (including individual and group bookings)
      */
     boolean hasStudentBookedAssignment(@Param("studentId") Long studentId, @Param("assignmentId") Long assignmentId);
     
     /**
-     * 检查组是否已经为某个assignment预定过
+     * Check if a group has already booked an assignment
      */
     boolean hasGroupBookedAssignment(@Param("groupId") Long groupId, @Param("assignmentId") Long assignmentId);
     
     /**
-     * 批量检查学生对多个assignment的预定状态（包括个人预定和组预定）
-     * 返回该学生已预定的assignment ID集合
+     * Batch check a student's booking status across multiple assignments (including individual and group bookings)
+     * Returns the set of assignment IDs the student has booked
      */
     List<Long> getStudentBookedAssignmentIds(@Param("studentId") Long studentId, @Param("assignmentIds") List<Long> assignmentIds);
 }

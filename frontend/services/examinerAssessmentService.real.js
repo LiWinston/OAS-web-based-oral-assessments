@@ -51,7 +51,7 @@ const examinerAssessmentServiceReal = {
    */
   async getAssessmentsPage(examinerId, filters = {}) {
     try {
-      // 简化 payload，只保留基本的分页参数
+      // Simplify payload: keep only basic pagination parameters
       const payload = {
         page: filters.page || 0,
         limit: filters.limit || 20
@@ -198,7 +198,7 @@ const examinerAssessmentServiceReal = {
       // Build session context in expected format
       const sessionContext = {
         submissionId: assessment.submissionId,
-        sessionId: assessment.sessionId || null, // 🔥 添加真实的sessionId，如果没有则为null
+        sessionId: assessment.sessionId || null, // Add real sessionId if available; otherwise null
         assignment: {
           id: assessment.assignmentId,
           name: rubricMeta.name || `Assignment ${assessment.assignmentId}`,

@@ -37,7 +37,7 @@ public class JwtAndJsonIntegrationTest {
                 .setSubject("testUser")
                 .claim("role", "USER")
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 3600 * 1000)) // 1 小时后过期
+                .setExpiration(new Date(System.currentTimeMillis() + 3600 * 1000)) // Expires in 1 hour
                 .signWith(key)
                 .compact();
 
@@ -55,7 +55,7 @@ public class JwtAndJsonIntegrationTest {
         assertEquals("USER", claims.get("role"));
     }
 
-    //  POJO for json test
+    // POJO for JSON test
     public static class Person {
         private String firstName;
         private String lastName;
@@ -68,7 +68,7 @@ public class JwtAndJsonIntegrationTest {
             this.lastName = lastName;
         }
 
-        // getter 和 setter
+        // Getters and setters
         public String getFirstName() {
             return firstName;
         }

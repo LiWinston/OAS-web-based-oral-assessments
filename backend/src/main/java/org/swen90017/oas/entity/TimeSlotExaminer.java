@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @TableName("time_slot_examiners")
 public class TimeSlotExaminer implements Serializable {
 
-    // MP 对联合主键没有内置注解，这里不标 @TableId，由 Mapper XML 负责 insert/delete
+    // MyBatis-Plus has no built-in composite key annotation; omit @TableId here and delegate insert/delete to Mapper XML
     private Long slotId;
     private Long examinerId;
 

@@ -132,7 +132,7 @@ class StudentGroupsService {
     const headers = { ...(extra.headers || {}) };
     const last = this.lastModifiedCache.get(key);
 
-    // Only attach If-Modified-Since for同源请求，避免跨域预检因CORS未允许该头而失败
+    // Only attach If-Modified-Since for same-origin requests to avoid CORS preflight failing when the header is not allowed
     let allowIMS = true;
     try {
       if (typeof window !== 'undefined') {

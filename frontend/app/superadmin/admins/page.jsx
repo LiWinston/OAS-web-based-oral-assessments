@@ -52,11 +52,11 @@ export default function AdminManagementPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState(null);
 
-  // 防抖搜索
+  // Debounced search
   const [debouncedSearchName, setDebouncedSearchName] = useState("");
   const [debouncedSearchEmail, setDebouncedSearchEmail] = useState("");
 
-  // 防抖搜索效果
+  // Debounced search effects
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchName(searchName);
@@ -73,7 +73,7 @@ export default function AdminManagementPage() {
     return () => clearTimeout(timer);
   }, [searchEmail]);
 
-  // 构建筛选参数
+  // Build filter parameters
   const buildFilters = useCallback(() => {
     const filters = {};
     
@@ -116,19 +116,19 @@ export default function AdminManagementPage() {
     loadAdminData();
   }, [currentPage, pageSize]);
 
-  // 当筛选条件改变时，重新加载数据
+  // Reload data when filters change
   useEffect(() => {
-    setCurrentPage(1); // 重置到第一页
+    setCurrentPage(1); // Reset to first page
     loadAdminData();
   }, [debouncedSearchName, debouncedSearchEmail, statusFilter, pageSize]);
 
-  // 处理分页变化
+  // Handle page change
   const handlePageChange = (newPage) => {
     console.log("🔄 Changing to page:", newPage);
     setCurrentPage(newPage);
   };
 
-  // 处理页面大小变化
+  // Handle page size change
   const handlePageSizeChange = (newPageSize) => {
     console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
     setPageSize(newPageSize);
@@ -138,13 +138,13 @@ export default function AdminManagementPage() {
     console.log("🔄 Triggering immediate data reload with new page size");
   };
 
-  // 清除所有筛选
+  // Clear all filters
   const clearAllFilters = () => {
     setSearchName("");
     setSearchEmail("");
     setStatusFilter("all");
     setCurrentPage(1);
-    // 不需要手动调用 loadAdminData，useEffect 会自动触发
+    // No need to call loadAdminData manually; useEffect will trigger
   };
 
 
@@ -168,7 +168,7 @@ export default function AdminManagementPage() {
       ) {
         setAdminData(response.data);
         
-        // 更新分页信息
+        // Update pagination
         if (response.data.pagination) {
           console.log("🔄 Updating pagination state:", response.data.pagination);
           setPagination(response.data.pagination);
@@ -215,7 +215,7 @@ export default function AdminManagementPage() {
     if (!emailRegex.test(email)) return false;
     
     const domain = email.split("@")[1];
-    // 接受所有以unimelb.edu.au结尾的域名（包括子域名）
+    // Accept all domains ending with unimelb.edu.au (including subdomains)
     return domain.endsWith("unimelb.edu.au");
   };
 
@@ -386,7 +386,7 @@ export default function AdminManagementPage() {
     }
   };
 
-  // 状态标准化函数：将后端的大写状态转换为前端的小写状态
+  // Normalize status: convert backend UPPERCASE to frontend lowercase
   const normalizeStatus = (status) => {
     if (!status) return "active";
     const normalized = status.toLowerCase();
@@ -403,7 +403,7 @@ export default function AdminManagementPage() {
       name: admin.name || "",
       email: admin.email || "",
       department: admin.department || "",
-      status: normalizedStatus, // 使用标准化后的状态
+      status: normalizedStatus, // Use normalized status
     });
     console.log("🔍 Set editData:", {
       name: admin.name || "",

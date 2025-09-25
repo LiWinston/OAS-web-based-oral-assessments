@@ -80,26 +80,26 @@ public class SessionServiceImpl implements SessionService {
             throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         }
 
-        // 身份校验：必须是考官角色
+        // Role validation: must be an examiner
         boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, java.util.Collections.singletonList(UserRole.EXAMINER.code()));
         if (!isExaminer) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
 
-        // 冲突校验
+        // Conflict validation
         List<Long> conflicts = sessionExaminerMapper.findConflictedSessionsForExaminer(
                 examinerId, session.getStartAt(), session.getEndAt());
         if (conflicts != null && !conflicts.isEmpty()) {
             throw new BusinessException("Examiner has time conflict");
         }
 
-        // 重复校验
+        // Duplicate validation
         List<Long> existing = sessionExaminerMapper.listExaminerIdsBySession(sessionId);
         if (existing != null && new HashSet<>(existing).contains(examinerId)) {
             return false;
         }
 
-        // 容量校验：已分配数量不能超过 requiredExaminers
+        // Capacity validation: assigned count must not exceed requiredExaminers
         Integer required = session.getRequiredExaminers();
         int currentAssigned = existing == null ? 0 : existing.size();
         if (required != null && required > 0 && currentAssigned >= required) {
@@ -135,7 +135,7 @@ public class SessionServiceImpl implements SessionService {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
         
-        // 1) 构建候选切片
+        // 1) Build candidate windows
         List<SlotSession> toInsert = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -154,7 +154,7 @@ public class SessionServiceImpl implements SessionService {
                 throw new BusinessException("Session end time is after assignment end date", "SESSION_AFTER_ASSIGNMENT_END");
             }
 
-            // 校验 venue 合法性（存在且属于 assignment）
+            // Validate venue: must exist and belong to the assignment
             if (w.getVenueId() != null) {
                 Venue v = venueMapper.selectById(w.getVenueId());
                 if (v == null) {
@@ -165,7 +165,7 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
 
-            // 简化：按 sessionCount 均分；若未提供则整个窗口作为 1 个会话
+            // Simplification: evenly split by sessionCount; if missing, treat the whole window as a single session
             int count = (w.getSessionCount() == null || w.getSessionCount() <= 0) ? 1 : w.getSessionCount();
             long totalMinutes = Duration.between(startAt, endAt).toMinutes();
             long per = Math.max(1, totalMinutes / count);
@@ -173,7 +173,7 @@ public class SessionServiceImpl implements SessionService {
             for (int i = 1; i <= count; i++) {
                 SlotSession s = new SlotSession();
                 s.setAssignmentId(assignmentId);
-                s.setSlotId(null); // 不再依赖 timeslot
+                s.setSlotId(null); // No longer depends on timeslot
                 s.setSessionNumber(i);
                 s.setStartAt(cursor);
                 LocalDateTime segEnd = (i == count) ? endAt : cursor.plusMinutes(per);
@@ -193,7 +193,7 @@ public class SessionServiceImpl implements SessionService {
                 cursor = segEnd;
             }
         }
-        // 2) 整批预校验：与 DB 重叠
+        // 2) Batch pre-check: overlap with DB
         for (SlotSession s : toInsert) {
             if (s.getVenueId() == null) continue;
             int overlap = slotSessionMapper.countVenueOverlap(assignmentId, s.getVenueId(), s.getStartAt(), s.getStartAt(), s.getEndAt(), null);
@@ -201,7 +201,7 @@ public class SessionServiceImpl implements SessionService {
                 throw new BusinessException(BusinessError.SESSION_CONFLICT);
             }
         }
-        // 3) 整批预校验：批内互相重叠（同 venue 同日）
+        // 3) Batch pre-check: within-batch overlap (same venue and same day)
         toInsert.sort(java.util.Comparator.comparing(SlotSession::getVenueId, java.util.Comparator.nullsLast(Long::compareTo))
                 .thenComparing(SlotSession::getStartAt));
         for (int i = 1; i < toInsert.size(); i++) {
@@ -259,7 +259,7 @@ public class SessionServiceImpl implements SessionService {
             }
         }
         
-        // 简化：按日期范围查询并在内存过滤 status/venue
+        // Simplification: query by date range and filter status/venue in memory
         LocalDateTime from = target == null ? null : target.atStartOfDay();
         LocalDateTime to = target == null ? null : target.atTime(23,59,59);
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
@@ -296,7 +296,7 @@ public class SessionServiceImpl implements SessionService {
             }
             it.setAssignedExaminers(assigned);
             
-            // 获取enrolled students和groups
+            // Fetch enrolled students and groups
             List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
             List<AdminSessionsListResponseDTO.EnrolledStudentDTO> enrolledStudents = new ArrayList<>();
             List<AdminSessionsListResponseDTO.EnrolledGroupDTO> enrolledGroups = new ArrayList<>();
@@ -318,7 +318,7 @@ public class SessionServiceImpl implements SessionService {
                         AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();
                         groupDTO.setId(group.getGroupId());
                         groupDTO.setName(group.getGroupName());
-                        // 获取组成员数量
+                        // Get group member count
                         Long memberCountLong = sysStudentGroupMapper.selectCount(
                             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<SysStudentGroup>()
                                 .eq("group_id", group.getGroupId())
@@ -340,7 +340,7 @@ public class SessionServiceImpl implements SessionService {
             it.setStatus(s.getStatus().name().toLowerCase());
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
-            // 基于 assignment.status 派生发布布尔位
+            // Derive publish flags based on assignment.status
             Assignment a = assignmentMapper.selectById(s.getAssignmentId());
             String st = a == null ? null : a.getStatus();
             boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
@@ -366,19 +366,19 @@ public class SessionServiceImpl implements SessionService {
 
     @Override
     public AdminSessionsListResponseDTO listExaminerSessions(Long examinerId, Long assignmentId, String date, String status, Long venueId) {
-        // 验证考官是否存在且具有EXAMINER角色
+        // Validate that the examiner exists and has EXAMINER role
         boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, Collections.singletonList(UserRole.EXAMINER.code()));
         if (!isExaminer) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_FOUND);
         }
         
-        // 验证assignment存在并获取assignment时间范围
+        // Validate assignment exists and get its time range
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
         
-        // 检查请求的日期是否在assignment时间范围内
+        // Check whether the requested date falls within the assignment time range
         LocalDate target = (date == null || date.isEmpty()) ? null : LocalDate.parse(date);
         if (target != null) {
             LocalDate assignmentStartDate = assignment.getStartDate() != null ? assignment.getStartDate().toLocalDate() : null;
@@ -413,7 +413,7 @@ public class SessionServiceImpl implements SessionService {
             }
         }
         
-        // 获取该考官参与的sessions
+        // Fetch sessions the examiner participates in
         List<SlotSession> examinerSessions = sessionExaminerMapper.listSessionsByExaminer(examinerId, assignmentId);
         
         AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
@@ -421,7 +421,7 @@ public class SessionServiceImpl implements SessionService {
         int fully = 0, partial = 0, un = 0;
         
         for (SlotSession s : examinerSessions) {
-            // 应用过滤条件
+            // Apply filters
             if (target != null && !s.getStartAt().toLocalDate().equals(target)) continue;
             if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
             if (status != null && !status.isEmpty() && !s.getStatus().name().equalsIgnoreCase(status)) continue;
@@ -456,7 +456,7 @@ public class SessionServiceImpl implements SessionService {
             }
             it.setAssignedExaminers(assigned);
             
-            // 获取enrolled students和groups
+            // Fetch enrolled students and groups
             List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
             List<AdminSessionsListResponseDTO.EnrolledStudentDTO> enrolledStudents = new ArrayList<>();
             List<AdminSessionsListResponseDTO.EnrolledGroupDTO> enrolledGroups = new ArrayList<>();
@@ -478,7 +478,7 @@ public class SessionServiceImpl implements SessionService {
                         AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();
                         groupDTO.setId(group.getGroupId());
                         groupDTO.setName(group.getGroupName());
-                        // 获取组成员数量
+                        // Get group member count
                         Long memberCountLong = sysStudentGroupMapper.selectCount(
                             new com.baomidou.mybatisplus.core.conditions.query.QueryWrapper<SysStudentGroup>()
                                 .eq("group_id", group.getGroupId())
@@ -501,7 +501,7 @@ public class SessionServiceImpl implements SessionService {
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
             
-            // 基于assignment.status派生发布布尔位
+            // Derive publish flags based on assignment.status
             String st = assignment.getStatus();
             boolean toExaminer = "IN_PROGRESS".equalsIgnoreCase(st) || "RELEASED".equalsIgnoreCase(st);
             boolean toStudent = "RELEASED".equalsIgnoreCase(st);
@@ -510,7 +510,7 @@ public class SessionServiceImpl implements SessionService {
             
             items.add(it);
             
-            // 计算统计信息
+            // Compute statistics
             int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
             int cur = examinerIds == null ? 0 : examinerIds.size();
             if (cur == 0) un++; 
@@ -539,7 +539,7 @@ public class SessionServiceImpl implements SessionService {
         LocalDateTime startAt = request.getDate().atTime(request.getStartTime());
         LocalDateTime endAt = request.getDate().atTime(request.getEndTime());
         if (!endAt.isAfter(startAt)) throw new BusinessException(BusinessError.INVALID_PARAM);
-        // 校验场地：存在且属于该 assignment
+        // Validate venue: must exist and belong to the assignment
         if (request.getVenueId() != null) {
             Venue v = venueMapper.selectById(request.getVenueId());
             if (v == null) {
@@ -573,7 +573,7 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public Map<String, Object> deleteSessions(Long assignmentId, List<Long> sessionIds) {
         if (sessionIds == null || sessionIds.isEmpty()) throw new BusinessException(BusinessError.INVALID_PARAM);
-        // 存在性校验 + 预订占用校验
+        // Existence check + booking occupancy check
         List<Long> blocked = new ArrayList<>();
         for (Long id : sessionIds) {
             SlotSession s = slotSessionMapper.selectById(id);
@@ -586,7 +586,7 @@ public class SessionServiceImpl implements SessionService {
         }
         int deleted = 0;
         for (Long id : sessionIds) {
-            // 级联删除交由外键或先删关联
+            // Cascade deletion handled by foreign keys, or delete relations first
             sessionExaminerMapper.delete(new QueryWrapper<SessionExaminer>().eq("session_id", id));
             deleted += slotSessionMapper.deleteById(id);
         }
@@ -604,7 +604,7 @@ public class SessionServiceImpl implements SessionService {
         String action = request.getAction() == null ? "" : request.getAction().toLowerCase();
         if (! Arrays.asList("add","remove","set").contains(action)) throw new BusinessException(BusinessError.INVALID_PARAM);
 
-        // 读取所有目标会话
+        // Read all target sessions
         List<SlotSession> sessions = new ArrayList<>();
         for (Long sid : request.getSessionIds()) {
             SlotSession s = slotSessionMapper.selectById(sid);
@@ -612,7 +612,7 @@ public class SessionServiceImpl implements SessionService {
             sessions.add(s);
         }
 
-        // 统一校验：examinerId 必须为考官角色
+        // Unified validation: examinerId must be an examiner role
         for (Long examinerId : request.getExaminerIds()) {
             boolean isExaminer = sysUserMapper.existsUserWithRoles(examinerId, java.util.Collections.singletonList(UserRole.EXAMINER.code()));
             if (!isExaminer) {
@@ -620,11 +620,11 @@ public class SessionServiceImpl implements SessionService {
             }
         }
 
-        // 校验：时间冲突与上限（仅对 add/set 生效）。set 操作忽略与自身目标会话的“伪冲突”。
+        // Validate: time conflicts and limits (only for add/set). For set, ignore pseudo-conflicts with target sessions themselves.
         if (action.equals("add") || action.equals("set")) {
             Set<Long> targetSessionIds = new HashSet<>(request.getSessionIds());
             for (Long examinerId : request.getExaminerIds()) {
-                // 上限校验（若配置了个性化上限）
+                // Limit validation (if personalized limit configured)
                 ExaminerAssignmentLimit lim = limitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
                 Integer maxSessions = lim == null ? null : lim.getMaxSessions();
                 if (maxSessions != null && maxSessions > 0) {
@@ -644,7 +644,7 @@ public class SessionServiceImpl implements SessionService {
                     List<Long> conflicted = sessionExaminerMapper.findConflictedSessionsForExaminer(examinerId, s.getStartAt(), s.getEndAt());
                     if (conflicted != null && !conflicted.isEmpty()) {
                         if (action.equals("set")) {
-                            // 过滤掉与本次 set 的目标会话相同的冲突记录
+                            // Filter out conflicts that are exactly the target sessions in this set operation
                             boolean hasRealConflict = false;
                             for (Long cid : conflicted) {
                                 if (!targetSessionIds.contains(cid)) { hasRealConflict = true; break; }
@@ -658,9 +658,9 @@ public class SessionServiceImpl implements SessionService {
             }
         }
 
-        // 执行
+        // Execute
         if (action.equals("set")) {
-            // 先清空后添加
+            // Clear first, then add
             for (SlotSession s : sessions) {
                 sessionExaminerMapper.delete(new QueryWrapper<SessionExaminer>().eq("session_id", s.getSessionId()));
             }
@@ -701,7 +701,7 @@ public class SessionServiceImpl implements SessionService {
         SlotSession s = slotSessionMapper.selectById(sessionId);
         if (s == null) throw new BusinessException(BusinessError.SESSION_NOT_FOUND);
         if (value) {
-            // 需要满足会话规定的考官人数（cur >= requiredExaminers，若未配置则按 1）
+            // Must satisfy required examiners for the session (cur >= requiredExaminers; default 1 if not set)
             List<Long> examiners = sessionExaminerMapper.listExaminerIdsBySession(sessionId);
             int cur = examiners == null ? 0 : examiners.size();
             int req = (s.getRequiredExaminers() == null || s.getRequiredExaminers() <= 0) ? 1 : s.getRequiredExaminers();
@@ -717,13 +717,13 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean publishAssignmentToExaminer(Long assignmentId, boolean value) {
-        // 要求：发布给考官前必须配置 examiner limit（默认上限）；若未配置则拒绝
+        // Requirement: before publishing to examiners, an examiner limit (default max) must be configured; otherwise reject
         if (value) {
             AssignmentSessionConfig cfg = sessionConfigMapper.selectById(assignmentId);
             if (cfg == null || cfg.getDefaultMaxSessionsPerExaminer() == null) {
                 throw new BusinessException(BusinessError.EXAMINER_LIMIT_NOT_SET);
             }
-            // 总容量校验：仅统计“已设置个人上限”的考官上限之和，需要 >= 全部 sessions 的 requiredExaminers 之和
+            // Total capacity validation: sum of personalized max limits must be >= sum of requiredExaminers across all sessions
             List<SlotSession> allSessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
             int totalRequired = 0;
             if (allSessions != null) {
@@ -733,7 +733,7 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             int sumLimits = 0;
-            // 仅统计已设置个性化上限的考官，直接读取 examiner_assignment_limit 表
+            // Count only examiners with personalized limits by reading examiner_assignment_limit table
             List<ExaminerAssignmentLimit> limits = limitMapper.selectList(
                     new QueryWrapper<ExaminerAssignmentLimit>()
                             .eq("assignment_id", assignmentId)
@@ -751,7 +751,7 @@ public class SessionServiceImpl implements SessionService {
                 throw new BusinessException(BusinessError.TOTAL_EXAMINER_CAPACITY_INSUFFICIENT);
             }
         }
-        // 更新 assignment.status：true -> IN_PROGRESS；false -> PENDING
+        // Update assignment.status: true -> IN_PROGRESS; false -> PENDING
         Assignment a = assignmentMapper.selectById(assignmentId);
         if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         a.setStatus(value ? "IN_PROGRESS" : "PENDING");
@@ -762,8 +762,8 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean publishAssignmentToStudent(Long assignmentId, boolean value) {
-        // 发布给学生：true -> 校验所有 sessions 已配员；然后 assignment.status=RELEASED 且 isReleased=true, releasedAt=now
-        // 取消发布：assignment.status=IN_PROGRESS, isReleased=false
+        // Publish to students: true -> validate all sessions are staffed; then assignment.status=RELEASED and isReleased=true, releasedAt=now
+        // Unpublish: assignment.status=IN_PROGRESS, isReleased=false
         org.swen90017.oas.entity.Assignment a = assignmentMapper.selectById(assignmentId);
         if (a == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         if (value) {
@@ -780,16 +780,16 @@ public class SessionServiceImpl implements SessionService {
             a.setIsReleased(Boolean.TRUE);
             a.setReleasedAt(LocalDateTime.now());
             
-            // 发布给学生时的额外操作：
-            // 1. 更新 assignment_participant 表中学生的 if_join 为 1
-            // 2. 发送课程加入通知邮件给学生
+            // Additional operations when publishing to students:
+            // 1) Update students' if_join in assignment_participant to 1
+            // 2) Send course-join notification email to students
             updateStudentParticipationAndSendNotification(assignmentId);
         } else {
             a.setStatus("IN_PROGRESS");
             a.setIsReleased(Boolean.FALSE);
             a.setReleasedAt(null);
             
-            // 取消发布时，将学生的 if_join 改回 0
+            // When unpublishing, set students' if_join back to 0
             updateStudentParticipationStatus(assignmentId, 0);
         }
         a.setUpdateTime(LocalDateTime.now());
@@ -807,7 +807,7 @@ public class SessionServiceImpl implements SessionService {
             String key = s.getStartAt().toLocalDate().toString();
             CalendarResponseDTO.DateInfoDTO di = map.computeIfAbsent(key, k -> new CalendarResponseDTO.DateInfoDTO());
             di.setSessions((di.getSessions() == null ? 0 : di.getSessions()) + 1);
-            // staffing 状态
+            // Staffing status
             List<Long> ex = sessionExaminerMapper.listExaminerIdsBySession(s.getSessionId());
             int cur = ex == null ? 0 : ex.size();
             int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
@@ -818,7 +818,7 @@ public class SessionServiceImpl implements SessionService {
             } else {
                 di.setNoStaffed((di.getNoStaffed() == null ? 0 : di.getNoStaffed()) + 1);
             }
-            // bookable/full 统计（基于容量）
+            // Bookable/full statistics (based on capacity)
             int cap = s.getCapacityGroups() == null ? 1 : s.getCapacityGroups();
             int booked = s.getEnrolledGroups() == null ? 0 : s.getEnrolledGroups();
             if (booked >= cap) {
@@ -827,7 +827,7 @@ public class SessionServiceImpl implements SessionService {
                 di.setBookableSessions((di.getBookableSessions() == null ? 0 : di.getBookableSessions()) + 1);
             }
 
-            // items 明细
+            // Items details
             List<CalendarResponseDTO.CalendarItem> items = di.getItems();
             if (items == null) {
                 items = new java.util.ArrayList<>();
@@ -878,15 +878,15 @@ public class SessionServiceImpl implements SessionService {
     }
     
     /**
-     * 发布给学生时：更新学生的 if_join 状态并发送邮件通知
+     * On publishing to students: update students' if_join status and send notification emails
      */
     private void updateStudentParticipationAndSendNotification(Long assignmentId) {
         log.info("Start post-release operations for assignment {} to students", assignmentId);
         
-        // 1. 更新学生的 if_join 状态为 1
+        // 1) Update students' if_join status to 1
         updateStudentParticipationStatus(assignmentId, 1);
         
-        // 2. 获取作业和课程信息
+        // 2) Fetch assignment and course information
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
             log.warn("Assignment not found. assignmentId: {}", assignmentId);
@@ -897,11 +897,11 @@ public class SessionServiceImpl implements SessionService {
         String courseName = subject != null ? subject.getSubjectName() : null;
         String assignmentName = assignment.getName();
         
-        // 3. 查询该作业的所有学生参与者
+        // 3) Query all student participants of this assignment
         QueryWrapper<AssignmentParticipant> wrapper = new QueryWrapper<>();
         wrapper.eq("assignment_id", assignmentId)
                .eq("role_id", UserRole.STUDENT.sort())
-               .eq("if_join", 1); // 只查询 if_join = 1 的学生
+               .eq("if_join", 1); // Only query students with if_join = 1
         List<AssignmentParticipant> studentParticipants = assignmentParticipantMapper.selectList(wrapper);
         
         if (studentParticipants.isEmpty()) {
@@ -909,14 +909,14 @@ public class SessionServiceImpl implements SessionService {
             return;
         }
         
-        // 4. 获取学生用户信息
+        // 4) Fetch user information for these students
         List<Long> userIds = studentParticipants.stream()
                 .map(AssignmentParticipant::getUserId)
                 .collect(java.util.stream.Collectors.toList());
         
         List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
         
-        // 5. 筛选出已注册的用户
+        // 5) Filter registered users
         List<SysUser> registeredUsers = users.stream()
                 .filter(user -> UserStatus.ACTIVE.code().equals(user.getStatus()) 
                         && RegistrationStatus.REGISTERED.code().equals(user.getRegistrationStatus()))
@@ -924,7 +924,7 @@ public class SessionServiceImpl implements SessionService {
         
         log.info("Preparing to send release notifications to {} registered students", registeredUsers.size());
         
-        // 6. 发送邮件通知
+        // 6) Send notification emails
         if (!registeredUsers.isEmpty()) {
             emailService.sendCourseJoinNotification(registeredUsers, courseName, assignmentName);
             log.info("Release notifications sent to students successfully");
@@ -932,12 +932,12 @@ public class SessionServiceImpl implements SessionService {
     }
     
     /**
-     * 更新学生的 if_join 状态
+     * Update students' if_join status
      */
     private void updateStudentParticipationStatus(Long assignmentId, int ifJoinValue) {
         log.info("Updating students' if_join status to {} for assignment {}", ifJoinValue, assignmentId);
         
-        // 执行更新：只更新学生角色的记录
+        // Perform updates: only update records for student role
         QueryWrapper<AssignmentParticipant> updateWrapper = new QueryWrapper<>();
         updateWrapper.eq("assignment_id", assignmentId)
                     .eq("role_id", UserRole.STUDENT.sort());

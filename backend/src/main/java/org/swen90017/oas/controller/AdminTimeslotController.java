@@ -106,7 +106,7 @@ public class AdminTimeslotController {
             @Parameter(description = "Target month in YYYY-MM format") @RequestParam String month) {
         YearMonth ym = YearMonth.parse(month);
         CalendarResponseDTO dto = timeSlotService.getCalendarData(assignmentId, ym);
-        // month 在 service 中用 YearMonth.toString() 生成为 YYYY-MM，为保持一致也覆盖一下
+        // month is generated in service via YearMonth.toString() as YYYY-MM; set explicitly here for consistency
         dto.setMonth(month);
 
         return Result.success(dto);

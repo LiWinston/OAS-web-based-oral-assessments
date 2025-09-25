@@ -18,7 +18,7 @@ export default function CoursesPage() {
   const [viewMode, setViewMode] = useState("card"); // 'table' or 'card'
   const [searchTerm, setSearchTerm] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState(""); // 默认显示所有课程
+  const [statusFilter, setStatusFilter] = useState(""); // Default to show all courses
   const [showWelcomeAnimation, setShowWelcomeAnimation] = useState(true);
   const [availableYears, setAvailableYears] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -56,11 +56,11 @@ export default function CoursesPage() {
 
       let result;
       if (viewMode === 'table') {
-        // 分页查询
+        // Paginated query
         console.log('Fetching page:', page, 'with filters:', filters);
         result = await courseService.getCoursesPaginated(page, pageSize, filters);
       } else {
-        // 获取所有数据
+        // Fetch all data
         result = await courseService.getAllCourses(filters);
       }
 
@@ -68,7 +68,7 @@ export default function CoursesPage() {
       
       if (result.success) {
         const { data } = result;
-        // 如果是表格视图，使用传入的页码，否则使用默认值
+        // If table view, use the provided page number; otherwise use default
         const { 
           total = 0, 
           current = viewMode === 'table' ? page : 1, 
@@ -76,11 +76,11 @@ export default function CoursesPage() {
           size = pageSize 
         } = data;
         
-        // 更新分页信息
+        // Update pagination info
         setTotalCourses(total);
         setCurrentPage(current);
         
-        // 设置课程数据（确保是数组）
+        // Set course data (ensure array)
         const coursesList = Array.isArray(coursesData) ? coursesData : [];
         setCourses(coursesList);
       }
@@ -138,27 +138,27 @@ export default function CoursesPage() {
     }
   }, [user?.id]);
 
-  // 初始化统计数据 - 只依赖用户ID，不受筛选器影响
+  // Initialize stats - only depends on user ID, not filters
   useEffect(() => {
     if (user?.id) {
       fetchCourseStats();
     }
   }, [user?.id, fetchCourseStats]);
 
-  // 初始化和筛选条件变化时获取课程数据 - 不包含统计数据
+  // Fetch courses on init and when filters change - excluding stats
   useEffect(() => {
-    // 只有当用户数据加载完成后才开始获取课程
+    // Only fetch courses when user data is loaded
     if (user?.id) {
       fetchCourses(1);
     }
   }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id, fetchCourses]);
 
-  // 初始化 courseListRef
+  // Initialize courseListRef
   useEffect(() => {
     courseListRef.current = fetchCourses;
   }, [fetchCourses]);
 
-  // 初始化年份选项
+  // Initialize year options
   useEffect(() => {
     const years = generateYearRange();
     setAvailableYears(years);
@@ -186,7 +186,7 @@ export default function CoursesPage() {
     // Handle successful course creation
     console.log("Course created:", courseData);
     setIsModalOpen(false);
-    // 直接调用 fetchCourses 刷新数据
+    // Directly call fetchCourses to refresh
     await fetchCourses(1);
     
     // Refresh statistics to reflect the new course
@@ -218,11 +218,11 @@ export default function CoursesPage() {
     fetchCourseStats();
   };
 
-  // 生成固定范围的年份：当前年份+1年到7年前
+  // Generate a fixed year range: next year down to 7 years ago
   const generateYearRange = () => {
     const currentYear = new Date().getFullYear();
     const maxYear = currentYear + 1;
-    const minYear = currentYear - 6; // 7年前
+    const minYear = currentYear - 6; // 7 years ago
     const yearRange = [];
     
     for (let year = maxYear; year >= minYear; year--) {

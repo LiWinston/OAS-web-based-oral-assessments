@@ -6,7 +6,7 @@
   },
   "item": [
     {
-      "name": "1. 列出学生作业",
+      "name": "1. List student assignments",
       "request": {
         "method": "GET",
         "header": [
@@ -34,8 +34,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"返回应包含 assignmentId\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Response should contain assignmentId\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data.data[0]).to.have.property(\"assignmentId\");",
               "});"
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "name": "2. 获取作业可用性",
+      "name": "2. Get assignment availability",
       "request": {
         "method": "GET",
         "header": [
@@ -74,8 +74,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应包含 summary 字段\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should contain summary field\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"summary\");",
               "});"
@@ -86,7 +86,7 @@
       ]
     },
     {
-      "name": "3. 列出可预约场次",
+      "name": "3. List bookable sessions",
       "request": {
         "method": "GET",
         "header": [
@@ -114,7 +114,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"返回应包含 timeSlots\", () => {",
+              "pm.test(\"Response should contain timeSlots\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"timeSlots\");",
               "});"
@@ -125,7 +125,7 @@
       ]
     },
     {
-      "name": "4. 创建预约",
+      "name": "4. Create booking",
       "request": {
         "method": "POST",
         "header": [
@@ -162,7 +162,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"返回应包含 bookingId\", () => {",
+              "pm.test(\"Response should contain bookingId\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"bookingId\");",
               "});"
@@ -173,7 +173,7 @@
       ]
     },
     {
-      "name": "5. 获取当前预约",
+      "name": "5. Get current booking",
       "request": {
         "method": "GET",
         "header": [
@@ -203,7 +203,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 hasActiveBooking\", () => {",
+              "pm.test(\"Should return hasActiveBooking\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"hasActiveBooking\");",
               "});"
@@ -214,7 +214,7 @@
       ]
     },
     {
-      "name": "6. 改签预约",
+      "name": "6. Reschedule booking",
       "request": {
         "method": "POST",
         "header": [
@@ -253,7 +253,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"返回应包含 fromSessionId 和 toSessionId\", () => {",
+              "pm.test(\"Response should contain fromSessionId and toSessionId\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"fromSessionId\");",
               "  pm.expect(json.data).to.have.property(\"toSessionId\");",
@@ -265,7 +265,7 @@
       ]
     },
     {
-      "name": "7. 取消预约",
+      "name": "7. Cancel booking",
       "request": {
         "method": "DELETE",
         "header": [
@@ -294,7 +294,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 CANCELLED 状态\", () => {",
+              "pm.test(\"Should return CANCELLED status\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data.status).to.eql(\"CANCELLED\");",
               "});"
@@ -305,7 +305,7 @@
       ]
     },
     {
-      "name": "8. 获取小组信息",
+      "name": "8. Get group info",
       "request": {
         "method": "GET",
         "header": [
@@ -335,7 +335,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 groupId 和 members\", () => {",
+              "pm.test(\"Should return groupId and members\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"groupId\");",
               "  pm.expect(json.data).to.have.property(\"members\");",

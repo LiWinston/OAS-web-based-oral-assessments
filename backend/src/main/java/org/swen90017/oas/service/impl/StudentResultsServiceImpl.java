@@ -667,10 +667,10 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                 
             double normalizedScore = 0.0;
             if (matchedScore != null && matchedScore.getInputPoints() != null && matchedScore.getSelectedLevel() != null) {
-                // 统一处理：所有类型都需要inputPoints和selectedLevel
+                // Unified handling: all types require inputPoints and selectedLevel
                 normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
                 
-                // 验证inputPoints是否在selectedLevel区间内（用于日志记录）
+                // Validate whether inputPoints falls within the selectedLevel range (for logging)
                 Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
                 Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
                 Double inputPoints = matchedScore.getInputPoints();
@@ -681,7 +681,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                         inputPoints, startPoint, endPoint, rubricItem.getDescription());
                 }
             } else if (matchedScore != null && matchedScore.getSelectedLevel() != null) {
-                // 向后兼容：如果只有selectedLevel，使用区间中位数
+                // Backward compatibility: if only selectedLevel is present, use the midpoint of the range
                 Double startPoint = matchedScore.getSelectedLevel().getStartPoint();
                 Double endPoint = matchedScore.getSelectedLevel().getEndPoint();
                 if (startPoint != null && endPoint != null) {
@@ -693,7 +693,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                     normalizedScore = endPoint;
                 }
             } else if (matchedScore != null && matchedScore.getInputPoints() != null) {
-                // 向后兼容：如果只有inputPoints，直接使用
+                // Backward compatibility: if only inputPoints is present, use it directly
                 normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
                 log.debug("Using inputPoints only {} for {}", normalizedScore, rubricItem.getDescription());
             }
@@ -1070,7 +1070,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                 double normalizedScore = 0.0;
                 String explanation = "";
                 
-                // 统一处理：优先使用inputPoints和selectedLevel的组合
+                // Unified handling: prefer the combination of inputPoints and selectedLevel
                 if (score.getInputPoints() != null && score.getSelectedLevel() != null) {
                     normalizedScore = score.getInputPoints();
                     Double startPoint = score.getSelectedLevel().getStartPoint();
@@ -1085,11 +1085,11 @@ public class StudentResultsServiceImpl implements StudentResultsService {
                         explanation = String.format("InputPoints: %.1f", normalizedScore);
                     }
                 } else if (score.getInputPoints() != null) {
-                    // 向后兼容：只有inputPoints
+                    // Backward compatibility: only inputPoints is provided
                     normalizedScore = score.getInputPoints();
                     explanation = String.format("InputPoints only: %.1f", normalizedScore);
                 } else if (score.getSelectedLevel() != null) {
-                    // 向后兼容：只有selectedLevel，使用中位数
+                    // Backward compatibility: only selectedLevel is provided; use the midpoint
                     Double startPoint = score.getSelectedLevel().getStartPoint();
                     Double endPoint = score.getSelectedLevel().getEndPoint();
                     if (startPoint != null && endPoint != null) {

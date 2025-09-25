@@ -95,7 +95,7 @@ public class AdminSessionController {
         ResultBatchCreateSessionsResponseDTO dto = new ResultBatchCreateSessionsResponseDTO();
         dto.setCreatedCount(created);
 
-        // 汇总本次各 window 对应日期/场地下、时间落在窗口内的会话
+        // Aggregate sessions for each window on the same date/venue whose time falls within the window
         List<SessionDetailDTO> details = new ArrayList<>();
         for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : request.getWindows()) {
             AdminSessionsListResponseDTO day = sessionService.listAdminSessions(assignmentId, w.getDate().toString(), null, w.getVenueId());
@@ -124,7 +124,7 @@ public class AdminSessionController {
     public Result<ResultBatchCreateSessionsResponseDTO> generate(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @Valid @RequestBody GenerateSessionsRequestDTO request) {
-        // 将生成器参数转为 windows 后复用 batchCreateSessions
+        // Convert generator params into windows, then reuse batchCreateSessions
         List<BatchCreateSessionsRequestDTO.SessionWindowDTO> windows = new ArrayList<>();
         LocalDateTime cursor = request.getDate().atTime(request.getStartTime());
         for (int i = 0; i < request.getCount(); i++) {
@@ -144,7 +144,7 @@ public class AdminSessionController {
         org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO dto = new org.swen90017.oas.dto.response.ResultBatchCreateSessionsResponseDTO();
         dto.setCreatedCount(created);
 
-        // 返回刚生成的会话明细：基于生成的时间点过滤当日会话
+        // Return details of newly generated sessions: filter same-day sessions by generated start times
         Set<LocalTime> generatedStarts = new HashSet<>();
         for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : windows) {
             generatedStarts.add(w.getStartTime());

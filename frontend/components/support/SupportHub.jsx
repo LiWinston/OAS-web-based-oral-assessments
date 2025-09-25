@@ -99,7 +99,7 @@ export function SupportHub({ config }) {
 
     if (file.size > MAX_FILE_SIZE) {
       setAttachment(null);
-      setFileError('文件太大啦 (最大 5MB)，请压缩后再试试');
+      setFileError('The file is too large (max 5MB). Please compress and try again.');
       return;
     }
 
@@ -166,7 +166,7 @@ export function SupportHub({ config }) {
       const message =
         error?.response?.data?.message ||
         config?.form?.errorToast ||
-        '提交失败了，稍等片刻再试一下吧。';
+        'Submission failed. Please wait a moment and try again.';
       showNotification('error', message);
       setSubmissionState({ status: 'error', ticketId: '', submittedAt: '' });
     } finally {
@@ -317,7 +317,7 @@ export function SupportHub({ config }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="support-attachment">Attachment (可选)</Label>
+          <Label htmlFor="support-attachment">Attachment (optional)</Label>
           <div className="flex flex-col gap-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4 text-sm text-gray-600 hover:border-blue-400 hover:bg-blue-50/40 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
             <input
               id="support-attachment"
@@ -326,7 +326,7 @@ export function SupportHub({ config }) {
               onChange={handleFileChange}
             />
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              支持 PNG、JPG、PDF、CSV、DOCX 等常见文件，最大 5MB。
+              Supported file types: PNG, JPG, PDF, CSV, DOCX, etc. Max size 5MB.
             </span>
             {attachment && (
               <div className="flex items-center gap-2 rounded-md bg-white/70 px-3 py-2 text-xs text-gray-700 shadow-sm dark:bg-gray-900/40 dark:text-gray-200">
@@ -359,13 +359,13 @@ export function SupportHub({ config }) {
             className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <span>
-            同意开发团队联系我，必要时可访问相关日志和上下文信息，以便快速定位问题。
+            I agree the development team may contact me and access related logs/context if needed to diagnose quickly.
           </span>
         </label>
 
         {submissionState.status === 'error' && (
           <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-900/30 dark:text-red-100">
-            出现了一点问题，请稍后重试或使用旁边的联系方式直接发邮件给我们。
+            Something went wrong. Please try again later or contact us via the adjacent options.
           </div>
         )}
 
@@ -375,7 +375,7 @@ export function SupportHub({ config }) {
               className={`fas ${isSubmitting ? 'fa-circle-notch animate-spin' : 'fa-paper-plane'} mr-2`}
               aria-hidden="true"
             ></i>
-            {isSubmitting ? '发送中...' : config?.form?.submitLabel || 'Submit request'}
+            {isSubmitting ? 'Sending...' : config?.form?.submitLabel || 'Submit request'}
           </Button>
           <Button type="button" variant="ghost" onClick={resetForm} disabled={isSubmitting}>
             Clear form

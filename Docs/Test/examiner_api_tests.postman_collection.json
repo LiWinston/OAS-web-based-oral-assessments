@@ -6,7 +6,7 @@
   },
   "item": [
     {
-      "name": "1. 列出考官可参与的作业",
+      "name": "1. List assignments available to examiner",
       "request": {
         "method": "GET",
         "header": [
@@ -34,8 +34,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回 assignmentId\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return assignmentId\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data.data[0]).to.have.property(\"assignmentId\");",
               "});"
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "name": "2. 列出作业下的可选时段",
+      "name": "2. List selectable timeslots for assignment",
       "request": {
         "method": "GET",
         "header": [
@@ -74,8 +74,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回 timeSlots\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return timeSlots\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"timeSlots\");",
               "});"
@@ -86,7 +86,7 @@
       ]
     },
     {
-      "name": "3. 批量分配考官到时段",
+      "name": "3. Bulk assign examiner to timeslots",
       "request": {
         "method": "POST",
         "header": [
@@ -119,8 +119,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回 assignedSlots 或 failedSlots\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return assignedSlots or failedSlots\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"assignedSlots\");",
               "});"
@@ -131,7 +131,7 @@
       ]
     },
     {
-      "name": "4. 获取考官个人排程",
+      "name": "4. Get examiner schedule",
       "request": {
         "method": "GET",
         "header": [
@@ -159,8 +159,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回 assignments\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return assignments\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"assignments\");",
               "});"
@@ -171,7 +171,7 @@
       ]
     },
     {
-      "name": "5. 撤销考官分配",
+      "name": "5. Unassign examiner",
       "request": {
         "method": "DELETE",
         "header": [
@@ -201,8 +201,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回 slotId\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return slotId\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"slotId\");",
               "});"

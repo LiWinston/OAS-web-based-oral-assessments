@@ -6,7 +6,7 @@
   },
   "item": [
     {
-      "name": "1. 获取作业会话配置",
+      "name": "1. Get assignment session config",
       "request": {
         "method": "GET",
         "header": [
@@ -34,8 +34,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应包含 sessionLength\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should contain sessionLength\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"sessionLength\");",
               "});"
@@ -46,7 +46,7 @@
       ]
     },
     {
-      "name": "2. 更新作业会话配置",
+      "name": "2. Update assignment session config",
       "request": {
         "method": "PUT",
         "header": [
@@ -78,8 +78,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));",
-              "pm.test(\"应返回更新后的参数\", () => {",
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));",
+              "pm.test(\"Should return updated parameters\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"sessionLength\", 30);",
               "});"
@@ -90,7 +90,7 @@
       ]
     },
     {
-      "name": "3. 获取时段列表",
+      "name": "3. List timeslots",
       "request": {
         "method": "GET",
         "header": [
@@ -118,7 +118,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 timeSlots\", () => {",
+              "pm.test(\"Should return timeSlots\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"timeSlots\");",
               "});"
@@ -129,7 +129,7 @@
       ]
     },
     {
-      "name": "4. 批量创建时段",
+      "name": "4. Batch create timeslots",
       "request": {
         "method": "POST",
         "header": [
@@ -162,8 +162,8 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 201\", () => pm.response.to.have.status(201));",
-              "pm.test(\"应返回 timeSlotsCreated\", () => {",
+              "pm.test(\"Status code should be 201\", () => pm.response.to.have.status(201));",
+              "pm.test(\"Should return timeSlotsCreated\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"timeSlotsCreated\");",
               "});"
@@ -174,7 +174,7 @@
       ]
     },
     {
-      "name": "5. 更新时段",
+      "name": "5. Update timeslot",
       "request": {
         "method": "PUT",
         "header": [
@@ -207,7 +207,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));"
             ],
             "type": "text/javascript"
           }
@@ -215,7 +215,7 @@
       ]
     },
     {
-      "name": "6. 复制时段",
+      "name": "6. Duplicate timeslot",
       "request": {
         "method": "POST",
         "header": [
@@ -249,7 +249,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 201\", () => pm.response.to.have.status(201));"
+              "pm.test(\"Status code should be 201\", () => pm.response.to.have.status(201));"
             ],
             "type": "text/javascript"
           }
@@ -257,7 +257,7 @@
       ]
     },
     {
-      "name": "7. 删除时段",
+      "name": "7. Delete timeslots",
       "request": {
         "method": "DELETE",
         "header": [
@@ -289,7 +289,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));"
             ],
             "type": "text/javascript"
           }
@@ -297,7 +297,7 @@
       ]
     },
     {
-      "name": "8. 获取考官列表",
+      "name": "8. Get examiner list",
       "request": {
         "method": "GET",
         "header": [
@@ -325,7 +325,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 examiners\", () => {",
+              "pm.test(\"Should return examiners\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"examiners\");",
               "});"
@@ -336,7 +336,7 @@
       ]
     },
     {
-      "name": "9. 更新考官 session 限制",
+      "name": "9. Update examiner session limits",
       "request": {
         "method": "PUT",
         "header": [
@@ -369,7 +369,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));"
             ],
             "type": "text/javascript"
           }
@@ -377,7 +377,7 @@
       ]
     },
     {
-      "name": "10. 为时段分配考官",
+      "name": "10. Assign examiners to timeslot",
       "request": {
         "method": "PUT",
         "header": [
@@ -411,7 +411,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));"
             ],
             "type": "text/javascript"
           }
@@ -419,7 +419,7 @@
       ]
     },
     {
-      "name": "11. 获取排程状态",
+      "name": "11. Get schedule status",
       "request": {
         "method": "GET",
         "header": [
@@ -448,7 +448,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 scheduleStatus\", () => {",
+              "pm.test(\"Should return scheduleStatus\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"scheduleStatus\");",
               "});"
@@ -459,7 +459,7 @@
       ]
     },
     {
-      "name": "12. 发布排程",
+      "name": "12. Release schedule",
       "request": {
         "method": "POST",
         "header": [
@@ -492,7 +492,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"状态码应为 200\", () => pm.response.to.have.status(200));"
+              "pm.test(\"Status code should be 200\", () => pm.response.to.have.status(200));"
             ],
             "type": "text/javascript"
           }
@@ -500,7 +500,7 @@
       ]
     },
     {
-      "name": "13. 获取日历数据",
+      "name": "13. Get calendar data",
       "request": {
         "method": "GET",
         "header": [
@@ -528,7 +528,7 @@
           "listen": "test",
           "script": {
             "exec": [
-              "pm.test(\"应返回 month 字段\", () => {",
+              "pm.test(\"Should return month field\", () => {",
               "  let json = pm.response.json();",
               "  pm.expect(json.data).to.have.property(\"month\");",
               "});"

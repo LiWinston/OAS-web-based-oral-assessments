@@ -50,8 +50,8 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
             queryWrapper.eq(Subject::getSemester, semester);
         }
         if (StringUtils.hasText(subjectCode)) {
-            // 在课程代码、课程名称、描述中进行模糊搜索
-            // 同时也支持通过管理员名字搜索
+            // Fuzzy search on course code, course name, and description
+            // Also support search by admin's name
             queryWrapper.and(wrapper -> wrapper
                 .like(Subject::getSubjectCode, subjectCode)
                 .or()
@@ -59,7 +59,7 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
                 .or()
                 .like(Subject::getDescription, subjectCode)
                 .or()
-                // 通过管理员名字搜索：使用EXISTS子查询
+                // Search by admin's name: use EXISTS subquery
                 .exists("SELECT 1 FROM sys_user su WHERE su.user_id = subject.admin_user_id AND su.user_name LIKE '%" + subjectCode + "%'")
             );
         }
@@ -69,11 +69,11 @@ public class SubjectService extends ServiceImpl<SubjectMapper, Subject> {
         if (StringUtils.hasText(status)) {
             queryWrapper.eq(Subject::getStatus, status);
         }
-        // isActive过滤逻辑：null=不过滤(查询所有), true=只查询活跃, false=只查询非活跃
+        // isActive filter logic: null=no filter (all), true=only active, false=only inactive
         if (isActive != null) {
             queryWrapper.eq(Subject::getIsActive, isActive);
         }
-        // 当isActive为null时，不添加过滤条件，SuperAdmin可以查看所有状态的课程
+        // When isActive is null, do not add filter; SuperAdmin can view all course statuses
         queryWrapper.orderByDesc(Subject::getAcademicYear)
                    .orderByAsc(Subject::getSemester)
                    .orderByAsc(Subject::getSubjectCode);

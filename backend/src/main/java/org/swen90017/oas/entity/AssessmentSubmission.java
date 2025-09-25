@@ -20,7 +20,7 @@ public class AssessmentSubmission implements Serializable {
     private Long id;
 
     private Long assignmentId;
-    private Long sessionId; // 可为空
+    private Long sessionId; // Nullable
     
     /**
      * Enrollment ID - references session_student.id
@@ -49,10 +49,10 @@ public class AssessmentSubmission implements Serializable {
     @Schema(description = "Release status for student visibility", example = "NOT_RELEASED", allowableValues = {"NOT_RELEASED", "RELEASED"})
     private String releaseStatus;
 
-    private String overallFeedback; // 面向学生/组
-    private String adminNote;       // 仅管理员可见
+    private String overallFeedback; // Visible to student/group
+    private String adminNote;       // Visible to admin only
 
-    private Double totalScore;      // 聚合得分
+    private Double totalScore;      // Aggregated score
 
     /**
      * Final score override fields
