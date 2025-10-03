@@ -97,6 +97,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
                 dto.setCourseCode(subject != null ? subject.getSubjectCode() : null);
                 dto.setSemester(subject != null ? subject.getAcademicYear() + " S" + subject.getSemester() : null);
                 dto.setMemberCount(memberCountByGroup.getOrDefault(gid, 0L).intValue());
+                dto.setAssignmentType(a.getType()); // group or mixed
                 // Since we've already filtered to only include active assignments, all groups here are ACTIVE
                 dto.setStatus("ACTIVE");
                 all.add(dto);
@@ -169,6 +170,7 @@ public class StudentGroupQueryServiceImpl implements StudentGroupQueryService {
         if (assignment != null) {
             dto.setAssignmentId(assignment.getId());
             dto.setAssignmentName(assignment.getName());
+            dto.setAssignmentType(assignment.getType()); // group or mixed
             Subject subject = subjectMapper.selectById(assignment.getSubjectId());
             dto.setCourseCode(subject != null ? subject.getSubjectCode() : null);
             dto.setSemester(subject != null ? subject.getAcademicYear() + " S" + subject.getSemester() : null);

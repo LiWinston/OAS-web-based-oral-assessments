@@ -105,13 +105,24 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         if (student == null) {
             throw new BusinessException(BusinessError.USER_NOT_FOUND);
         }
+        
+        // Get assignment to determine type
+        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        if (assignment == null) {
+            throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        }
 
         // Determine booking type and subject ID
         String bookingType = "INDIVIDUAL";
         Long subjectId = request.getStudentId();
         
         if (request.getGroupId() != null) {
-            bookingType = "GROUP";
+            // If assignment type is "mixed", use MIX type; otherwise use GROUP
+            if ("mixed".equalsIgnoreCase(assignment.getType())) {
+                bookingType = "MIX";
+            } else {
+                bookingType = "GROUP";
+            }
             subjectId = request.getGroupId();
         }
 
@@ -149,8 +160,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             throw new BusinessException(BusinessError.SESSION_CONFLICT);
         }
 
-        // Build response
-        Assignment assignment = assignmentMapper.selectById(assignmentId);
+        // Build response (assignment already retrieved above)
         return buildCreateBookingResponse(session, assignment, request);
     }
 
@@ -220,8 +230,8 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             if (!request.getStudentId().equals(subjectId)) {
                 throw new BusinessException("Student does not own this booking");
             }
-        } else if ("GROUP".equals(bookingType)) {
-            // For group bookings, find the group ID using studentId and assignmentId
+        } else if ("GROUP".equals(bookingType) || "MIX".equals(bookingType)) {
+            // For group and mix bookings, find the group ID using studentId and assignmentId
             Long studentGroupId = getStudentGroupId(request.getStudentId(), assignmentId);
             if (studentGroupId == null) {
                 throw new BusinessException("Student is not part of any group for this assignment");
@@ -294,8 +304,8 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             if (!studentId.equals(existingBooking.getSubjectId())) {
                 throw new BusinessException("Student does not own this booking");
             }
-        } else if ("GROUP".equals(bookingType)) {
-            // For group bookings, find the group ID using studentId and assignmentId
+        } else if ("GROUP".equals(bookingType) || "MIX".equals(bookingType)) {
+            // For group and mix bookings, find the group ID using studentId and assignmentId
             Long studentGroupId = getStudentGroupId(studentId, assignmentId);
             if (studentGroupId == null) {
                 throw new BusinessException("Student is not part of any group for this assignment");

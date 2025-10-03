@@ -165,7 +165,7 @@
           (
             (ss.booked_subject_type = 'INDIVIDUAL' AND ss.booked_subject_id = #{studentId})
             OR
-            (ss.booked_subject_type = 'GROUP' AND ss.booked_subject_id IN (
+            (ss.booked_subject_type IN ('GROUP', 'MIX') AND ss.booked_subject_id IN (
               SELECT sg.group_id
               FROM sys_student_group sg
               WHERE sg.user_id = #{studentId}
@@ -179,7 +179,7 @@
         FROM slot_sessions ss
         INNER JOIN time_slots ts ON ss.slot_id = ts.slot_id
         WHERE ts.assignment_id = #{assignmentId}
-          AND ss.booked_subject_type = 'GROUP'
+          AND ss.booked_subject_type IN ('GROUP', 'MIX')
           AND ss.booked_subject_id = #{groupId}
     </select>
 
@@ -195,7 +195,7 @@
           AND (
             (st.type = 'INDIVIDUAL' AND st.subject_id = #{studentId})
             OR
-            (st.type = 'GROUP' AND st.subject_id IN (
+            (st.type IN ('GROUP', 'MIX') AND st.subject_id IN (
               SELECT sg.group_id 
               FROM sys_student_group sg 
               WHERE sg.user_id = #{studentId}

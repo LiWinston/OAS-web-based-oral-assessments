@@ -9,7 +9,8 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum AssignMode {
     INDIVIDUAL("INDIVIDUAL"),
-    GROUP("GROUP");
+    GROUP("GROUP"),
+    MIX("MIX");
 
     @EnumValue
     @JsonValue

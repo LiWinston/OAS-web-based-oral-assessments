@@ -137,9 +137,34 @@ public class SessionStudentsResponseDTO {
         private String type;
 
         /**
-         * Assessment status for this group
+         * Assessment status for this group (for GROUP type or MIX group-level assessment)
          */
         @Schema(description = "Assessment status information")
+        private AssessmentStatusDTO assessmentStatus;
+        
+        /**
+         * Individual member assessments (for MIX type only)
+         */
+        @Schema(description = "Individual assessments for each member (MIX type only)")
+        private List<MemberAssessmentDTO> memberAssessments;
+    }
+    
+    /**
+     * Member Assessment DTO (for MIX type)
+     */
+    @Data
+    @Schema(description = "Individual member assessment information for MIX type")
+    public static class MemberAssessmentDTO {
+        @Schema(description = "Student user ID", example = "2002")
+        private Long userId;
+        
+        @Schema(description = "Student name", example = "Jane Smith")
+        private String studentName;
+        
+        @Schema(description = "Student number", example = "1234568")
+        private String studentNumber;
+        
+        @Schema(description = "Assessment status for this member")
         private AssessmentStatusDTO assessmentStatus;
     }
 

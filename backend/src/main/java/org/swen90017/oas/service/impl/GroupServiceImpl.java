@@ -26,11 +26,28 @@ public class GroupServiceImpl implements GroupService {
     private GroupMapper groupMapper;
     @Autowired
     private BaseCsvImportService baseCsvImportService;
+    @Autowired
+    private AssignmentMapper assignmentMapper;
 
     @Override
     @Transactional
     public List<SysStudent> importGroupData(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
         log.info("Importing {} group data records for assignment {}", dtos.size(), assignmentId);
+
+        // Validate that assignment exists and has correct type (group or mixed)
+        if (assignmentId != null) {
+            Assignment assignment = assignmentMapper.selectById(assignmentId);
+            if (assignment != null) {
+                String assignmentType = assignment.getType();
+                if (!"group".equalsIgnoreCase(assignmentType) && !"mixed".equalsIgnoreCase(assignmentType)) {
+                    throw new IllegalArgumentException(
+                        String.format("Assignment %d has type '%s', but group/mix CSV import requires 'group' or 'mixed' type", 
+                        assignmentId, assignmentType)
+                    );
+                }
+                log.info("Validated assignment {} has type '{}' for group CSV import", assignmentId, assignmentType);
+            }
+        }
 
         // Use base service to import student data
         List<SysStudent> sysStudents = baseCsvImportService.importStudents(

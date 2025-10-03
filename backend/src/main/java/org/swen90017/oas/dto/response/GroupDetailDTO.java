@@ -26,6 +26,9 @@ public class GroupDetailDTO {
 
     @Schema(description = "Semester label", example = "2025 S1")
     private String semester;
+    
+    @Schema(description = "Assignment type", example = "group", allowableValues = {"group", "mixed"})
+    private String assignmentType;
 
     @Schema(description = "Group members")
     private List<Member> members;

@@ -8,6 +8,7 @@ import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.SecurityError;
 import org.swen90017.oas.dto.PerformanceDto;
 import org.swen90017.oas.dto.RubricsInfoDto;
+import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.request.ExaminerAssessmentsQueryDTO;
 import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.request.SubmitAssessmentRequestDTO;
@@ -17,12 +18,15 @@ import org.swen90017.oas.dto.response.ExaminerAssessmentsPageResponseDTO;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.SessionStudent;
+import org.swen90017.oas.entity.SysStudentGroup;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssessmentSubmissionMapper;
 import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
 import org.swen90017.oas.mapper.SessionStudentMapper;
+import org.swen90017.oas.mapper.SysStudentGroupMapper;
 import org.swen90017.oas.service.AssessmentService;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -42,6 +46,7 @@ public class AssessmentServiceImpl implements AssessmentService {
     private final AssignmentMapper assignmentMapper;
     private final SessionExaminerMapper sessionExaminerMapper;
     private final SessionStudentMapper sessionStudentMapper;
+    private final SysStudentGroupMapper sysStudentGroupMapper;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
@@ -64,11 +69,17 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // 2.2 Query enrollment_id (if sessionId provided)
         Long enrollmentId = null;
+        SessionStudent enrollment = null;
         if (request.getSessionId() != null) {
-            SessionStudent enrollment = sessionStudentMapper.selectBySessionAndSubject(
+            enrollment = sessionStudentMapper.selectBySessionAndSubject(
                 request.getSessionId(), normalizedSubjectType, request.getSubjectId());
             if (enrollment != null) {
                 enrollmentId = enrollment.getId();
+                
+                // Handle MIX type specially - create both individual and group submissions
+                if ("MIX".equals(enrollment.getType())) {
+                    return handleMixTypeAssessment(request, examinerId, assignment, enrollmentId);
+                }
             }
         }
 
@@ -586,6 +597,167 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (sortOrder == null) return "desc";
         String o = sortOrder.trim().toLowerCase();
         return ("asc".equals(o) || "desc".equals(o)) ? o : "desc";
+    }
+
+    /**
+     * Helper method to handle MIX type assessment submissions
+     * Creates both individual and group assessment submissions for MIX type enrollments
+     * 
+     * @param request The assessment draft request
+     * @param examinerId The examiner ID
+     * @param assignment The assignment entity
+     * @param enrollmentId The enrollment ID
+     * @return A result message indicating the submissions were created
+     */
+    @Transactional
+    public AssessmentSubmissionDTO handleMixTypeAssessment(SaveAssessmentDraftRequestDTO request, 
+                                                           Long examinerId, 
+                                                           Assignment assignment,
+                                                           Long enrollmentId) {
+        try {
+            // Parse rubric meta info to get individual and group rubrics
+            RubricMetaInfo metaInfo = objectMapper.readValue(assignment.getRubricMetaInfo(), RubricMetaInfo.class);
+            
+            // Get weights (default to 0 if not specified)
+            Double individualWeight = metaInfo.getIndividualWeight() != null ? metaInfo.getIndividualWeight() : 0.0;
+            Double groupWeight = metaInfo.getGroupWeight() != null ? metaInfo.getGroupWeight() : 0.0;
+            
+            // Validate that weights sum to 100
+            if (Math.abs(individualWeight + groupWeight - 100.0) > 0.01) {
+                throw new BusinessException(
+                    String.format("MIX type assignment weights must sum to 100 (current: individual=%.1f, group=%.1f, sum=%.1f)", 
+                    individualWeight, groupWeight, individualWeight + groupWeight)
+                );
+            }
+            
+            // Validate that at least one weight is greater than 0
+            if (individualWeight <= 0 && groupWeight <= 0) {
+                throw new BusinessException("MIX type assignment must have at least one weight (individual or group) greater than 0");
+            }
+            
+            // Validate rubrics based on weights
+            if (individualWeight > 0 && (metaInfo.getIndividualRubrics() == null || metaInfo.getIndividualRubrics().isEmpty())) {
+                throw new BusinessException("Individual rubrics must be defined when individualWeight > 0");
+            }
+            if (groupWeight > 0 && (metaInfo.getGroupRubrics() == null || metaInfo.getGroupRubrics().isEmpty())) {
+                throw new BusinessException("Group rubrics must be defined when groupWeight > 0");
+            }
+            
+            Long groupId = request.getSubjectId(); // For MIX type, subjectId is the group ID
+            
+            // Get all students in the group
+            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
+            wrapper.eq("group_id", groupId);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
+            
+            if (studentGroups.isEmpty()) {
+                throw new BusinessException("No students found in group " + groupId);
+            }
+            
+            // Create individual assessment submissions only if individualWeight > 0
+            if (individualWeight > 0) {
+                // Convert individual rubrics to JSON
+                String individualRubricsJson = objectMapper.writeValueAsString(metaInfo.getIndividualRubrics());
+                
+                for (SysStudentGroup studentGroup : studentGroups) {
+                    Long studentId = studentGroup.getUserId();
+                    
+                    // Check if individual submission already exists
+                    AssessmentSubmission existingIndividual = submissionMapper.selectByUniqueTarget(
+                        request.getAssignmentId(), 
+                        request.getSessionId(), 
+                        "INDIVIDUAL", 
+                        studentId, 
+                        examinerId
+                    );
+                    
+                    if (existingIndividual == null) {
+                        // Create new individual submission
+                        AssessmentSubmission individualSubmission = new AssessmentSubmission();
+                        individualSubmission.setAssignmentId(request.getAssignmentId());
+                        individualSubmission.setSessionId(request.getSessionId());
+                        individualSubmission.setEnrollmentId(enrollmentId);
+                        individualSubmission.setSubjectType("INDIVIDUAL");
+                        individualSubmission.setSubjectId(studentId);
+                        individualSubmission.setExaminerId(examinerId);
+                        individualSubmission.setStatus("DRAFT");
+                        individualSubmission.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                        individualSubmission.setRubricsInfoSnapshot(individualRubricsJson);
+                        individualSubmission.setScoresJson("[]");
+                        individualSubmission.setCreatedAt(LocalDateTime.now());
+                        individualSubmission.setUpdatedAt(LocalDateTime.now());
+                        individualSubmission.setVersion(0);
+                        submissionMapper.insert(individualSubmission);
+                        log.info("Created INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
+                    }
+                }
+            }
+            
+            // Create or update group assessment submission only if groupWeight > 0
+            AssessmentSubmission groupSubmission = null;
+            if (groupWeight > 0) {
+                // Convert group rubrics to JSON
+                String groupRubricsJson = objectMapper.writeValueAsString(metaInfo.getGroupRubrics());
+                
+                // Create or update group assessment submission
+                AssessmentSubmission existingGroup = submissionMapper.selectByUniqueTarget(
+                    request.getAssignmentId(), 
+                    request.getSessionId(), 
+                    "GROUP", 
+                    groupId, 
+                    examinerId
+                );
+                
+                if (existingGroup == null) {
+                    // Create new group submission
+                    groupSubmission = new AssessmentSubmission();
+                    groupSubmission.setAssignmentId(request.getAssignmentId());
+                    groupSubmission.setSessionId(request.getSessionId());
+                    groupSubmission.setEnrollmentId(enrollmentId);
+                    groupSubmission.setSubjectType("GROUP");
+                    groupSubmission.setSubjectId(groupId);
+                    groupSubmission.setExaminerId(examinerId);
+                    groupSubmission.setStatus("DRAFT");
+                    groupSubmission.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                    groupSubmission.setRubricsInfoSnapshot(groupRubricsJson);
+                    groupSubmission.setScoresJson("[]");
+                    groupSubmission.setOverallFeedback(request.getOverallFeedback());
+                    groupSubmission.setAdminNote(request.getAdminNote());
+                    groupSubmission.setCreatedAt(LocalDateTime.now());
+                    groupSubmission.setUpdatedAt(LocalDateTime.now());
+                    groupSubmission.setVersion(0);
+                    submissionMapper.insert(groupSubmission);
+                    log.info("Created GROUP assessment submission for group {} in MIX type assessment", groupId);
+                } else {
+                    // Update existing group submission
+                    groupSubmission = existingGroup;
+                    groupSubmission.setOverallFeedback(request.getOverallFeedback());
+                    groupSubmission.setAdminNote(request.getAdminNote());
+                    groupSubmission.setUpdatedAt(LocalDateTime.now());
+                    submissionMapper.updateById(groupSubmission);
+                    log.info("Updated GROUP assessment submission for group {} in MIX type assessment", groupId);
+                }
+            }
+            
+            // Return the group submission if it exists, otherwise return the first individual submission
+            if (groupSubmission != null) {
+                return toDTO(groupSubmission);
+            } else {
+                // If only individual submissions were created, return the first one
+                AssessmentSubmission firstIndividual = submissionMapper.selectByUniqueTarget(
+                    request.getAssignmentId(), 
+                    request.getSessionId(), 
+                    "INDIVIDUAL", 
+                    studentGroups.get(0).getUserId(), 
+                    examinerId
+                );
+                return toDTO(firstIndividual);
+            }
+            
+        } catch (Exception e) {
+            log.error("Error handling MIX type assessment", e);
+            throw new BusinessException("Failed to create MIX type assessment submissions: " + e.getMessage());
+        }
     }
 }
 

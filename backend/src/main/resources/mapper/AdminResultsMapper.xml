@@ -14,13 +14,13 @@
             -- Student/Group info
             CASE 
                 WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
-                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
+                WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
             
-            -- Group member count for GROUP assessments
+            -- Group member count for GROUP/MIX assessments
             CASE 
-                WHEN asub.subject_type = 'GROUP' THEN (
+                WHEN asub.subject_type IN ('GROUP', 'MIX') THEN (
                     SELECT COUNT(*) FROM sys_student_group sgm 
                     WHERE sgm.group_id = asub.subject_id
                 )
@@ -52,7 +52,7 @@
         LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
         LEFT JOIN venue v ON ss.venue_id = v.id
         LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
         
         WHERE a.id = #{assignmentId}
         
@@ -77,7 +77,7 @@
                     su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
                     asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
                 )) OR
-                (asub.subject_type = 'GROUP' AND (
+                (asub.subject_type IN ('GROUP', 'MIX') AND (
                     sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
                     asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
                 ))
@@ -106,7 +106,7 @@
         LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
         LEFT JOIN venue v ON ss.venue_id = v.id
         LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
         
         WHERE a.id = #{assignmentId}
 
@@ -120,7 +120,7 @@
                     su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
                     asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
                 )) OR
-                (asub.subject_type = 'GROUP' AND (
+                (asub.subject_type IN ('GROUP', 'MIX') AND (
                     sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
                     asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
                 ))
@@ -154,12 +154,12 @@
             -- Student/Group info
             CASE 
                 WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name
-                WHEN asub.subject_type = 'GROUP' THEN sg.group_name
+                WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.group_name
                 ELSE 'Unknown'
             END as entity_name,
             
             CASE 
-                WHEN asub.subject_type = 'GROUP' THEN (
+                WHEN asub.subject_type IN ('GROUP', 'MIX') THEN (
                     SELECT COUNT(*) FROM sys_student_group sgm 
                     WHERE sgm.group_id = asub.subject_id
                 )
@@ -200,7 +200,7 @@
         LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
         LEFT JOIN venue v ON ss.venue_id = v.id
         LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
         
         WHERE asub.id = #{submissionId}
         LIMIT 1
@@ -327,8 +327,8 @@
                 WHERE sg.group_id = #{subjectId}
             ))
             OR
-            -- Also update the group-level submission if it exists
-            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+            -- Also update the group-level submission if it exists (GROUP or MIX)
+            (subject_type IN ('GROUP', 'MIX') AND subject_id = #{subjectId} AND #{subjectType} IN ('GROUP', 'MIX'))
         )
     </update>
 
@@ -368,8 +368,8 @@
                 WHERE sg.group_id = #{subjectId}
             ))
             OR
-            -- Also update the group-level submission if it exists
-            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+            -- Also update the group-level submission if it exists (GROUP or MIX)
+            (subject_type IN ('GROUP', 'MIX') AND subject_id = #{subjectId} AND #{subjectType} IN ('GROUP', 'MIX'))
         )
     </update>
 
@@ -391,8 +391,8 @@
                 WHERE sg.group_id = #{subjectId}
             ))
             OR
-            -- Also update the group-level submission if it exists
-            (subject_type = 'GROUP' AND subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
+            -- Also update the group-level submission if it exists (GROUP or MIX)
+            (subject_type IN ('GROUP', 'MIX') AND subject_id = #{subjectId} AND #{subjectType} IN ('GROUP', 'MIX'))
         )
     </update>
 
@@ -401,12 +401,12 @@
         SELECT COUNT(DISTINCT 
             CASE 
                 WHEN asub.subject_type = 'INDIVIDUAL' THEN asub.subject_id
-                WHEN asub.subject_type = 'GROUP' THEN sg.user_id
+                WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.user_id
                 ELSE NULL
             END
         ) as student_count
         FROM assessment_submission asub
-        LEFT JOIN sys_student_group sg ON asub.subject_type = 'GROUP' AND asub.subject_id = sg.group_id
+        LEFT JOIN sys_student_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
         WHERE asub.assignment_id = #{assignmentId}
         AND asub.session_id = #{sessionId}
         AND (

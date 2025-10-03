@@ -49,7 +49,7 @@ public class CsvController {
 
         if ("student".equalsIgnoreCase(type)) {
             return previewStudentCsv((List<StudentCSVRequestDTO>) csvData);
-        } else if ("group".equalsIgnoreCase(type)) {
+        } else if ("group".equalsIgnoreCase(type) || "mix".equalsIgnoreCase(type)) {
             return previewGroupCsv((List<GroupCSVRequestDTO>) csvData);
         } else if ("examiner".equalsIgnoreCase(type)) {
             return previewExaminerCsv((List<ExaminerCSVRequestDTO>) csvData);
@@ -69,7 +69,7 @@ public class CsvController {
 
         if ("student".equalsIgnoreCase(dto.getType())) {
             return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
-        } else if ("group".equalsIgnoreCase(dto.getType())) {
+        } else if ("group".equalsIgnoreCase(dto.getType()) || "mix".equalsIgnoreCase(dto.getType())) {
             return importGroupCsv((List<GroupCSVRequestDTO>) csvData, dto.getAssignmentId());
         } else if ("examiner".equalsIgnoreCase(dto.getType())) {
             return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
@@ -120,7 +120,7 @@ public class CsvController {
     }
 
     /**
-     * Import group CSV
+     * Import group CSV (also handles mix type)
      */
     private Result<List<SysStudent>> importGroupCsv(List<GroupCSVRequestDTO> groupDTOs, Long assignmentId) {
         List<SysStudent> sysStudents = TransactionUtil.doTransactionWithRequired(() -> {

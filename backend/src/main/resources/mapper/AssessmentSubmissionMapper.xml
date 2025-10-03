@@ -42,6 +42,13 @@
         SELECT * FROM assessment_submission
         WHERE enrollment_id = #{enrollmentId}
           AND examiner_id = #{examinerId}
+        ORDER BY 
+          CASE subject_type 
+            WHEN 'GROUP' THEN 1
+            WHEN 'MIX' THEN 2
+            WHEN 'INDIVIDUAL' THEN 3
+            ELSE 4
+          END
         LIMIT 1
     </select>
 
@@ -96,8 +103,8 @@
             -- Individual submissions
             (a.subject_type = 'INDIVIDUAL' AND a.subject_id = #{studentId})
             OR
-            -- Group submissions
-            (a.subject_type = 'GROUP' AND a.subject_id IN (
+            -- Group/MIX submissions
+            (a.subject_type IN ('GROUP', 'MIX') AND a.subject_id IN (
                 SELECT sg.group_id 
                 FROM sys_student_group sg 
                 INNER JOIN sys_group g ON sg.group_id = g.group_id 

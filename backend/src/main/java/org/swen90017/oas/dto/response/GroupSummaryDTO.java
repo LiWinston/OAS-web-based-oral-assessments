@@ -30,6 +30,9 @@ public class GroupSummaryDTO {
 
     @Schema(description = "Group status", example = "ACTIVE")
     private String status;
+    
+    @Schema(description = "Assignment type", example = "group", allowableValues = {"group", "mixed"})
+    private String assignmentType;
 }
 
 

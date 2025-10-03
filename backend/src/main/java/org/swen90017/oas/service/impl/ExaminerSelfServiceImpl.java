@@ -566,8 +566,8 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 if (studentInfo != null && shouldIncludeInResponse(studentInfo.getAssessmentStatus())) {
                     students.add(studentInfo);
                 }
-            } else if ("GROUP".equals(sessionStudent.getType())) {
-                // Handle group type
+            } else if ("GROUP".equals(sessionStudent.getType()) || "MIX".equals(sessionStudent.getType())) {
+                // Handle group and mix types (MIX is treated as group in display, but creates both individual and group assessments)
                 SessionStudentsResponseDTO.GroupInfoDTO groupInfo = buildGroupInfo(sessionStudent, session.getAssignmentId(), examinerId);
                 if (groupInfo != null && shouldIncludeInResponse(groupInfo.getAssessmentStatus())) {
                     groups.add(groupInfo);
@@ -640,10 +640,18 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
             List<SessionStudentsResponseDTO.GroupMemberDTO> members = buildGroupMembers(group.getGroupId());
             groupInfo.setMembers(members);
             
-            // Build assessment status information
+            // Build assessment status information (group-level)
             SessionStudentsResponseDTO.AssessmentStatusDTO assessmentStatus = buildAssessmentStatus(
                 sessionStudent.getId(), examinerId);
             groupInfo.setAssessmentStatus(assessmentStatus);
+            
+            // For MIX type, also build individual member assessments
+            if ("MIX".equals(sessionStudent.getType())) {
+                List<SessionStudentsResponseDTO.MemberAssessmentDTO> memberAssessments = 
+                    buildMixTypeMemberAssessments(group.getGroupId(), sessionStudent.getSessionId(), 
+                                                 assignmentId, examinerId);
+                groupInfo.setMemberAssessments(memberAssessments);
+            }
             
             return groupInfo;
         } catch (Exception e) {
@@ -697,6 +705,83 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
         return status == AssessmentStatus.NO_MARK || 
                status == AssessmentStatus.DRAFT || 
                status == AssessmentStatus.REOPEN;
+    }
+    
+    /**
+     * Build individual member assessments for MIX type
+     * Returns assessment status for each member's individual score
+     */
+    private List<SessionStudentsResponseDTO.MemberAssessmentDTO> buildMixTypeMemberAssessments(
+            Long groupId, Long sessionId, Long assignmentId, Long examinerId) {
+        List<SessionStudentsResponseDTO.MemberAssessmentDTO> memberAssessments = new ArrayList<>();
+        
+        try {
+            // Get all group members
+            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
+            wrapper.eq("group_id", groupId);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
+            
+            for (SysStudentGroup studentGroup : studentGroups) {
+                Long studentId = studentGroup.getUserId();
+                
+                // Get user and student information
+                SysUser user = sysUserMapper.selectById(studentId);
+                if (user == null) continue;
+                
+                SysStudent student = sysStudentMapper.selectById(studentId);
+                
+                // Query individual assessment submission for this student
+                AssessmentSubmission individualSubmission = assessmentSubmissionMapper.selectByUniqueTarget(
+                    assignmentId, sessionId, "INDIVIDUAL", studentId, examinerId);
+                
+                // Build member assessment DTO
+                SessionStudentsResponseDTO.MemberAssessmentDTO memberAssessment = 
+                    new SessionStudentsResponseDTO.MemberAssessmentDTO();
+                memberAssessment.setUserId(studentId);
+                memberAssessment.setStudentName(user.getUserName());
+                memberAssessment.setStudentNumber(student != null ? student.getStudentNumber() : null);
+                
+                // Build assessment status for this member
+                SessionStudentsResponseDTO.AssessmentStatusDTO memberStatus = 
+                    new SessionStudentsResponseDTO.AssessmentStatusDTO();
+                
+                if (individualSubmission != null) {
+                    String dbStatus = individualSubmission.getStatus();
+                    memberStatus.setSubmissionId(individualSubmission.getId());
+                    memberStatus.setUpdatedAt(individualSubmission.getUpdatedAt());
+                    
+                    if ("DRAFT".equals(dbStatus)) {
+                        memberStatus.setStatus(AssessmentStatus.DRAFT);
+                        memberStatus.setTotalScore(individualSubmission.getTotalScore());
+                        memberStatus.setOverallFeedback(individualSubmission.getOverallFeedback());
+                        memberStatus.setSubmittedAt(individualSubmission.getSubmittedAt());
+                        memberStatus.setScoresJson(individualSubmission.getScoresJson());
+                    } else if ("REOPENED".equals(dbStatus)) {
+                        memberStatus.setStatus(AssessmentStatus.REOPEN);
+                        memberStatus.setTotalScore(individualSubmission.getTotalScore());
+                        memberStatus.setOverallFeedback(individualSubmission.getOverallFeedback());
+                        memberStatus.setAdminNote(individualSubmission.getAdminNote());
+                        memberStatus.setSubmittedAt(individualSubmission.getSubmittedAt());
+                        memberStatus.setScoresJson(individualSubmission.getScoresJson());
+                    } else if ("SUBMITTED".equals(dbStatus)) {
+                        // For SUBMITTED status, still include in MIX type to show completion
+                        memberStatus.setStatus(AssessmentStatus.DRAFT); // Show as DRAFT in response
+                        memberStatus.setTotalScore(individualSubmission.getTotalScore());
+                        memberStatus.setSubmittedAt(individualSubmission.getSubmittedAt());
+                    }
+                } else {
+                    // No assessment record, mark as NO_MARK
+                    memberStatus.setStatus(AssessmentStatus.NO_MARK);
+                }
+                
+                memberAssessment.setAssessmentStatus(memberStatus);
+                memberAssessments.add(memberAssessment);
+            }
+        } catch (Exception e) {
+            // Return empty list on error
+        }
+        
+        return memberAssessments;
     }
 
     /**
@@ -783,8 +868,8 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                 if (studentInfo != null) {
                     students.add(studentInfo);
                 }
-            } else if ("GROUP".equals(sessionStudent.getType())) {
-                // Handle group type
+            } else if ("GROUP".equals(sessionStudent.getType()) || "MIX".equals(sessionStudent.getType())) {
+                // Handle group and mix types
                 SessionStudentsSimpleResponseDTO.GroupInfoDTO groupInfo = buildSimpleGroupInfo(sessionStudent);
                 if (groupInfo != null) {
                     groups.add(groupInfo);

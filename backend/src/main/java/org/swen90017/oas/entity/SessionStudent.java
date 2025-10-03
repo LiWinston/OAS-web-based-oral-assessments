@@ -24,9 +24,9 @@ public class SessionStudent implements Serializable {
     private Long sessionId;
 
     /**
-     * Booking type: STUDENT | GROUP
+     * Booking type: INDIVIDUAL | GROUP | MIX
      */
-    @Schema(description = "Booking type", example = "STUDENT", allowableValues = {"STUDENT", "GROUP"})
+    @Schema(description = "Booking type", example = "INDIVIDUAL", allowableValues = {"INDIVIDUAL", "GROUP", "MIX"})
     private String type;
 
     @Schema(description = "User ID (for STUDENT type) or Group ID (for GROUP type)", example = "1001")

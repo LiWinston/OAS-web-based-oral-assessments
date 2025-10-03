@@ -13,6 +13,7 @@ public class CsvHandlerFactory {
     static {
         handlers.put("student", new StudentCsvHandler());
         handlers.put("group", new GroupCsvHandler());
+        handlers.put("mix", new GroupCsvHandler()); // MIX type uses same handler as GROUP
         handlers.put("examiner", new ExaminerCsvHandler());
         handlers.put("admin", new AdminCsvHandler());
     }
