@@ -10,6 +10,8 @@ import SchedulingSummaryStrip from "@/components/admin/reports/SchedulingSummary
 import SchedulingInsightRail from "@/components/admin/reports/SchedulingInsightRail.jsx";
 import SchedulingSessionsTable from "@/components/admin/reports/SchedulingSessionsTable.jsx";
 import SchedulingDetailDrawer from "@/components/admin/reports/SchedulingDetailDrawer.jsx";
+import SchedulingStaffingTrendChart from "@/components/admin/reports/SchedulingStaffingTrendChart.jsx";
+import SchedulingBookingPressureChart from "@/components/admin/reports/SchedulingBookingPressureChart.jsx";
 import {
   useSchedulingAssignmentMeta,
   useSchedulingCalendar,
@@ -316,6 +318,46 @@ export default function SchedulingOverviewReportPage() {
   }, [sessions, statusFilter, venueFilter, searchTerm]);
 
   const staffingGaps = (summary?.unstaffed || summary?.noStaffed || 0) + (summary?.partiallyStaffed || 0);
+
+  const staffingTrendData = useMemo(() => {
+    if (!calendarDates.length) return [];
+    return calendarDates.map((date) => {
+      const info = calendarData[date] || {};
+      return {
+        date,
+        fully: info.fullyStaffed || 0,
+        partial: info.partialStaffed || info.partiallyStaffed || 0,
+        none: info.noStaffed || info.unstaffed || 0,
+      };
+    });
+  }, [calendarData, calendarDates]);
+
+  const bookingPressureData = useMemo(() => {
+    if (!filteredSessions.length) return [];
+    const aggregate = new Map();
+
+    filteredSessions.forEach((session) => {
+      const key = session.venueName || `Venue ${session.venueId || "Unknown"}`;
+      if (!aggregate.has(key)) {
+        aggregate.set(key, { venue: key, capacity: 0, booked: 0, sessions: 0 });
+      }
+      const record = aggregate.get(key);
+      record.capacity += session.capacity || 0;
+      record.booked += session.bookedCount || 0;
+      record.sessions += 1;
+    });
+
+    return Array.from(aggregate.values())
+      .map((item) => {
+        const ratio = item.capacity > 0 ? item.booked / item.capacity : 0;
+        return {
+          ...item,
+          ratio: Number(ratio.toFixed(3)),
+        };
+      })
+      .sort((a, b) => b.ratio - a.ratio)
+      .slice(0, 8);
+  }, [filteredSessions]);
 
   const pressureInsight = useMemo(() => {
     if (!filteredSessions || filteredSessions.length === 0) return null;
@@ -626,6 +668,21 @@ export default function SchedulingOverviewReportPage() {
     />
   );
 
+  const chartsSection = (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <SchedulingStaffingTrendChart
+        data={staffingTrendData}
+        activeDate={selectedDate}
+        onSelectDate={handleDateSelect}
+        isLoading={calendarQuery.isFetching}
+      />
+      <SchedulingBookingPressureChart
+        data={bookingPressureData}
+        isLoading={sessionsQuery.isFetching}
+      />
+    </div>
+  );
+
   const tableSection = (
     <SchedulingSessionsTable
       sessions={filteredSessions}
@@ -645,6 +702,7 @@ export default function SchedulingOverviewReportPage() {
       <div className="space-y-6">
         {summaryStrip}
         {calendarSection}
+        {chartsSection}
         {sessionsQuery.isError && (
           <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm text-rose-600 dark:border-rose-900/40 dark:bg-rose-900/30 dark:text-rose-200">
             Failed to load sessions. Please try again.
