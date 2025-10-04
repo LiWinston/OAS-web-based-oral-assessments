@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="450" viewBox="0 0 1200 450" role="img" aria-label="OAS Process Flow">
+  <text x="600" y="40" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+        font-size="20" font-weight="600" letter-spacing=".3px" fill="currentColor">
+    Setup → Assign → Book → Assess → Release
+  </text>
+  <text x="600" y="68" text-anchor="middle"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+        font-size="14" fill="currentColor" opacity=".75">
+    Single platform that automates the oral exam lifecycle
+  </text>
+
+  <path d="M 60 130 H 1140"
+        fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  <polygon points="1152,130 1140,124 1140,136" fill="currentColor"/>
+
+  <g transform="translate(150, 250)">
+    <rect x="-110" y="-50" width="220" height="100" rx="14" ry="14"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <rect x="-55" y="-18" width="60" height="40" rx="6"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M 10 -5 l 8 -8 a10 10 0 0 1 14 14 l -8 8 l -12 -4 l -4 -12 z"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <path d="M -45 -6 h 30 M -45 6 h 22"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <text y="40" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="18" fill="currentColor">Setup</text>
+    <text y="68" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="13" fill="currentColor" opacity=".75">
+      <tspan x="0">Import CSV • Build rubric</tspan>
+      <tspan x="0" dy="18">Define slots</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(375, 250)">
+    <rect x="-110" y="-50" width="220" height="100" rx="14" ry="14"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <circle cx="-25" cy="-2" r="16" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -45 18 a22 22 0 0 1 40 0"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <rect x="10" y="-18" width="40" height="36" rx="6"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M 16 0 l 10 10 l 14 -18"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <text y="40" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="18" fill="currentColor">Assign</text>
+    <text y="68" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="13" fill="currentColor" opacity=".75">
+      <tspan x="0">Examiner self‑assignment</tspan>
+      <tspan x="0" dy="18">&amp; limits</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(600, 250)">
+    <rect x="-110" y="-50" width="220" height="100" rx="14" ry="14"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <rect x="-50" y="-22" width="80" height="50" rx="8"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -50 -6 h 80" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -25 -30 v 16 M 15 -30 v 16" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -36 6 h 12 M -10 6 h 12 M 16 6 h 12" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -4 8 l 10 10 l 18 -22" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <text y="40" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="18" fill="currentColor">Book</text>
+    <text y="68" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="13" fill="currentColor" opacity=".75">
+      <tspan x="0">Group/individual</tspan>
+      <tspan x="0" dy="18">No conflict</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(825, 250)">
+    <rect x="-110" y="-50" width="220" height="100" rx="14" ry="14"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <rect x="-58" y="-24" width="52" height="48" rx="6"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -58 -8 h 52 M -58 8 h 52 M -32 -24 v 48"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M 0 -10 h 46 v 26 h -20 l -10 10 v -10 h -16 z"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <text y="40" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="18" fill="currentColor">Assess</text>
+    <text y="68" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="13" fill="currentColor" opacity=".75">
+      <tspan x="0">Independent marking</tspan>
+      <tspan x="0" dy="18">Comments</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(1050, 250)">
+    <rect x="-110" y="-50" width="220" height="100" rx="14" ry="14"
+          fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <rect x="-44" y="-22" width="60" height="46" rx="6"
+          fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M -34 -8 h 28 M -34 6 h 18" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <circle cx="6" cy="6" r="10" fill="none" stroke="currentColor" stroke-width="2.25" vector-effect="non-scaling-stroke"/>
+    <path d="M 0 6 l 4 4 l 8 -10" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+    <text y="40" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="18" fill="currentColor">Release</text>
+    <text y="68" text-anchor="middle"
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif"
+          font-size="13" fill="currentColor" opacity=".75">
+      <tspan x="0">Aggregate • Control visibility</tspan>
+      <tspan x="0" dy="18">CSV out</tspan>
+    </text>
+  </g>
+</svg>
