@@ -42,6 +42,108 @@ const makeSession = (override) => {
   };
 };
 
+const SAMPLE_EXAMINERS = [
+  { id: 101, name: "Prof. Anita Rao" },
+  { id: 102, name: "Dr. Miguel Hernandez" },
+  { id: 103, name: "Dr. Fiona Collins" },
+  { id: 104, name: "Dr. Kelvin Wang" },
+  { id: 105, name: "Prof. Minh Nguyen" },
+  { id: 106, name: "Dr. Lila Banerjee" },
+];
+
+const SAMPLE_STUDENTS = [
+  "Aaron Blair",
+  "Bethany Gill",
+  "Chen Rui",
+  "Diana Marsh",
+  "Evelyn Brooks",
+  "Farid Khan",
+  "Gina Hassan",
+  "Henry Cole",
+  "Iris Yamamoto",
+  "Jared Fox",
+];
+
+const createSyntheticSessions = (assignmentId, { startDate, days, baseId = 9000 }) => {
+  const dataset = MOCK_ASSIGNMENTS[assignmentId];
+  if (!dataset) return;
+
+  const venues = [
+    { id: "VEN-ENG405", name: "ENG 405", required: 2, capacity: 2 },
+    { id: "VEN-ENG410", name: "ENG 410", required: 1, capacity: 1 },
+    { id: "VEN-ENG420", name: "ENG 420", required: 3, capacity: 2 },
+  ];
+
+  const baseDate = new Date(startDate);
+  if (Number.isNaN(baseDate.getTime())) return;
+
+  const sessions = [];
+  for (let day = 0; day < days; day += 1) {
+    const dateObj = new Date(baseDate.getTime());
+    dateObj.setDate(baseDate.getDate() + day);
+    const dateKey = dateObj.toISOString().split("T")[0];
+
+    venues.forEach((venue, index) => {
+      const sessionId = baseId + day * 10 + index;
+      const capacity = venue.capacity + (day % 2 === 0 ? 0 : 1);
+      const booked = Math.min(capacity, ((day + 1) * (index + 1)) % (capacity + 1));
+      const required = venue.required;
+      const assignedCount = Math.max(0, Math.min(required, ((day + index) % (required + 1))));
+
+      const assignedExaminers = SAMPLE_EXAMINERS.slice(0, assignedCount);
+      const enrolledStudents = Array.from({ length: booked }).map((_, studentIndex) => ({
+        id: `${sessionId}-${studentIndex}`,
+        name: SAMPLE_STUDENTS[(day + studentIndex + index) % SAMPLE_STUDENTS.length],
+      }));
+
+      const startHour = String(9 + index).padStart(2, "0");
+      const endHour = String(9 + index).padStart(2, "0");
+      const startMinute = day % 2 === 0 ? "00" : "30";
+      const endMinute = day % 2 === 0 ? "25" : "55";
+
+      sessions.push(makeSession({
+        id: sessionId,
+        date: dateKey,
+        startTime: `${startHour}:${startMinute}`,
+        endTime: `${endHour}:${endMinute}`,
+        venueId: venue.id,
+        venueName: venue.name,
+        capacity,
+        bookedCount: booked,
+        requiredExaminers: required,
+        assignedExaminers,
+        enrolledStudents,
+        publishedToExaminer: day % 3 !== 0,
+        publishedToStudent: day % 4 === 0,
+      }));
+    });
+  }
+
+  dataset.sessions = [...dataset.sessions, ...sessions];
+  dataset.sessions.sort((a, b) => {
+    const dateDiff = a.date.localeCompare(b.date);
+    if (dateDiff !== 0) return dateDiff;
+    return (a.startTime || "").localeCompare(b.startTime || "");
+  });
+  updateDatasetWindow(dataset);
+};
+
+const updateDatasetWindow = (dataset) => {
+  if (!dataset?.sessions?.length) return;
+  const sortedDates = dataset.sessions.map((session) => session.date).sort();
+  const minDate = sortedDates[0];
+  const maxDate = sortedDates[sortedDates.length - 1];
+  if (!dataset.meta) {
+    dataset.meta = {};
+  }
+  dataset.meta.windowStart = dataset.meta.windowStart
+    ? (dataset.meta.windowStart < minDate ? dataset.meta.windowStart : minDate)
+    : minDate;
+  dataset.meta.windowEnd = dataset.meta.windowEnd
+    ? (dataset.meta.windowEnd > maxDate ? dataset.meta.windowEnd : maxDate)
+    : maxDate;
+};
+
 const MOCK_ASSIGNMENTS = {
   "42": {
     meta: {
@@ -213,6 +315,40 @@ const MOCK_ASSIGNMENTS = {
   },
 };
 
+createSyntheticSessions("42", { startDate: "2025-09-18", days: 7, baseId: 4300 });
+createSyntheticSessions("77", { startDate: "2025-10-04", days: 6, baseId: 7800 });
+
+const ensureDataset = (assignmentId) => {
+  const key = String(assignmentId);
+  if (!MOCK_ASSIGNMENTS[key]) {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    const end = new Date(start.getTime());
+    end.setDate(start.getDate() + 9);
+
+    const startKey = start.toISOString().split("T")[0];
+    const endKey = end.toISOString().split("T")[0];
+    const numericId = Number.parseInt(String(assignmentId).replace(/[^0-9]/g, ""), 10);
+    const baseId = Number.isFinite(numericId) ? numericId * 100 : 6000;
+
+    MOCK_ASSIGNMENTS[key] = {
+      meta: {
+        id: assignmentId,
+        name: `Mock Assignment ${assignmentId}`,
+        courseName: "Mock Course",
+        courseCode: `MCK${String(assignmentId).padStart(3, "0")}`,
+        windowStart: startKey,
+        windowEnd: endKey,
+        timezone: "Australia/Melbourne",
+      },
+      publish: { examiners: true, students: false },
+      sessions: [],
+    };
+    createSyntheticSessions(key, { startDate: startKey, days: 10, baseId });
+  }
+  return MOCK_ASSIGNMENTS[key];
+};
+
 const ensureArray = (value) => {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
@@ -291,13 +427,8 @@ const matchesSearch = (session, searchTerm) => {
 
 const adminSchedulingReportServiceMock = {
   async getCalendar(assignmentId, month) {
+    const dataset = ensureDataset(assignmentId);
     await delay();
-    const key = String(assignmentId);
-    const dataset = MOCK_ASSIGNMENTS[key];
-    if (!dataset) {
-      return { success: true, data: {} };
-    }
-
     const calendar = computeCalendar(dataset.sessions);
     if (month) {
       const filtered = {};
@@ -313,20 +444,8 @@ const adminSchedulingReportServiceMock = {
   },
 
   async getSessions(assignmentId, params = {}) {
+    const dataset = ensureDataset(assignmentId);
     await delay();
-    const key = String(assignmentId);
-    const dataset = MOCK_ASSIGNMENTS[key];
-    if (!dataset) {
-      return {
-        success: true,
-        data: {
-          sessions: [],
-          summary: computeSummary([]),
-          venues: [],
-          outsideAssignmentRange: false,
-        },
-      };
-    }
 
     const dates = ensureArray(params.date);
     const status = params.status && params.status !== "all" ? params.status : null;
@@ -365,23 +484,17 @@ const adminSchedulingReportServiceMock = {
   },
 
   async getPublishStatus(assignmentId) {
+    ensureDataset(assignmentId);
     await delay(150);
     const dataset = MOCK_ASSIGNMENTS[String(assignmentId)];
-    if (!dataset) {
-      return { success: true, data: { examiners: false, students: false } };
-    }
     return { success: true, data: { ...dataset.publish } };
   },
 
   async getAssignmentMeta(assignmentId) {
     await delay(150);
-    const dataset = MOCK_ASSIGNMENTS[String(assignmentId)];
-    if (!dataset) {
-      return { success: false, data: null };
-    }
+    const dataset = ensureDataset(assignmentId);
     return { success: true, data: { ...dataset.meta } };
   },
 };
 
 export default adminSchedulingReportServiceMock;
-

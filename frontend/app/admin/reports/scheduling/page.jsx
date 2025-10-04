@@ -10,6 +10,8 @@ import SchedulingSummaryStrip from "@/components/admin/reports/SchedulingSummary
 import SchedulingInsightRail from "@/components/admin/reports/SchedulingInsightRail.jsx";
 import SchedulingSessionsTable from "@/components/admin/reports/SchedulingSessionsTable.jsx";
 import SchedulingDetailDrawer from "@/components/admin/reports/SchedulingDetailDrawer.jsx";
+import SchedulingStaffingTrendChart from "@/components/admin/reports/SchedulingStaffingTrendChart.jsx";
+import SchedulingBookingPressureChart from "@/components/admin/reports/SchedulingBookingPressureChart.jsx";
 import {
   useSchedulingAssignmentMeta,
   useSchedulingCalendar,
@@ -42,6 +44,26 @@ const toDateKey = (value) => {
   } catch (error) {
     return value;
   }
+};
+
+const toMonthKeyFromDateKey = (dateKey) => {
+  if (!dateKey || dateKey.length < 7) return "";
+  return dateKey.slice(0, 7);
+};
+
+const addDays = (base, days) => {
+  if (!base) return null;
+  const clone = new Date(base.getTime());
+  clone.setDate(clone.getDate() + days);
+  return clone;
+};
+
+const toDateObject = (value) => {
+  const key = toDateKey(value);
+  if (!key || key.length !== 10) return null;
+  const [year, month, day] = key.split("-").map(Number);
+  if ([year, month, day].some(Number.isNaN)) return null;
+  return new Date(year, month - 1, day);
 };
 
 const statusOptions = [
@@ -172,16 +194,6 @@ export default function SchedulingOverviewReportPage() {
     }
   }, [assignments, assignmentId, setAssignmentId]);
 
-  // Ensure selected month defaults to current month when assignment changes
-  useEffect(() => {
-    if (!assignmentId) return;
-    if (!selectedMonth) {
-      const now = new Date();
-      const nextMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      setSelectedMonth(nextMonthKey);
-    }
-  }, [assignmentId, selectedMonth, setSelectedMonth]);
-
   const calendarQuery = useSchedulingCalendar(assignmentId, selectedMonth, {
     enabled: Boolean(assignmentId && selectedMonth),
   });
@@ -193,6 +205,25 @@ export default function SchedulingOverviewReportPage() {
   const publishStatusQuery = useSchedulingPublishStatus(assignmentId, {
     enabled: Boolean(assignmentId),
   });
+
+  const calendarData = calendarQuery.data || {};
+  const calendarDates = useMemo(() => Object.keys(calendarData).sort(), [calendarData]);
+  const assignmentMeta = assignmentMetaQuery.data;
+
+  useEffect(() => {
+    if (!assignmentId) return;
+    if (selectedMonth) return;
+
+    const windowStartKey = toDateKey(assignmentMeta?.windowStart);
+    const now = new Date();
+    const fallbackMonth = windowStartKey
+      ? toMonthKeyFromDateKey(windowStartKey)
+      : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    if (fallbackMonth) {
+      setSelectedMonth(fallbackMonth);
+    }
+  }, [assignmentId, assignmentMeta?.windowStart, selectedMonth, setSelectedMonth]);
 
   const sessionParams = useMemo(() => {
     return {
@@ -208,20 +239,54 @@ export default function SchedulingOverviewReportPage() {
     allowEmptyDate: false,
   });
 
-  // Initialize selected date when calendar data arrives
+  // Initialize selected date when calendar data arrives or context changes
   useEffect(() => {
     if (!assignmentId) return;
-    const calendarData = calendarQuery.data;
-    if (!calendarData || Object.keys(calendarData).length === 0) {
-      return;
-    }
+    if (!calendarDates.length) return;
 
     if (selectedDate && calendarData[selectedDate]) return;
-    const firstActiveDate = Object.keys(calendarData).sort()[0];
-    if (firstActiveDate) {
-      setSelectedDate(firstActiveDate);
+
+    const monthPrefix = selectedMonth ? `${selectedMonth}-` : null;
+    const windowStartKey = toDateKey(assignmentMeta?.windowStart);
+    const windowEndKey = toDateKey(assignmentMeta?.windowEnd);
+    const todayKey = toDateKey(new Date());
+
+    const candidateInMonth = monthPrefix
+      ? calendarDates.find((date) => date.startsWith(monthPrefix))
+      : null;
+
+    let target = candidateInMonth;
+
+    if (!target && windowStartKey) {
+      target = calendarDates.find((date) => {
+        if (windowEndKey) {
+          return date >= windowStartKey && date <= windowEndKey;
+        }
+        return date >= windowStartKey;
+      });
     }
-  }, [assignmentId, calendarQuery.data, selectedDate, setSelectedDate]);
+
+    if (!target) {
+      target = calendarDates.find((date) => date >= todayKey);
+    }
+
+    if (!target) {
+      target = calendarDates[0];
+    }
+
+    if (target) {
+      setSelectedDate(target);
+    }
+  }, [
+    assignmentId,
+    assignmentMeta?.windowEnd,
+    assignmentMeta?.windowStart,
+    calendarData,
+    calendarDates,
+    selectedDate,
+    selectedMonth,
+    setSelectedDate,
+  ]);
 
   useEffect(() => {
     if (!sessionsQuery.data) return;
@@ -253,6 +318,46 @@ export default function SchedulingOverviewReportPage() {
   }, [sessions, statusFilter, venueFilter, searchTerm]);
 
   const staffingGaps = (summary?.unstaffed || summary?.noStaffed || 0) + (summary?.partiallyStaffed || 0);
+
+  const staffingTrendData = useMemo(() => {
+    if (!calendarDates.length) return [];
+    return calendarDates.map((date) => {
+      const info = calendarData[date] || {};
+      return {
+        date,
+        fully: info.fullyStaffed || 0,
+        partial: info.partialStaffed || info.partiallyStaffed || 0,
+        none: info.noStaffed || info.unstaffed || 0,
+      };
+    });
+  }, [calendarData, calendarDates]);
+
+  const bookingPressureData = useMemo(() => {
+    if (!filteredSessions.length) return [];
+    const aggregate = new Map();
+
+    filteredSessions.forEach((session) => {
+      const key = session.venueName || `Venue ${session.venueId || "Unknown"}`;
+      if (!aggregate.has(key)) {
+        aggregate.set(key, { venue: key, capacity: 0, booked: 0, sessions: 0 });
+      }
+      const record = aggregate.get(key);
+      record.capacity += session.capacity || 0;
+      record.booked += session.bookedCount || 0;
+      record.sessions += 1;
+    });
+
+    return Array.from(aggregate.values())
+      .map((item) => {
+        const ratio = item.capacity > 0 ? item.booked / item.capacity : 0;
+        return {
+          ...item,
+          ratio: Number(ratio.toFixed(3)),
+        };
+      })
+      .sort((a, b) => b.ratio - a.ratio)
+      .slice(0, 8);
+  }, [filteredSessions]);
 
   const pressureInsight = useMemo(() => {
     if (!filteredSessions || filteredSessions.length === 0) return null;
@@ -315,6 +420,85 @@ export default function SchedulingOverviewReportPage() {
       });
     }
   }, [assignmentId, selectedDate, statusFilter, venueFilter]);
+
+  const handlePresetChange = useCallback((nextPreset) => {
+    setPresetRange(nextPreset);
+    if (!assignmentId) return;
+
+    const applySelection = (dateKey) => {
+      if (!dateKey) return false;
+      const monthKey = formatMonthKey(dateKey);
+      if (monthKey) {
+        setSelectedMonth(monthKey);
+      }
+      setSelectedDate(dateKey);
+      return true;
+    };
+
+    const todayKey = toDateKey(new Date());
+    const windowStartKey = toDateKey(assignmentMeta?.windowStart);
+    const windowEndKey = toDateKey(assignmentMeta?.windowEnd);
+
+    if (nextPreset === "today") {
+      if (todayKey) {
+        applySelection(todayKey);
+      }
+      return;
+    }
+
+    if (nextPreset === "week") {
+      if (!todayKey) return;
+      const endDateObj = addDays(toDateObject(todayKey), 6);
+      const endKey = endDateObj ? toDateKey(endDateObj) : "";
+      const candidate = calendarDates.find((date) => {
+        if (!date) return false;
+        if (endKey) {
+          return date >= todayKey && date <= endKey;
+        }
+        return date >= todayKey;
+      }) || calendarDates.find((date) => date >= todayKey);
+
+      if (candidate) {
+        applySelection(candidate);
+      } else {
+        applySelection(todayKey);
+      }
+      return;
+    }
+
+    if (nextPreset === "window") {
+      if (windowStartKey) {
+        const candidate = calendarDates.find((date) => {
+          if (!date) return false;
+          if (windowEndKey) {
+            return date >= windowStartKey && date <= windowEndKey;
+          }
+          return date >= windowStartKey;
+        }) || windowStartKey;
+
+        applySelection(candidate);
+      }
+      return;
+    }
+
+    if (nextPreset === "custom") {
+      if (typeof window !== "undefined") {
+        const input = window.prompt("请输入要查看的日期 (YYYY-MM-DD)：");
+        const customKey = toDateKey(input);
+        if (customKey) {
+          applySelection(customKey);
+        }
+      }
+    }
+  }, [
+    assignmentId,
+    assignmentMeta?.windowEnd,
+    assignmentMeta?.windowStart,
+    calendarDates,
+    setPresetRange,
+    setSelectedDate,
+    setSelectedMonth,
+  ]);
 
   const hero = (
     <section className="rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-8 py-7 text-white shadow-lg">
@@ -441,7 +625,7 @@ export default function SchedulingOverviewReportPage() {
     </div>
   );
 
-  const selectedMeta = assignmentMetaQuery.data;
+  const selectedMeta = assignmentMeta;
   const publishStatus = publishStatusQuery.data;
 
   const sideRail = (
@@ -480,8 +664,23 @@ export default function SchedulingOverviewReportPage() {
       publishStatus={publishStatus}
       selectedDate={selectedDate}
       preset={presetRange}
-      onPresetChange={setPresetRange}
+      onPresetChange={handlePresetChange}
     />
+  );
+
+  const chartsSection = (
+    <div className="grid gap-6 xl:grid-cols-2">
+      <SchedulingStaffingTrendChart
+        data={staffingTrendData}
+        activeDate={selectedDate}
+        onSelectDate={handleDateSelect}
+        isLoading={calendarQuery.isFetching}
+      />
+      <SchedulingBookingPressureChart
+        data={bookingPressureData}
+        isLoading={sessionsQuery.isFetching}
+      />
+    </div>
   );
 
   const tableSection = (
@@ -503,6 +702,7 @@ export default function SchedulingOverviewReportPage() {
       <div className="space-y-6">
         {summaryStrip}
         {calendarSection}
+        {chartsSection}
         {sessionsQuery.isError && (
           <div className="rounded-3xl border border-rose-200 bg-rose-50 px-6 py-4 text-sm text-rose-600 dark:border-rose-900/40 dark:bg-rose-900/30 dark:text-rose-200">
             Failed to load sessions. Please try again.
