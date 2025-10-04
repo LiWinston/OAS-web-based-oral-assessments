@@ -136,12 +136,6 @@ export default function RubricConfigurationPage() {
         rubricId: assignmentData.rubricId,
       };
 
-      console.log("[Rubric Config] Assignment loaded:", {
-        id: mappedAssignment.id,
-        name: mappedAssignment.name,
-        type: mappedAssignment.type
-      });
-
       setAssignment(mappedAssignment);
 
       // Check if assignment has rubric data
@@ -787,7 +781,10 @@ export default function RubricConfigurationPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowPreview(!showPreview)}
+              onClick={() => {
+                console.log("[Rubric Config] Toggle preview:", !showPreview);
+                setShowPreview(!showPreview);
+              }}
               className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-all"
             >
               {showPreview ? (
@@ -914,9 +911,9 @@ export default function RubricConfigurationPage() {
       </div>
 
       {/* Main Content Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Criteria Builder */}
-        <div className="space-y-6">
+        <div className={`space-y-6 ${showPreview ? 'lg:col-span-6' : 'lg:col-span-12'}`}>
           {/* Rubric Info */}
           <div className="dashboard-card">
             <div className="p-6">
@@ -980,17 +977,29 @@ export default function RubricConfigurationPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Total Points
+                    {rubric.weightBasis === 'percentage' ? 'Total Percentage' : 'Total Points'}
                   </label>
                   <input
                     type="number"
-                    value={rubric.totalPoints || 100}
+                    value={rubric.totalPoints ?? ''}
                     onChange={(e) => {
-                      setRubric({
-                        ...rubric,
-                        totalPoints: parseInt(e.target.value) || 100,
-                      });
+                      const value = e.target.value;
+                      if (value === '') {
+                        setRubric({ ...rubric, totalPoints: '' });
+                      } else {
+                        const numValue = parseInt(value);
+                        setRubric({
+                          ...rubric,
+                          totalPoints: Number.isFinite(numValue) ? numValue : ''
+                        });
+                      }
                       setHasChanges(true);
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || !Number.isFinite(parseInt(value))) {
+                        setRubric({ ...rubric, totalPoints: 100 });
+                      }
                     }}
                     className="form-control w-full max-w-xs"
                     min={1}
@@ -1173,7 +1182,7 @@ export default function RubricConfigurationPage() {
 
         {/* Right: Preview Panel */}
         {showPreview && (
-          <div className="lg:sticky lg:top-6 h-fit">
+          <div className="lg:col-span-6 lg:sticky lg:top-6 h-fit">
             <RubricPreview
               rubric={rubric}
               assignment={assignment}

@@ -164,8 +164,22 @@ export default function RubricCriterion({
                 </label>
                 <input
                   type="number"
-                  value={criterion.weight || 0}
-                  onChange={(e) => onUpdate({ ...criterion, weight: Number.isFinite(Number(e.target.value)) ? Number(e.target.value) : 0 })}
+                  value={criterion.weight ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      onUpdate({ ...criterion, weight: '' });
+                    } else {
+                      const numValue = Number(value);
+                      onUpdate({ ...criterion, weight: Number.isFinite(numValue) ? numValue : '' });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || !Number.isFinite(Number(value))) {
+                      onUpdate({ ...criterion, weight: 0 });
+                    }
+                  }}
                   className="form-control"
                   min={0}
                 />
