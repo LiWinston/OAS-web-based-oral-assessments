@@ -196,17 +196,14 @@ const mockAssignmentService = {
   async getAssignmentById(id) {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
-    console.log("Mock: Getting assignment by ID:", id);
     const assignment = mockAssignments.find(
       (a) => a.id === parseInt(id) || a.id === id
     );
 
     if (!assignment) {
-      console.error("Mock: Assignment not found with ID:", id);
       throw new Error(`Assignment not found with ID: ${id}`);
     }
 
-    console.log("Mock: Found assignment:", assignment);
     return assignment;
   },
 

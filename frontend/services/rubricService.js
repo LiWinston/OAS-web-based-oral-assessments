@@ -14,7 +14,17 @@ const generateMockRubric = (data) => {
     totalPoints: data.totalPoints || 100,
     assignmentId: data.assignmentId,
     courseId: data.courseId,
-    criteria: data.criteria || [],
+    criteria: (data.criteria || []).map((criterion, index) => ({
+      ...criterion,
+      criterionId: criterion.criterionId || criterion.id || `crit-${Date.now().toString(36)}-${index}`,
+      criterionType: (criterion.criterionType || criterion.component || 'INDIVIDUAL').toUpperCase(),
+      title: criterion.title || `Criterion ${index + 1}`,
+      levels: (criterion.levels || []).map((level, levelIndex) => ({
+        ...level,
+        comments: Array.isArray(level.comments) ? level.comments : [],
+        id: level.id || `crit-${index}-level-${levelIndex}`
+      }))
+    })),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -36,6 +46,8 @@ if (USE_MOCK_API) {
     criteria: [
       {
         id: '1',
+        criterionId: 'crit-mock-1',
+        criterionType: 'INDIVIDUAL',
         title: 'Content Knowledge',
         description: 'Understanding and accuracy of the subject matter',
         weight: 30,
@@ -55,6 +67,8 @@ if (USE_MOCK_API) {
       },
       {
         id: '2',
+        criterionId: 'crit-mock-2',
+        criterionType: 'INDIVIDUAL',
         title: 'Presentation Delivery',
         description: 'Clarity, pace, and engagement of the presentation',
         weight: 40,
@@ -74,6 +88,8 @@ if (USE_MOCK_API) {
       },
       {
         id: '3',
+        criterionId: 'crit-mock-3',
+        criterionType: 'GROUP',
         title: 'Visual Aids & Organization',
         description: 'Quality and effectiveness of visual materials',
         weight: 30,
@@ -233,6 +249,10 @@ const mockRubricService = {
       if (!criterion.title || criterion.title.trim().length === 0) {
         errors.push(`Criterion ${index + 1} must have a title`);
       }
+      const criterionTypeValue = (criterion.criterionType || criterion.component || '').toUpperCase();
+      if (!criterionTypeValue || !['INDIVIDUAL', 'GROUP'].includes(criterionTypeValue)) {
+        errors.push(`Criterion ${criterion.title || index + 1} must have a criterion type (Individual or Group)`);
+      }
       
       if (criterion.levels.length === 0) {
         errors.push(`Criterion "${criterion.title}" must have at least one performance level`);
@@ -295,23 +315,23 @@ const realRubricService = {
           startPoint: level.minPoints,
           endPoint: level.maxPoints,
           // Include level-specific comments in preDefinedComment field
-          preDefinedComment: level.comments ? level.comments.map(comment => 
+          preDefinedComment: level.comments ? level.comments.map(comment =>
             typeof comment === 'string' ? comment : comment.text
           ) : []
         })) : [];
-        
-        console.log("Mapping criterion:", criterion.description || criterion.title, "with levels:", performanceLevels);
-        
+
         return {
+          criterionId: criterion.criterionId || criterion.id,
+          title: criterion.title,
           description: criterion.description || criterion.title,
           weight: criterion.weight,
-          scaleType: criterion.markingScale || "points",
+          component: (criterion.criterionType || criterion.component || 'INDIVIDUAL').toUpperCase(),
+          scaleType: 'points',
           performanceLevel: performanceLevels
         };
       })
     };
-    
-    console.log("Sending request data:", requestData);
+
     const response = await api.put(`/api/assignments/${rubricData.assignmentId}`, requestData);
     return response.data;
   },
@@ -346,15 +366,17 @@ const realRubricService = {
         })) : [];
         
         return {
+          criterionId: criterion.criterionId || criterion.id,
+          title: criterion.title,
           description: criterion.description || criterion.title,
           weight: criterion.weight,
-          scaleType: criterion.markingScale || "points",
+          component: (criterion.criterionType || criterion.component || 'INDIVIDUAL').toUpperCase(),
+          scaleType: 'points',
           performanceLevel: performanceLevels
         };
       })
     };
-    
-    console.log("Updating rubric with data:", requestData);
+
     const response = await api.put(`/api/assignments/${updates.assignmentId}`, requestData);
     return response.data;
   },
