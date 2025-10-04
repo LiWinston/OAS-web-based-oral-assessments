@@ -73,8 +73,7 @@ export default function RubricTable({
       maxPoints: max
     });
 
-    // Fetch latest assignment data to get updated predefined comments
-    await fetchAssignmentData();
+    // Predefined comments are now embedded in sessionContext criteria via service mapping
   };
 
   const handlePointsChange = (criterionId, points) => {
@@ -133,8 +132,7 @@ export default function RubricTable({
         maxPoints: range.max
       });
 
-      // Fetch latest assignment data to get updated predefined comments
-      await fetchAssignmentData();
+      // Predefined comments are now embedded in sessionContext criteria via service mapping
     } else {
       // If no matching level found, still update points but clear level selection
       const current = selectedRatings[criterionId];
@@ -171,29 +169,30 @@ export default function RubricTable({
   // Extract predefined comments for current selected level from latest API data
   const getPredefinedCommentsForLevel = (criterionId) => {
     const selectedLevelId = selectedRatings[criterionId]?.levelId;
-    if (!selectedLevelId || !assignmentData) return [];
+    if (!selectedLevelId) return [];
 
-    // Use fresh data from API instead of static criteria
+    // Prefer comments embedded in criteria.performanceLevel
     const criterion = criteria.find(c => c.criterionId === criterionId);
     if (!criterion) return [];
-
-    // Find matching criterion in API data by description
-    const apiCriterion = assignmentData.rubricsInfo?.find(c => 
-      c.description === criterion.description
-    );
-    
-    if (!apiCriterion) return [];
-
-    // Find the performance level that matches the selected levelId
     const levels = criterion.levels || criterion.performanceLevel || [];
     const levelIndex = levels.findIndex(level => {
       const levelIdToMatch = level.levelId || `L${levels.indexOf(level) + 1}`;
       return levelIdToMatch === selectedLevelId;
     });
+    if (levelIndex >= 0 && criterion.performanceLevel && criterion.performanceLevel[levelIndex]?.preDefinedComment) {
+      const fromCriterion = criterion.performanceLevel[levelIndex].preDefinedComment;
+      return Array.isArray(fromCriterion) ? fromCriterion : [];
+    }
 
-    if (levelIndex === -1 || !apiCriterion.performanceLevel) return [];
-
-    // Get comments from API data using the same index
+    // Fallback to assignment fetch if not present (rare)
+    if (!assignmentId) return [];
+    if (!assignmentData) {
+      // non-blocking: best effort fetch once
+      fetchAssignmentData();
+      return [];
+    }
+    const apiCriterion = assignmentData.rubricsInfo?.find(c => c.description === criterion.description);
+    if (!apiCriterion || !apiCriterion.performanceLevel) return [];
     const apiPerformanceLevel = apiCriterion.performanceLevel[levelIndex];
     const comments = apiPerformanceLevel?.preDefinedComment;
     return Array.isArray(comments) ? comments : [];
@@ -340,12 +339,8 @@ export default function RubricTable({
                       rows="3"
                       value={localComments[criterion.criterionId] || ''}
                       onChange={(e) => handleCommentChange(criterion.criterionId, e.target.value)}
-                      disabled={disabled || !selectedRatings[criterion.criterionId]?.levelId}
-                      placeholder={
-                        !selectedRatings[criterion.criterionId]?.levelId 
-                          ? "Please select a level first to add comments..." 
-                          : "Add your comment here..."
-                      }
+                      disabled={disabled || !(selectedRatings[criterion.criterionId])}
+                      placeholder={"Add your comment here..."}
                     />
                     
                     {!disabled && false && ( // Temporarily disabled save comment feature

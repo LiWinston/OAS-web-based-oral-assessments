@@ -30,8 +30,8 @@ export default function SessionInfo({ sessionContext }) {
     };
   };
 
-  const sessionTime = session ? formatDateTime(session.start) : {};
-  const endTime = session ? new Date(session.end).toLocaleTimeString('en-AU', { 
+  const sessionTime = (session && session.start) ? formatDateTime(session.start) : {};
+  const endTime = (session && session.end) ? new Date(session.end).toLocaleTimeString('en-AU', { 
     hour: '2-digit', 
     minute: '2-digit' 
   }) : '';
@@ -57,10 +57,10 @@ export default function SessionInfo({ sessionContext }) {
                 <div className="font-medium capitalize">
                   {assignment?.type || 'Individual'} Assessment
                 </div>
-                {assignment?.type === 'mixed' && (
+                {assignment?.type === 'mixed' && Number.isFinite(assignment?.groupWeight) && Number.isFinite(assignment?.individualWeight) && (
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    Group: {(assignment.groupWeight * 100).toFixed(0)}% | 
-                    Individual: {(assignment.individualWeight * 100).toFixed(0)}%
+                    Group: {Math.round(assignment.groupWeight * 100)}% | 
+                    Individual: {Math.round(assignment.individualWeight * 100)}%
                   </div>
                 )}
               </div>
@@ -81,9 +81,9 @@ export default function SessionInfo({ sessionContext }) {
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Date & Time
                 </div>
-                <div className="font-medium">{sessionTime.date}</div>
+                <div className="font-medium">{sessionTime.date || 'Date TBD'}</div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {sessionTime.time} - {endTime}
+                  {(sessionTime.time && endTime) ? `${sessionTime.time} - ${endTime}` : 'Time TBD'}
                 </div>
               </div>
 
@@ -91,12 +91,16 @@ export default function SessionInfo({ sessionContext }) {
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Location
                 </div>
-                <div className="font-medium">
-                  {session?.venue?.room || 'Room TBD'}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {session?.venue?.building || 'Building TBD'}
-                </div>
+                {session?.venue?.venueName ? (
+                  <div className="font-medium">{session.venue.venueName}</div>
+                ) : (
+                  <>
+                    <div className="font-medium">{session?.venue?.room || 'Room TBD'}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                      {session?.venue?.building || 'Building TBD'}
+                    </div>
+                  </>
+                )}
               </div>
 
               {session?.coExaminers && session.coExaminers.length > 0 && (
@@ -105,10 +109,10 @@ export default function SessionInfo({ sessionContext }) {
                     Co-Examiners
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {session.coExaminers.map((examiner) => (
-                      <Badge key={examiner.examinerId} variant="secondary">
+                    {session.coExaminers.map((examiner, idx) => (
+                      <Badge key={examiner.examinerId || examiner.id || idx} variant="secondary">
                         <i className="fas fa-user-tie mr-1 text-xs"></i>
-                        {examiner.name}
+                        {examiner.name || examiner.fullName || 'Examiner'}
                       </Badge>
                     ))}
                   </div>

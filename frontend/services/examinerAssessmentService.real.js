@@ -196,13 +196,16 @@ const examinerAssessmentServiceReal = {
       }
       
       // Build session context in expected format
+      const assignmentType = assessment.subjectType?.toLowerCase() === 'group' ? 'group' : 'individual';
+      const appliesFromType = (assignmentType === 'group') ? 'GROUP' : (assignmentType === 'individual') ? 'INDIVIDUAL' : 'BOTH';
+
       const sessionContext = {
         submissionId: assessment.submissionId,
         sessionId: assessment.sessionId || null, // Add real sessionId if available; otherwise null
         assignment: {
           id: assessment.assignmentId,
           name: rubricMeta.name || `Assignment ${assessment.assignmentId}`,
-          type: assessment.subjectType?.toLowerCase() === 'group' ? 'group' : 'individual',
+          type: assignmentType,
           rubric: {
             id: `rubric-${assessment.assignmentId}`,
             criteria: Array.isArray(rubricsInfo) ? rubricsInfo.map((criterion, index) => ({
@@ -210,19 +213,21 @@ const examinerAssessmentServiceReal = {
               description: criterion?.description || 'Criterion',
               weight: criterion?.weight || 0,
               scaleType: criterion?.scaleType || 'points',
-              appliesTo: 'BOTH',
+              appliesTo: appliesFromType,
               // Provide both field names for compatibility
               levels: Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel.map((level, levelIndex) => ({
                 levelId: `L${levelIndex + 1}`,
                 minPoints: level?.startPoint || 0,
                 maxPoints: level?.endPoint || 100,
-                description: level?.description || 'Level'
+                description: level?.description || 'Level',
+                preDefinedComment: level?.preDefinedComment || []
               })) : [],
               performanceLevel: Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel.map((level, levelIndex) => ({
                 levelId: `L${levelIndex + 1}`,
                 startPoint: level?.startPoint || 0,
                 endPoint: level?.endPoint || 100,
-                description: level?.description || 'Level'
+                description: level?.description || 'Level',
+                preDefinedComment: level?.preDefinedComment || []
               })) : []
             })) : []
           }
@@ -594,17 +599,25 @@ const examinerAssessmentServiceReal = {
         payload
       );
       
-      // Ensure consistent response format
-      if (response.data?.success) {
-        return {
-          success: true,
-          code: 'OK',
-          data: {
-            assessmentId: response.data.data?.assessmentId || `A-${submissionId}-${Date.now()}`,
-            status: 'DRAFT',
-            submissionId: submissionId
-          }
-        };
+      // Ensure consistent response format（优先取后端返回的 submissionId，其次 assessmentId）
+      if (response.data) {
+        const top = response.data;
+        const inner = top.data || {};
+        const returnedSubmissionId = inner.submissionId ?? top.submissionId ?? inner.id ?? top.id;
+        const returnedAssessmentId = inner.assessmentId ?? top.assessmentId;
+        if (top.success) {
+          return {
+            success: true,
+            code: 'OK',
+            data: {
+              submissionId: returnedSubmissionId ?? submissionId,
+              assessmentId: returnedAssessmentId || `A-${submissionId}-${Date.now()}`,
+              status: 'DRAFT'
+            }
+          };
+        }
+        // 非 success 也返回原始 payload，交由调用方处理
+        return top;
       }
       
       return response.data;

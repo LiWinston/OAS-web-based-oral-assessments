@@ -107,14 +107,16 @@ export default function ExaminerAssessmentMarking() {
       };
       
       const res = await saveDraftMutation.mutateAsync(draftData);
-      if (res?.submissionId) {  // Backend returns submissionId, not assessmentId
-        setAssessmentId(res.submissionId);
+      // Prefer server-returned submissionId; fallback to assessmentId when needed
+      const newSubmissionId = res?.submissionId || res?.assessmentId;
+      if (newSubmissionId) {
+        setAssessmentId(newSubmissionId);
         setIsDraft(true);
         showNotification('success', 'Draft saved successfully');
-        // Navigate back to assessment list after successful save
-        setTimeout(() => {
-          router.push(`/examiner/assessment/${assignmentId}/${sessionId}`);
-        }, 1500);
+        // 若当前是 /new 路径，替换为真实 submissionId，保持在本页不跳走
+        if (submissionId === 'new') {
+          router.replace(`/examiner/assessment/${assignmentId}/${sessionId}/${newSubmissionId}?subjectType=${subjectType}&subjectId=${subjectId}`);
+        }
       } else {
         showNotification('error', 'Failed to save draft - invalid response');
       }
@@ -167,7 +169,7 @@ export default function ExaminerAssessmentMarking() {
       if (res?.status === 'SUBMITTED') {  // Backend returns status directly, not data.status
         setIsDraft(false);
         showNotification('success', 'Assessment submitted successfully');
-        setTimeout(() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`), 1500);
+        // 保持在本页，提示用户可返回列表或继续下一位
       } else {
         showNotification('error', 'Failed to submit assessment - invalid response');
       }
@@ -203,20 +205,33 @@ export default function ExaminerAssessmentMarking() {
   // UI State
   const [currentTab, setCurrentTab] = useState('rubric');
 
-  // Validation
+  // Validation（覆盖小组与所有个体）
   const criteria = sessionContext?.assignment?.rubric?.criteria || [];
-  const missingRubricRatings = criteria.filter((criterion) => {
-    if (assessmentType === 'GROUP') {
-      return !groupRatings[criterion.criterionId];
-    } else {
-      return !individualRatings?.[selectedStudent]?.[criterion.criterionId];
-    }
+  const appliesToGroup = (c) => (c.appliesTo === 'GROUP' || c.appliesTo === 'BOTH' || !c.appliesTo);
+  const appliesToIndividual = (c) => (c.appliesTo === 'INDIVIDUAL' || c.appliesTo === 'BOTH' || !c.appliesTo);
+
+  const groupCriteria = criteria.filter(appliesToGroup);
+  const individualCriteria = criteria.filter(appliesToIndividual);
+
+  const groupRequired = groupCriteria.length;
+  const groupFilled = groupCriteria.filter((c) => !!groupRatings?.[c.criterionId]).length;
+  const groupMissing = Math.max(0, groupRequired - groupFilled);
+
+  const individuals = sessionContext?.entity?.individuals || [];
+  const perStudentMissing = individuals.map((stu) => {
+    const ratings = individualRatings?.[stu.studentId] || {};
+    const required = individualCriteria.length;
+    const filled = individualCriteria.filter((c) => !!ratings[c.criterionId]).length;
+    return {
+      studentId: stu.studentId,
+      name: stu.name || `Student ${stu.studentId}`,
+      required,
+      missing: Math.max(0, required - filled),
+    };
   });
 
-  const validation = {
-    totalMissing: missingRubricRatings.length,
-    missingCriteria: missingRubricRatings.map((c) => c.description),
-  };
+  const totalMissing = groupMissing + perStudentMissing.reduce((sum, s) => sum + s.missing, 0);
+  const validation = { groupRequired, groupMissing, perStudentMissing, totalMissing };
 
   // Get ratings and comments for the selected target
   const selectedRatings = assessmentType === 'GROUP' 
@@ -267,20 +282,27 @@ export default function ExaminerAssessmentMarking() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <HeaderStatusBar
-        autoSaveEnabled={false}
-        autoSaveStatus="disabled"
-        lastSaved={null}
-        onNavigateBack={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}
+        isDraft={isDraft}
+        assignmentType={sessionContext?.assignment?.type}
+        validation={validation}
+        selectedStudent={selectedStudent}
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-6">
           {/* Session Info */}
-          <SessionInfo
-            assignment={sessionContext?.assignment}
-            entity={sessionContext?.entity}
-            existingAssessment={sessionContext?.existingAssessment}
-          />
+          <SessionInfo sessionContext={sessionContext} />
+
+          {/* Individual student switcher（仅个体或混合且存在多名学生时显示） */}
+          {Array.isArray(sessionContext?.entity?.individuals) && sessionContext.entity.individuals.length > 1 && (
+            <StudentSwitcher
+              individuals={sessionContext.entity.individuals}
+              selectedStudent={selectedStudent}
+              setSelectedStudent={setSelectedStudent}
+              perStudentMissing={validation.perStudentMissing}
+              isAllStudentsComplete={validation.perStudentMissing.every((s) => s.missing === 0)}
+            />
+          )}
 
 
           {/* Main Content */}
@@ -368,7 +390,7 @@ export default function ExaminerAssessmentMarking() {
               </Button>
             </div>
             <div className="flex space-x-3">
-              <Button variant="outline" onClick={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}>Cancel</Button>
+              <Button variant="outline" onClick={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}>Back to Assessments</Button>
               <Button onClick={() => setConfirmOpen(true)} disabled={disabledInputs || validation.totalMissing > 0} title={validation.totalMissing > 0 ? 'Complete all required rubric selections first' : ''}>
                 Complete Assessment
               </Button>
