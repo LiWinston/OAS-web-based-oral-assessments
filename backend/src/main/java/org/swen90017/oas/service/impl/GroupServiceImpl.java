@@ -52,10 +52,10 @@ public class GroupServiceImpl implements GroupService {
         // Use base service to import student data
         List<SysStudent> sysStudents = baseCsvImportService.importStudents(
                 dtos,
-                GroupCSVRequestDTO::getUserId,    // Student ID extractor
-                GroupCSVRequestDTO::getStudent,   // Username extractor (maps to "Student" column)
-                GroupCSVRequestDTO::getLoginId,   // SIS user ID extractor
-                GroupCSVRequestDTO::getEmail      // Email extractor
+                GroupCSVRequestDTO::getStudentId,    // Student ID extractor (maps to "Student Id")
+                GroupCSVRequestDTO::getStudent,      // Username extractor (maps to "Student")
+                GroupCSVRequestDTO::getSisLoginId,   // SIS user ID extractor (maps to "SIS Login ID")
+                GroupCSVRequestDTO::getEmail         // Email extractor
         );
 
         // Process group-related business logic
@@ -118,14 +118,14 @@ public class GroupServiceImpl implements GroupService {
         
         for (GroupCSVRequestDTO dto : dtos) {
             SysStudent student = studentMapper.selectOne(new QueryWrapper<SysStudent>()
-                    .eq("student_number", dto.getUserId()));
+                    .eq("student_number", dto.getStudentId()));
             SysGroup group = groupMap.get(dto.getCanvasGroupId());
             
             if (student != null && group != null) {
                 relations.add(new SysStudentGroup(student.getUserId(), group.getGroupId()));
             } else {
                 log.warn("Failed to create relation for student: {}, group: {}", 
-                        dto.getUserId(), dto.getCanvasGroupId());
+                        dto.getStudentId(), dto.getCanvasGroupId());
             }
         }
 
@@ -142,8 +142,8 @@ public class GroupServiceImpl implements GroupService {
 
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 groupDTOs,
-                GroupCSVRequestDTO::getUserId,
-                GroupCSVRequestDTO::getLoginId
+                GroupCSVRequestDTO::getStudentId,    // Maps to "Student Id"
+                GroupCSVRequestDTO::getSisLoginId    // Maps to "SIS Login ID"
         );
 
         // Calculate unique group count
