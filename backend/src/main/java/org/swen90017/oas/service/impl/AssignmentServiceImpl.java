@@ -7,7 +7,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -231,7 +230,6 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     }
 
     @Override
-    @Cacheable(value = "subjectAssignments", key = "#subjectId")
     public List<AssignmentResponseDTO> getAssignmentsBySubject(Long subjectId) {
         // Validate subject exists
         Subject subject = subjectMapper.selectById(subjectId);
@@ -253,7 +251,6 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     }
 
     @Override
-    @Cacheable(value = "subjectAssignmentCount", key = "#subjectId")
     public Integer getAssignmentCountBySubject(Long subjectId) {
         // Validate subject exists
         Subject subject = subjectMapper.selectById(subjectId);

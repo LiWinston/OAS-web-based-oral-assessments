@@ -13,6 +13,7 @@ import {
 } from "../../../../components/ui/card";
 import { Button } from "../../../../components/ui/button";
 import { Badge } from "../../../../components/ui/badge";
+import { useSessionMetaStore } from "../../../../store/sessionMetaStore";
 
 export default function AssignmentSessionsList() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function AssignmentSessionsList() {
           const transformedSessions = sessions.map((session) => ({
             id: session.sessionId,
             sessionId: session.sessionId,
-            displayId: session.venue?.id || session.sessionId, // Use venue ID as display ID, fallback to session ID
+            // UX: 不再将 venue.id 作为主标题，避免“2334”这类困惑
             date: session.start ? session.start.split("T")[0] : null,
             startTime: session.start ? session.start.split("T")[1] : null,
             endTime: session.end ? session.end.split("T")[1] : null,
@@ -70,18 +71,19 @@ export default function AssignmentSessionsList() {
             venue: session.venue,
             requiredExaminers: session.requiredExaminers || 0,
             currentExaminers: session.currentExaminers || 0,
-            capacity: session.capacity || 0,
+            capacity: session.capacity ?? null,
             bookedCount: session.bookingCount || 0,
-            remainingCapacity:
-              (session.capacity || 0) - (session.bookingCount || 0),
-            isBooked: session.isBooked || false,
+            remainingCapacity: (session.capacity ?? 0) - (session.bookingCount || 0),
+            isBooked: session.isBooked || (session.bookingCount || 0) > 0,
             canWithdraw: session.canWithdraw || false,
             cannotWithdrawReason: session.cannotWithdrawReason,
-            status: session.isBooked ? "booked" : "available",
+            status: (session.bookingCount || 0) > 0 ? "booked" : (session.isBooked ? "booked" : "available"),
             assignedExaminers: session.assignedExaminers || [],
           }));
 
-          setAssignmentSessions(transformedSessions);
+          // 仅显示“已被学生预约”的场次，避免误解“available”含义
+          const filteredSessions = transformedSessions.filter((s) => (s.bookedCount || 0) > 0);
+          setAssignmentSessions(filteredSessions);
         } else {
           setAssignmentSessions([]);
           if (!response?.success) {
@@ -153,6 +155,16 @@ export default function AssignmentSessionsList() {
   };
 
   const handleViewAssessments = (session) => {
+    // Persist session meta for marking header usage
+    try {
+      const setSessionMeta = useSessionMetaStore.getState().setSessionMeta;
+      setSessionMeta(assignmentId, session.id, {
+        start: session.start,
+        end: session.end,
+        venue: session.venueName ? { venueName: session.venueName } : session.venue,
+        coExaminers: session.assignedExaminers || [],
+      });
+    } catch (_) { /* non-blocking */ }
     router.push(`/examiner/assessment/${assignmentId}/${session.id}`);
   };
 
@@ -194,7 +206,7 @@ export default function AssignmentSessionsList() {
         <CardHeader>
           <CardTitle>
             <i className="fas fa-calendar-week text-blue-600 mr-2"></i>
-            Available Timeslots
+            Booked Timeslots
           </CardTitle>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Click on a Timeslot to view and manage assessments
@@ -211,15 +223,33 @@ export default function AssignmentSessionsList() {
                   <div className="flex justify-between items-center">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">
-                          {session.displayId}
-                        </h3>
+                        <div>
+                          <h3 className="font-semibold text-lg text-gray-800 dark:text-gray-200">
+                            {session.venueName && session.venueName !== 'No venue'
+                              ? session.venueName
+                              : `Session ${session.sessionId}`}
+                          </h3>
+                          {/* Subtitle: Day + Time range */}
+                          {session.date && session.startTime && session.endTime && (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                              {formatDate(session.date)} • {formatTime(session.startTime)} - {formatTime(session.endTime)}
+                            </p>
+                          )}
+                        </div>
                         {session.status && (
                           <Badge
                             variant="outline"
                             className={getStatusBadgeVariant(session.status)}
                           >
                             {session.status?.toUpperCase()}
+                          </Badge>
+                        )}
+                        {session.bookedCount > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800"
+                          >
+                            Booked • {session.bookedCount}
                           </Badge>
                         )}
                       </div>
@@ -245,7 +275,7 @@ export default function AssignmentSessionsList() {
                         )}
                       </div>
 
-                      {/* Second row: Venue, Booked, Remaining */}
+                      {/* Second row: Venue, Booked, Remaining, Co-examiners */}
                       <div className="flex items-center gap-6 text-sm text-gray-600 dark:text-gray-400">
                         {session.venueName && (
                           <div className="flex items-center">
@@ -256,14 +286,24 @@ export default function AssignmentSessionsList() {
                         {session.bookedCount !== undefined && (
                           <div className="flex items-center">
                             <i className="fas fa-user-check text-green-600 mr-2"></i>
-                            Booked: {session.bookedCount}/
-                            {session.capacity || 0}
+                            {session.capacity && session.capacity > 0
+                              ? <>Booked: {session.bookedCount}/{session.capacity}</>
+                              : <>Booked: {session.bookedCount}</>}
                           </div>
                         )}
-                        {session.remainingCapacity !== undefined && (
+                        {session.capacity && session.capacity > 0 && session.remainingCapacity !== undefined && (
                           <div className="flex items-center">
                             <i className="fas fa-users-slash text-amber-600 mr-2"></i>
-                            Remaining: {session.remainingCapacity}
+                            Remaining: {Math.max(0, session.remainingCapacity)}
+                          </div>
+                        )}
+                        {Array.isArray(session.assignedExaminers) && session.assignedExaminers.length > 0 && (
+                          <div className="flex items-center">
+                            <i className="fas fa-user-friends text-indigo-600 mr-2"></i>
+                            {session.assignedExaminers.slice(0, 2).map((ex) => ex.name).filter(Boolean).join(', ')}
+                            {session.assignedExaminers.length > 2 && (
+                              <span className="ml-1">+{session.assignedExaminers.length - 2}</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -286,10 +326,10 @@ export default function AssignmentSessionsList() {
                 <i className="fas fa-calendar-times text-gray-400 dark:text-gray-500 text-3xl"></i>
               </div>
               <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
-                No Timeslots Found
+                No Booked Timeslots
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                There are no timeslots available for this assignment yet.
+                There are no booked timeslots for this assignment yet.
               </p>
             </div>
           )}

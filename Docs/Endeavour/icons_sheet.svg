@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="140" viewBox="0 0 940 140" aria-label="OAS Icon Sheet">
+
+<style>
+  .s { stroke: currentColor; fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .f { fill: currentColor; }
+  .t { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; 
+       font-size: 18px; fill: currentColor; letter-spacing: .2px; }
+  .tl { font-family: inherit; font-size: 20px; font-weight: 600; fill: currentColor; letter-spacing: .3px; }
+  .sub { font-size: 14px; fill: currentColor; opacity: .75; }
+</style>
+
+<g transform="translate(20,30)"><g class="s" transform="scale(3)">
+  <rect x="3" y="3" width="10" height="14" rx="2"/>
+  <path d="M6 6h4 M6 9h4 M6 12h4"/>
+  <rect x="15" y="7" width="6" height="10" rx="2"/>
+  <path d="M13 8 h2 M13 16 h2"/>
+  <path d="M16.5 5 l-2 -2"/>
+  <path d="M19.5 5 l2 -2"/>
+  <path d="M16 12 l2 2 l4 -4"/>
+</g></g>
+<text x="56" y="120" text-anchor="middle" class="t">CSV I/O</text>
+<g transform="translate(120,30)"><g class="s" transform="scale(3)">
+  <rect x="3" y="3" width="18" height="18" rx="3"/>
+  <path d="M3 9h18 M3 15h18"/>
+  <path d="M9 3v18"/>
+  <path d="M5.5 6.5 l1.5 1.5 l2.5 -3"/>
+  <path d="M5.5 12.5 l1.5 1.5 l2.5 -3"/>
+  <path d="M5.5 18.5 l1.5 1.5 l2.5 -3"/>
+</g></g>
+<text x="156" y="120" text-anchor="middle" class="t">Rubric</text>
+<g transform="translate(220,30)"><g class="s" transform="scale(3)">
+  <rect x="3" y="5" width="14" height="14" rx="3"/>
+  <path d="M3 9h14"/>
+  <path d="M7 3v4 M13 3v4"/>
+  <path d="M12 16 l3 3 l5 -6"/>
+</g></g>
+<text x="256" y="120" text-anchor="middle" class="t">Booking</text>
+<g transform="translate(320,30)"><g class="s" transform="scale(3)">
+  <circle cx="8" cy="8" r="3"/>
+  <path d="M3 18 a7 7 0 0 1 10 0"/>
+  <rect x="13.5" y="11" width="7.5" height="7.5" rx="2"/>
+  <path d="M15 15 l2 2 l3 -4"/>
+</g></g>
+<text x="356" y="120" text-anchor="middle" class="t">Self‑Assign</text>
+<g transform="translate(420,30)"><g class="s" transform="scale(3)">
+  <rect x="2.5" y="4" width="8.5" height="8" rx="2"/>
+  <path d="M6 12 v3 l-2.5 2.5"/>
+  <rect x="13" y="8" width="8.5" height="8" rx="2"/>
+  <path d="M19 8 v-3 l2.5 -2.5"/>
+  <path d="M12 3 v18" stroke-dasharray="3 3"/>
+</g></g>
+<text x="456" y="120" text-anchor="middle" class="t">Independent</text>
+<g transform="translate(520,30)"><g class="s" transform="scale(3)">
+  <path d="M3 5 h18 l-6 6 v4 l-6 4 v-8 z"/>
+  <path d="M12 17 l2 2 l4 -5"/>
+</g></g>
+<text x="556" y="120" text-anchor="middle" class="t">Aggregation</text>
+<g transform="translate(620,30)"><g class="s" transform="scale(3)">
+  <rect x="3" y="3" width="18" height="18" rx="3"/>
+  <path d="M6 16 v-6 M10 16 v-9 M14 16 v-4 M18 16 v-11"/>
+  <path d="M3 9 h18"/>
+</g></g>
+<text x="656" y="120" text-anchor="middle" class="t">Reports</text>
+<g transform="translate(720,30)"><g class="s" transform="scale(3)">
+  <path d="M3 8 h18 v8 a2 2 0 0 1 -2 2 H5 a2 2 0 0 1 -2 -2 z"/>
+  <path d="M3 8 l9 6 l9 -6"/>
+  <path d="M6 6 l-2 -2 M18 6 l2 -2"/>
+</g></g>
+<text x="756" y="120" text-anchor="middle" class="t">Notifications</text>
+<g transform="translate(820,30)"><g class="s" transform="scale(3)">
+  <path d="M12 3 l7 3 v5 c0 5 -3.5 8 -7 10 c-3.5 -2 -7 -5 -7 -10 V6 z"/>
+  <path d="M4 12 c2.5 -3 5 -4.5 8 -4.5 s5.5 1.5 8 4.5 c-2.5 3 -5 4.5 -8 4.5 s-5.5 -1.5 -8 -4.5"/>
+  <circle cx="12" cy="12" r="2"/>
+  <path d="M4 4 l16 16"/>
+</g></g>
+<text x="856" y="120" text-anchor="middle" class="t">Security</text>
+</svg>

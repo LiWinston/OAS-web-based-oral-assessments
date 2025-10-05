@@ -1,17 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  ChevronDown, 
-  ChevronUp, 
-  Trash2, 
-  Copy, 
+import {
+  ChevronDown,
+  ChevronUp,
+  Trash2,
+  Copy,
   Plus,
-  MessageSquare,
-  Star,
-  Circle
+  Users,
+  User,
 } from 'lucide-react';
 import PerformanceLevel from './PerformanceLevel';
+
+const CRITERION_TYPE_LABELS = {
+  INDIVIDUAL: 'Individual',
+  GROUP: 'Group',
+};
 
 export default function RubricCriterion({
   criterion,
@@ -19,6 +23,7 @@ export default function RubricCriterion({
   totalCriteria,
   weightBasis = 'percentage',
   highlight = false,
+  allowedCriterionTypes = ['INDIVIDUAL', 'GROUP'],
   onUpdate,
   onDelete,
   onDuplicate
@@ -38,7 +43,13 @@ export default function RubricCriterion({
         setTimeout(() => setJustAdded(false), 1500);
       }, 0);
     }
-  }, [highlight]);
+  }, [highlight, containerId]);
+
+  const normalizedOptions = allowedCriterionTypes.map((option) => option.toUpperCase());
+  const criterionTypeValue = normalizedOptions.includes((criterion.criterionType || '').toUpperCase())
+    ? (criterion.criterionType || '').toUpperCase()
+    : (normalizedOptions[0] || 'INDIVIDUAL');
+  const criterionTypeLocked = normalizedOptions.length === 1;
 
   const handleUpdateLevel = (levelIndex, updatedLevel) => {
     const newLevels = [...criterion.levels];
@@ -63,19 +74,9 @@ export default function RubricCriterion({
     onUpdate({ ...criterion, levels: newLevels });
   };
 
-  
-  const getScaleIcon = (scale) => {
-    switch (scale) {
-      case 'descriptive':
-        return <Star className="w-4 h-4" />;
-      case 'letter':
-        return <span className="text-sm font-bold">A</span>;
-      default:
-        return <Circle className="w-4 h-4" />;
-    }
+  const handleCriterionTypeChange = (value) => {
+    onUpdate({ ...criterion, criterionType: value.toUpperCase() });
   };
-
-
 
   return (
     <div
@@ -88,18 +89,21 @@ export default function RubricCriterion({
     >
       {/* Header */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1">
-            <h4 className="font-semibold text-gray-900 dark:text-white">
-              {criterion.title}
-            </h4>
-            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm font-medium">
-              {criterion.weight}{weightBasis === 'percentage' ? '%' : ' pts'}
-            </span>
-            <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded">
-              {getScaleIcon(criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive'))}
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {(criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive')) === 'descriptive' ? 'Descriptive' : 'Letter Grade'}
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 flex-1">
+            <input
+              value={criterion.title || ''}
+              onChange={(e) => onUpdate({ ...criterion, title: e.target.value })}
+              className="w-full sm:flex-1 text-base sm:text-lg font-semibold text-gray-900 dark:text-white bg-transparent border border-transparent focus:border-purple-500 focus:ring-0 rounded px-2 py-1"
+              placeholder={`Criterion ${index + 1}`}
+            />
+            <div className="flex items-center gap-2 mt-2 sm:mt-0">
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs font-semibold">
+                {criterion.weight}{weightBasis === 'percentage' ? '%' : ' pts'}
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 rounded text-xs font-semibold">
+                {(criterionTypeValue === 'GROUP' ? <Users className="w-3 h-3" /> : <User className="w-3 h-3" />)}
+                {CRITERION_TYPE_LABELS[criterionTypeValue] || criterionTypeValue}
               </span>
             </div>
           </div>
@@ -153,36 +157,56 @@ export default function RubricCriterion({
                 placeholder="Describe what this criterion assesses"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {weightBasis === 'percentage' ? 'Weight (%)' : 'Points'}
                 </label>
                 <input
                   type="number"
-                  value={criterion.weight || 0}
-                  onChange={(e) => onUpdate({ ...criterion, weight: parseInt(e.target.value) || 0 })}
+                  value={criterion.weight ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === '') {
+                      onUpdate({ ...criterion, weight: '' });
+                    } else {
+                      const numValue = Number(value);
+                      onUpdate({ ...criterion, weight: Number.isFinite(numValue) ? numValue : '' });
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = e.target.value;
+                    if (value === '' || !Number.isFinite(Number(value))) {
+                      onUpdate({ ...criterion, weight: 0 });
+                    }
+                  }}
                   className="form-control"
                   min={0}
                 />
                 {weightBasis === 'points' && (
-                  <p className="text-xs text-gray-500 mt-1">Assign absolute points for this criterion. Total must equal rubric Total Points.</p>
+                  <p className="text-xs text-gray-500 mt-1">Assign absolute points for this criterion. Total must equal the rubric's total points.</p>
                 )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Scale Type
+                  Criterion Type
                 </label>
                 <select
-                  value={criterion.markingScale === 'numeric' ? 'descriptive' : (criterion.markingScale || 'descriptive')}
-                  onChange={(e) => onUpdate({ ...criterion, markingScale: e.target.value })}
+                  value={criterionTypeValue}
+                  onChange={(e) => handleCriterionTypeChange(e.target.value)}
                   className="form-control"
+                  disabled={criterionTypeLocked}
                 >
-                  <option value="descriptive">Descriptive</option>
-                  <option value="letter">Letter Grade</option>
+                  {normalizedOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {CRITERION_TYPE_LABELS[option] || option}
+                    </option>
+                  ))}
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  Descriptive: labels only. Letter Grade: A–F mapping. Points ranges still define thresholds used in marking.
+                  {criterionTypeLocked
+                    ? 'Assignment type locks this criterion to the available type.'
+                    : 'Select whether this criterion is assessed individually or for the group.'}
                 </p>
               </div>
             </div>

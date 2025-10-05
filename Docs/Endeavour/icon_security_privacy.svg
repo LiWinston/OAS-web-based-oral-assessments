@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+<style>
+  .s { stroke: currentColor; fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+  .f { fill: currentColor; }
+  .t { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Liberation Sans', sans-serif; 
+       font-size: 18px; fill: currentColor; letter-spacing: .2px; }
+  .tl { font-family: inherit; font-size: 20px; font-weight: 600; fill: currentColor; letter-spacing: .3px; }
+  .sub { font-size: 14px; fill: currentColor; opacity: .75; }
+</style>
+<g class="s">
+  <path d="M12 3 l7 3 v5 c0 5 -3.5 8 -7 10 c-3.5 -2 -7 -5 -7 -10 V6 z"/>
+  <path d="M4 12 c2.5 -3 5 -4.5 8 -4.5 s5.5 1.5 8 4.5 c-2.5 3 -5 4.5 -8 4.5 s-5.5 -1.5 -8 -4.5"/>
+  <circle cx="12" cy="12" r="2"/>
+  <path d="M4 4 l16 16"/>
+</g></svg>
