@@ -20,7 +20,7 @@ public interface SessionService {
     int batchCreateSessions(Long assignmentId, List<BatchCreateSessionsRequestDTO.SessionWindowDTO> windows);
 
     // overlap + CRUD for admin
-    AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId);
+    AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId, String q);
     
     // examiner-specific session listing
     AdminSessionsListResponseDTO listExaminerSessions(Long examinerId, Long assignmentId, String date, String status, Long venueId);

@@ -35,13 +35,14 @@ public class AdminSessionController {
 
     @Operation(summary = "List sessions for assignment")
     @GetMapping("/assignments/{assignmentId}/sessions")
-    @Log(module = "Session Management", businessType = BusinessType.QUERY)
+        @Log(module = "Session Management", businessType = BusinessType.QUERY)
     public Result<AdminSessionsListResponseDTO> listSessions(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @RequestParam(value = "date", required = false) String date,
             @RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "venueId", required = false) Long venueId) {
-        return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId));
+            @RequestParam(value = "venueId", required = false) Long venueId,
+            @RequestParam(value = "q", required = false) String q) {
+        return Result.success(sessionService.listAdminSessions(assignmentId, date, status, venueId, q));
     }
 
     @Operation(summary = "Get session calendar (assignment)", description = "Aggregate session data per day for given month")
@@ -98,7 +99,7 @@ public class AdminSessionController {
         // Aggregate sessions for each window on the same date/venue whose time falls within the window
         List<SessionDetailDTO> details = new ArrayList<>();
         for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : request.getWindows()) {
-            AdminSessionsListResponseDTO day = sessionService.listAdminSessions(assignmentId, w.getDate().toString(), null, w.getVenueId());
+            AdminSessionsListResponseDTO day = sessionService.listAdminSessions(assignmentId, w.getDate().toString(), null, w.getVenueId(), null);
             if (day == null || day.getSessions() == null) continue;
             for (AdminSessionsListResponseDTO.Item it : day.getSessions()) {
                 java.time.LocalTime st = it.getStartTime();
@@ -149,7 +150,7 @@ public class AdminSessionController {
         for (BatchCreateSessionsRequestDTO.SessionWindowDTO w : windows) {
             generatedStarts.add(w.getStartTime());
         }
-        AdminSessionsListResponseDTO adminList = sessionService.listAdminSessions(assignmentId, request.getDate().toString(), null, request.getVenueId());
+        AdminSessionsListResponseDTO adminList = sessionService.listAdminSessions(assignmentId, request.getDate().toString(), null, request.getVenueId(), null);
         List<SessionDetailDTO> details = new ArrayList<>();
         if (adminList != null && adminList.getSessions() != null) {
             for (AdminSessionsListResponseDTO.Item it : adminList.getSessions()) {

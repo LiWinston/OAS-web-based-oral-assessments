@@ -247,7 +247,7 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId) {
+    public AdminSessionsListResponseDTO listAdminSessions(Long assignmentId, String date, String status, Long venueId, String q) {
         // Validate assignment exists and get assignment time range
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         if (assignment == null) {
@@ -375,6 +375,12 @@ public class SessionServiceImpl implements SessionService {
             boolean toStudent = "RELEASED".equalsIgnoreCase(st);
             it.setPublishedToExaminer(toExaminer);
             it.setPublishedToStudent(toStudent);
+            
+            // Apply search filter
+            if (q != null && !q.trim().isEmpty() && !matchesSearchQuery(it, q.trim())) {
+                continue; // Skip this item if it doesn't match the search query
+            }
+            
             items.add(it);
             int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
             totalExaminers+=req;
@@ -390,6 +396,53 @@ public class SessionServiceImpl implements SessionService {
         sum.setTotalRequiredExaminers(totalExaminers);
         resp.setSummary(sum);
         return resp;
+    }
+
+    /**
+     * Check if a session item matches the search query
+     * Searches in: venueName, examiner names, student names, group names
+     * Case-insensitive partial matching
+     */
+    private boolean matchesSearchQuery(AdminSessionsListResponseDTO.Item item, String query) {
+        if (query == null || query.isEmpty()) {
+            return true;
+        }
+        
+        String lowerQuery = query.toLowerCase();
+        
+        // Search in venue name
+        if (item.getVenueName() != null && item.getVenueName().toLowerCase().contains(lowerQuery)) {
+            return true;
+        }
+        
+        // Search in assigned examiner names
+        if (item.getAssignedExaminers() != null) {
+            for (AdminSessionsListResponseDTO.ExaminerDTO examiner : item.getAssignedExaminers()) {
+                if (examiner.getName() != null && examiner.getName().toLowerCase().contains(lowerQuery)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Search in enrolled student names
+        if (item.getEnrolledStudents() != null) {
+            for (AdminSessionsListResponseDTO.EnrolledStudentDTO student : item.getEnrolledStudents()) {
+                if (student.getName() != null && student.getName().toLowerCase().contains(lowerQuery)) {
+                    return true;
+                }
+            }
+        }
+        
+        // Search in enrolled group names
+        if (item.getEnrolledGroups() != null) {
+            for (AdminSessionsListResponseDTO.EnrolledGroupDTO group : item.getEnrolledGroups()) {
+                if (group.getName() != null && group.getName().toLowerCase().contains(lowerQuery)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     @Override
