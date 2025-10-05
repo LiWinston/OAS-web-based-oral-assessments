@@ -57,38 +57,31 @@ public class ExaminerServiceImpl implements ExaminerService {
 
         SecureRandom random = new java.security.SecureRandom();
         for (ExaminerCSVRequestDTO dto : examinerCSVRequestDTOS) {
-            Long userId = safeParseLong(dto.getId());
-            if (userId == null) {
+            // Skip if essential fields are missing
+            if (dto.getSisLoginId() == null || dto.getSisLoginId().trim().isEmpty()) {
                 continue;
             }
-            // 1) Ensure sys_user exists; create if not
-            SysUser user = sysUserMapper.selectById(userId);
-            if (user != null) {
-                if (assignmentId != null) {
-                    QueryWrapper<AssignmentParticipant> exists = new QueryWrapper<>();
-                    exists.eq("assignment_id", assignmentId).eq("user_id", user.getUserId()).last("limit 1");
-                    AssignmentParticipant found = assignmentParticipantMapper.selectOne(exists);
-                    if (found == null) {
-                        AssignmentParticipant ap = new AssignmentParticipant();
-                        ap.setAssignmentId(assignmentId);
-                        ap.setUserId(user.getUserId());
-                        ap.setRoleId(UserRole.EXAMINER.sort());
-                        ap.setIfJoin(1);
-                        assignmentParticipantMapper.insert(ap);
-                    }
-                }
-                continue;
-            } else {
+            
+            // Use email as unique identifier (email is the key, not ID which is just a label like "E002")
+            String email = dto.getSisLoginId() + "@unimelb.edu.au";
+            
+            // 1) Check if user already exists by email
+            QueryWrapper<SysUser> userQuery = new QueryWrapper<>();
+            userQuery.eq("email", email).last("limit 1");
+            SysUser user = sysUserMapper.selectOne(userQuery);
+            
+            if (user == null) {
+                // User doesn't exist - create new user
                 user = new SysUser();
-                user.setUserId(userId);
                 user.setUserName(dto.getName());
                 user.setPassword("123456");
-                user.setEmail(dto.getSisLoginId() + "@unimelb.edu.au");
+                user.setEmail(email);
                 user.setStatus(UserStatus.INACTIVE.code());
                 user.setRegistrationStatus(RegistrationStatus.Pending.code());
-                user.setInvitedAt(new Date()); // Set invitation time
+                user.setInvitedAt(new Date());
                 sysUserMapper.insert(user);
             }
+            // If user exists, continue with the same flow (no need to create user again)
 
             // 2) Grant EXAMINER role if not already granted
             Long examinerRoleId = getRoleIdByKey(UserRole.EXAMINER.code());
@@ -97,16 +90,23 @@ public class ExaminerServiceImpl implements ExaminerService {
                 sysUserRoleMapper.insert(new SysUserRole(user.getUserId(), examinerRoleId));
             }
 
-            // 3) Insert into sys_examiner
-            SysExaminer ex = new SysExaminer();
-            ex.setUserId(user.getUserId());
-            ex.setSisUserId(dto.getSisUserId());
-            // Generate activation token
-            byte[] bytes = new byte[32];
-            random.nextBytes(bytes);
-            String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-            ex.setToken(token);
-            toInsert.add(ex);
+            // 3) Check if examiner record exists, if not create it
+            QueryWrapper<SysExaminer> examinerQuery = new QueryWrapper<>();
+            examinerQuery.eq("user_id", user.getUserId()).last("limit 1");
+            SysExaminer existingExaminer = examinerMapper.selectOne(examinerQuery);
+            
+            if (existingExaminer == null) {
+                // Create new examiner record
+                SysExaminer ex = new SysExaminer();
+                ex.setUserId(user.getUserId());
+                ex.setSisUserId(dto.getSisUserId());
+                // Generate activation token
+                byte[] bytes = new byte[32];
+                random.nextBytes(bytes);
+                String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+                ex.setToken(token);
+                toInsert.add(ex);
+            }
 
             // 4) If assignmentId provided, create relation in assignment_participant (roleId=EXAMINER)
             if (assignmentId != null) {
@@ -158,14 +158,6 @@ public class ExaminerServiceImpl implements ExaminerService {
         return preview;
     }
 
-    private Long safeParseLong(String s) {
-        if (s == null) return null;
-        try {
-            return Long.parseLong(s.trim());
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
 
     @Override
     public void sendCourseJoinNotificationForExistingExaminers(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId) {
