@@ -8,12 +8,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.response.GroupPreviewCSVResponseDTO;
 import org.swen90017.oas.entity.*;
+import org.swen90017.oas.enums.UserRole;
 import org.swen90017.oas.mapper.*;
 import org.swen90017.oas.service.BaseCsvImportService;
 import org.swen90017.oas.service.GroupService;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -28,6 +30,10 @@ public class GroupServiceImpl implements GroupService {
     private BaseCsvImportService baseCsvImportService;
     @Autowired
     private AssignmentMapper assignmentMapper;
+    @Autowired
+    private AssignmentParticipantMapper assignmentParticipantMapper;
+    @Autowired
+    private SysUserMapper sysUserMapper;
 
     @Override
     @Transactional
@@ -58,8 +64,13 @@ public class GroupServiceImpl implements GroupService {
                 GroupCSVRequestDTO::getEmail         // Email extractor
         );
 
-        // Process group-related business logic
+        // Process group-related business logic (for all students including existing ones)
         processGroupRelations(dtos, assignmentId);
+        
+        // Process assignment participants for existing students
+        if (assignmentId != null) {
+            processExistingStudents(dtos, sysStudents, assignmentId);
+        }
 
         log.info("Successfully imported {} students with group relations for assignment {}", sysStudents.size(), assignmentId);
         return sysStudents;
@@ -133,6 +144,117 @@ public class GroupServiceImpl implements GroupService {
             studentGroupMapper.batchInsert(relations);
             log.info("Created {} student-group relations", relations.size());
         }
+    }
+
+    /**
+     * Process existing students - add them to assignment participants
+     * Also handles case where sys_user exists but sys_student doesn't
+     */
+    private void processExistingStudents(List<GroupCSVRequestDTO> dtos, List<SysStudent> newStudents, Long assignmentId) {
+        // Get all student IDs from CSV
+        Set<String> allIds = dtos.stream()
+                .map(GroupCSVRequestDTO::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        // Get new student IDs
+        Set<String> newIds = newStudents.stream()
+                .map(SysStudent::getStudentNumber)
+                .collect(Collectors.toSet());
+        
+        // Calculate existing student IDs
+        Set<String> existingIds = new HashSet<>(allIds);
+        existingIds.removeAll(newIds);
+        
+        if (existingIds.isEmpty()) {
+            log.debug("No existing students to process for assignment {}", assignmentId);
+            return;
+        }
+        
+        log.info("Processing {} existing students for assignment {}", existingIds.size(), assignmentId);
+        
+        // Query existing students
+        List<SysStudent> existingStudents = studentMapper.selectList(
+                new QueryWrapper<SysStudent>().in("student_number", existingIds)
+        );
+        
+        // Create a map for quick lookup
+        Map<String, SysStudent> existingStudentMap = existingStudents.stream()
+                .collect(Collectors.toMap(SysStudent::getStudentNumber, s -> s));
+        
+        // Create a map of student_id -> DTO for processing
+        Map<String, GroupCSVRequestDTO> dtoMap = dtos.stream()
+                .filter(dto -> existingIds.contains(dto.getStudentId()))
+                .collect(Collectors.toMap(GroupCSVRequestDTO::getStudentId, dto -> dto, (a, b) -> a));
+        
+        // Add them to assignment participants
+        for (String studentId : existingIds) {
+            SysStudent student = existingStudentMap.get(studentId);
+            GroupCSVRequestDTO dto = dtoMap.get(studentId);
+            
+            if (student != null) {
+                // Student record exists with this student_number - just add to assignment participant
+                addToAssignmentParticipant(student, assignmentId);
+            } else if (dto != null) {
+                // Student record with this student_number doesn't exist
+                // But the email might belong to an existing student with different student_number
+                String sisLoginId = dto.getSisLoginId();
+                if (sisLoginId != null) {
+                    String email = sisLoginId + "@student.unimelb.edu.au";
+                    SysUser user = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("email", email));
+                    
+                    if (user != null) {
+                        // User exists - find student record by user_id
+                        SysStudent existingStudent = studentMapper.selectOne(
+                                new QueryWrapper<SysStudent>().eq("user_id", user.getUserId())
+                        );
+                        
+                        if (existingStudent != null) {
+                            // Student exists but with different student_number
+                            log.info("Student with email {} exists with student_number={}, CSV has student_number={}. Using existing student record.", 
+                                    email, existingStudent.getStudentNumber(), studentId);
+                            // Use the existing student record
+                            addToAssignmentParticipant(existingStudent, assignmentId);
+                        } else {
+                            // User exists but no student record - shouldn't happen for @student.unimelb.edu.au
+                            log.warn("User with email {} (user_id={}) exists but has no sys_student record. Data inconsistency detected.", 
+                                    email, user.getUserId());
+                        }
+                    } else {
+                        // Neither user nor student exists - this shouldn't happen as BaseCsvImportService filtered it
+                        log.warn("Student {} does not exist in sys_user table (email not found). This should have been handled by BaseCsvImportService.", studentId);
+                    }
+                } else {
+                    log.warn("Cannot process student {} - missing SIS Login ID", studentId);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Add student to assignment participant if not already exists
+     */
+    private void addToAssignmentParticipant(SysStudent student, Long assignmentId) {
+        // Check if already a participant
+        QueryWrapper<AssignmentParticipant> existsWrapper = new QueryWrapper<>();
+        existsWrapper.eq("assignment_id", assignmentId)
+                .eq("user_id", student.getUserId())
+                .last("limit 1");
+        AssignmentParticipant existing = assignmentParticipantMapper.selectOne(existsWrapper);
+        
+        if (existing != null) {
+            log.debug("Student {} already a participant in assignment {}", student.getStudentNumber(), assignmentId);
+            return;
+        }
+        
+        // Create assignment participant
+        AssignmentParticipant participant = new AssignmentParticipant();
+        participant.setAssignmentId(assignmentId);
+        participant.setUserId(student.getUserId());
+        participant.setRoleId(UserRole.STUDENT.sort());
+        participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
+        assignmentParticipantMapper.insert(participant);
+        log.info("Linked existing student {} to assignment {} as STUDENT", student.getUserId(), assignmentId);
     }
 
     @Override
