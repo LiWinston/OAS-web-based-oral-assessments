@@ -30,17 +30,18 @@ public class ExaminerAssessmentController {
     @Operation(
         summary = "Save Assessment Draft",
         description = "Save or update an assessment draft for a student or group. " +
-            "This endpoint allows examiners to create new draft assessments or update existing ones, " +
-            "save partial assessments and continue later, validate rubric scores against assignment configuration, " +
-            "support both individual student and group assessments, and handle both points-based and descriptive scoring scales. " +
-            "Requires valid JWT token with EXAMINER role. Examiner ID is automatically extracted from JWT token. " +
-            "Validation Rules: Assignment must exist and be accessible to the examiner, " +
-            "if sessionId is provided examiner must be assigned to that session, " +
-            "subject type must be 'INDIVIDUAL' or 'GROUP', " +
-            "score items must align with assignment's rubric configuration, " +
-            "for points scale inputPoints must be between 0-100, " +
-            "for descriptive scale selectedLevel must be provided with valid range. " +
-            "Returns the complete assessment submission DTO with generated/updated fields including submission ID, timestamps, and calculated total score."
+            "This endpoint supports INDIVIDUAL, GROUP, and MIX type assessments. " +
+            "\n\n**For INDIVIDUAL type:** Set subjectType='INDIVIDUAL' and subjectId=studentId. Provide scores matching the rubric." +
+            "\n\n**For GROUP type:** Set subjectType='GROUP' and subjectId=groupId. Provide scores matching the group rubric." +
+            "\n\n**For MIX type (batch save):** Set subjectType='GROUP' and subjectId=groupId. " +
+            "Provide 'scores' for group rubrics AND 'individualScores' array for each student's individual scores. " +
+            "The system will automatically save both group and all individual assessments in a single transaction." +
+            "\n\n**Validation Rules:** " +
+            "Assignment must exist and be accessible to the examiner; " +
+            "if sessionId is provided, examiner must be assigned to that session; " +
+            "score items must align with assignment's rubric configuration; " +
+            "for MIX type, individualScores must include all students in the group. " +
+            "\n\nRequires valid JWT token with EXAMINER role. Returns the group submission DTO for MIX type."
     )
     public Result<AssessmentSubmissionDTO> saveDraft(@RequestBody SaveAssessmentDraftRequestDTO request) {
         LoginUser user = SecurityUtils.getLoginUser();
@@ -84,7 +85,6 @@ public class ExaminerAssessmentController {
 
     @PostMapping("/summary")
     @Operation(summary = "Assessments summary", description = "Return counts for draft/submitted, etc.")
-
     public Result<ExaminerSummaryDTO> summary(@RequestBody ExaminerAssessmentsQueryDTO query) {
         LoginUser user = SecurityUtils.getLoginUser();
         Long examinerId = user == null ? null : user.getUserId();

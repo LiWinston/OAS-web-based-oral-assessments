@@ -79,6 +79,14 @@ public class SaveAssessmentDraftRequestDTO {
     )
     @Valid
     private List<ScoreItem> scores;
+    
+    @Schema(
+        description = "Individual scores for MIX type assessments. Only applicable when subjectType is GROUP and assignment type is 'mixed'. " +
+            "If provided, the system will automatically save individual assessments for each student in the group.",
+        nullable = true
+    )
+    @Valid
+    private List<IndividualStudentScore> individualScores;
 
     /**
      * Individual score item for a rubric criterion
@@ -167,6 +175,27 @@ public class SaveAssessmentDraftRequestDTO {
         )
         @NotNull(message = "End point is required")
         private Double endPoint;
+    }
+    
+    /**
+     * Individual student score for MIX type assessment
+     */
+    @Data
+    @Schema(description = "Individual student scores with feedback (for MIX type)")
+    public static class IndividualStudentScore {
+
+        @Schema(description = "Student user ID", example = "2001", required = true)
+        @NotNull(message = "Student ID is required")
+        private Long studentId;
+
+        @Schema(description = "Individual feedback for this student", maxLength = 2000)
+        @Size(max = 2000, message = "Individual feedback cannot exceed 2000 characters")
+        private String individualFeedback;
+
+        @Schema(description = "Scores for individual rubrics", required = true)
+        @Valid
+        @NotNull(message = "Scores are required")
+        private List<ScoreItem> scores;
     }
 }
 
