@@ -717,12 +717,7 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean publishAssignmentToExaminer(Long assignmentId, boolean value) {
-        // Requirement: before publishing to examiners, an examiner limit (default max) must be configured; otherwise reject
         if (value) {
-            AssignmentSessionConfig cfg = sessionConfigMapper.selectById(assignmentId);
-            if (cfg == null || cfg.getDefaultMaxSessionsPerExaminer() == null) {
-                throw new BusinessException(BusinessError.EXAMINER_LIMIT_NOT_SET);
-            }
             // Total capacity validation: sum of personalized max limits must be >= sum of requiredExaminers across all sessions
             List<SlotSession> allSessions = slotSessionMapper.listSessionsByAssignment(assignmentId);
             int totalRequired = 0;
