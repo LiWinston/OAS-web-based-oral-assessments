@@ -72,6 +72,12 @@ export default function RubricPreview({ rubric, assignment, course }) {
     return acc;
   }, {});
 
+  const configuredWeights = COMPONENT_OPTIONS.reduce((acc, key) => {
+    const value = Number(rubric?.[key === 'INDIVIDUAL' ? 'individualWeight' : 'groupWeight']) || 0;
+    acc[key] = value;
+    return acc;
+  }, {});
+
   (rubric.criteria || []).forEach((criterion) => {
     const normalizedComponent = (criterion.criterionType || criterion.component || '').toUpperCase();
     const fallbackComponent = recommendedComponent || 'INDIVIDUAL';
@@ -130,10 +136,15 @@ export default function RubricPreview({ rubric, assignment, course }) {
             <div className="mt-4 grid grid-cols-1 gap-3">
               {componentOrder.map((componentKey) => {
                 const total = componentTotals[componentKey] || 0;
+                const configured = configuredWeights[componentKey] || 0;
+                const tolerance = rubric.weightBasis === 'percentage' ? 0.5 : 0.01;
+                const meetsConfigured = Math.abs(total - configured) <= tolerance;
                 const hasCriteria = (groupedCriteria[componentKey] || []).length > 0;
-                const statusClasses = hasCriteria
+                const statusClasses = meetsConfigured && hasCriteria
                   ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
-                  : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200';
+                  : hasCriteria
+                    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200';
                 return (
                   <div
                     key={componentKey}
@@ -146,12 +157,19 @@ export default function RubricPreview({ rubric, assignment, course }) {
                       <div>
                         <p className="text-sm font-semibold">{criterionTypeLabels[componentKey] || componentKey}</p>
                         <p className="text-xs opacity-80">
-                          {hasCriteria ? 'Criteria available for this type' : 'No criteria configured yet'}
+                          {hasCriteria
+                            ? meetsConfigured
+                              ? 'Criteria aligned with configured weight'
+                              : 'Criteria total differs from configured weight'
+                            : 'No criteria configured yet'}
                         </p>
                       </div>
                     </div>
                     <span className="text-sm font-semibold">
                       {total}{weightUnit}
+                      {configured > 0 && (
+                        <span className="text-xs font-normal opacity-80">{` / ${configured}${weightUnit}`}</span>
+                      )}
                     </span>
                   </div>
                 );

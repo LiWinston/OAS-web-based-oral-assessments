@@ -84,6 +84,59 @@ const matchesSearch = (session, value) => {
   return venue.includes(term) || examinerMatches || studentMatches || groupMatches;
 };
 
+const computeSummaryFromSessions = (sessions = []) => {
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    return {
+      totalSessions: 0,
+      fullyStaffed: 0,
+      partiallyStaffed: 0,
+      unstaffed: 0,
+      totalRequiredExaminers: 0,
+      totalAssignedExaminers: 0,
+      totalCapacity: 0,
+      totalBooked: 0,
+      noStaffed: 0,
+      partialStaffed: 0,
+    };
+  }
+
+  const summary = sessions.reduce((acc, session) => {
+    const assigned = session?.assignedExaminers?.length || 0;
+    const required = session?.requiredExaminers || 0;
+    const capacity = session?.capacity || 0;
+    const booked = session?.bookedCount || 0;
+    const status = session?.staffingStatus
+      || (assigned === 0 ? "none" : assigned < required ? "partial" : "fully");
+
+    acc.totalSessions += 1;
+    acc.totalRequiredExaminers += required;
+    acc.totalAssignedExaminers += assigned;
+    acc.totalCapacity += capacity;
+    acc.totalBooked += booked;
+
+    if (status === "fully") acc.fullyStaffed += 1;
+    else if (status === "partial") acc.partiallyStaffed += 1;
+    else acc.unstaffed += 1;
+
+    return acc;
+  }, {
+    totalSessions: 0,
+    fullyStaffed: 0,
+    partiallyStaffed: 0,
+    unstaffed: 0,
+    totalRequiredExaminers: 0,
+    totalAssignedExaminers: 0,
+    totalCapacity: 0,
+    totalBooked: 0,
+  });
+
+  return {
+    ...summary,
+    noStaffed: summary.unstaffed,
+    partialStaffed: summary.partiallyStaffed,
+  };
+};
+
 const buildShareUrl = ({ assignmentId, date, status, venue }) => {
   if (typeof window === "undefined") return "";
   const params = new URLSearchParams();
@@ -226,13 +279,12 @@ export default function SchedulingOverviewReportPage() {
   }, [assignmentId, assignmentMeta?.windowStart, selectedMonth, setSelectedMonth]);
 
   const sessionParams = useMemo(() => {
+    const trimmedSearch = searchTerm?.trim() || "";
     return {
       date: selectedDate,
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      venueId: venueFilter !== "all" ? venueFilter : undefined,
-      q: searchTerm,
+      q: trimmedSearch ? trimmedSearch : undefined,
     };
-  }, [selectedDate, statusFilter, venueFilter, searchTerm]);
+  }, [selectedDate, searchTerm]);
 
   const sessionsQuery = useSchedulingSessions(assignmentId, sessionParams, {
     enabled: Boolean(assignmentId && selectedDate),
@@ -298,7 +350,7 @@ export default function SchedulingOverviewReportPage() {
     [sessionsQuery.data]
   );
 
-  const summary = sessionsQuery.data?.summary || null;
+  const backendSummary = sessionsQuery.data?.summary || null;
 
   const venueOptions = useMemo(() => {
     const base = sessionsQuery.data?.venues || [];
@@ -317,7 +369,30 @@ export default function SchedulingOverviewReportPage() {
     });
   }, [sessions, statusFilter, venueFilter, searchTerm]);
 
-  const staffingGaps = (summary?.unstaffed || summary?.noStaffed || 0) + (summary?.partiallyStaffed || 0);
+  const derivedSummary = useMemo(() => computeSummaryFromSessions(filteredSessions), [filteredSessions]);
+
+  const summary = useMemo(() => {
+    if (!filteredSessions.length && sessions.length && (searchTerm || statusFilter !== "all" || venueFilter !== "all")) {
+      return derivedSummary;
+    }
+    if (filteredSessions.length !== sessions.length) {
+      return derivedSummary;
+    }
+    if (backendSummary) {
+      const unstaffedValue = backendSummary.unstaffed ?? backendSummary.noStaffed ?? backendSummary.totalUnstaffed ?? 0;
+      const partialValue = backendSummary.partiallyStaffed ?? backendSummary.partialStaffed ?? 0;
+      return {
+        ...backendSummary,
+        unstaffed: unstaffedValue,
+        noStaffed: backendSummary.noStaffed ?? unstaffedValue,
+        partiallyStaffed: partialValue,
+        partialStaffed: backendSummary.partialStaffed ?? partialValue,
+      };
+    }
+    return derivedSummary;
+  }, [backendSummary, derivedSummary, filteredSessions.length, sessions.length, searchTerm, statusFilter, venueFilter]);
+
+  const staffingGaps = (summary?.unstaffed || summary?.noStaffed || 0) + (summary?.partiallyStaffed || summary?.partialStaffed || 0);
 
   const staffingTrendData = useMemo(() => {
     if (!calendarDates.length) return [];

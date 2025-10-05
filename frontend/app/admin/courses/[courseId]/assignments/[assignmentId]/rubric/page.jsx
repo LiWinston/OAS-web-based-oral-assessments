@@ -75,6 +75,8 @@ export default function RubricConfigurationPage() {
     description: "",
     totalPoints: 100,
     weightBasis: "percentage", // 'percentage' | 'points'
+    individualWeight: 100,
+    groupWeight: 0,
     criteria: [],
   });
   const [requiresCriterionTypeReview, setRequiresCriterionTypeReview] = useState(false);
@@ -153,11 +155,86 @@ export default function RubricConfigurationPage() {
         }
       }
       
-      if (rubricMetaInfo && rubricInfoArray && Array.isArray(rubricInfoArray)) {
-        const assignmentType = normalizeAssignmentType(mappedAssignment.type);
-        let criterionTypeCoercions = 0;
+      const assignmentType = normalizeAssignmentType(mappedAssignment.type);
+      const ensureArray = (value) => (Array.isArray(value) ? value : []);
 
-        const convertedCriteria = rubricInfoArray.map((criterion, index) => {
+      const buildLevels = (rawLevels = [], resolvedCriterionId) => {
+        if (!Array.isArray(rawLevels)) return [];
+        return rawLevels.map((level, levelIndex) => {
+          const min = Number(level?.minPoints ?? level?.startPoint ?? level?.points ?? 0);
+          const max = Number(level?.maxPoints ?? level?.endPoint ?? level?.points ?? min ?? 0);
+          const description = (level?.description || level?.name || `Level ${levelIndex + 1}`).toString();
+          const commentsArray = Array.isArray(level?.comments)
+            ? level.comments
+            : Array.isArray(level?.preDefinedComment)
+              ? level.preDefinedComment
+              : [];
+
+          return {
+            id: level?.id || `${resolvedCriterionId}-level-${levelIndex}`,
+            description,
+            minPoints: Number.isFinite(min) ? min : 0,
+            maxPoints: Number.isFinite(max) ? max : 0,
+            color: level?.color || "blue",
+            comments: commentsArray.map((comment, commentIndex) => ({
+              id: `${resolvedCriterionId}-lvl-${levelIndex}-comment-${commentIndex}`,
+              text: (typeof comment === "string" ? comment : comment?.text || "").toString(),
+            })).filter((item) => item.text.length > 0),
+          };
+        });
+      };
+
+      const buildCriterionFromBackend = (criterion, typeKey, index) => {
+        const resolvedCriterionId = (criterion?.criterionId || criterion?.id || generateCriterionId()).toString();
+        const titleFallback = criterion?.title || criterion?.name || criterion?.description || `Criterion ${index + 1}`;
+        const description = (criterion?.description || "").toString();
+        const weight = Number(criterion?.weight) || 0;
+        const scale = criterion?.scaleType || "points";
+        const levels = buildLevels(criterion?.performanceLevel || criterion?.levels, resolvedCriterionId);
+
+        return {
+          id: resolvedCriterionId,
+          criterionId: resolvedCriterionId,
+          title: titleFallback,
+          description,
+          criterionType: typeKey,
+          weight,
+          markingScale: scale,
+          levels,
+          comments: Array.isArray(criterion?.comments)
+            ? criterion.comments.map((comment, commentIndex) => ({
+                id: `${resolvedCriterionId}-criterion-comment-${commentIndex}`,
+                text: (typeof comment === "string" ? comment : comment?.text || "").toString(),
+              })).filter((item) => item.text.length > 0)
+            : [],
+        };
+      };
+
+      let convertedCriteria = [];
+      let criterionTypeCoercions = 0;
+      let usedSplitRubrics = false;
+      let individualWeight = Number(rubricMetaInfo?.individualWeight ?? NaN);
+      let groupWeight = Number(rubricMetaInfo?.groupWeight ?? NaN);
+
+      if (rubricMetaInfo) {
+        const individualRubrics = ensureArray(rubricMetaInfo?.individualRubrics);
+        const groupRubrics = ensureArray(rubricMetaInfo?.groupRubrics);
+
+        if (individualRubrics.length || groupRubrics.length) {
+          usedSplitRubrics = true;
+
+          individualRubrics.forEach((criterion, index) => {
+            convertedCriteria.push(buildCriterionFromBackend(criterion, "INDIVIDUAL", index));
+          });
+
+          groupRubrics.forEach((criterion, index) => {
+            convertedCriteria.push(buildCriterionFromBackend(criterion, "GROUP", index));
+          });
+        }
+      }
+
+      if (!usedSplitRubrics && rubricMetaInfo && rubricInfoArray && Array.isArray(rubricInfoArray)) {
+        convertedCriteria = rubricInfoArray.map((criterion, index) => {
           const rawTitle = (criterion.title || "").toString().trim();
           const fallbackTitle = rawTitle || (criterion.description ? criterion.description : `Criterion ${index + 1}`);
           const { value: criterionTypeValue, coerced } = coerceCriterionType(criterion.component, assignmentType);
@@ -176,19 +253,7 @@ export default function RubricConfigurationPage() {
             weight: Number(criterion.weight) || 0,
             markingScale: criterion.scaleType || "descriptive",
             levels: criterion.performanceLevel && Array.isArray(criterion.performanceLevel)
-              ? criterion.performanceLevel.map((level, levelIndex) => ({
-                  id: `${resolvedCriterionId}-level-${levelIndex}`,
-                  description: level.description || `Level ${levelIndex + 1}`,
-                  minPoints: Number(level.startPoint) || 0,
-                  maxPoints: Number(level.endPoint) || 0,
-                  color: "blue",
-                  comments: Array.isArray(level.preDefinedComment)
-                    ? level.preDefinedComment.map((comment, commentIndex) => ({
-                        id: `${resolvedCriterionId}-comment-${levelIndex}-${commentIndex}`,
-                        text: comment
-                      }))
-                    : []
-                }))
+              ? buildLevels(criterion.performanceLevel, resolvedCriterionId)
               : [],
             comments: Array.isArray(criterion.comments)
               ? criterion.comments.map((comment, commentIndex) => ({
@@ -199,29 +264,85 @@ export default function RubricConfigurationPage() {
           };
         });
 
+        if (!Number.isFinite(individualWeight) || !Number.isFinite(groupWeight)) {
+          const totals = convertedCriteria.reduce((acc, criterion) => {
+            const key = (criterion.criterionType || "INDIVIDUAL").toUpperCase();
+            acc[key] = (acc[key] || 0) + (Number(criterion.weight) || 0);
+            return acc;
+          }, { INDIVIDUAL: 0, GROUP: 0 });
+          individualWeight = totals.INDIVIDUAL ?? 0;
+          groupWeight = totals.GROUP ?? 0;
+        }
+      }
+
+      if (convertedCriteria.length) {
+        const totalPoints = Number(rubricMetaInfo?.totalPoints) || rubric.totalPoints;
+        const resolvedWeightBasis = rubricMetaInfo?.weightBasis || rubric.weightBasis;
+
+        // If weights are still NaN, fall back to defaults based on assignment type
+        if (!Number.isFinite(individualWeight)) {
+          if (assignmentType === "GROUP") {
+            individualWeight = 0;
+          } else if (assignmentType === "MIXED") {
+            const defaultTotal = resolvedWeightBasis === "points" ? totalPoints : 100;
+            individualWeight = defaultTotal / 2;
+          } else {
+            individualWeight = resolvedWeightBasis === "points" ? totalPoints : 100;
+          }
+        }
+        if (!Number.isFinite(groupWeight)) {
+          if (assignmentType === "INDIVIDUAL") {
+            groupWeight = 0;
+          } else if (assignmentType === "MIXED") {
+            const defaultTotal = resolvedWeightBasis === "points" ? totalPoints : 100;
+            groupWeight = defaultTotal - (Number.isFinite(individualWeight) ? individualWeight : defaultTotal / 2);
+          } else {
+            groupWeight = resolvedWeightBasis === "points" ? totalPoints : 100;
+          }
+        }
+
         const convertedRubric = {
           id: assignmentData.id + "_rubric",
-          name: rubricMetaInfo.name || `${mappedAssignment.title} Rubric`,
-          description: rubricMetaInfo.description || "",
-          totalPoints: rubricMetaInfo.totalPoints || 100,
-          weightBasis: rubricMetaInfo.weightBasis || rubric.weightBasis,
+          name: rubricMetaInfo?.name || `${mappedAssignment.title} Rubric`,
+          description: rubricMetaInfo?.description || "",
+          totalPoints,
+          weightBasis: resolvedWeightBasis,
+          individualWeight: Number(individualWeight) || 0,
+          groupWeight: Number(groupWeight) || 0,
           criteria: convertedCriteria,
         };
 
         console.log("[Rubric Config] Rubric loaded:", {
           criteriaCount: convertedCriteria.length,
           totalPoints: convertedRubric.totalPoints,
-          criterionTypeCoercions
+          criterionTypeCoercions,
+          usedSplitRubrics,
         });
+
         setRubric(convertedRubric);
-        setRequiresCriterionTypeReview(criterionTypeCoercions > 0);
-        setCriterionTypeReviewDismissed(false);
+        setRequiresCriterionTypeReview(!usedSplitRubrics && criterionTypeCoercions > 0);
+        setCriterionTypeReviewDismissed(usedSplitRubrics);
         setHasChanges(false);
       } else {
         // Initialize with default criterion
-        setRubric(r => ({
+        const defaultTotal = rubric.weightBasis === "points" ? (Number(rubric.totalPoints) || 100) : 100;
+        const isMixedAssignment = assignmentType === "MIXED";
+        const defaultIndividualWeight = assignmentType === "GROUP"
+          ? 0
+          : isMixedAssignment
+            ? defaultTotal / 2
+            : defaultTotal;
+        const defaultGroupWeight = assignmentType === "INDIVIDUAL"
+          ? 0
+          : isMixedAssignment
+            ? defaultTotal - defaultIndividualWeight
+            : defaultTotal;
+
+        setRubric((r) => ({
           ...r,
           name: `${mappedAssignment.title} Rubric`,
+          individualWeight: defaultIndividualWeight,
+          groupWeight: defaultGroupWeight,
           criteria: [createDefaultCriterion()],
         }));
         setRequiresCriterionTypeReview(false);
@@ -449,6 +570,11 @@ export default function RubricConfigurationPage() {
       : (Number(rubric.totalPoints) || 0)
   ), [rubric.weightBasis, rubric.totalPoints]);
 
+  const typeWeightTargets = useMemo(() => ({
+    INDIVIDUAL: Number(rubric.individualWeight) || 0,
+    GROUP: Number(rubric.groupWeight) || 0,
+  }), [rubric.individualWeight, rubric.groupWeight]);
+
   const criterionTypeTotals = useMemo(() => {
     const totals = CRITERION_TYPE_OPTIONS.reduce((acc, key) => {
       acc[key] = 0;
@@ -490,17 +616,29 @@ export default function RubricConfigurationPage() {
     (rubric.criteria || []).reduce((sum, criterion) => sum + (Number(criterion.weight) || 0), 0)
   ), [rubric.criteria]);
 
+  const displayWeightTolerance = useMemo(
+    () => (rubric.weightBasis === 'percentage' ? 0.5 : 0.01),
+    [rubric.weightBasis]
+  );
+
   const criterionTypeStatusList = useMemo(() => {
+    const tolerance = rubric.weightBasis === 'percentage' ? 0.5 : 0.01;
     return criterionTypeOrder.map((typeKey) => {
       const total = criterionTypeTotals[typeKey] || 0;
+      const expected = typeWeightTargets[typeKey] ?? 0;
+      const diff = Math.abs(total - expected);
       const label = CRITERION_TYPE_LABELS[typeKey] || typeKey;
       const hasAnyWeight = total > 0;
       const isRecommended = !recommendedCriterionType || typeKey === recommendedCriterionType;
 
       let tone = 'muted';
-      if (hasAnyWeight && isRecommended) {
+      if (expected === 0 && total === 0) {
+        tone = 'muted';
+      } else if (diff <= tolerance) {
         tone = 'ok';
       } else if (hasAnyWeight && !isRecommended) {
+        tone = 'warn';
+      } else {
         tone = 'warn';
       }
 
@@ -508,11 +646,13 @@ export default function RubricConfigurationPage() {
         key: typeKey,
         label,
         total,
+        expected,
+        diff,
         tone,
         hasAnyWeight,
       };
     });
-  }, [criterionTypeOrder, criterionTypeTotals, recommendedCriterionType]);
+  }, [criterionTypeOrder, criterionTypeTotals, recommendedCriterionType, rubric.weightBasis, typeWeightTargets]);
 
   const criterionTypeOptions = CRITERION_TYPE_OPTIONS;
 
@@ -586,8 +726,22 @@ export default function RubricConfigurationPage() {
       return;
     }
 
+    const individualWeightTarget = Number(rubric.individualWeight) || 0;
+    const groupWeightTarget = Number(rubric.groupWeight) || 0;
+    const weightTargetSum = individualWeightTarget + groupWeightTarget;
+    const weightTolerance = rubric.weightBasis === 'percentage' ? 0.5 : 0.01;
+    const weightUnitLabel = rubric.weightBasis === 'percentage' ? '%' : ' pts';
+
+    if (Math.abs(weightTargetSum - expectedWeightTotal) > weightTolerance) {
+      showNotification(
+        "error",
+        `Individual and group weights total ${weightTargetSum}${weightUnitLabel}, but should equal ${expectedWeightTotal}${weightUnitLabel}`
+      );
+      return;
+    }
+
     const total = sanitizedCriteria.reduce((sum, c) => sum + (c.weight || 0), 0);
-    if (total !== expectedWeightTotal) {
+    if (Math.abs(total - expectedWeightTotal) > weightTolerance) {
       showNotification(
         "error",
         `Total ${rubric.weightBasis === 'percentage' ? 'weight' : 'points'} is ${total} (must equal ${expectedWeightTotal})`
@@ -600,6 +754,24 @@ export default function RubricConfigurationPage() {
       acc[key] = (acc[key] || 0) + (criterion.weight || 0);
       return acc;
     }, CRITERION_TYPE_OPTIONS.reduce((base, key) => ({ ...base, [key]: 0 }), {}));
+
+    const targetWeightsByType = {
+      INDIVIDUAL: individualWeightTarget,
+      GROUP: groupWeightTarget,
+    };
+
+    for (const typeKey of CRITERION_TYPE_OPTIONS) {
+      const expected = targetWeightsByType[typeKey] ?? 0;
+      const actual = totalsByCriterionType[typeKey] || 0;
+      if (Math.abs(actual - expected) > weightTolerance) {
+        const label = CRITERION_TYPE_LABELS[typeKey] || typeKey;
+        showNotification(
+          "error",
+          `${label} criteria total ${actual}${weightUnitLabel} does not match the configured ${expected}${weightUnitLabel}`
+        );
+        return;
+      }
+    }
 
     if (recommendedCriterionType && (totalsByCriterionType[recommendedCriterionType] || 0) === 0) {
       const label = CRITERION_TYPE_LABELS[recommendedCriterionType] || recommendedCriterionType;
@@ -650,18 +822,9 @@ export default function RubricConfigurationPage() {
       const rubricResponse = await rubricService.createRubric(rubricSaveData);
 
       // Handle rubric response structure
-      const savedRubric = rubricResponse.success !== undefined ? rubricResponse.data : rubricResponse;
-      
-      // If we have a saved rubric with updated information, use it
-      // Otherwise, keep the current rubric but mark as saved
-      if (savedRubric && savedRubric.id) {
-        setRubric(savedRubric);
-      } else {
-        // If no ID returned, just mark as saved by adding an ID
-        setRubric({
-          ...rubric,
-          id: rubric.id || Date.now().toString()
-        });
+      const savedRubric = rubricResponse?.success !== undefined ? rubricResponse.data : rubricResponse;
+      if (savedRubric && savedRubric.id && !rubric.id) {
+        setRubric((prev) => ({ ...prev, id: savedRubric.id }));
       }
 
       setHasChanges(false);
@@ -1027,6 +1190,71 @@ export default function RubricConfigurationPage() {
                     Choose how to allocate criterion weights: as percentages or absolute points.
                   </p>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Weight Distribution
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        Individual Weight ({rubric.weightBasis === 'percentage' ? '%' : 'pts'})
+                      </p>
+                      <input
+                        type="number"
+                        value={rubric.individualWeight ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRubric({
+                            ...rubric,
+                            individualWeight: value === '' ? '' : Number(value),
+                          });
+                          setHasChanges(true);
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === '') {
+                            setRubric({
+                              ...rubric,
+                              individualWeight: 0,
+                            });
+                          }
+                        }}
+                        className="form-control"
+                        min={0}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                        Group Weight ({rubric.weightBasis === 'percentage' ? '%' : 'pts'})
+                      </p>
+                      <input
+                        type="number"
+                        value={rubric.groupWeight ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setRubric({
+                            ...rubric,
+                            groupWeight: value === '' ? '' : Number(value),
+                          });
+                          setHasChanges(true);
+                        }}
+                        onBlur={(e) => {
+                          if (e.target.value === '') {
+                            setRubric({
+                              ...rubric,
+                              groupWeight: 0,
+                            });
+                          }
+                        }}
+                        className="form-control"
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    The two weights must add up to the total {rubric.weightBasis === 'percentage' ? 'percentage (100%)' : `points (${rubric.totalPoints || 0})`}. We'll alert you if they drift from the criterion totals.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1052,16 +1280,23 @@ export default function RubricConfigurationPage() {
                 {criterionTypeStatusList.map((status) => {
                   const Icon = status.key === 'GROUP' ? Users : User;
                   const unit = rubric.weightBasis === 'percentage' ? '%' : ' pts';
+                  const meetsTarget = Math.abs(status.diff) <= (rubric.weightBasis === 'percentage' ? 0.5 : 0.01);
+                  const hasTarget = Number(status.expected) > 0;
                   const stateClasses = status.tone === 'ok'
                     ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200'
                     : status.tone === 'warn'
                       ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-200'
                       : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200';
                   const statusCopy = status.tone === 'ok'
-                    ? 'Criterion type ready for save'
+                    ? 'Criterion type matches configured weight'
                     : status.tone === 'warn'
-                      ? 'Outside assignment default – review before saving'
+                      ? hasTarget
+                        ? 'Actual weights differ from configured target'
+                        : 'Weights configured without a target for this type'
                       : 'No criteria configured yet';
+                  const valueText = hasTarget
+                    ? `${status.total}${unit} / ${status.expected}${unit}`
+                    : `${status.total}${unit}`;
 
                   return (
                     <div
@@ -1078,8 +1313,8 @@ export default function RubricConfigurationPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-sm font-semibold">
-                        <span>{status.total}{unit}</span>
-                        {status.tone === 'ok' ? (
+                        <span>{valueText}</span>
+                        {meetsTarget ? (
                           <CheckCircle className="w-4 h-4" />
                         ) : (
                           <AlertCircle className="w-4 h-4" />
@@ -1125,12 +1360,12 @@ export default function RubricConfigurationPage() {
             {rubric.criteria && rubric.criteria.length > 0 && (
               <div
                 className={`p-4 rounded-lg flex items-center gap-3 ${
-                  overallWeightTotal === expectedWeightTotal
+                  Math.abs(overallWeightTotal - expectedWeightTotal) <= displayWeightTolerance
                     ? "bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200"
                     : "bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200"
                 }`}
               >
-                {overallWeightTotal === expectedWeightTotal ? (
+                {Math.abs(overallWeightTotal - expectedWeightTotal) <= displayWeightTolerance ? (
                   <>
                     <CheckCircle className="w-5 h-5" />
                     <span>

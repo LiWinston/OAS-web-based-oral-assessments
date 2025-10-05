@@ -273,6 +273,108 @@ const mockRubricService = {
   }
 };
 
+const normalizeCriterionTypeForPayload = (value) => {
+  const normalized = (value || '').toString().trim().toUpperCase();
+  if (normalized === 'GROUP') return 'GROUP';
+  return 'INDIVIDUAL';
+};
+
+const transformLevelForPayload = (level = {}, criterionId, index) => {
+  const description = (level.description || level.name || `Level ${index + 1}`).toString();
+  const startPoint = Number(level.minPoints ?? level.startPoint ?? level.points ?? 0);
+  const endPoint = Number(level.maxPoints ?? level.endPoint ?? level.points ?? startPoint);
+  const comments = Array.isArray(level.comments)
+    ? level.comments
+    : Array.isArray(level.preDefinedComment)
+      ? level.preDefinedComment
+      : [];
+
+  return {
+    description,
+    startPoint,
+    endPoint,
+    preDefinedComment: comments
+      .map((comment) => (typeof comment === 'string' ? comment : comment?.text))
+      .filter(Boolean),
+  };
+};
+
+const transformCriterionForPayload = (criterion = {}) => {
+  const levels = Array.isArray(criterion.levels)
+    ? criterion.levels.map((level, index) => transformLevelForPayload(level, criterion.criterionId || criterion.id, index))
+    : [];
+
+  const description = (criterion.description || criterion.title || '').toString();
+
+  return {
+    criterionId: criterion.criterionId || criterion.id,
+    title: criterion.title,
+    description,
+    weight: Number(criterion.weight) || 0,
+    scaleType: 'points',
+    performanceLevel: levels,
+  };
+};
+
+const buildRubricSections = (criteria = []) => {
+  const grouped = {
+    INDIVIDUAL: [],
+    GROUP: [],
+  };
+  const combined = [];
+
+  criteria.forEach((criterion) => {
+    const typeKey = normalizeCriterionTypeForPayload(criterion.criterionType || criterion.component);
+    const payload = transformCriterionForPayload(criterion);
+    grouped[typeKey].push(payload);
+    combined.push({ ...payload, component: typeKey });
+  });
+
+  return { grouped, combined };
+};
+
+const buildAssignmentRequestPayload = (rubricData) => {
+  const assignmentId = parseInt(rubricData.assignmentId);
+  const subjectId = parseInt(rubricData.courseId);
+  const { grouped, combined } = buildRubricSections(rubricData.criteria || []);
+  const weightBasis = rubricData.weightBasis || 'percentage';
+  const totalPointsRaw = Number(rubricData.totalPoints);
+  const totalPoints = Number.isFinite(totalPointsRaw)
+    ? totalPointsRaw
+    : weightBasis === 'percentage'
+      ? 100
+      : 0;
+
+  const individualWeightValue = Number(rubricData.individualWeight);
+  const groupWeightValue = Number(rubricData.groupWeight);
+  const individualWeight = Number.isFinite(individualWeightValue) ? individualWeightValue : 0;
+  const groupWeight = Number.isFinite(groupWeightValue) ? groupWeightValue : 0;
+
+  return {
+    id: assignmentId,
+    subjectId,
+    name: rubricData.assignmentName || rubricData.name,
+    description: rubricData.assignmentDescription || 'Assignment description',
+    type: rubricData.assignmentType || 'individual',
+    startDate: rubricData.startDate || new Date().toISOString(),
+    endDate: rubricData.endDate || new Date().toISOString(),
+    weight: rubricData.weight || 25,
+    progress: rubricData.progress || 0,
+    status: rubricData.status || 'PENDING',
+    rubricMetaInfo: {
+      name: rubricData.name,
+      description: rubricData.description,
+      totalPoints,
+      weightBasis,
+      individualWeight,
+      groupWeight,
+      individualRubrics: grouped.INDIVIDUAL,
+      groupRubrics: grouped.GROUP,
+    },
+    rubricsInfo: combined,
+  };
+};
+
 // Real API service (to be implemented when backend is ready)
 const realRubricService = {
   async getRubricsByCourse(courseId) {
@@ -291,91 +393,14 @@ const realRubricService = {
   },
 
   async createRubric(rubricData) {
-    // Based on the backend API documentation, rubric should be updated as part of assignment
-    // Use the exact format that works in Swagger
-    const requestData = {
-      id: parseInt(rubricData.assignmentId),
-      subjectId: parseInt(rubricData.courseId),
-      name: rubricData.assignmentName || rubricData.name,
-      description: rubricData.assignmentDescription || "Assignment description",
-      type: rubricData.assignmentType || "individual", 
-      startDate: rubricData.startDate || new Date().toISOString(),
-      endDate: rubricData.endDate || new Date().toISOString(),
-      weight: rubricData.weight || 25,
-      progress: rubricData.progress || 0,
-      status: rubricData.status || "PENDING",
-      rubricMetaInfo: {
-        name: rubricData.name,
-        description: rubricData.description,
-        totalPoints: rubricData.totalPoints
-      },
-      rubricsInfo: rubricData.criteria.map(criterion => {
-        const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
-          description: level.description,
-          startPoint: level.minPoints,
-          endPoint: level.maxPoints,
-          // Include level-specific comments in preDefinedComment field
-          preDefinedComment: level.comments ? level.comments.map(comment =>
-            typeof comment === 'string' ? comment : comment.text
-          ) : []
-        })) : [];
-
-        return {
-          criterionId: criterion.criterionId || criterion.id,
-          title: criterion.title,
-          description: criterion.description || criterion.title,
-          weight: criterion.weight,
-          component: (criterion.criterionType || criterion.component || 'INDIVIDUAL').toUpperCase(),
-          scaleType: 'points',
-          performanceLevel: performanceLevels
-        };
-      })
-    };
+    const requestData = buildAssignmentRequestPayload(rubricData);
 
     const response = await api.put(`/api/assignments/${rubricData.assignmentId}`, requestData);
     return response.data;
   },
 
   async updateRubric(rubricId, updates) {
-    // Use assignment update endpoint for rubric updates - same format as createRubric
-    const requestData = {
-      id: parseInt(updates.assignmentId),
-      subjectId: parseInt(updates.courseId),
-      name: updates.assignmentName || updates.name,
-      description: updates.assignmentDescription || "Assignment description",
-      type: updates.assignmentType || "individual",
-      startDate: updates.startDate || new Date().toISOString(),
-      endDate: updates.endDate || new Date().toISOString(),
-      weight: updates.weight || 25,
-      progress: updates.progress || 0,
-      status: updates.status || "PENDING",
-      rubricMetaInfo: {
-        name: updates.name,
-        description: updates.description,
-        totalPoints: updates.totalPoints
-      },
-      rubricsInfo: updates.criteria.map(criterion => {
-        const performanceLevels = criterion.levels ? criterion.levels.map(level => ({
-          description: level.description,
-          startPoint: level.minPoints,
-          endPoint: level.maxPoints,
-          // Include level-specific comments in preDefinedComment field
-          preDefinedComment: level.comments ? level.comments.map(comment => 
-            typeof comment === 'string' ? comment : comment.text
-          ) : []
-        })) : [];
-        
-        return {
-          criterionId: criterion.criterionId || criterion.id,
-          title: criterion.title,
-          description: criterion.description || criterion.title,
-          weight: criterion.weight,
-          component: (criterion.criterionType || criterion.component || 'INDIVIDUAL').toUpperCase(),
-          scaleType: 'points',
-          performanceLevel: performanceLevels
-        };
-      })
-    };
+    const requestData = buildAssignmentRequestPayload(updates);
 
     const response = await api.put(`/api/assignments/${updates.assignmentId}`, requestData);
     return response.data;
