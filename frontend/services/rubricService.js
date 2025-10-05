@@ -304,11 +304,12 @@ const transformCriterionForPayload = (criterion = {}) => {
     ? criterion.levels.map((level, index) => transformLevelForPayload(level, criterion.criterionId || criterion.id, index))
     : [];
 
-  const description = (criterion.description || criterion.title || '').toString();
+  const title = (criterion.title || '').toString();
+  const description = title || (criterion.description || '').toString();
 
   return {
     criterionId: criterion.criterionId || criterion.id,
-    title: criterion.title,
+    title,
     description,
     weight: Number(criterion.weight) || 0,
     scaleType: 'points',

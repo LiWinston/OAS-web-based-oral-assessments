@@ -93,7 +93,7 @@ export default function RubricCriterion({
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3 flex-1">
             <input
               value={criterion.title || ''}
-              onChange={(e) => onUpdate({ ...criterion, title: e.target.value })}
+              onChange={(e) => onUpdate({ ...criterion, title: e.target.value, description: e.target.value })}
               className="w-full sm:flex-1 text-base sm:text-lg font-semibold text-gray-900 dark:text-white bg-transparent border border-transparent focus:border-purple-500 focus:ring-0 rounded px-2 py-1"
               placeholder={`Criterion ${index + 1}`}
             />
@@ -144,71 +144,60 @@ export default function RubricCriterion({
       {isExpanded && (
         <div className="p-4 space-y-4 animate-slide-down">
           {/* Basic Info */}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Use the performance levels below to explain expectations. The criterion name is the only label shared with examiners and students.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Description
+                {weightBasis === 'percentage' ? 'Weight (%)' : 'Points'}
               </label>
-              <textarea
-                value={criterion.description || ''}
-                onChange={(e) => onUpdate({ ...criterion, description: e.target.value })}
+              <input
+                type="number"
+                value={criterion.weight ?? ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    onUpdate({ ...criterion, weight: '' });
+                  } else {
+                    const numValue = Number(value);
+                    onUpdate({ ...criterion, weight: Number.isFinite(numValue) ? numValue : '' });
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || !Number.isFinite(Number(value))) {
+                    onUpdate({ ...criterion, weight: 0 });
+                  }
+                }}
                 className="form-control"
-                rows={2}
-                placeholder="Describe what this criterion assesses"
+                min={0}
               />
+              {weightBasis === 'points' && (
+                <p className="text-xs text-gray-500 mt-1">Assign absolute points for this criterion. Total must equal the rubric's total points.</p>
+              )}
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {weightBasis === 'percentage' ? 'Weight (%)' : 'Points'}
-                </label>
-                <input
-                  type="number"
-                  value={criterion.weight ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (value === '') {
-                      onUpdate({ ...criterion, weight: '' });
-                    } else {
-                      const numValue = Number(value);
-                      onUpdate({ ...criterion, weight: Number.isFinite(numValue) ? numValue : '' });
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const value = e.target.value;
-                    if (value === '' || !Number.isFinite(Number(value))) {
-                      onUpdate({ ...criterion, weight: 0 });
-                    }
-                  }}
-                  className="form-control"
-                  min={0}
-                />
-                {weightBasis === 'points' && (
-                  <p className="text-xs text-gray-500 mt-1">Assign absolute points for this criterion. Total must equal the rubric's total points.</p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Criterion Type
-                </label>
-                <select
-                  value={criterionTypeValue}
-                  onChange={(e) => handleCriterionTypeChange(e.target.value)}
-                  className="form-control"
-                  disabled={criterionTypeLocked}
-                >
-                  {normalizedOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {CRITERION_TYPE_LABELS[option] || option}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs text-gray-500 mt-1">
-                  {criterionTypeLocked
-                    ? 'Assignment type locks this criterion to the available type.'
-                    : 'Select whether this criterion is assessed individually or for the group.'}
-                </p>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Criterion Type
+              </label>
+              <select
+                value={criterionTypeValue}
+                onChange={(e) => handleCriterionTypeChange(e.target.value)}
+                className="form-control"
+                disabled={criterionTypeLocked}
+              >
+                {normalizedOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {CRITERION_TYPE_LABELS[option] || option}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {criterionTypeLocked
+                  ? 'Assignment type locks this criterion to the available type.'
+                  : 'Select whether this criterion is assessed individually or for the group.'}
+              </p>
             </div>
           </div>
 
