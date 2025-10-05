@@ -186,8 +186,7 @@ export default function RubricConfigurationPage() {
 
       const buildCriterionFromBackend = (criterion, typeKey, index) => {
         const resolvedCriterionId = (criterion?.criterionId || criterion?.id || generateCriterionId()).toString();
-        const titleFallback = criterion?.title || criterion?.name || criterion?.description || `Criterion ${index + 1}`;
-        const description = (criterion?.description || "").toString();
+        const titleFallback = (criterion?.title || criterion?.name || criterion?.description || `Criterion ${index + 1}`).toString();
         const weight = Number(criterion?.weight) || 0;
         const scale = criterion?.scaleType || "points";
         const levels = buildLevels(criterion?.performanceLevel || criterion?.levels, resolvedCriterionId);
@@ -196,7 +195,7 @@ export default function RubricConfigurationPage() {
           id: resolvedCriterionId,
           criterionId: resolvedCriterionId,
           title: titleFallback,
-          description,
+          description: titleFallback,
           criterionType: typeKey,
           weight,
           markingScale: scale,
@@ -243,12 +242,13 @@ export default function RubricConfigurationPage() {
           }
 
           const resolvedCriterionId = (criterion.criterionId || generateCriterionId()).toString();
+          const resolvedTitle = fallbackTitle.toString();
 
           return {
             id: resolvedCriterionId,
             criterionId: resolvedCriterionId,
-            title: fallbackTitle,
-            description: criterion.description || "",
+            title: resolvedTitle,
+            description: resolvedTitle,
             criterionType: criterionTypeValue,
             weight: Number(criterion.weight) || 0,
             markingScale: criterion.scaleType || "descriptive",
@@ -386,6 +386,7 @@ export default function RubricConfigurationPage() {
     const assignmentType = normalizeAssignmentType(assignment?.type);
     const { value: criterionTypeValue } = coerceCriterionType(overrides.criterionType, assignmentType);
     const baseId = overrides.criterionId || overrides.id || generateCriterionId();
+    const generatedTitle = overrides.title || generateCriteriaTitle(existingCriteria, isNew);
 
     const resolvedLevels = (overrides.levels || [
       {
@@ -430,8 +431,8 @@ export default function RubricConfigurationPage() {
     return {
       id: overrides.id || baseId,
       criterionId: baseId,
-      title: overrides.title || generateCriteriaTitle(existingCriteria, isNew),
-      description: overrides.description || "",
+      title: generatedTitle,
+      description: overrides.description || generatedTitle,
       criterionType: criterionTypeValue,
       weight: typeof overrides.weight === "number" ? overrides.weight : 100,
       markingScale: overrides.markingScale || "descriptive",
@@ -460,8 +461,11 @@ export default function RubricConfigurationPage() {
     const resolvedCriterionId = updatedCriterion.criterionId || updatedCriterion.id || generateCriterionId();
 
     const newCriteria = [...(rubric.criteria || [])];
+    const syncedTitle = (updatedCriterion.title || "").toString();
     newCriteria[index] = {
       ...updatedCriterion,
+      title: syncedTitle,
+      description: syncedTitle,
       criterionType: criterionTypeValue,
       criterionId: resolvedCriterionId,
       id: updatedCriterion.id || resolvedCriterionId,
@@ -497,6 +501,7 @@ export default function RubricConfigurationPage() {
       id: baseId,
       criterionId: baseId,
       title: duplicateTitle,
+      description: duplicateTitle,
       levels: (criterionToDuplicate.levels || []).map((level, levelIndex) => ({
         ...level,
         id: `${baseId}-level-${levelIndex}`,
@@ -685,14 +690,13 @@ export default function RubricConfigurationPage() {
       const resolvedCriterionId = criterion.criterionId || criterion.id || generateCriterionId();
       const { value: criterionTypeValue } = coerceCriterionType(criterion.criterionType, assignmentType);
       const trimmedTitle = (criterion.title || "").toString().trim() || `Criterion ${index + 1}`;
-      const trimmedDescription = (criterion.description || "").toString().trim();
 
       return {
         ...criterion,
         id: criterion.id || resolvedCriterionId,
         criterionId: resolvedCriterionId,
         title: trimmedTitle,
-        description: trimmedDescription,
+        description: trimmedTitle,
         criterionType: criterionTypeValue,
         weight: Number(criterion.weight) || 0,
         levels: (criterion.levels || []).map((level, levelIndex) => ({
