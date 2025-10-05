@@ -53,7 +53,7 @@ public class GroupServiceImpl implements GroupService {
         List<SysStudent> sysStudents = baseCsvImportService.importStudents(
                 dtos,
                 GroupCSVRequestDTO::getUserId,    // Student ID extractor
-                GroupCSVRequestDTO::getName,      // Username extractor
+                GroupCSVRequestDTO::getStudent,   // Username extractor (maps to "Student" column)
                 GroupCSVRequestDTO::getLoginId,   // SIS user ID extractor
                 GroupCSVRequestDTO::getEmail      // Email extractor
         );
