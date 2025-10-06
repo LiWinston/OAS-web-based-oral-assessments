@@ -74,6 +74,17 @@ public interface AssessmentSubmissionMapper extends BaseMapper<AssessmentSubmiss
                          @Param("minScore") Double minScore,
                          @Param("maxScore") Double maxScore,
                          @Param("keyword") String keyword);
+
+    /**
+     * Check if a session has any submitted assessments
+     */
+    Long countSubmittedAssessmentsBySession(@Param("sessionId") Long sessionId);
+
+    /**
+     * Check if an examiner has any submitted assessments in a session
+     */
+    Long countSubmittedAssessmentsBySessionAndExaminer(@Param("sessionId") Long sessionId, 
+                                                       @Param("examinerId") Long examinerId);
 }
 
 

@@ -25,6 +25,7 @@ import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.mapper.AssignmentParticipantMapper;
 import org.swen90017.oas.mapper.SubjectMapper;
+import org.swen90017.oas.mapper.AssessmentSubmissionMapper;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.enums.UserStatus;
 import org.swen90017.oas.enums.RegistrationStatus;
@@ -61,6 +62,7 @@ public class SessionServiceImpl implements SessionService {
     private final AssignmentParticipantMapper assignmentParticipantMapper;
     private final SubjectMapper subjectMapper;
     private final EmailService emailService;
+    private final AssessmentSubmissionMapper assessmentSubmissionMapper;
 
     @Override
     public List<Long> listExaminerIds(Long sessionId) {
@@ -118,6 +120,12 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean unassignExaminer(Long sessionId, Long examinerId) {
+        // Check if the examiner has any submitted assessments in this session
+        Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySessionAndExaminer(sessionId, examinerId);
+        if (submittedCount != null && submittedCount > 0) {
+            throw new BusinessException("Cannot unassign examiner: this examiner has submitted assessments in this session");
+        }
+        
         int rows = sessionExaminerMapper.deleteOne(sessionId, examinerId);
         return rows > 0;
     }

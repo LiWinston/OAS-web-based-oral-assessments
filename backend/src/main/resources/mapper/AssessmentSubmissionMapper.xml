@@ -158,6 +158,23 @@
         <include refid="ExaminerAssessmentsWhere"/>
     </select>
 
+    <!-- Check if a session has any submitted assessments -->
+    <select id="countSubmittedAssessmentsBySession" resultType="long">
+        SELECT COUNT(1) 
+        FROM assessment_submission
+        WHERE session_id = #{sessionId}
+          AND status = 'SUBMITTED'
+    </select>
+
+    <!-- Check if an examiner has any submitted assessments in a session -->
+    <select id="countSubmittedAssessmentsBySessionAndExaminer" resultType="long">
+        SELECT COUNT(1) 
+        FROM assessment_submission
+        WHERE session_id = #{sessionId}
+          AND examiner_id = #{examinerId}
+          AND status = 'SUBMITTED'
+    </select>
+
 </mapper>
 
 

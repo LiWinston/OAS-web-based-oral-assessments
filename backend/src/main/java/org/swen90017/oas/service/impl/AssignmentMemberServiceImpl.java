@@ -44,6 +44,7 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
     private final StudentTimeSlotService studentTimeSlotService;
     private final AssignmentMapper assignmentMapper;
     private final SubjectMapper subjectMapper;
+    private final AssessmentSubmissionMapper assessmentSubmissionMapper;
 
     @Override
     public AssignmentMemberListResponseDTO listMembers(Long assignmentId, String role, String q, Integer pageNum, Integer pageSize) {
@@ -289,12 +290,33 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         if (r == UserRole.STUDENT) {
             // find active bookings and unbook
             List<SlotSession> sessions = studentTimeSlotService.findActiveBookingByStudent(ap.getUserId(), assignmentId);
+            
+            // Check if any session has submitted assessments
+            for (SlotSession s : sessions) {
+                Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySession(s.getSessionId());
+                if (submittedCount != null && submittedCount > 0) {
+                    throw new BusinessException("Cannot remove member: this student has submitted assessments in some sessions");
+                }
+            }
+            
+            // If no submitted assessments, proceed to unbook
             for (SlotSession s : sessions) {
                 slotSessionMapper.unbook(s.getSessionId());
                 canceled++;
             }
         } else if (r == UserRole.EXAMINER) {
             List<SlotSession> sessions = sessionExaminersMapper.listSessionsByExaminer(ap.getUserId(), assignmentId);
+            
+            // Check if examiner has any submitted assessments in any session
+            for (SlotSession session : sessions) {
+                Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySessionAndExaminer(
+                    session.getSessionId(), ap.getUserId());
+                if (submittedCount != null && submittedCount > 0) {
+                    throw new BusinessException("Cannot remove member: this examiner has submitted assessments in some sessions");
+                }
+            }
+            
+            // If no submitted assessments, proceed to remove examiner from sessions
             for (SlotSession session : sessions) {
                 // Remove examiner assignment from session_examiners by sessionId
                 int removed = sessionExaminersMapper.deleteOne(session.getSessionId(), ap.getUserId());

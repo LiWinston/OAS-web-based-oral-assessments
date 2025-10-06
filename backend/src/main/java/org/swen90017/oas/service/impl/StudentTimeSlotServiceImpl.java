@@ -39,6 +39,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
     private final SysStudentGroupMapper sysStudentGroupMapper;
     private final SessionStudentMapper sessionStudentMapper;
     private final GroupMapper groupMapper;
+    private final AssessmentSubmissionMapper assessmentSubmissionMapper;
 
     @Override
     public BookableSessionsResponseDTO getBookableSessions(Long assignmentId, Long studentId, 
@@ -317,6 +318,12 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             }
         } else {
             throw new BusinessException("Invalid booking type: " + bookingType);
+        }
+        
+        // Check if there are any submitted assessments for this session
+        Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySession(sessionId);
+        if (submittedCount != null && submittedCount > 0) {
+            throw new BusinessException("Cannot cancel booking: this session has submitted assessments");
         }
         
         // Delete the booking record
