@@ -33,17 +33,6 @@ Saving should be blocked when an Individual assignment contains any Group weight
 ---
 
 ## Issue 4
-**Page:** Examiner → Schedule  
-**Steps:**  
-1. Examiner logs in.  
-2. Tries to view or select assignments scheduled for next month.  
-**Actual Result:** Assignments for next month are not displayed; no timeslots can be selected.  
-**Expected Result:** The schedule should include current and future available assignments.  
-**Severity:** High
-
----
-
-## Issue 5
 **Page:** Student → Dashboard  
 **Steps:** Login as student and open dashboard.  
 **Actual Result:** Data shown is mock/static data not matching the logged-in student.  
@@ -52,7 +41,7 @@ Saving should be blocked when an Individual assignment contains any Group weight
 
 ---
 
-## Issue 6
+## Issue 5
 **Page:** Admin → Timeslot Management; Student → Session Booking  
 **Steps:**  
 1. Admin creates timeslots (e.g., 09:00–09:25).  
@@ -63,7 +52,7 @@ Saving should be blocked when an Individual assignment contains any Group weight
 
 ---
 
-## Issue 7
+## Issue 6
 **Page:** Examiner → Schedule → “Start Assessment”  
 **Steps:**  
 1. Click the green “Start Assessment” button from Schedule.  
@@ -74,7 +63,7 @@ Saving should be blocked when an Individual assignment contains any Group weight
 
 ---
 
-## Issue 8
+## Issue 7
 **Page:** Examiner → Assessment (grading page header)  
 **Steps:** Enter assessment page for a timeslot and check top status label.  
 **Actual Result:** Displays “Student 2/2” though only one student exists.  
@@ -83,9 +72,10 @@ Saving should be blocked when an Individual assignment contains any Group weight
 
 ---
 
-## Issue 9
+## Issue 8
 **Page:** Examiner → Assessment → Feedback tab  
 **Steps:**  
+
 1. Write content in Overall Feedback or Private Notes.  
 2. Click “Save as Draft”.  
 **Actual Result:** Feedback content not saved; re-entering page shows blank fields.  
@@ -94,7 +84,7 @@ Saving should be blocked when an Individual assignment contains any Group weight
 
 ---
 
-## Issue 10
+## Issue 9
 **Page:** Admin → Results; Student → Results  
 **Steps:**  
 1. Admin releases results.  
