@@ -76,12 +76,12 @@ public interface AssessmentSubmissionMapper extends BaseMapper<AssessmentSubmiss
                          @Param("keyword") String keyword);
 
     /**
-     * Check if a session has any submitted assessments
+     * Check if a session has any assessment records (regardless of status: draft, submitted, released, reopen)
      */
     Long countSubmittedAssessmentsBySession(@Param("sessionId") Long sessionId);
 
     /**
-     * Check if an examiner has any submitted assessments in a session
+     * Check if an examiner has any assessment records in a session (regardless of status: draft, submitted, released, reopen)
      */
     Long countSubmittedAssessmentsBySessionAndExaminer(@Param("sessionId") Long sessionId, 
                                                        @Param("examinerId") Long examinerId);

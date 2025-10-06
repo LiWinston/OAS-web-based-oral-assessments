@@ -158,21 +158,19 @@
         <include refid="ExaminerAssessmentsWhere"/>
     </select>
 
-    <!-- Check if a session has any submitted assessments -->
+    <!-- Check if a session has any assessment records (regardless of status) -->
     <select id="countSubmittedAssessmentsBySession" resultType="long">
         SELECT COUNT(1) 
         FROM assessment_submission
         WHERE session_id = #{sessionId}
-          AND status = 'SUBMITTED'
     </select>
 
-    <!-- Check if an examiner has any submitted assessments in a session -->
+    <!-- Check if an examiner has any assessment records in a session (regardless of status) -->
     <select id="countSubmittedAssessmentsBySessionAndExaminer" resultType="long">
         SELECT COUNT(1) 
         FROM assessment_submission
         WHERE session_id = #{sessionId}
           AND examiner_id = #{examinerId}
-          AND status = 'SUBMITTED'
     </select>
 
 </mapper>

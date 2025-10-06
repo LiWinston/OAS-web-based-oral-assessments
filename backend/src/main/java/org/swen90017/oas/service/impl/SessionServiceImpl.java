@@ -120,10 +120,10 @@ public class SessionServiceImpl implements SessionService {
     @Override
     @Transactional
     public boolean unassignExaminer(Long sessionId, Long examinerId) {
-        // Check if the examiner has any submitted assessments in this session
-        Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySessionAndExaminer(sessionId, examinerId);
-        if (submittedCount != null && submittedCount > 0) {
-            throw new BusinessException("Cannot unassign examiner: this examiner has submitted assessments in this session");
+        // Check if the examiner has any assessment records in this session (draft, submitted, released, or reopen)
+        Long assessmentCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySessionAndExaminer(sessionId, examinerId);
+        if (assessmentCount != null && assessmentCount > 0) {
+            throw new BusinessException("Cannot unassign examiner: this examiner has assessment records in this session");
         }
         
         int rows = sessionExaminerMapper.deleteOne(sessionId, examinerId);

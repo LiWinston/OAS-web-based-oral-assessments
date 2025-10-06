@@ -320,10 +320,10 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             throw new BusinessException("Invalid booking type: " + bookingType);
         }
         
-        // Check if there are any submitted assessments for this session
-        Long submittedCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySession(sessionId);
-        if (submittedCount != null && submittedCount > 0) {
-            throw new BusinessException("Cannot cancel booking: this session has submitted assessments");
+        // Check if there are any assessment records for this session (draft, submitted, released, or reopen)
+        Long assessmentCount = assessmentSubmissionMapper.countSubmittedAssessmentsBySession(sessionId);
+        if (assessmentCount != null && assessmentCount > 0) {
+            throw new BusinessException("Cannot cancel booking: this session has assessment records");
         }
         
         // Delete the booking record
