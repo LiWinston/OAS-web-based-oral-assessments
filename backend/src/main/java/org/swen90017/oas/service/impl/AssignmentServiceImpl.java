@@ -113,7 +113,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         // Validate total weight for subject
         validateTotalWeightForSubject(dto.getSubjectId(), dto.getWeight(), null);
 
-        // Validate rubrics info if provided
+        // Validate rubric meta info (new unified format) - STRICT validation
+        if (dto.getRubricMetaInfo() != null) {
+            validateRubricMetaInfo(dto.getRubricMetaInfo(), dto.getType());
+        }
+
+        // Validate rubrics info if provided (old format, for backward compatibility)
         if (dto.getRubricsInfo() != null) {
             validateRubricsInfo(dto.getRubricsInfo(), dto.getRubricMetaInfo());
         }
@@ -171,7 +176,12 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         // Validate total weight for subject (exclude current assignment)
         validateTotalWeightForSubject(dto.getSubjectId(), dto.getWeight(), id);
 
-        // Validate rubrics info if provided
+        // Validate rubric meta info (new unified format) - STRICT validation
+        if (dto.getRubricMetaInfo() != null) {
+            validateRubricMetaInfo(dto.getRubricMetaInfo(), dto.getType());
+        }
+
+        // Validate rubrics info if provided (old format, for backward compatibility)
         if (dto.getRubricsInfo() != null) {
             validateRubricsInfo(dto.getRubricsInfo(), dto.getRubricMetaInfo());
         }
@@ -397,6 +407,105 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             } else {
                 throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_POINTS);
             }
+        }
+    }
+
+    /**
+     * Validate rubric meta info matches assignment type
+     * Unified validation for all assignment types using the new format
+     */
+    private void validateRubricMetaInfo(RubricMetaInfo rubricMetaInfo, String assignmentType) {
+        if (rubricMetaInfo == null) {
+            return; // Allow null for backward compatibility
+        }
+
+        Double individualWeight = rubricMetaInfo.getIndividualWeight();
+        Double groupWeight = rubricMetaInfo.getGroupWeight();
+        List<RubricsInfoDto> individualRubrics = rubricMetaInfo.getIndividualRubrics();
+        List<RubricsInfoDto> groupRubrics = rubricMetaInfo.getGroupRubrics();
+
+        // Default to 0 if null
+        double indWeight = (individualWeight != null) ? individualWeight : 0.0;
+        double grpWeight = (groupWeight != null) ? groupWeight : 0.0;
+
+        // Rule 1: Weights must sum to 100 (with tolerance for floating point)
+        if (Math.abs(indWeight + grpWeight - 100.0) > 0.01) {
+            throw new BusinessException(BusinessError.RUBRIC_WEIGHT_SUM_INVALID);
+        }
+
+        // Rule 2: Validate based on assignment type
+        if ("individual".equalsIgnoreCase(assignmentType)) {
+            // Individual type: must have 100% individual weight, 0% group weight
+            if (Math.abs(indWeight - 100.0) > 0.01 || Math.abs(grpWeight) > 0.01) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_TYPE_VIOLATION);
+            }
+            // Must not have group rubrics
+            if (groupRubrics != null && !groupRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_TYPE_VIOLATION);
+            }
+            // Must have individual rubrics
+            if (individualRubrics == null || individualRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_RUBRICS_REQUIRED);
+            }
+            
+        } else if ("group".equalsIgnoreCase(assignmentType)) {
+            // Group type: must have 0% individual weight, 100% group weight
+            if (Math.abs(indWeight) > 0.01 || Math.abs(grpWeight - 100.0) > 0.01) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_TYPE_VIOLATION);
+            }
+            // Must not have individual rubrics
+            if (individualRubrics != null && !individualRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_TYPE_VIOLATION);
+            }
+            // Must have group rubrics
+            if (groupRubrics == null || groupRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_RUBRICS_REQUIRED);
+            }
+            
+        } else if ("mixed".equalsIgnoreCase(assignmentType)) {
+            // Mixed type: both weights must be > 0
+            if (indWeight <= 0.0 || grpWeight <= 0.0) {
+                throw new BusinessException(BusinessError.RUBRIC_MIXED_TYPE_INCOMPLETE);
+            }
+            // Both rubric lists must be present
+            if (individualRubrics == null || individualRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_RUBRICS_REQUIRED);
+            }
+            if (groupRubrics == null || groupRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_RUBRICS_REQUIRED);
+            }
+        }
+
+        // Rule 3: If individual weight > 0, validate individual rubrics
+        if (indWeight > 0.0) {
+            if (individualRubrics == null || individualRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_RUBRICS_REQUIRED);
+            }
+            // Validate that sum of individual rubric weights matches individual weight
+            double totalIndWeight = individualRubrics.stream()
+                    .mapToDouble(r -> r.getWeight() != null ? r.getWeight() : 0.0)
+                    .sum();
+            if (Math.abs(totalIndWeight - indWeight) > 0.01) {
+                throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_WEIGHT_MISMATCH);
+            }
+            // Validate each individual rubric
+            validateRubricsInfo(individualRubrics, rubricMetaInfo);
+        }
+
+        // Rule 4: If group weight > 0, validate group rubrics
+        if (grpWeight > 0.0) {
+            if (groupRubrics == null || groupRubrics.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_RUBRICS_REQUIRED);
+            }
+            // Validate that sum of group rubric weights matches group weight
+            double totalGrpWeight = groupRubrics.stream()
+                    .mapToDouble(r -> r.getWeight() != null ? r.getWeight() : 0.0)
+                    .sum();
+            if (Math.abs(totalGrpWeight - grpWeight) > 0.01) {
+                throw new BusinessException(BusinessError.RUBRIC_GROUP_WEIGHT_MISMATCH);
+            }
+            // Validate each group rubric
+            validateRubricsInfo(groupRubrics, rubricMetaInfo);
         }
     }
 

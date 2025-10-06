@@ -352,6 +352,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         dto.setExaminerId(record.getExaminerId());
         dto.setStatus(record.getStatus());
         dto.setOverallFeedback(record.getOverallFeedback());
+        dto.setAdminNote(record.getAdminNote());
         dto.setTotalScore(record.getTotalScore());
         dto.setSubmittedAt(record.getSubmittedAt());
         dto.setUpdatedAt(record.getUpdatedAt());

@@ -108,7 +108,17 @@ public enum BusinessError implements Error {
     EXAMINER_NOT_ASSIGNED_TO_SUBMISSION("9015", "Examiner is not assigned to this submission"),
     ALREADY_REOPENED("9016", "Examiner marking is already reopened"),
     NO_SUBMITTED_EXAMINERS("9017", "No examiners have submitted new markings for this assessment"),
-    ASSESSMENT_ALREADY_RELEASED("9018", "Assessment is already released to students");
+    ASSESSMENT_ALREADY_RELEASED("9018", "Assessment is already released to students"),
+    
+    // Rubric validation errors for unified format (9019+)
+    RUBRIC_WEIGHT_SUM_INVALID("9019", "Individual weight and group weight must sum to 100"),
+    RUBRIC_INDIVIDUAL_TYPE_VIOLATION("9020", "Individual assignment cannot have group weight or group rubrics"),
+    RUBRIC_GROUP_TYPE_VIOLATION("9021", "Group assignment cannot have individual weight or individual rubrics"),
+    RUBRIC_MIXED_TYPE_INCOMPLETE("9022", "Mixed assignment must have both individual and group rubrics with valid weights"),
+    RUBRIC_INDIVIDUAL_RUBRICS_REQUIRED("9023", "Individual rubrics are required when individual weight > 0"),
+    RUBRIC_GROUP_RUBRICS_REQUIRED("9024", "Group rubrics are required when group weight > 0"),
+    RUBRIC_INDIVIDUAL_WEIGHT_MISMATCH("9025", "Sum of individual rubric weights does not match individual weight"),
+    RUBRIC_GROUP_WEIGHT_MISMATCH("9026", "Sum of group rubric weights does not match group weight");
     // 9013 reserved: total capacity not sufficient
     // TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient")
     // add more below as needed

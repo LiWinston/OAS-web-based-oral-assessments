@@ -16,6 +16,7 @@ public class AssessmentSubmissionDTO {
     private Long examinerId;
     private String status;
     private String overallFeedback;
+    private String adminNote;
     private Double totalScore;
     private LocalDateTime submittedAt;
     private LocalDateTime updatedAt;
