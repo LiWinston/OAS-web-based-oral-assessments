@@ -690,6 +690,18 @@ public class AssessmentServiceImpl implements AssessmentService {
                         individualSubmission.setVersion(0);
                         submissionMapper.insert(individualSubmission);
                         log.info("Created INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
+                    } else {
+                        // Update existing individual submission - keep existing scores but update timestamp
+                        existingIndividual.setUpdatedAt(LocalDateTime.now());
+                        // Optionally update rubric snapshot if it was empty
+                        if (existingIndividual.getRubricMetaSnapshot() == null) {
+                            existingIndividual.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                        }
+                        if (existingIndividual.getRubricsInfoSnapshot() == null) {
+                            existingIndividual.setRubricsInfoSnapshot(individualRubricsJson);
+                        }
+                        submissionMapper.updateById(existingIndividual);
+                        log.info("Updated INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
                     }
                 }
             }
@@ -721,7 +733,18 @@ public class AssessmentServiceImpl implements AssessmentService {
                     groupSubmission.setStatus("DRAFT");
                     groupSubmission.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
                     groupSubmission.setRubricsInfoSnapshot(groupRubricsJson);
-                    groupSubmission.setScoresJson("[]");
+                    
+                    // Process scores if provided
+                    if (request.getScores() != null && !request.getScores().isEmpty()) {
+                        String normalizedScoresJson = normalizeAndValidateScores(groupRubricsJson, request);
+                        groupSubmission.setScoresJson(normalizedScoresJson);
+                        Double total = computeTotalScore(groupRubricsJson, normalizedScoresJson);
+                        groupSubmission.setTotalScore(total);
+                    } else {
+                        groupSubmission.setScoresJson("[]");
+                        groupSubmission.setTotalScore(null);
+                    }
+                    
                     groupSubmission.setOverallFeedback(request.getOverallFeedback());
                     groupSubmission.setAdminNote(request.getAdminNote());
                     groupSubmission.setCreatedAt(LocalDateTime.now());
@@ -732,8 +755,23 @@ public class AssessmentServiceImpl implements AssessmentService {
                 } else {
                     // Update existing group submission
                     groupSubmission = existingGroup;
-                    groupSubmission.setOverallFeedback(request.getOverallFeedback());
-                    groupSubmission.setAdminNote(request.getAdminNote());
+                    
+                    // Update scores if provided
+                    if (request.getScores() != null && !request.getScores().isEmpty()) {
+                        String normalizedScoresJson = normalizeAndValidateScores(groupRubricsJson, request);
+                        groupSubmission.setScoresJson(normalizedScoresJson);
+                        Double total = computeTotalScore(groupRubricsJson, normalizedScoresJson);
+                        groupSubmission.setTotalScore(total);
+                    }
+                    
+                    // Update feedback and notes
+                    if (request.getOverallFeedback() != null) {
+                        groupSubmission.setOverallFeedback(request.getOverallFeedback());
+                    }
+                    if (request.getAdminNote() != null) {
+                        groupSubmission.setAdminNote(request.getAdminNote());
+                    }
+                    
                     groupSubmission.setUpdatedAt(LocalDateTime.now());
                     submissionMapper.updateById(groupSubmission);
                     log.info("Updated GROUP assessment submission for group {} in MIX type assessment", groupId);
