@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="120" viewBox="0 0 1120 120" aria-label="Tech Stack Chips (wide)">
+<style>
+  .s{stroke:currentColor;fill:none;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}
+  .fill{fill:currentColor;opacity:.08}
+  .t{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,'Noto Sans','Liberation Sans',sans-serif;font-size:24px;fill:currentColor;letter-spacing:.2px}
+</style>
+<g transform="translate(20,36)">
+  <g transform="translate(0,0)"><rect x="0" y="0" width="120" height="48" rx="24" class="fill"/><rect x="0" y="0" width="120" height="48" rx="24" class="s"/><text x="60" y="31" text-anchor="middle" class="t">Next.js</text></g>
+  <g transform="translate(136,0)"><rect x="0" y="0" width="110" height="48" rx="24" class="fill"/><rect x="0" y="0" width="110" height="48" rx="24" class="s"/><text x="55" y="31" text-anchor="middle" class="t">React</text></g>
+  <g transform="translate(262,0)"><rect x="0" y="0" width="140" height="48" rx="24" class="fill"/><rect x="0" y="0" width="140" height="48" rx="24" class="s"/><text x="70" y="31" text-anchor="middle" class="t">Tailwind</text></g>
+  <g transform="translate(418,0)"><rect x="0" y="0" width="170" height="48" rx="24" class="fill"/><rect x="0" y="0" width="170" height="48" rx="24" class="s"/><text x="85" y="31" text-anchor="middle" class="t">Spring Boot</text></g>
+  <g transform="translate(604,0)"><rect x="0" y="0" width="120" height="48" rx="24" class="fill"/><rect x="0" y="0" width="120" height="48" rx="24" class="s"/><text x="60" y="31" text-anchor="middle" class="t">MySQL</text></g>
+  <g transform="translate(740,0)"><rect x="0" y="0" width="160" height="48" rx="24" class="fill"/><rect x="0" y="0" width="160" height="48" rx="24" class="s"/><text x="80" y="31" text-anchor="middle" class="t">Canvas CSV</text></g>
+  <g transform="translate(916,0)"><rect x="0" y="0" width="100" height="48" rx="24" class="fill"/><rect x="0" y="0" width="100" height="48" rx="24" class="s"/><text x="50" y="31" text-anchor="middle" class="t">JWT</text></g>
+</g>
+</svg>
