@@ -86,10 +86,13 @@ public class CsvController {
         // Save CSV file and create history record
         CsvImportHistory history = null;
         try {
+            System.out.println("DEBUG: About to save CSV file, type=" + dto.getType() + ", assignmentId=" + dto.getAssignmentId());
             history = csvHistoryService.saveCsvFileFromBytes(fileBytes, file.getOriginalFilename(), 
                     dto.getType(), dto.getAssignmentId(), importerId, importerUsername, csvData.size());
+            System.out.println("DEBUG: CSV file saved successfully, history ID=" + (history != null ? history.getId() : "null"));
         } catch (Exception e) {
             // If saving file fails, still continue with import but log error
+            System.err.println("ERROR: Failed to save CSV history: " + e.getMessage());
             e.printStackTrace();
         }
 
