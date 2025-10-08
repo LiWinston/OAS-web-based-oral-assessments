@@ -88,6 +88,7 @@ email:
 csv:
   import:
     use-email-column: ${CSV_IMPORT_USE_EMAIL_COLUMN:false}
+    storage-path: ${CSV_STORAGE_PATH:./csv-imports}
 
 # CORS Configuration
 cors:

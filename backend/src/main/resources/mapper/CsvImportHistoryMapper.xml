@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.swen90017.oas.mapper.CsvImportHistoryMapper">
+
+    <resultMap id="BaseResultMap" type="org.swen90017.oas.entity.CsvImportHistory">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="import_type" property="importType" jdbcType="VARCHAR"/>
+        <result column="assignment_id" property="assignmentId" jdbcType="BIGINT"/>
+        <result column="original_filename" property="originalFilename" jdbcType="VARCHAR"/>
+        <result column="saved_filename" property="savedFilename" jdbcType="VARCHAR"/>
+        <result column="file_path" property="filePath" jdbcType="VARCHAR"/>
+        <result column="file_size" property="fileSize" jdbcType="BIGINT"/>
+        <result column="record_count" property="recordCount" jdbcType="INTEGER"/>
+        <result column="import_status" property="importStatus" jdbcType="VARCHAR"/>
+        <result column="error_message" property="errorMessage" jdbcType="VARCHAR"/>
+        <result column="importer_id" property="importerId" jdbcType="BIGINT"/>
+        <result column="importer_username" property="importerUsername" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="remarks" property="remarks" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, import_type, assignment_id, original_filename, saved_filename, file_path,
+        file_size, record_count, import_status, error_message, importer_id,
+        importer_username, create_time, remarks
+    </sql>
+
+    <!-- Query by importer ID -->
+    <select id="selectByImporterId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM csv_import_history
+        WHERE importer_id = #{importerId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Query by import type -->
+    <select id="selectByImportType" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM csv_import_history
+        WHERE import_type = #{importType}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Query by assignment ID -->
+    <select id="selectByAssignmentId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM csv_import_history
+        WHERE assignment_id = #{assignmentId}
+        ORDER BY create_time DESC
+    </select>
+
+    <!-- Query all history ordered by create time -->
+    <select id="selectAllOrderByCreateTime" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM csv_import_history
+        ORDER BY create_time DESC
+    </select>
+
+</mapper>
+

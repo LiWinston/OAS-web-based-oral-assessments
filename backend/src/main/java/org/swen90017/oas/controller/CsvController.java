@@ -15,11 +15,15 @@ import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
 import org.swen90017.oas.entity.SysExaminer;
 import org.swen90017.oas.entity.SysStudent;
 import org.swen90017.oas.service.CsvService;
+import org.swen90017.oas.service.CsvHistoryService;
 import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.GroupService;
 import org.swen90017.oas.service.ExaminerService;
 import org.swen90017.oas.service.StudentService;
 import org.swen90017.oas.utils.TransactionUtil;
+import org.swen90017.oas.utils.SecurityUtils;
+import org.swen90017.oas.entity.CsvImportHistory;
+import org.swen90017.oas.entity.LoginUser;
 
 import java.io.IOException;
 import java.util.List;
@@ -29,6 +33,8 @@ import java.util.List;
 public class CsvController {
     @Autowired
     private CsvService csvService;
+    @Autowired
+    private CsvHistoryService csvHistoryService;
     @Autowired
     private StudentService studentService;
     @Autowired
@@ -67,15 +73,43 @@ public class CsvController {
             return Result.error(BusinessError.CSV_READ_FAILED);
         }
 
-        if ("student".equalsIgnoreCase(dto.getType())) {
-            return importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
-        } else if ("group".equalsIgnoreCase(dto.getType()) || "mix".equalsIgnoreCase(dto.getType())) {
-            return importGroupCsv((List<GroupCSVRequestDTO>) csvData, dto.getAssignmentId());
-        } else if ("examiner".equalsIgnoreCase(dto.getType())) {
-            return importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
-        } else {
-            return Result.error(BusinessError.INVALID_CSV_TYPE);
+        // Get current user info
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+        Long importerId = loginUser != null ? loginUser.getUserId() : null;
+        String importerUsername = loginUser != null ? loginUser.getUsername() : "unknown";
+
+        // Save CSV file and create history record
+        CsvImportHistory history = null;
+        try {
+            history = csvHistoryService.saveCsvFile(file, dto.getType(), dto.getAssignmentId(),
+                    importerId, importerUsername, csvData.size());
+        } catch (Exception e) {
+            // If saving file fails, still continue with import but log error
+            e.printStackTrace();
         }
+
+        Result<?> result;
+        if ("student".equalsIgnoreCase(dto.getType())) {
+            result = importStudentCsv((List<StudentCSVRequestDTO>) csvData, dto.getAssignmentId());
+        } else if ("group".equalsIgnoreCase(dto.getType()) || "mix".equalsIgnoreCase(dto.getType())) {
+            result = importGroupCsv((List<GroupCSVRequestDTO>) csvData, dto.getAssignmentId());
+        } else if ("examiner".equalsIgnoreCase(dto.getType())) {
+            result = importExaminerCsv((List<ExaminerCSVRequestDTO>) csvData, dto.getAssignmentId());
+        } else {
+            result = Result.error(BusinessError.INVALID_CSV_TYPE);
+        }
+
+        // Update history status
+        if (history != null) {
+            if ("200".equals(result.getCode())) {
+                csvHistoryService.updateHistoryStatus(history.getId(), "success", null);
+            } else {
+                String errorMessage = result.getData() != null ? result.getData().toString() : "Import failed";
+                csvHistoryService.updateHistoryStatus(history.getId(), "failed", errorMessage);
+            }
+        }
+
+        return result;
     }
 
     /**
