@@ -29,6 +29,22 @@ public interface CsvHistoryService {
                                  Long importerId, String importerUsername, Integer recordCount) throws IOException;
 
     /**
+     * Save CSV file from bytes and create history record
+     *
+     * @param fileBytes        CSV file bytes
+     * @param originalFilename original filename
+     * @param importType       import type (student, group, mix, examiner)
+     * @param assignmentId     assignment ID
+     * @param importerId       importer user ID
+     * @param importerUsername importer username
+     * @param recordCount      number of records imported
+     * @return history record
+     */
+    CsvImportHistory saveCsvFileFromBytes(byte[] fileBytes, String originalFilename, String importType, 
+                                          Long assignmentId, Long importerId, String importerUsername, 
+                                          Integer recordCount) throws IOException;
+
+    /**
      * Update history record status
      *
      * @param historyId    history record ID

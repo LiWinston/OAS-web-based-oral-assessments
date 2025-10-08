@@ -25,6 +25,7 @@ import org.swen90017.oas.utils.SecurityUtils;
 import org.swen90017.oas.entity.CsvImportHistory;
 import org.swen90017.oas.entity.LoginUser;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -68,7 +69,11 @@ public class CsvController {
     @PostMapping("/import")
     public Result<?> importCsv(@RequestParam("file") MultipartFile file,
                           @ModelAttribute CSVImportDTO dto) throws IOException {
-        List<?> csvData = csvService.importCsv(file.getInputStream(), dto.getType());
+        // Cache file bytes to allow multiple reads
+        byte[] fileBytes = file.getBytes();
+        
+        // Parse CSV data first
+        List<?> csvData = csvService.importCsv(new ByteArrayInputStream(fileBytes), dto.getType());
         if (csvData == null || csvData.isEmpty()) {
             return Result.error(BusinessError.CSV_READ_FAILED);
         }
@@ -81,8 +86,8 @@ public class CsvController {
         // Save CSV file and create history record
         CsvImportHistory history = null;
         try {
-            history = csvHistoryService.saveCsvFile(file, dto.getType(), dto.getAssignmentId(),
-                    importerId, importerUsername, csvData.size());
+            history = csvHistoryService.saveCsvFileFromBytes(fileBytes, file.getOriginalFilename(), 
+                    dto.getType(), dto.getAssignmentId(), importerId, importerUsername, csvData.size());
         } catch (Exception e) {
             // If saving file fails, still continue with import but log error
             e.printStackTrace();

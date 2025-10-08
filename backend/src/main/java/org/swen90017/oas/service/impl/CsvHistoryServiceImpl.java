@@ -52,6 +52,14 @@ public class CsvHistoryServiceImpl implements CsvHistoryService {
     @Override
     public CsvImportHistory saveCsvFile(MultipartFile file, String importType, Long assignmentId,
                                         Long importerId, String importerUsername, Integer recordCount) throws IOException {
+        return saveCsvFileFromBytes(file.getBytes(), file.getOriginalFilename(), importType, 
+                assignmentId, importerId, importerUsername, recordCount);
+    }
+
+    @Override
+    public CsvImportHistory saveCsvFileFromBytes(byte[] fileBytes, String originalFilename, String importType,
+                                                 Long assignmentId, Long importerId, String importerUsername,
+                                                 Integer recordCount) throws IOException {
         // Ensure storage directory exists
         Path storageDir = Paths.get(storagePath);
         if (!Files.exists(storageDir)) {
@@ -65,16 +73,16 @@ public class CsvHistoryServiceImpl implements CsvHistoryService {
 
         // Save file to disk
         Path targetPath = Paths.get(filePath);
-        Files.copy(file.getInputStream(), targetPath);
+        Files.write(targetPath, fileBytes);
 
         // Create history record
         CsvImportHistory history = new CsvImportHistory();
         history.setImportType(importType);
         history.setAssignmentId(assignmentId);
-        history.setOriginalFilename(file.getOriginalFilename());
+        history.setOriginalFilename(originalFilename);
         history.setSavedFilename(savedFilename);
         history.setFilePath(filePath);
-        history.setFileSize(file.getSize());
+        history.setFileSize((long) fileBytes.length);
         history.setRecordCount(recordCount);
         history.setImportStatus("processing");
         history.setImporterId(importerId);
