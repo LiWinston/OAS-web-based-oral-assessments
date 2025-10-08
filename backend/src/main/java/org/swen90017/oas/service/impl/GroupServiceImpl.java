@@ -53,6 +53,9 @@ public class GroupServiceImpl implements GroupService {
                 }
                 log.info("Validated assignment {} has type '{}' for group CSV import", assignmentId, assignmentType);
             }
+            
+            // Re-import semantics: atomically update groups for this assignment
+            handleReImport(dtos, assignmentId);
         }
 
         // Use base service to import student data
@@ -74,6 +77,121 @@ public class GroupServiceImpl implements GroupService {
 
         log.info("Successfully imported {} students with group relations for assignment {}", sysStudents.size(), assignmentId);
         return sysStudents;
+    }
+
+    /**
+     * Handle re-import semantics: atomically update groups and participants
+     */
+    private void handleReImport(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
+        log.info("Handling re-import for assignment {} groups", assignmentId);
+        
+        // Get canvas_group_ids from CSV
+        Set<String> csvGroupIds = dtos.stream()
+                .map(GroupCSVRequestDTO::getCanvasGroupId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        // Get all existing groups for this assignment
+        QueryWrapper<SysGroup> groupWrapper = new QueryWrapper<>();
+        groupWrapper.eq("assignment_id", assignmentId);
+        List<SysGroup> existingGroups = groupMapper.selectList(groupWrapper);
+        
+        if (!existingGroups.isEmpty()) {
+            // Find groups to remove (not in CSV)
+            List<Long> groupIdsToRemove = existingGroups.stream()
+                    .filter(g -> !csvGroupIds.contains(g.getCanvasGroupId()))
+                    .map(SysGroup::getGroupId)
+                    .collect(Collectors.toList());
+            
+            if (!groupIdsToRemove.isEmpty()) {
+                log.info("Removing {} groups not in the new CSV", groupIdsToRemove.size());
+                
+                // Delete student-group relations for these groups
+                QueryWrapper<SysStudentGroup> sgWrapper = new QueryWrapper<>();
+                sgWrapper.in("group_id", groupIdsToRemove);
+                studentGroupMapper.delete(sgWrapper);
+                
+                // Delete the groups
+                groupMapper.deleteBatchIds(groupIdsToRemove);
+                log.info("Successfully removed {} groups and their relations", groupIdsToRemove.size());
+            }
+        }
+        
+        // Get student identifiers from CSV
+        Set<String> csvStudentNumbers = dtos.stream()
+                .map(GroupCSVRequestDTO::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        Set<String> csvEmails = dtos.stream()
+                .map(dto -> {
+                    if (dto.getSisLoginId() != null && !dto.getSisLoginId().isEmpty()) {
+                        return dto.getSisLoginId() + "@student.unimelb.edu.au";
+                    }
+                    return dto.getEmail();
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        // Remove student participants not in CSV
+        QueryWrapper<AssignmentParticipant> wrapper = new QueryWrapper<>();
+        wrapper.eq("assignment_id", assignmentId)
+               .eq("role_id", UserRole.STUDENT.sort());
+        List<AssignmentParticipant> currentParticipants = assignmentParticipantMapper.selectList(wrapper);
+        
+        if (!currentParticipants.isEmpty()) {
+            List<Long> userIds = currentParticipants.stream()
+                    .map(AssignmentParticipant::getUserId)
+                    .collect(Collectors.toList());
+            
+            List<SysStudent> students = studentMapper.selectList(
+                    new QueryWrapper<SysStudent>().in("user_id", userIds)
+            );
+            List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+            
+            Map<Long, String> userIdToStudentNumber = students.stream()
+                    .collect(Collectors.toMap(SysStudent::getUserId, SysStudent::getStudentNumber));
+            Map<Long, String> userIdToEmail = users.stream()
+                    .collect(Collectors.toMap(SysUser::getUserId, SysUser::getEmail));
+            
+            List<Long> participantsToRemove = currentParticipants.stream()
+                    .filter(p -> {
+                        String studentNumber = userIdToStudentNumber.get(p.getUserId());
+                        String email = userIdToEmail.get(p.getUserId());
+                        
+                        boolean inCsvByNumber = studentNumber != null && csvStudentNumbers.contains(studentNumber);
+                        boolean inCsvByEmail = email != null && csvEmails.contains(email);
+                        
+                        return !inCsvByNumber && !inCsvByEmail;
+                    })
+                    .map(AssignmentParticipant::getId)
+                    .collect(Collectors.toList());
+            
+            if (!participantsToRemove.isEmpty()) {
+                log.info("Removing {} student participants not in the new CSV", participantsToRemove.size());
+                assignmentParticipantMapper.deleteBatchIds(participantsToRemove);
+            }
+        }
+        
+        // Clear existing student-group relations for groups that remain (will be recreated)
+        if (!csvGroupIds.isEmpty()) {
+            List<SysGroup> remainingGroups = groupMapper.selectList(
+                    new QueryWrapper<SysGroup>()
+                            .eq("assignment_id", assignmentId)
+                            .in("canvas_group_id", csvGroupIds)
+            );
+            
+            if (!remainingGroups.isEmpty()) {
+                List<Long> remainingGroupIds = remainingGroups.stream()
+                        .map(SysGroup::getGroupId)
+                        .collect(Collectors.toList());
+                
+                QueryWrapper<SysStudentGroup> clearWrapper = new QueryWrapper<>();
+                clearWrapper.in("group_id", remainingGroupIds);
+                studentGroupMapper.delete(clearWrapper);
+                log.info("Cleared student-group relations for {} remaining groups", remainingGroupIds.size());
+            }
+        }
     }
 
     /**

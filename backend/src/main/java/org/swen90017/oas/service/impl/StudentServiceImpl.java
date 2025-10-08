@@ -20,9 +20,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +45,11 @@ public class StudentServiceImpl implements StudentService {
     @Transactional
     public List<SysStudent> inviteStudent(List<StudentCSVRequestDTO> studentDTOs, Long assignmentIdParam) {
         log.info("Inviting {} students from CSV request", studentDTOs.size());
+        
+        // Re-import semantics: If assignmentId is provided, remove participants not in the new CSV
+        if (assignmentIdParam != null) {
+            handleReImport(studentDTOs, assignmentIdParam);
+        }
         
         List<SysStudent> invitedStudents = baseCsvImportService.importStudents(
                 studentDTOs,
@@ -208,6 +210,83 @@ public class StudentServiceImpl implements StudentService {
         previewResponse.setExistingCount((Integer) previewData.get("existingCount"));
 
         return previewResponse;
+    }
+    
+    /**
+     * Handle re-import semantics: remove participants not in the new CSV
+     */
+    private void handleReImport(List<StudentCSVRequestDTO> studentDTOs, Long assignmentId) {
+        log.info("Handling re-import for assignment {}", assignmentId);
+        
+        // Get all student identifiers from CSV (student_number or email)
+        Set<String> csvStudentNumbers = studentDTOs.stream()
+                .map(StudentCSVRequestDTO::getStudentId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        Set<String> csvEmails = studentDTOs.stream()
+                .map(dto -> {
+                    if (dto.getSisLoginId() != null && !dto.getSisLoginId().isEmpty()) {
+                        return dto.getSisLoginId() + "@student.unimelb.edu.au";
+                    }
+                    return dto.getEmail();
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        log.info("CSV contains {} student numbers and {} emails", csvStudentNumbers.size(), csvEmails.size());
+        
+        // Get all current STUDENT participants for this assignment
+        QueryWrapper<AssignmentParticipant> wrapper = new QueryWrapper<>();
+        wrapper.eq("assignment_id", assignmentId)
+               .eq("role_id", UserRole.STUDENT.sort());
+        List<AssignmentParticipant> currentParticipants = assignmentParticipantMapper.selectList(wrapper);
+        
+        if (currentParticipants.isEmpty()) {
+            log.info("No existing student participants found for assignment {}", assignmentId);
+            return;
+        }
+        
+        log.info("Found {} existing student participants", currentParticipants.size());
+        
+        // Get user IDs to check
+        List<Long> userIds = currentParticipants.stream()
+                .map(AssignmentParticipant::getUserId)
+                .collect(Collectors.toList());
+        
+        // Get students and users for these participants
+        List<SysStudent> students = studentMapper.selectList(
+                new QueryWrapper<SysStudent>().in("user_id", userIds)
+        );
+        List<SysUser> users = userMapper.selectBatchIds(userIds);
+        
+        // Build maps for quick lookup
+        Map<Long, String> userIdToStudentNumber = students.stream()
+                .collect(Collectors.toMap(SysStudent::getUserId, SysStudent::getStudentNumber));
+        Map<Long, String> userIdToEmail = users.stream()
+                .collect(Collectors.toMap(SysUser::getUserId, SysUser::getEmail));
+        
+        // Find participants to remove (not in CSV)
+        List<Long> participantsToRemove = currentParticipants.stream()
+                .filter(p -> {
+                    String studentNumber = userIdToStudentNumber.get(p.getUserId());
+                    String email = userIdToEmail.get(p.getUserId());
+                    
+                    boolean inCsvByNumber = studentNumber != null && csvStudentNumbers.contains(studentNumber);
+                    boolean inCsvByEmail = email != null && csvEmails.contains(email);
+                    
+                    return !inCsvByNumber && !inCsvByEmail;
+                })
+                .map(AssignmentParticipant::getId)
+                .collect(Collectors.toList());
+        
+        if (!participantsToRemove.isEmpty()) {
+            log.info("Removing {} student participants not in the new CSV", participantsToRemove.size());
+            assignmentParticipantMapper.deleteBatchIds(participantsToRemove);
+            log.info("Successfully removed {} student participants", participantsToRemove.size());
+        } else {
+            log.info("All existing student participants are in the new CSV, no removal needed");
+        }
     }
     
     @Override

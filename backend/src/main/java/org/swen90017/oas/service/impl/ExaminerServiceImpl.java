@@ -25,7 +25,9 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,6 +55,11 @@ public class ExaminerServiceImpl implements ExaminerService {
         List<SysExaminer> toInsert = new ArrayList<>();
         if (examinerCSVRequestDTOS == null || examinerCSVRequestDTOS.isEmpty()) {
             return toInsert;
+        }
+
+        // Re-import semantics: If assignmentId is provided, remove participants not in the new CSV
+        if (assignmentId != null) {
+            handleReImport(examinerCSVRequestDTOS, assignmentId);
         }
 
         SecureRandom random = new java.security.SecureRandom();
@@ -158,6 +165,57 @@ public class ExaminerServiceImpl implements ExaminerService {
         return preview;
     }
 
+
+    /**
+     * Handle re-import semantics: remove participants not in the new CSV
+     */
+    private void handleReImport(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId) {
+        // Get all examiner emails from CSV
+        Set<String> csvEmails = examinerDTOs.stream()
+                .map(dto -> {
+                    if (dto.getSisLoginId() != null && !dto.getSisLoginId().trim().isEmpty()) {
+                        return dto.getSisLoginId() + "@unimelb.edu.au";
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        
+        // Get all current EXAMINER participants for this assignment
+        QueryWrapper<AssignmentParticipant> wrapper = new QueryWrapper<>();
+        wrapper.eq("assignment_id", assignmentId)
+               .eq("role_id", UserRole.EXAMINER.sort());
+        List<AssignmentParticipant> currentParticipants = assignmentParticipantMapper.selectList(wrapper);
+        
+        if (currentParticipants.isEmpty()) {
+            return;
+        }
+        
+        // Get user IDs to check
+        List<Long> userIds = currentParticipants.stream()
+                .map(AssignmentParticipant::getUserId)
+                .collect(Collectors.toList());
+        
+        // Get users for these participants
+        List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
+        
+        // Build map for quick lookup
+        Map<Long, String> userIdToEmail = users.stream()
+                .collect(Collectors.toMap(SysUser::getUserId, SysUser::getEmail));
+        
+        // Find participants to remove (not in CSV)
+        List<Long> participantsToRemove = currentParticipants.stream()
+                .filter(p -> {
+                    String email = userIdToEmail.get(p.getUserId());
+                    return email == null || !csvEmails.contains(email);
+                })
+                .map(AssignmentParticipant::getId)
+                .collect(Collectors.toList());
+        
+        if (!participantsToRemove.isEmpty()) {
+            assignmentParticipantMapper.deleteBatchIds(participantsToRemove);
+        }
+    }
 
     @Override
     public void sendCourseJoinNotificationForExistingExaminers(List<ExaminerCSVRequestDTO> examinerDTOs, Long assignmentId) {

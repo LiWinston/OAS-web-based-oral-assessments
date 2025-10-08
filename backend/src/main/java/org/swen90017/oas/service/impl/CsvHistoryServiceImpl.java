@@ -60,26 +60,20 @@ public class CsvHistoryServiceImpl implements CsvHistoryService {
     public CsvImportHistory saveCsvFileFromBytes(byte[] fileBytes, String originalFilename, String importType,
                                                  Long assignmentId, Long importerId, String importerUsername,
                                                  Integer recordCount) throws IOException {
-        System.out.println("DEBUG: saveCsvFileFromBytes called - type=" + importType + ", filename=" + originalFilename);
-        
         // Ensure storage directory exists
         Path storageDir = Paths.get(storagePath);
-        System.out.println("DEBUG: Storage path=" + storagePath + ", exists=" + Files.exists(storageDir));
         if (!Files.exists(storageDir)) {
             Files.createDirectories(storageDir);
-            System.out.println("DEBUG: Created storage directory");
         }
 
         // Generate new filename: type_username_timestamp.csv
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
         String savedFilename = String.format("%s_%s_%s.csv", importType, importerUsername, timestamp);
         String filePath = storagePath + File.separator + savedFilename;
-        System.out.println("DEBUG: Saving file to: " + filePath);
 
         // Save file to disk
         Path targetPath = Paths.get(filePath);
         Files.write(targetPath, fileBytes);
-        System.out.println("DEBUG: File saved successfully, size=" + fileBytes.length);
 
         // Create history record
         CsvImportHistory history = new CsvImportHistory();
@@ -95,9 +89,7 @@ public class CsvHistoryServiceImpl implements CsvHistoryService {
         history.setImporterUsername(importerUsername);
         history.setCreateTime(LocalDateTime.now());
 
-        System.out.println("DEBUG: About to insert history record into database");
         csvImportHistoryMapper.insert(history);
-        System.out.println("DEBUG: History record inserted, ID=" + history.getId());
 
         return history;
     }
