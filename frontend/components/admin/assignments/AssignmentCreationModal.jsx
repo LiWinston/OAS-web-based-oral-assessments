@@ -61,6 +61,7 @@ export function AssignmentCreationModal({
   previewExaminerCsv,
   uploadStudentCsv,
   uploadExaminerCsv,
+  uploadGroupCsv,
 }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(() => {
@@ -87,6 +88,10 @@ export function AssignmentCreationModal({
       file: null,
       previewData: null,
     },
+    group: {
+      file: null,
+      previewData: null,
+    },
   });
 
   const [validationErrors, setValidationErrors] = useState({});
@@ -97,6 +102,7 @@ export function AssignmentCreationModal({
   const [csvUploadStatus, setCsvUploadStatus] = useState({
     student: { uploading: false, error: null },
     examiner: { uploading: false, error: null },
+    group: { uploading: false, error: null },
   });
   const [courseWeightTotal, setCourseWeightTotal] = useState({
     loading: false,
@@ -125,6 +131,12 @@ export function AssignmentCreationModal({
       setCsvData({
         student: { file: null, type: "student", previewData: null },
         examiner: { file: null, previewData: null },
+        group: { file: null, previewData: null },
+      });
+      setCsvUploadStatus({
+        student: { uploading: false, error: null },
+        examiner: { uploading: false, error: null },
+        group: { uploading: false, error: null },
       });
       setValidationErrors({});
       setShowSuccess(false);
@@ -213,6 +225,7 @@ export function AssignmentCreationModal({
   // Validate current step
   const validateStep = (stepNumber) => {
     const errors = {};
+    const requiresGroupCsv = formData.type === "group";
 
     switch (stepNumber) {
       case 1:
@@ -248,6 +261,10 @@ export function AssignmentCreationModal({
           errors.examinerCsv =
             "Please upload and validate the Examiner CSV before continuing";
         }
+        if (requiresGroupCsv && !csvData.group.previewData) {
+          errors.groupCsv =
+            "Please upload and validate the Group CSV for group assignments";
+        }
         break;
       case 3:
         // Final validation done on submit
@@ -270,9 +287,11 @@ export function AssignmentCreationModal({
   };
 
   const isStep2Ready = () => {
+    const requiresGroupCsv = formData.type === "group";
     return (
       Boolean(csvData.student.previewData) &&
-      Boolean(csvData.examiner.previewData)
+      Boolean(csvData.examiner.previewData) &&
+      (!requiresGroupCsv || Boolean(csvData.group.previewData))
     );
   };
 
@@ -309,6 +328,25 @@ export function AssignmentCreationModal({
     setCsvUploadStatus((prev) => ({
       ...prev,
       student: { uploading: false, error: null },
+    }));
+  };
+
+  const handleGroupFileSelect = async (file) => {
+    if (!file) return;
+
+    if (!file.name.endsWith(".csv")) {
+      showNotification("error", "Please upload a CSV file");
+      return;
+    }
+
+    setCsvData((prev) => ({
+      ...prev,
+      group: { ...prev.group, file },
+    }));
+
+    setCsvUploadStatus((prev) => ({
+      ...prev,
+      group: { uploading: false, error: null },
     }));
   };
 
@@ -426,6 +464,46 @@ export function AssignmentCreationModal({
           examiner: { ...prev.examiner, uploading: false, error: errorMessage },
         }));
       }
+    } else if (type === "group") {
+      if (!csvData.group.file) {
+        showNotification("error", "Please select a CSV file first");
+        return;
+      }
+
+      setCsvUploadStatus((prev) => ({
+        ...prev,
+        group: { ...prev.group, uploading: true, error: null },
+      }));
+
+      try {
+        const result = await previewStudentCsv(csvData.group.file, "group");
+
+        setCsvUploadStatus((prev) => ({
+          ...prev,
+          group: { ...prev.group, uploading: false, error: null },
+        }));
+
+        setCsvData((prev) => ({
+          ...prev,
+          group: { ...prev.group, previewData: result.data },
+        }));
+
+        showNotification("success", "Group CSV file validated successfully");
+      } catch (error) {
+        console.error("Group CSV upload error:", error);
+
+        const isFormatError =
+          error.code === "2002" ||
+          error.data === "CSV header does not match expected format" ||
+          error.data === "CSV read failed";
+
+        const errorMessage = isFormatError ? "Error Format" : error.message;
+
+        setCsvUploadStatus((prev) => ({
+          ...prev,
+          group: { ...prev.group, uploading: false, error: errorMessage },
+        }));
+      }
     }
   };
 
@@ -460,6 +538,19 @@ export function AssignmentCreationModal({
 
     const file = e.dataTransfer.files[0];
     handleExaminerFileSelect(file);
+  };
+
+  const handleGroupDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleGroupDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files[0];
+    handleGroupFileSelect(file);
   };
 
   // Navigate between steps
@@ -515,6 +606,14 @@ export function AssignmentCreationModal({
                 assignmentId
               );
               console.log("Examiner CSV uploaded successfully");
+            }
+
+            if (csvData.group.file) {
+              const uploadResult = await uploadGroupCsv(
+                csvData.group.file,
+                assignmentId
+              );
+              console.log("Group CSV uploaded successfully");
             }
           } catch (uploadError) {
             console.error("CSV upload error:", uploadError);
@@ -598,6 +697,7 @@ export function AssignmentCreationModal({
 
   const stepCompletion = getStepCompletion();
   const isAssignmentCreated = Boolean(createdAssignment?.id);
+  const requiresGroupCsv = formData.type === "group";
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1258,14 +1358,269 @@ export function AssignmentCreationModal({
                   </div>
                 )}
 
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div className="flex items-start">
+                  <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
+                  <div className="text-sm text-amber-800 dark:text-amber-200">
+                    <p className="font-medium mb-1">Student CSV Format:</p>
+                    <p className="text-xs">
+                      Student, ID, SIS User ID, SIS Login ID, Section, Student
+                      Id
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+              {/* Group CSV Upload */}
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-5 border border-emerald-200 dark:border-emerald-800">
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mr-3 shadow-lg">
+                    <i className="fas fa-users text-white"></i>
+                  </div>
+                  <div className="flex flex-col">
+                    <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Upload Group Data
+                    </h4>
+                    <span
+                      className={`text-xs font-medium mt-1 inline-flex items-center gap-1 px-2 py-1 rounded-full w-fit ${
+                        requiresGroupCsv
+                          ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200"
+                      }`}
+                    >
+                      <i className="fas fa-info-circle" />
+                      {requiresGroupCsv
+                        ? "Required for group assignments"
+                        : "Optional for individual assignments"}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Provide a CSV mapping students into groups. Individual assignments can skip this step, but group assignments should upload the latest roster.
+                </p>
+                <div className="mb-4 text-xs">
+                  <a
+                    href="/csv-templates/group_template.csv"
+                    download
+                    className="text-emerald-600 dark:text-emerald-400 hover:underline mr-3"
+                  >
+                    <i className="fas fa-download mr-1"></i>Download Group CSV template
+                  </a>
+                </div>
+                {validationErrors.groupCsv && (
+                  <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      <i className="fas fa-exclamation-triangle mr-2"></i>
+                      {validationErrors.groupCsv}
+                    </p>
+                  </div>
+                )}
+
+                {!csvData.group.previewData ? (
+                  !csvData.group.file ? (
+                    <div
+                      onDragOver={handleGroupDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleGroupDrop}
+                      className={`
+                        border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200
+                        ${
+                          isDragging
+                            ? "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-900/30"
+                            : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                        }
+                      `}
+                    >
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => handleGroupFileSelect(e.target.files[0])}
+                        className="hidden"
+                        id="group-file-input"
+                      />
+
+                      <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                        <i className="fas fa-cloud-upload-alt text-2xl text-gray-400"></i>
+                      </div>
+
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        Drag and drop your CSV file here, or
+                      </p>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const fileInput = document.getElementById(
+                            "group-file-input"
+                          );
+                          if (fileInput) fileInput.click();
+                        }}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        Browse Files
+                      </button>
+
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
+                        Supported format: CSV (.csv)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center">
+                          <i className="fas fa-file-alt text-green-600 mr-3"></i>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {csvData.group.file ? csvData.group.file.name : ""}
+                            </p>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              File selected, ready to upload
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            setCsvData((prev) => ({
+                              ...prev,
+                              group: { file: null, previewData: null },
+                            }));
+                            setCsvUploadStatus((prev) => ({
+                              ...prev,
+                              group: { uploading: false, error: null },
+                            }));
+                          }}
+                          className="text-red-600 hover:text-red-700 p-2"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={() => handleCsvPreview("group")}
+                          disabled={csvUploadStatus.group.uploading}
+                          className="w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                        >
+                          {csvUploadStatus.group.uploading ? (
+                            <>
+                              <i className="fas fa-spinner fa-spin mr-2"></i>
+                              Uploading...
+                            </>
+                          ) : (
+                            <>
+                              <i className="fas fa-upload mr-2"></i>
+                              Validate Group Data
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {csvUploadStatus.group.error && (
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-700 dark:text-red-300">
+                            <i className="fas fa-exclamation-triangle mr-2"></i>
+                            {csvUploadStatus.group.error}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                ) : (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center">
+                        <i className="fas fa-check-circle text-green-600 mr-2"></i>
+                        <span className="font-medium text-green-800 dark:text-green-200">
+                          Upload Successful
+                        </span>
+                      </div>
+                      {(() => {
+                        const c = getCounts(csvData.group.previewData);
+                        const groupCount =
+                          csvData.group.previewData?.groupCount ?? null;
+                        return (
+                          <div className="text-sm text-green-600 dark:text-green-400">
+                            <span className="mr-3">Total rows: {c.total}</span>
+                            {typeof groupCount === "number" && (
+                              <span className="text-emerald-600 mr-3">
+                                Groups: {groupCount}
+                              </span>
+                            )}
+                            {c.newCount ? (
+                              <span className="text-blue-600 mr-3">
+                                New records: {c.newCount}
+                              </span>
+                            ) : null}
+                            {c.existingCount ? (
+                              <span className="text-orange-600">
+                                Existing: {c.existingCount}
+                              </span>
+                            ) : null}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-3 mb-3">
+                      {(() => {
+                        const c = getCounts(csvData.group.previewData);
+                        return (
+                          <>
+                            <div className="bg-emerald-100 dark:bg-emerald-900/40 rounded-lg p-3 text-center">
+                              <div className="text-xl font-bold text-emerald-700 dark:text-emerald-300">
+                                {csvData.group.previewData?.groupCount ?? "—"}
+                              </div>
+                              <div className="text-xs text-emerald-700 dark:text-emerald-300">
+                                Groups
+                              </div>
+                            </div>
+                            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                              <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                                {c.newCount}
+                              </div>
+                              <div className="text-xs text-blue-600 dark:text-blue-400">
+                                New Records
+                              </div>
+                            </div>
+                            <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                              <div className="text-xl font-bold text-green-600 dark:text-green-400">
+                                {c.total}
+                              </div>
+                              <div className="text-xs text-green-600 dark:text-green-400">
+                                Total Rows
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCsvData((prev) => ({
+                          ...prev,
+                          group: { file: null, previewData: null },
+                        }));
+                      }}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      <i className="fas fa-redo mr-1"></i>
+                      Re-upload
+                    </button>
+                  </div>
+                )}
+
+                <div className="mt-4 p-4 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                   <div className="flex items-start">
-                    <i className="fas fa-info-circle text-amber-600 mt-0.5 mr-3"></i>
-                    <div className="text-sm text-amber-800 dark:text-amber-200">
-                      <p className="font-medium mb-1">Student CSV Format:</p>
+                    <i className="fas fa-info-circle text-emerald-600 mt-0.5 mr-3"></i>
+                    <div className="text-sm text-emerald-800 dark:text-emerald-200">
+                      <p className="font-medium mb-1">Group CSV Format:</p>
                       <p className="text-xs">
-                        Student, ID, SIS User ID, SIS Login ID, Section, Student
-                        Id
+                        Expected headers: name, canvas_user_id, user_id, login_id, sections, group_name, canvas_group_id, group_id. Extra columns are ignored.
                       </p>
                     </div>
                   </div>
@@ -1599,6 +1954,17 @@ export function AssignmentCreationModal({
                       </span>
                       <span className="font-medium text-gray-900 dark:text-white">
                         {csvData.examiner.file.name}
+                      </span>
+                    </div>
+                  )}
+
+                  {csvData.group.file && (
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Group CSV
+                      </span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {csvData.group.file.name}
                       </span>
                     </div>
                   )}

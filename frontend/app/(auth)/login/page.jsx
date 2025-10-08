@@ -357,8 +357,8 @@ export default function LoginPage() {
                         type="button"
                         onClick={() =>
                           fillTestAccount(
-                            "dave@student.unimelb.edu.au",
-                            "password4"
+                            "dave@unimelb.edu.au",
+                            "password1"
                           )
                         }
                         className="p-3 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/20 dark:hover:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-lg text-center transition-colors"

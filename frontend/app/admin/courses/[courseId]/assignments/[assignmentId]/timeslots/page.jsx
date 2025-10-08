@@ -618,8 +618,13 @@ const assignmentLabel = useMemo(() => {
           {/* Sessions Content */}
           {!isLoadingSlots && selectedDate && sessionsForSelectedDate.length > 0 && (
             <div className="space-y-4">
-              {sessionsForSelectedDate.map((s, idx) => (
-                <div key={`${s.id ?? `${s.date}-${s.startTime}-${s.endTime}-${s.venueId ?? ''}`}-${idx}`} className="time-slot-item relative">
+              {sessionsForSelectedDate.map((s, idx) => {
+                const isSlotBooked =
+                  Number(s.bookedCount ?? 0) > 0 ||
+                  (Array.isArray(s.enrolledGroups) && s.enrolledGroups.length > 0) ||
+                  (Array.isArray(s.enrolledStudents) && s.enrolledStudents.length > 0);
+                return (
+                  <div key={`${s.id ?? `${s.date}-${s.startTime}-${s.endTime}-${s.venueId ?? ''}`}-${idx}`} className="time-slot-item relative">
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="text-base font-medium text-gray-800 dark:text-gray-200">{s.startTime} - {s.endTime}</div>
@@ -632,7 +637,16 @@ const assignmentLabel = useMemo(() => {
                       <button className="action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDuplicateSession(s)} title="Duplicate timeslot">
                         <i className="fas fa-copy" />
                       </button>
-                      <button className="action-btn text-red-600 hover:text-red-800 bg-red-50 hover:bg-red-100 dark:text-red-400 dark:hover:text-red-300 dark:bg-red-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDeleteTimeSlot(s.id)}>
+                      <button
+                        className={`action-btn text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900 dark:bg-opacity-20 ${
+                          isSlotBooked
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'hover:text-red-800 hover:bg-red-100 dark:hover:text-red-300 dark:hover:bg-opacity-30'
+                        }`}
+                        onClick={() => handleDeleteTimeSlot(s.id)}
+                        disabled={isSlotBooked}
+                        title={isSlotBooked ? 'Cannot delete a booked timeslot' : 'Delete timeslot'}
+                      >
                         <i className="fas fa-trash-alt" />
                       </button>
                     </div>
@@ -740,8 +754,9 @@ const assignmentLabel = useMemo(() => {
                       )}
                     </div>
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -409,6 +409,19 @@ export default function CourseAssignmentsPage() {
     }
   };
 
+  const uploadGroupCsv = async (file, assignmentId) => {
+    try {
+      const result = await assignmentService.uploadStudentCsv(file, 'group', assignmentId);
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload CSV");
+      }
+      return result;
+    } catch (error) {
+      console.error("Group CSV upload error:", error);
+      throw error;
+    }
+  };
+
   // Handle assignment editing
   const handleEditAssignment = (assignment) => {
     setSelectedAssignment(assignment);
@@ -668,6 +681,7 @@ export default function CourseAssignmentsPage() {
         previewExaminerCsv={previewExaminerCsv}
         uploadStudentCsv={uploadStudentCsv}
         uploadExaminerCsv={uploadExaminerCsv}
+        uploadGroupCsv={uploadGroupCsv}
       />
 
       {/* Edit Assignment Modal */}
@@ -679,6 +693,11 @@ export default function CourseAssignmentsPage() {
         }}
         onAssignmentUpdated={handleAssignmentUpdated}
         assignment={selectedAssignment}
+        previewStudentCsv={previewStudentCsv}
+        previewExaminerCsv={previewExaminerCsv}
+        uploadStudentCsv={uploadStudentCsv}
+        uploadExaminerCsv={uploadExaminerCsv}
+        uploadGroupCsv={uploadGroupCsv}
       />
     </div>
   );
