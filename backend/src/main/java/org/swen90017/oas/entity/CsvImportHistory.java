@@ -103,7 +103,7 @@ public class CsvImportHistory {
      * Create time
      */
     @Schema(description = "Creation time", example = "2024-01-15T10:30:00")
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
+    @TableField(value = "create_time")
     private LocalDateTime createTime;
 
     /**

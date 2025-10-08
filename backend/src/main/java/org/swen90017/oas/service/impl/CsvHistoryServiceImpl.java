@@ -93,6 +93,7 @@ public class CsvHistoryServiceImpl implements CsvHistoryService {
         history.setImportStatus("processing");
         history.setImporterId(importerId);
         history.setImporterUsername(importerUsername);
+        history.setCreateTime(LocalDateTime.now());
 
         System.out.println("DEBUG: About to insert history record into database");
         csvImportHistoryMapper.insert(history);
