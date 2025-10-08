@@ -30,8 +30,8 @@ public class CsvHistoryController {
     private CsvHistoryService csvHistoryService;
 
     @Operation(summary = "Query CSV import history", description = "Query CSV import history with pagination, supports filtering by type, assignment, importer, etc.")
-    @GetMapping("/list")
-    public Result<PageResult<CsvImportHistoryDTO>> queryHistory(CsvHistoryQueryDTO queryDTO) {
+    @PostMapping("/list")
+    public Result<PageResult<CsvImportHistoryDTO>> queryHistory(@RequestBody CsvHistoryQueryDTO queryDTO) {
         PageResult<CsvImportHistoryDTO> result = csvHistoryService.queryHistory(queryDTO);
         return Result.success(result);
     }
