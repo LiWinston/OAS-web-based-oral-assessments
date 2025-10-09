@@ -34,6 +34,9 @@ const FUZZY_OPTIONS = {
   minMatchCharLength: 2,
 };
 
+// Max items to show in "Best matches" section
+const BEST_MATCHES_LIMIT = 8;
+
 const matchItems = (items, query) => {
   if (!query) return items;
 
@@ -126,6 +129,7 @@ export function GlobalSearchPalette() {
   const router = useRouter();
   const pathname = usePathname();
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 
   const isOpen = useGlobalSearchStore((state) => state.isOpen);
@@ -243,6 +247,36 @@ export function GlobalSearchPalette() {
       .filter(Boolean);
   }, [sections, query]);
 
+  // Tokens for highlighting
+  const highlightTokens = useMemo(() => tokenize(query), [query]);
+
+  const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  const renderHighlighted = useCallback(
+    (text) => {
+      if (!text) return null;
+      const tokens = (highlightTokens || []).filter(Boolean);
+      if (!tokens.length) return text;
+      const pattern = new RegExp(`(${tokens.map(escapeRegex).join('|')})`, 'gi');
+      const parts = String(text).split(pattern);
+      return parts.map((part, idx) => {
+        if (!part) return null;
+        const match = tokens.some((t) => part.toLowerCase() === t.toLowerCase());
+        return match ? (
+          <mark
+            key={idx}
+            className="bg-yellow-100 dark:bg-yellow-800/60 text-inherit rounded px-0.5"
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={idx}>{part}</span>
+        );
+      });
+    },
+    [highlightTokens]
+  );
+
   // Build enhanced sections list with a global "Best matches" block between pinned and others
   const enhancedSections = useMemo(() => {
     if (!Array.isArray(sections)) return [];
@@ -271,7 +305,7 @@ export function GlobalSearchPalette() {
       .map((it) => ({ it, score: scoreItem(tokens, it) }))
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
-      .slice(0, 10)
+      .slice(0, BEST_MATCHES_LIMIT)
       .map((x) => x.it);
 
     if (!ranked.length) return filtered;
@@ -330,6 +364,34 @@ export function GlobalSearchPalette() {
       if (!isOpen) return;
 
       switch (event.key) {
+        case 'Tab': {
+          // Focus trap inside the palette panel
+          const panel = panelRef.current;
+          if (!panel) return;
+          const focusable = panel.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          );
+          const elements = Array.from(focusable).filter((el) => !el.hasAttribute('disabled'));
+          if (elements.length === 0) {
+            event.preventDefault();
+            if (inputRef.current) inputRef.current.focus();
+            return;
+          }
+          const first = elements[0];
+          const last = elements[elements.length - 1];
+          if (event.shiftKey) {
+            if (document.activeElement === first || document.activeElement === panel) {
+              event.preventDefault();
+              last.focus();
+            }
+          } else {
+            if (document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
+          }
+          break;
+        }
         case 'Escape':
           event.preventDefault();
           closePalette();
@@ -430,7 +492,14 @@ export function GlobalSearchPalette() {
     return (
       <div key={section.id} className="mt-4 first:mt-0">
         <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between">
-          <span>{section.label}</span>
+          <span className="flex items-center gap-2">
+            {section.label}
+            {section.id === 'global.best-matches' && query && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[10px] font-normal max-w-[200px] truncate">
+                “{query}”
+              </span>
+            )}
+          </span>
           {section.id?.endsWith('.recents') && enablePersistence && (
             <button
               type="button"
@@ -448,6 +517,8 @@ export function GlobalSearchPalette() {
             const isActive = highlightedIndex === flatIndex;
             const isFavourite = Boolean(item.isFavourite);
             const optionId = `gs-item-${safeDomId(section.id)}-${safeDomId(item.id)}`;
+            const titleNode = renderHighlighted(item.title);
+            const subtitleNode = item.subtitle ? renderHighlighted(item.subtitle) : null;
             return (
               <button
                 key={item.id}
@@ -465,10 +536,10 @@ export function GlobalSearchPalette() {
               >
                 <div className="w-full flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium block truncate">{item.title}</span>
-                    {item.subtitle && (
+                    <span className="text-sm font-medium block truncate">{titleNode}</span>
+                    {subtitleNode && (
                       <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block truncate">
-                        {item.subtitle}
+                        {subtitleNode}
                       </span>
                     )}
                   </div>
@@ -514,6 +585,9 @@ export function GlobalSearchPalette() {
     ? `gs-item-${safeDomId(activeEntry.section)}-${safeDomId(activeEntry.item.id)}`
     : undefined;
 
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform || '');
+  const hotkeyHint = isMac ? '⌘K' : 'Ctrl+K';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 backdrop-blur-sm bg-black/30"
@@ -526,7 +600,7 @@ export function GlobalSearchPalette() {
         }
       }}
     >
-      <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div ref={panelRef} className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <span className="text-gray-400 mr-3">
@@ -542,7 +616,21 @@ export function GlobalSearchPalette() {
               aria-label="Global search"
               aria-controls="global-search-results"
             />
-            <div className="text-xs text-gray-400 dark:text-gray-500 ml-3">⌘K</div>
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  requestAnimationFrame(() => inputRef.current?.focus());
+                }}
+                className="ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                aria-label="Clear search input"
+                title="Clear"
+              >
+                <i className="fas fa-times-circle"></i>
+              </button>
+            )}
+            <div className="text-xs text-gray-400 dark:text-gray-500 ml-3">{hotkeyHint}</div>
             <button
               type="button"
               onClick={closePalette}
@@ -577,8 +665,20 @@ export function GlobalSearchPalette() {
           )}
 
           {!loading && error && (
-            <div className="text-sm text-red-600 dark:text-red-400">
-              {error}
+            <div className="flex items-center justify-between gap-4 text-sm">
+              <div className="text-red-600 dark:text-red-400">{error}</div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined' && window.oasInvalidateGlobalSearch) {
+                    window.oasInvalidateGlobalSearch();
+                  }
+                }}
+                className="px-2 py-1 rounded-md text-xs border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                aria-label="Retry loading search data"
+              >
+                Retry
+              </button>
             </div>
           )}
 

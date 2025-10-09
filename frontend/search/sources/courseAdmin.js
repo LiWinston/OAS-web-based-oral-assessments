@@ -192,6 +192,20 @@ const QUICK_LINKS = [
     keywords: 'results moderation release scores',
   },
   {
+    id: 'quick-reports',
+    title: 'Reports',
+    subtitle: 'Analytics and operational insights',
+    href: '/admin/reports',
+    keywords: 'reports analytics insights dashboards 报表 统计',
+  },
+  {
+    id: 'quick-scheduling-reports',
+    title: 'Scheduling Reports',
+    subtitle: 'Staffing coverage and trends',
+    href: '/admin/reports/scheduling',
+    keywords: 'reports scheduling staffing trends 覆盖 排班 报表',
+  },
+  {
     id: 'quick-support',
     title: 'Support Centre',
     subtitle: 'Get help and contact support',
@@ -382,7 +396,7 @@ const courseAdminSources = [
   },
   {
     id: RECENTS_SECTION_ID,
-    label: 'Recent Searches',
+    label: 'Recently Used',
     priority: 110,
     defaultLimit: 6,
     queryLimit: Infinity,

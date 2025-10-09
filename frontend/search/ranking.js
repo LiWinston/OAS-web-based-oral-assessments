@@ -59,8 +59,25 @@ export function scoreItem(tokens, item) {
     typeBoost += 1;
   }
 
-  const hasSessionQuery = tokens.some((t) => /^(session|sessions|timeslot|schedule|booking|排期|时段)$/i.test(t));
-  if (hasSessionQuery && /(session|sessions|timeslot|schedule|booking|排期|时段)/i.test(text)) {
+  const hasSessionQuery = tokens.some((t) => /^(session|sessions|timeslot|schedule|booking|排期|时段|日程|日历)$/i.test(t));
+  if (hasSessionQuery && /(session|sessions|timeslot|schedule|booking|排期|时段|日程|日历)/i.test(text)) {
+    typeBoost += 1;
+  }
+
+  const hasMarkingQuery = tokens.some((t) => /^(mark|marks|marking|grade|grading|评分|打分|批改|评审)$/i.test(t));
+  if (hasMarkingQuery && /(mark|marks|marking|grade|grading|评分|打分|批改|评审)/i.test(text)) {
+    typeBoost += 1;
+  }
+
+  const hasAssignQuery = tokens.some((t) => /^(assign|assignment|self|self\s*assign|认领|报名|自选|分配)$/i.test(t));
+
+  const hasGroupQuery = tokens.some((t) => /^(group|groups|team|teams|小组|团队)$/i.test(t));
+  if (hasGroupQuery && /(group|groups|team|teams|小组|团队)/i.test(text)) {
+    typeBoost += 1;
+  }
+
+  const hasBookingQuery = tokens.some((t) => /^(book|booking|bookings|预约|预订|报名)$/i.test(t));
+  if (hasBookingQuery && /(book|booking|bookings|预约|预订|报名)/i.test(text)) {
     typeBoost += 1;
   }
 
@@ -70,6 +87,10 @@ export function scoreItem(tokens, item) {
   const isRubricItem = idStr.includes('assignment-rubric') || hrefStr.includes('/rubric');
   const isResultsItem = idStr.includes('assignment-results') || hrefStr.includes('/results');
   const isScheduleItem = idStr.includes('assignment-schedule') || hrefStr.includes('/timeslots') || hrefStr.includes('/schedule');
+  const isExaminerMarking = idStr.includes('examiner-mark') || hrefStr.includes('/examiner/assessment');
+  const isExaminerSchedule = idStr.includes('examiner-session') || idStr.includes('assignment-opportunity') || hrefStr.includes('/examiner/schedule');
+  const isStudentGroups = idStr.includes('student-groups') || hrefStr.includes('/student/groups');
+  const isStudentBooking = idStr.includes('student-booking') || hrefStr.includes('/student/booking');
 
   if (hasRubricQuery) {
     if (isRubricItem) typeDirect += 3;
@@ -81,6 +102,25 @@ export function scoreItem(tokens, item) {
   }
   if (hasSessionQuery) {
     if (isScheduleItem) typeDirect += 3;
+    else typeDirect -= 0.25;
+  }
+
+  if (hasMarkingQuery) {
+    if (isExaminerMarking) typeDirect += 3;
+    else typeDirect -= 0.25;
+  }
+
+  if (hasAssignQuery || hasSessionQuery) {
+    if (isExaminerSchedule) typeDirect += 2.5;
+  }
+
+  if (hasGroupQuery) {
+    if (isStudentGroups) typeDirect += 3;
+    else typeDirect -= 0.25;
+  }
+
+  if (hasBookingQuery) {
+    if (isStudentBooking) typeDirect += 3;
     else typeDirect -= 0.25;
   }
 

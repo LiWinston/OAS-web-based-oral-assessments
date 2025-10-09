@@ -60,12 +60,6 @@ export default function ExaminerDocumentation() {
       description: 'Track submission states, download history, and respond to reopen requests.'
     },
     {
-      href: '/examiner/comments',
-      icon: 'fas fa-comment-dots',
-      title: 'Predefined Comments',
-      description: 'Curate reusable feedback snippets organised by rubric criterion.'
-    },
-    {
       href: '/examiner/profile',
       icon: 'fas fa-id-badge',
       title: 'Examiner Profile',

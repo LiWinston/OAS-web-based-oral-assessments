@@ -12,35 +12,28 @@ const QUICK_LINKS = [
     title: 'Dashboard',
     subtitle: 'Overview of today’s workload',
     href: '/examiner',
-    keywords: 'dashboard overview',
+    keywords: 'dashboard overview 仪表盘 概览 今日 今日任务',
   },
   {
     id: 'examiner-schedule',
     title: 'Schedule',
     subtitle: 'Manage upcoming and past sessions',
     href: '/examiner/schedule',
-    keywords: 'schedule calendar sessions availability',
+    keywords: 'schedule calendar sessions availability 排班 日程 日历 时段 认领 报名',
   },
   {
     id: 'examiner-marking',
     title: 'Marking Workspace',
     subtitle: 'Jump to assessment sessions ready to mark',
     href: '/examiner/assessment',
-    keywords: 'marking assessment rubric grading',
-  },
-  {
-    id: 'examiner-comments',
-    title: 'Comment Templates',
-    subtitle: 'Manage quick comments and reusable feedback',
-    href: '/examiner/comments',
-    keywords: 'comments feedback templates phrases',
+    keywords: 'marking assessment rubric grading 评分 打分 批改 评审 评分表',
   },
   {
     id: 'examiner-support',
     title: 'Support Centre',
     subtitle: 'Guides, FAQs, and contact channels',
     href: '/examiner/support',
-    keywords: 'support help documentation',
+    keywords: 'support help documentation 帮助 支持 文档',
   },
 ];
 
@@ -352,6 +345,7 @@ const upcomingSessionsLoader = async (ctx) => {
         studentLoad,
         coverage,
         countdown,
+        '排班', '日程', '时段', '会场', '场次', '日历',
       ]
         .filter(Boolean)
         .join(' '),
@@ -412,6 +406,7 @@ const markingSessionsLoader = async (ctx) => {
         statusLabel,
         studentLoad,
         typeLabel,
+        '评分', '打分', '批改', '评审',
       ]
         .filter(Boolean)
         .join(' '),
@@ -465,6 +460,7 @@ const assignmentOpportunitiesLoader = async (ctx) => {
           signupCountdown,
           startCountdown,
           remaining != null ? `${remaining} slots remaining` : null,
+          '认领', '报名', '自选', '排班', '时段',
         ]
           .filter(Boolean)
           .join(' '),
@@ -485,7 +481,7 @@ const examinerSources = [
   },
   {
     id: RECENTS_SECTION_ID,
-    label: 'Recent Searches',
+    label: 'Recently Used',
     priority: 110,
     defaultLimit: 6,
     queryLimit: Infinity,
