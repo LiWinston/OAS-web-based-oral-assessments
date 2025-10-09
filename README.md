@@ -108,12 +108,12 @@ By implementing this solution, the project will improve the overall efficiency, 
 <table>
   <tr>
     <td width="150" align="center">
-      <a href="https://github.com/username">
+      <a href="https://github.com/lihaocheng1006">
         <img src="https://github.com/user-attachments/assets/8c926df4-7424-4dd1-8abe-f279197c0591" width="100px;" alt="Scrum Master"/>
       </a>
     </td>
     <td>
-      <h3>Scrum Master</h3>
+      <h3>Scrum Master, Frontend Lead</h3>
       <p><b>Haocheng Li</b> (Student ID: 1525380)</p>
       <p>Experienced in Agile methodologies and team coordination. Proficient in managing sprints, facilitating ceremonies, and ensuring smooth development workflow. Skilled in technical leadership and cross-team collaboration.</p>
       <p><a href="https://github.com/lihaocheng1006">@lihaocheng1006</a></p>
@@ -122,12 +122,12 @@ By implementing this solution, the project will improve the overall efficiency, 
 
   <tr>
     <td width="150" align="center">
-      <a href="https://github.com/username">
+      <a href="https://github.com/xiongnemo">
         <img src="https://github.com/user-attachments/assets/cf73c42e-f994-4def-a3f4-87677a552f02" width="100px;" alt="DevOps"/>
       </a>
     </td>
     <td>
-      <h3>DevOps (Backend Leader, from 2nd May)</h3>
+      <h3>DevOps & Backend Lead (from 2nd May) & Frontend Developer (for Semester 2)</h3>
       <p><b>Yunpeng Xiong</b> (Student ID: 1513076)</p>
       <p>Component Development, State Management</p>
       <p><a href="https://github.com/xiongnemo">@xiongnemo</a></p>
@@ -202,7 +202,7 @@ By implementing this solution, the project will improve the overall efficiency, 
       </a>
     </td>
     <td>
-      <h3>Frontend Lead</h3>
+      <h3>Scrum Master, Frontend Lead</h3>
       <p><b>Haocheng Li</b> (Student ID: 1525380)</p>
       <p>Experienced in React and Next.js development with a strong focus on AI integration. Proficient in building modern web applications and implementing AI-powered features. Looking to enhance frontend development skills and create innovative user experiences.</p>
       <p><a href="https://github.com/lihaocheng1006">@lihaocheng1006</a></p>
@@ -246,6 +246,19 @@ By implementing this solution, the project will improve the overall efficiency, 
       <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
       <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
     </td>
+    <tr>
+    <td width="150" align="center">
+      <a href="https://github.com/xiongnemo">
+        <img src="https://github.com/user-attachments/assets/cf73c42e-f994-4def-a3f4-87677a552f02" width="100px;" alt="DevOps"/>
+      </a>
+    </td>
+    <td>
+      <h3>DevOps & Backend Lead (from 2nd May) & Frontend Developer (for Semester 2)</h3>
+      <p><b>Yunpeng Xiong</b> (Student ID: 1513076)</p>
+      <p>Component Development, State Management</p>
+      <p><a href="https://github.com/xiongnemo">@xiongnemo</a></p>
+    </td>
+  </tr>
   </tr>
 </table>
 
