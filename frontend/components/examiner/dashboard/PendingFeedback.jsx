@@ -59,7 +59,7 @@ export function PendingFeedback({
       <CardHeader>
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            <i className="fas fa-task text-red-500 dark:text-red-400 mr-2" />
+            <i className="fas fa-clipboard-check text-blue-600 dark:text-blue-400 mr-2" />
             Marking Queue
           </CardTitle>
           {items.length > 0 && (
@@ -95,14 +95,46 @@ export function PendingFeedback({
                             {item.timeLabel}
                           </span>
                         )}
+                        {typeof item.isBooked === "boolean" && (
+                          <span
+                            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                              item.isBooked
+                                ? "bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300"
+                                : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+                            }`}
+                          >
+                            <i
+                              className={`fas ${
+                                item.isBooked ? "fa-user-check" : "fa-user"
+                              } mr-1`}
+                            />
+                            {item.isBooked ? "Booked" : "Open slot"}
+                          </span>
+                        )}
                       </div>
                       <div className="mt-2 font-medium text-gray-900 dark:text-white">
                         {item.title}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">
                         {item.courseCode}
-                        {item.entity ? ` · ${item.entity}` : ""}
+                        {item.entity ? ` - ${item.entity}` : ""}
                       </div>
+                      {(item.sessionTimeRange || item.venueLabel) && (
+                        <div className="mt-1 flex flex-wrap gap-3 text-sm text-gray-500 dark:text-gray-400">
+                          {item.sessionTimeRange && (
+                            <span className="inline-flex items-center gap-2">
+                              <i className="fas fa-clock text-gray-400" />
+                              {item.sessionTimeRange}
+                            </span>
+                          )}
+                          {item.venueLabel && (
+                            <span className="inline-flex items-center gap-2">
+                              <i className="fas fa-map-marker-alt text-gray-400" />
+                              {item.venueLabel}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-col sm:flex-row gap-2 text-sm text-gray-700 dark:text-gray-300">
@@ -120,12 +152,24 @@ export function PendingFeedback({
                   </div>
 
                   <div className="mt-4 flex justify-end">
-                    <Link href={item.actionHref || resultsHref} className="inline-flex">
-                      <Button size="sm" className={urgency.buttonClass}>
-                        <i className={`fas ${item.actionIcon || "fa-arrow-right"} mr-2`} />
+                    {item.actionDisabled ? (
+                      <Button
+                        size="sm"
+                        disabled
+                        title={item.actionTooltip || "Action unavailable"}
+                        className={`${urgency.buttonClass} disabled:pointer-events-auto cursor-not-allowed`}
+                      >
+                        <i className={`fas ${item.actionIcon || "fa-ban"} mr-2`} />
                         {item.actionLabel || "Open marking"}
                       </Button>
-                    </Link>
+                    ) : (
+                      <Link href={item.actionHref || resultsHref} className="inline-flex">
+                        <Button size="sm" className={urgency.buttonClass}>
+                          <i className={`fas ${item.actionIcon || "fa-arrow-right"} mr-2`} />
+                          {item.actionLabel || "Open marking"}
+                        </Button>
+                      </Link>
+                    )}
                   </div>
                 </div>
               );

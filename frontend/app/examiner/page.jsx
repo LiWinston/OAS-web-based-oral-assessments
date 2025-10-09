@@ -289,52 +289,81 @@ export default function ExaminerDashboard() {
 
   const queueItems = useMemo(() => {
     const now = new Date();
-    return upcomingSessions.map((session) => {
-      const assessment = assessmentsBySessionId.get(session.sessionId);
-      const markingStatus = session.markingStatus;
-      const isSubmitted = markingStatus === "SUBMITTED";
-      const isDraft = markingStatus === "DRAFT" || markingStatus === "REOPENED";
+      return upcomingSessions.map((session) => {
+        const assessment = assessmentsBySessionId.get(session.sessionId);
+        const markingStatus = session.markingStatus;
+        const isSubmitted = markingStatus === "SUBMITTED";
+        const isDraft = markingStatus === "DRAFT" || markingStatus === "REOPENED";
 
-      let urgency = "UPCOMING";
-      if (!isSubmitted && session.startDate) {
-        if (sameDay(session.startDate, today)) {
-          urgency = "OVERDUE";
-        } else if (session.startDate.getTime() - today.getTime() <= 24 * 60 * 60 * 1000) {
-          urgency = "DUE_SOON";
+        let urgency = "UPCOMING";
+        if (!isSubmitted && session.startDate) {
+          if (sameDay(session.startDate, today)) {
+            urgency = "OVERDUE";
+          } else if (session.startDate.getTime() - today.getTime() <= 24 * 60 * 60 * 1000) {
+            urgency = "DUE_SOON";
+          }
+        } else if (isSubmitted) {
+          urgency = "COMPLETED";
         }
-      } else if (isSubmitted) {
-        urgency = "COMPLETED";
-      }
 
-      const assignmentPath =
-        session.assignmentId != null
-          ? `/examiner/assessment/${session.assignmentId}/${session.sessionId}`
-          : `/examiner/assessment?sessionId=${session.sessionId}`;
+        const assignmentPath =
+          session.assignmentId != null
+            ? `/examiner/assessment/${session.assignmentId}/${session.sessionId}`
+            : `/examiner/assessment?sessionId=${session.sessionId}`;
 
-      return {
-        id: session.sessionId,
-        title: session.assignmentName,
-        courseCode: session.courseCode,
-        entity: session.participantsLabel,
-        sessionDate: session.startDate
-          ? session.startDate.toLocaleDateString("en-AU", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            })
-          : "TBC",
-        timeLabel: session.startDate ? formatRelativeTime(session.startDate, now) : "",
-        urgency,
-        progressLabel: isSubmitted
-          ? "Submitted"
-          : isDraft
-          ? "Draft saved"
-          : "Not started",
-        actionHref: assignmentPath,
-        actionLabel: isSubmitted ? "Review" : "Open marking",
-        actionIcon: isSubmitted ? "fa-eye" : "fa-arrow-right",
-      };
-    });
+        const sessionTimeRange = session.startDate
+          ? session.endDate
+            ? `${session.startDate.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })} - ${session.endDate.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })}`
+            : session.startDate.toLocaleTimeString("en-AU", {
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+          : "";
+
+        const venueLabel = session.venueLabel || formatVenue(session.venue) || "";
+        const isBooked = typeof session.isBooked === "boolean" ? session.isBooked : Boolean(session.bookingCount);
+        const actionDisabled = !isBooked;
+
+        return {
+          id: session.sessionId,
+          title: session.assignmentName,
+          courseCode: session.courseCode,
+          entity: session.participantsLabel,
+          sessionDate: session.startDate
+            ? session.startDate.toLocaleDateString("en-AU", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              })
+            : "TBC",
+          sessionTimeRange,
+          venueLabel,
+          isBooked,
+          timeLabel: session.startDate ? formatRelativeTime(session.startDate, now) : "",
+          urgency,
+          progressLabel: isSubmitted
+            ? "Submitted"
+            : isDraft
+            ? "Draft saved"
+            : "Not started",
+          actionHref: assignmentPath,
+          actionLabel: isSubmitted ? "Review" : "Open marking",
+          actionIcon: isSubmitted ? "fa-eye" : "fa-arrow-right",
+          actionDisabled,
+          actionTooltip: actionDisabled
+            ? "Session not booked yet. Marking opens once a student is scheduled."
+            : undefined,
+        };
+      });
   }, [upcomingSessions, assessmentsBySessionId, today]);
 
   const stats = useMemo(() => {
