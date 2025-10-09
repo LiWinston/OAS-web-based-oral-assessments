@@ -1,130 +1,121 @@
 "use client";
 
-import { Card, CardContent } from "../../ui/card";
+import { cn } from "@/lib/utils";
 
-/**
- * Mock statistics data for examiner dashboard metrics
- */
-const mockStats = {
-  todayCount: 3,
-  todayChange: 2,
-  pendingCount: 8,
-  pendingDueToday: 5,
-  completedThisWeek: 12,
-  completionRate: 85,
-  studentsAssessed: 48,
-  coursesCount: 5,
+const defaultStats = {
+  sessionsToday: 0,
+  pendingMarking: 0,
+  pendingDueToday: 0,
+  submittedThisWeek: 0,
+  studentsAssessedWeek: 0,
 };
 
-/**
- * ExaminerStatsCards Component
- *
- * Displays key performance metrics for examiners in a responsive card grid.
- * Each card shows a specific metric with visual indicators, trends, and contextual information.
- */
-export function ExaminerStatsCards() {
+const metricConfigs = [
+  {
+    key: "sessionsToday",
+    title: "Today's Sessions",
+    icon: "fa-calendar-day",
+    accent: "bg-blue-50 dark:bg-blue-900/20",
+    iconBg: "bg-blue-100 dark:bg-blue-800",
+    iconClass: "text-blue-600 dark:text-blue-400",
+    description: (stats) =>
+      `${stats.sessionsToday === 1 ? "1 session" : `${stats.sessionsToday} sessions`} scheduled`,
+    highlight: (stats) =>
+      stats.sessionsToday > 0
+        ? `${stats.sessionsToday} starting today`
+        : "No sessions today",
+    highlightClass: "text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "pendingMarking",
+    title: "Pending Marking",
+    icon: "fa-clipboard-list",
+    accent: "bg-red-50 dark:bg-red-900/20",
+    iconBg: "bg-red-100 dark:bg-red-800",
+    iconClass: "text-red-600 dark:text-red-400",
+    description: (stats) =>
+      `${stats.pendingMarking === 1 ? "1 session" : `${stats.pendingMarking} sessions`} awaiting feedback`,
+    highlight: (stats) =>
+      stats.pendingDueToday > 0
+        ? `${stats.pendingDueToday} due today`
+        : "All caught up",
+    highlightClass: "text-red-600 dark:text-red-400",
+  },
+  {
+    key: "submittedThisWeek",
+    title: "Submitted This Week",
+    icon: "fa-check-circle",
+    accent: "bg-green-50 dark:bg-green-900/20",
+    iconBg: "bg-green-100 dark:bg-green-800",
+    iconClass: "text-green-600 dark:text-green-400",
+    description: (stats) =>
+      `${stats.submittedThisWeek === 1 ? "1 submission" : `${stats.submittedThisWeek} submissions`} lodged`,
+    highlight: () => "Great work!",
+    highlightClass: "text-green-600 dark:text-green-400",
+  },
+  {
+    key: "studentsAssessedWeek",
+    title: "Students Assessed (7d)",
+    icon: "fa-users",
+    accent: "bg-purple-50 dark:bg-purple-900/20",
+    iconBg: "bg-purple-100 dark:bg-purple-800",
+    iconClass: "text-purple-600 dark:text-purple-400",
+    description: (stats) =>
+      `${stats.studentsAssessedWeek === 1 ? "1 learner" : `${stats.studentsAssessedWeek} learners`} assessed`,
+    highlight: () => "Includes groups & individuals",
+    highlightClass: "text-purple-600 dark:text-purple-400",
+  },
+];
+
+export function ExaminerStatsCards({ stats = defaultStats, isLoading = false }) {
+  const metricValues = { ...defaultStats, ...(stats || {}) };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-      {/* Today's Assessments */}
-      <Card className="dashboard-card">
-        <CardContent className="p-0">
-          <div className="stats-card bg-blue-50 dark:bg-blue-900/20">
-            <div className="stats-icon bg-blue-100 dark:bg-blue-800">
-              <i className="fas fa-calendar-day text-blue-600 dark:text-blue-400"></i>
-            </div>
-            <div className="">
-              <h3 className="text-sm text-gray-500 dark:text-gray-400">
-                Today's Assessments
-              </h3>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {mockStats.todayCount}
+    <div className="grid grid-cols-1 gap-6 mb-6 md:grid-cols-2 xl:grid-cols-4">
+      {metricConfigs.map((metric) => {
+        const accentClasses = cn(
+          "flex items-start gap-4 p-5 h-full",
+          metric.accent
+        );
+        return (
+          <div
+            key={metric.key}
+            className="h-full rounded-2xl border border-gray-200/80 bg-transparent shadow-sm dark:border-gray-800/80 dark:shadow-sm overflow-hidden"
+          >
+            <div className={accentClasses}>
+              <div className={cn("flex size-12 items-center justify-center rounded-2xl font-semibold", metric.iconBg)}>
+                <i className={cn("fas", metric.icon, "text-lg", metric.iconClass)}></i>
               </div>
-              <div className="flex items-center mt-1 text-xs">
-                <span className="text-green-600 dark:text-green-400">
-                  <i className="fas fa-arrow-up mr-1"></i>{" "}
-                  {mockStats.todayChange} more
-                </span>
-                <span className="text-gray-500 dark:text-gray-400 ml-1">
-                  than yesterday
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pending Feedback */}
-      <Card className="dashboard-card">
-        <CardContent className="p-0">
-          <div className="stats-card bg-red-50 dark:bg-red-900/20">
-            <div className="stats-icon bg-red-100 dark:bg-red-800">
-              <i className="fas fa-clipboard-list text-red-600 dark:text-red-400"></i>
-            </div>
-            <div>
-              <h3 className="text-sm text-gray-500 dark:text-gray-400">
-                Pending Feedback
-              </h3>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {mockStats.pendingCount}
-              </div>
-              <div className="text-xs text-red-600 dark:text-red-400 mt-1">
-                <i className="fas fa-exclamation-circle mr-1"></i>{" "}
-                {mockStats.pendingDueToday} due today
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                  {metric.title}
+                </h3>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {isLoading ? (
+                    <span className="inline-flex h-6 w-16 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></span>
+                  ) : (
+                    metricValues[metric.key] ?? 0
+                  )}
+                </div>
+                <div className="text-xs text-gray-600/80 dark:text-gray-400">
+                  {isLoading ? (
+                    <span className="inline-flex h-4 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700"></span>
+                  ) : (
+                    metric.description(metricValues)
+                  )}
+                </div>
+                <div className={cn("text-xs font-semibold", metric.highlightClass)}>
+                  {isLoading ? (
+                    <span className="inline-flex h-4 w-24 animate-pulse rounded bg-current/20"></span>
+                  ) : (
+                    metric.highlight(metricValues)
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Total Completed */}
-      <Card className="dashboard-card">
-        <CardContent className="p-0">
-          <div className="stats-card bg-green-50 dark:bg-green-900/20">
-            <div className="stats-icon bg-green-100 dark:bg-green-800">
-              <i className="fas fa-check-circle text-green-600 dark:text-green-400"></i>
-            </div>
-            <div>
-              <h3 className="text-sm text-gray-500 dark:text-gray-400">
-                Completed This Week
-              </h3>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {mockStats.completedThisWeek}
-              </div>
-              <div className="flex items-center mt-1 text-xs">
-                <span className="text-gray-500 dark:text-gray-400">
-                  <i className="fas fa-chart-line mr-1"></i>{" "}
-                  {mockStats.completionRate}% completion rate
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Students Assessed */}
-      <Card className="dashboard-card">
-        <CardContent className="p-0">
-          <div className="stats-card bg-purple-50 dark:bg-purple-900/20">
-            <div className="stats-icon bg-purple-100 dark:bg-purple-800">
-              <i className="fas fa-users text-purple-600 dark:text-purple-400"></i>
-            </div>
-            <div>
-              <h3 className="text-sm text-gray-500 dark:text-gray-400">
-                Students Assessed
-              </h3>
-              <div className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                {mockStats.studentsAssessed}
-              </div>
-              <div className="flex items-center mt-1 text-xs">
-                <span className="text-gray-500 dark:text-gray-400">
-                  <i className="fas fa-graduation-cap mr-1"></i> Across{" "}
-                  {mockStats.coursesCount} courses
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        );
+      })}
     </div>
   );
 }

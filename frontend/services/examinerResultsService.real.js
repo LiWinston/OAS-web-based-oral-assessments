@@ -150,6 +150,9 @@ const examinerResultsServiceReal = {
       if (params.to) {
         filters.dateTo = params.to;
       }
+      if (params.assignmentId) {
+        filters.assignmentId = params.assignmentId;
+      }
 
       
       const response = await examinerAssessmentService.getAssessmentsList(examinerId, filters);
@@ -217,6 +220,15 @@ const examinerResultsServiceReal = {
           if (fromDate && itemDate < fromDate) return false;
           if (toDate && itemDate > toDate) return false;
           return true;
+        });
+      }
+
+      if (params.assignmentId) {
+        const wantedId = String(params.assignmentId);
+        filteredItems = filteredItems.filter(item => {
+          const itemAssignmentId =
+            item.assignment?.id ?? item.assignmentId ?? item.assignment?.assignmentId;
+          return itemAssignmentId != null && String(itemAssignmentId) === wantedId;
         });
       }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import useAuth from '../../../hooks/useAuth';
 import ResultsFilters from '../../../components/examiner/results/ResultsFilters';
 import ResultsTable from '../../../components/examiner/results/ResultsTable';
@@ -8,7 +9,13 @@ import { useExaminerResultsQuery } from '../../../hooks/examiner/results/useExam
 
 export default function ExaminerResultsPage() {
   const { userId } = useAuth();
-  const [filters, setFilters] = useState({ status: 'all' });
+  const searchParams = useSearchParams();
+  const preselectedAssignmentId = searchParams.get('assignmentId') || undefined;
+
+  const [filters, setFilters] = useState(() => ({
+    status: 'all',
+    ...(preselectedAssignmentId ? { assignmentId: preselectedAssignmentId } : {}),
+  }));
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -18,6 +25,7 @@ export default function ExaminerResultsPage() {
     if (filters?.q) p.q = filters.q;
     if (filters?.from) p.from = filters.from;
     if (filters?.to) p.to = filters.to;
+    if (filters?.assignmentId) p.assignmentId = filters.assignmentId;
     p.page = page;
     p.pageSize = pageSize;
     p.sort = 'sessionStart';

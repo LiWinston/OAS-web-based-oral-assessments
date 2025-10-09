@@ -1,139 +1,240 @@
 "use client";
 
-import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 
-/**
- * Mock data for weekly calendar events
- */
-const mockWeeklyEvents = {
-  10: [
-    { id: 1, title: "COMP90082 #8", time: "9:30", status: "completed" },
-    { id: 2, title: "INFO30005 #2", time: "11:15", status: "completed" },
-  ],
-  11: [{ id: 3, title: "INFO20003 #1", time: "13:45", status: "completed" }],
-  12: [
-    { id: 4, title: "COMP90082 #9", time: "10:00", status: "completed" },
-    { id: 5, title: "INFO30005 #4", time: "14:30", status: "completed" },
-  ],
-  13: [
-    { id: 6, title: "COMP90082 #12", time: "10:30", status: "upcoming" },
-    { id: 7, title: "INFO30005 #5", time: "14:00", status: "upcoming" },
-    { id: 8, title: "INFO20003 #6", time: "16:15", status: "upcoming" },
-  ],
-  14: [
-    { id: 9, title: "COMP90082 #15", time: "9:00", status: "upcoming" },
-    { id: 10, title: "COMP90082 #16", time: "10:00", status: "upcoming" },
-  ],
-  15: [{ id: 11, title: "INFO30005 #7", time: "11:30", status: "upcoming" }],
-  16: [],
-};
-
-/**
- * Status styling configuration for calendar event badges
- */
 const statusStyles = {
-  upcoming: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
-  active:
-    "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200",
-  completed: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200",
+  IN_PROGRESS: "bg-green-100/90 dark:bg-green-900/40 text-green-800 dark:text-green-200",
+  UPCOMING: "bg-blue-100/80 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200",
+  DRAFT: "bg-amber-100/80 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200",
+  REOPENED: "bg-rose-100/80 dark:bg-rose-900/30 text-rose-800 dark:text-rose-200",
+  UNMARKED: "bg-orange-100/80 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200",
+  COMPLETED: "bg-gray-100/80 dark:bg-gray-800/50 text-gray-800 dark:text-gray-200",
 };
 
-/**
- * WeeklyCalendar Component
- *
- * Displays a compact weekly calendar view showing the examiner's assessment schedule
- * for the current week. Each day shows assessment events with color-coded status indicators
- * and provides a quick overview of the week's workload distribution.
- */
-export function WeeklyCalendar() {
-  const today = 13; // Current day for demo
-  const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const weekDates = [10, 11, 12, 13, 14, 15, 16];
+const viewOptions = [
+  { label: "Week", value: "week" },
+  { label: "Month", value: "month" },
+];
+
+function renderSkeletonWeek() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
+      {Array.from({ length: 7 }).map((_, idx) => (
+        <div
+          key={`calendar-skeleton-${idx}`}
+          className="h-full rounded-2xl border border-gray-200/70 bg-gray-100/70 p-4 shadow-sm dark:border-gray-700/70 dark:bg-gray-900/40 animate-pulse"
+        >
+          <div className="h-4 w-16 rounded bg-gray-300 dark:bg-gray-700" />
+          <div className="mt-2 h-3 w-12 rounded bg-gray-300 dark:bg-gray-700" />
+          <div className="mt-4 space-y-2">
+            <div className="h-8 rounded bg-gray-300/80 dark:bg-gray-800" />
+            <div className="h-8 rounded bg-gray-300/80 dark:bg-gray-800" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EventBadge({ event }) {
+  const pillClass =
+    statusStyles[event.markingStatus] ??
+    statusStyles[event.status] ??
+    statusStyles.UPCOMING;
+
+  return (
+    <div
+      key={event.id}
+      className={cn(
+        "rounded-xl px-3 py-2 text-xs shadow-sm transition-colors",
+        pillClass
+      )}
+    >
+      <div className="font-semibold truncate">{event.title}</div>
+      <div className="mt-1 flex items-center justify-between text-[11px] opacity-85">
+        <span>{event.timeLabel}</span>
+        {event.markingLabel && <span>{event.markingLabel}</span>}
+      </div>
+    </div>
+  );
+}
+
+function MonthGrid({ month }) {
+  return (
+    <div className="grid grid-cols-7 gap-2">
+      {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+        <div
+          key={day}
+          className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 px-2"
+        >
+          {day}
+        </div>
+      ))}
+
+      {month.map((week, wIndex) =>
+        week.map((day) => (
+          <div
+            key={`${wIndex}-${day.dateKey}`}
+            className={cn(
+              "min-h-[120px] rounded-2xl border p-3 transition-all",
+              day.isToday
+                ? "border-blue-400 bg-blue-50/60 dark:border-blue-500 dark:bg-blue-900/30"
+                : day.isCurrentMonth
+                ? "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/40"
+                : "border-dashed border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/20"
+            )}
+          >
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+              <span
+                className={cn(
+                  "font-medium",
+                  !day.isCurrentMonth && "opacity-60",
+                  day.isToday && "text-blue-600 dark:text-blue-300"
+                )}
+              >
+                {day.displayDate}
+              </span>
+              {day.events.length > 0 && (
+                <span className="text-[10px] font-semibold uppercase text-blue-500">
+                  {day.events.length}
+                </span>
+              )}
+            </div>
+            <div className="mt-2 space-y-2">
+              {day.events.slice(0, 2).map((event) => (
+                <div
+                  key={event.id}
+                  className={cn(
+                    "rounded-md px-2 py-1 text-[11px] font-medium shadow-sm",
+                    statusStyles[event.markingStatus] ??
+                      statusStyles[event.status] ??
+                      statusStyles.UPCOMING
+                  )}
+                >
+                  <div className="truncate">{event.title}</div>
+                  <div className="text-[10px] opacity-80">
+                    {event.timeLabel}
+                  </div>
+                </div>
+              ))}
+              {day.events.length > 2 && (
+                <div className="text-[11px] font-medium text-blue-600 dark:text-blue-300">
+                  +{day.events.length - 2} more
+                </div>
+              )}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+export function WeeklyCalendar({
+  week = [],
+  month = [],
+  view = "week",
+  onViewChange,
+  isLoading = false,
+}) {
+  const handleViewChange = (value) => {
+    if (value !== view) {
+      onViewChange?.(value);
+    }
+  };
 
   return (
     <Card className="dashboard-card">
       <CardHeader>
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
           <CardTitle className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-            <i className="fas fa-calendar-week text-purple-600 dark:text-purple-400 mr-2"></i>{" "}
-            This Week
+            <i className="fas fa-calendar-week text-purple-600 dark:text-purple-400 mr-2" />
+            Examiner Calendar
           </CardTitle>
-          <Link
-            href="/examiner/schedule"
-            className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-          >
-            Monthly View
-          </Link>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex rounded-full border border-gray-200 bg-gray-100/70 p-1 dark:border-gray-700 dark:bg-gray-800/60">
+              {viewOptions.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleViewChange(option.value)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+                    view === option.value
+                      ? "bg-white text-gray-900 shadow-sm dark:bg-gray-900 dark:text-gray-50"
+                      : "text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="p-4">
-        <div className="grid grid-cols-7 gap-1">
-          {/* Calendar header */}
-          {weekDays.map((day) => (
-            <div
-              key={day}
-              className="text-center text-sm font-medium text-gray-500 dark:text-gray-400 p-1"
-            >
-              {day}
-            </div>
-          ))}
+        {isLoading && renderSkeletonWeek()}
 
-          {/* Calendar days */}
-          {weekDates.map((date) => {
-            const isToday = date === today;
-            const events = mockWeeklyEvents[date] || [];
-
-            return (
-              <div
-                key={date}
-                className={`calendar-day ${
-                  isToday
-                    ? "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800"
-                    : ""
-                }`}
-              >
+        {!isLoading && view === "week" && (
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-7">
+              {week.map((day) => (
                 <div
-                  className={`text-xs mb-1 ${
-                    isToday
-                      ? "font-medium text-blue-600 dark:text-blue-400"
-                      : "text-gray-500 dark:text-gray-400"
-                  }`}
+                  key={day.dateKey}
+                  className={cn(
+                    "flex h-full flex-col rounded-2xl border p-4 shadow-sm transition-colors",
+                    day.isToday
+                      ? "border-blue-400 bg-blue-50/70 dark:border-blue-500 dark:bg-blue-900/25"
+                      : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900/40"
+                  )}
                 >
-                  {date} {isToday ? "(Today)" : ""}
-                </div>
-
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    className={`text-xs p-1 mb-1 rounded truncate block ${
-                      statusStyles[event.status]
-                    }`}
-                    title={`${event.title} at ${event.time}`}
-                  >
-                    {event.title} ({event.time})
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span className="font-semibold uppercase tracking-wide">
+                      {day.label}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                        day.isToday
+                          ? "bg-blue-100 text-blue-700 dark:bg-blue-800/50 dark:text-blue-200"
+                          : "text-gray-400"
+                      )}
+                    >
+                      {day.displayDate}
+                    </span>
                   </div>
-                ))}
+                  <div className="mt-3 flex-1 space-y-2">
+                    {day.events.length === 0 && (
+                      <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-gray-200 bg-gray-50 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900/20 dark:text-gray-400">
+                        No sessions
+                      </div>
+                    )}
+                    {day.events.map((event) => (
+                      <EventBadge key={`${day.dateKey}-${event.id}`} event={event} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {week.length === 0 && (
+              <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                No scheduled sessions in the next 7 days.
               </div>
-            );
-          })}
-        </div>
+            )}
+          </>
+        )}
 
-        {/* Legend */}
-        <div className="mt-4 flex flex-wrap gap-4 text-xs">
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900 mr-1"></div>
-            <span className="text-gray-600 dark:text-gray-400">Upcoming</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded bg-green-100 dark:bg-green-900 mr-1"></div>
-            <span className="text-gray-600 dark:text-gray-400">Active</span>
-          </div>
-          <div className="flex items-center">
-            <div className="w-3 h-3 rounded bg-gray-100 dark:bg-gray-700 mr-1"></div>
-            <span className="text-gray-600 dark:text-gray-400">Completed</span>
-          </div>
-        </div>
+        {!isLoading && view === "month" && (
+          <>
+            <MonthGrid month={month} />
+            {month.length === 0 && (
+              <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                No sessions scheduled this month.
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
     </Card>
   );
