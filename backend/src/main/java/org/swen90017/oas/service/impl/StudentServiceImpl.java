@@ -198,6 +198,7 @@ public class StudentServiceImpl implements StudentService {
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 studentDTOs,
                 StudentCSVRequestDTO::getStudentId,
+                StudentCSVRequestDTO::getStudent,      // Username extractor
                 StudentCSVRequestDTO::getSisLoginId
         );
 

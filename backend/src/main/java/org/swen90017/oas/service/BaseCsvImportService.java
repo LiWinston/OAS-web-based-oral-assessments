@@ -74,12 +74,19 @@ public class BaseCsvImportService {
         log.debug("Found {} existing user emails in the database", existingEmails.size());
 
         // Filter out new students to be inserted (both student ID and email must not exist)
-        // Also filter out records with invalid email data (sisUserId is null and no email column)
+        // Also filter out records with invalid data (missing required fields)
         List<T> toInsert = csvData.stream()
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
+                    String userName = userNameExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
                     String csvEmail = emailExtractor != null ? emailExtractor.apply(dto) : null;
+                    
+                    // Skip records without valid username
+                    if (StringUtils.isEmpty(userName)) {
+                        log.warn("Skipping record for student {} - missing username", studentId);
+                        return false;
+                    }
                     
                     // Skip records without valid email identifier
                     if (StringUtils.isEmpty(sisUserId) && StringUtils.isEmpty(csvEmail)) {
@@ -182,7 +189,15 @@ public class BaseCsvImportService {
         List<SysUser> users = new ArrayList<>();
         for (T dto : toInsert) {
             SysUser user = new SysUser();
-            user.setUserName(userNameExtractor.apply(dto));
+            String userName = userNameExtractor.apply(dto);
+            
+            // Validate username
+            if (StringUtils.isEmpty(userName)) {
+                log.error("Cannot create user - username is empty");
+                throw new IllegalArgumentException("Missing username for user");
+            }
+            
+            user.setUserName(userName);
             user.setStatus(UserStatus.INACTIVE.code());
             user.setRegistrationStatus(RegistrationStatus.Pending.code());
             user.setInvitedAt(new Date());
@@ -283,7 +298,10 @@ public class BaseCsvImportService {
     /**
      * Generic preview functionality
      */
-    public <T> Map<String, Object> previewImport(List<T> csvData, Function<T, String> studentIdExtractor, Function<T, String> sisUserIdExtractor) {
+    public <T> Map<String, Object> previewImport(List<T> csvData, 
+                                                   Function<T, String> studentIdExtractor, 
+                                                   Function<T, String> userNameExtractor,
+                                                   Function<T, String> sisUserIdExtractor) {
         List<String> studentIds = csvData.stream()
                 .map(studentIdExtractor)
                 .filter(Objects::nonNull)
@@ -296,7 +314,14 @@ public class BaseCsvImportService {
         List<T> newStudents = csvData.stream()
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
+                    String userName = userNameExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
+                    
+                    // Skip records without valid username (consistent with import logic)
+                    if (StringUtils.isEmpty(userName)) {
+                        log.warn("Skipping record in preview for student {} - missing username", studentId);
+                        return false;
+                    }
                     
                     // Skip records without valid email identifier (consistent with import logic)
                     if (StringUtils.isEmpty(sisUserId)) {
@@ -316,7 +341,13 @@ public class BaseCsvImportService {
         List<T> existingStudents = csvData.stream()
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
+                    String userName = userNameExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
+                    
+                    // Skip records without valid username (consistent with import logic)
+                    if (StringUtils.isEmpty(userName)) {
+                        return false;
+                    }
                     
                     // Skip records without valid email identifier (consistent with import logic)
                     if (StringUtils.isEmpty(sisUserId)) {

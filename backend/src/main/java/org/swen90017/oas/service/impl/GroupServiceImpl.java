@@ -61,8 +61,8 @@ public class GroupServiceImpl implements GroupService {
         // Use base service to import student data
         List<SysStudent> sysStudents = baseCsvImportService.importStudents(
                 dtos,
-                GroupCSVRequestDTO::getStudentId,    // Student ID extractor (maps to "Student Id")
-                GroupCSVRequestDTO::getStudent,      // Username extractor (maps to "Student")
+                GroupCSVRequestDTO::getUserId,       // Student ID extractor (maps to "user_id" column in Group CSV)
+                GroupCSVRequestDTO::getName,         // Username extractor (maps to "name" column in Group CSV)
                 GroupCSVRequestDTO::getLoginId,      // Login ID extractor (maps to "login_id" column, used to build email)
                 GroupCSVRequestDTO::getEmail         // Email extractor
         );
@@ -118,11 +118,7 @@ public class GroupServiceImpl implements GroupService {
         }
         
         // Get student identifiers from CSV
-        Set<String> csvStudentNumbers = dtos.stream()
-                .map(GroupCSVRequestDTO::getStudentId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        
+        // Group CSV doesn't have student_number column, only login_id for email matching
         Set<String> csvEmails = dtos.stream()
                 .map(dto -> {
                     if (dto.getLoginId() != null && !dto.getLoginId().isEmpty()) {
@@ -144,25 +140,17 @@ public class GroupServiceImpl implements GroupService {
                     .map(AssignmentParticipant::getUserId)
                     .collect(Collectors.toList());
             
-            List<SysStudent> students = studentMapper.selectList(
-                    new QueryWrapper<SysStudent>().in("user_id", userIds)
-            );
             List<SysUser> users = sysUserMapper.selectBatchIds(userIds);
             
-            Map<Long, String> userIdToStudentNumber = students.stream()
-                    .collect(Collectors.toMap(SysStudent::getUserId, SysStudent::getStudentNumber));
             Map<Long, String> userIdToEmail = users.stream()
                     .collect(Collectors.toMap(SysUser::getUserId, SysUser::getEmail));
             
+            // For Group CSV, match only by email (no student_number in CSV)
             List<Long> participantsToRemove = currentParticipants.stream()
                     .filter(p -> {
-                        String studentNumber = userIdToStudentNumber.get(p.getUserId());
                         String email = userIdToEmail.get(p.getUserId());
-                        
-                        boolean inCsvByNumber = studentNumber != null && csvStudentNumbers.contains(studentNumber);
                         boolean inCsvByEmail = email != null && csvEmails.contains(email);
-                        
-                        return !inCsvByNumber && !inCsvByEmail;
+                        return !inCsvByEmail;
                     })
                     .map(AssignmentParticipant::getId)
                     .collect(Collectors.toList());
@@ -269,20 +257,35 @@ public class GroupServiceImpl implements GroupService {
 
     /**
      * Create student-group relationships
+     * For Group CSV: find student by login_id -> email, as Group CSV doesn't have student_number column
      */
     private void createStudentGroupRelations(List<GroupCSVRequestDTO> dtos, Map<String, SysGroup> groupMap) {
         List<SysStudentGroup> relations = new ArrayList<>();
         
         for (GroupCSVRequestDTO dto : dtos) {
+            // Group CSV doesn't have student_number, use login_id to find student via email
+            String loginId = dto.getLoginId();
+            if (loginId == null || loginId.isEmpty()) {
+                log.warn("Skipping group relation - missing login_id for user in group: {}", dto.getCanvasGroupId());
+                continue;
+            }
+            
+            String email = loginId + "@student.unimelb.edu.au";
+            SysUser user = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("email", email));
+            if (user == null) {
+                log.warn("Student not found by email: {} for group: {}", email, dto.getCanvasGroupId());
+                continue;
+            }
+            
             SysStudent student = studentMapper.selectOne(new QueryWrapper<SysStudent>()
-                    .eq("student_number", dto.getStudentId()));
+                    .eq("user_id", user.getUserId()));
             SysGroup group = groupMap.get(dto.getCanvasGroupId());
             
             if (student != null && group != null) {
                 relations.add(new SysStudentGroup(student.getUserId(), group.getGroupId()));
             } else {
-                log.warn("Failed to create relation for student: {}, group: {}", 
-                        dto.getStudentId(), dto.getCanvasGroupId());
+                log.warn("Failed to create relation for student email: {}, group: {}", 
+                        email, dto.getCanvasGroupId());
             }
         }
 
@@ -294,86 +297,58 @@ public class GroupServiceImpl implements GroupService {
 
     /**
      * Process existing students - add them to assignment participants
-     * Also handles case where sys_user exists but sys_student doesn't
+     * For Group CSV: identify students by login_id -> email
      */
     private void processExistingStudents(List<GroupCSVRequestDTO> dtos, List<SysStudent> newStudents, Long assignmentId) {
-        // Get all student IDs from CSV
-        Set<String> allIds = dtos.stream()
-                .map(GroupCSVRequestDTO::getStudentId)
+        // Get all emails from CSV (Group CSV uses login_id, not student_number)
+        Set<String> allEmails = dtos.stream()
+                .map(dto -> {
+                    String loginId = dto.getLoginId();
+                    if (loginId != null && !loginId.isEmpty()) {
+                        return loginId + "@student.unimelb.edu.au";
+                    }
+                    return dto.getEmail();
+                })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         
-        // Get new student IDs
-        Set<String> newIds = newStudents.stream()
-                .map(SysStudent::getStudentNumber)
+        // Get new student user IDs
+        Set<Long> newUserIds = newStudents.stream()
+                .map(SysStudent::getUserId)
                 .collect(Collectors.toSet());
         
-        // Calculate existing student IDs
-        Set<String> existingIds = new HashSet<>(allIds);
-        existingIds.removeAll(newIds);
+        // Query all users by email
+        List<SysUser> allUsers = new ArrayList<>();
+        if (!allEmails.isEmpty()) {
+            allUsers = sysUserMapper.selectList(
+                    new QueryWrapper<SysUser>().in("email", allEmails)
+            );
+        }
         
-        if (existingIds.isEmpty()) {
+        // Filter out users that are newly created
+        List<SysUser> existingUsers = allUsers.stream()
+                .filter(user -> !newUserIds.contains(user.getUserId()))
+                .collect(Collectors.toList());
+        
+        if (existingUsers.isEmpty()) {
             log.debug("No existing students to process for assignment {}", assignmentId);
             return;
         }
         
-        log.info("Processing {} existing students for assignment {}", existingIds.size(), assignmentId);
+        log.info("Processing {} existing students for assignment {}", existingUsers.size(), assignmentId);
         
-        // Query existing students
+        // Get student records for existing users
+        List<Long> existingUserIds = existingUsers.stream()
+                .map(SysUser::getUserId)
+                .collect(Collectors.toList());
+        
         List<SysStudent> existingStudents = studentMapper.selectList(
-                new QueryWrapper<SysStudent>().in("student_number", existingIds)
+                new QueryWrapper<SysStudent>().in("user_id", existingUserIds)
         );
         
-        // Create a map for quick lookup
-        Map<String, SysStudent> existingStudentMap = existingStudents.stream()
-                .collect(Collectors.toMap(SysStudent::getStudentNumber, s -> s));
-        
-        // Create a map of student_id -> DTO for processing
-        Map<String, GroupCSVRequestDTO> dtoMap = dtos.stream()
-                .filter(dto -> existingIds.contains(dto.getStudentId()))
-                .collect(Collectors.toMap(GroupCSVRequestDTO::getStudentId, dto -> dto, (a, b) -> a));
-        
         // Add them to assignment participants
-        for (String studentId : existingIds) {
-            SysStudent student = existingStudentMap.get(studentId);
-            GroupCSVRequestDTO dto = dtoMap.get(studentId);
-            
-            if (student != null) {
-                // Student record exists with this student_number - just add to assignment participant
-                addToAssignmentParticipant(student, assignmentId);
-            } else if (dto != null) {
-                // Student record with this student_number doesn't exist
-                // But the email might belong to an existing student with different student_number
-                String loginId = dto.getLoginId();
-                if (loginId != null) {
-                    String email = loginId + "@student.unimelb.edu.au";
-                    SysUser user = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("email", email));
-                    
-                    if (user != null) {
-                        // User exists - find student record by user_id
-                        SysStudent existingStudent = studentMapper.selectOne(
-                                new QueryWrapper<SysStudent>().eq("user_id", user.getUserId())
-                        );
-                        
-                        if (existingStudent != null) {
-                            // Student exists but with different student_number
-                            log.info("Student with email {} exists with student_number={}, CSV has student_number={}. Using existing student record.", 
-                                    email, existingStudent.getStudentNumber(), studentId);
-                            // Use the existing student record
-                            addToAssignmentParticipant(existingStudent, assignmentId);
-                        } else {
-                            // User exists but no student record - shouldn't happen for @student.unimelb.edu.au
-                            log.warn("User with email {} (user_id={}) exists but has no sys_student record. Data inconsistency detected.", 
-                                    email, user.getUserId());
-                        }
-                    } else {
-                        // Neither user nor student exists - this shouldn't happen as BaseCsvImportService filtered it
-                        log.warn("Student {} does not exist in sys_user table (email not found). This should have been handled by BaseCsvImportService.", studentId);
-                    }
-                } else {
-                    log.warn("Cannot process student {} - missing SIS Login ID", studentId);
-                }
-            }
+        for (SysStudent student : existingStudents) {
+            addToAssignmentParticipant(student, assignmentId);
         }
     }
     
@@ -410,7 +385,8 @@ public class GroupServiceImpl implements GroupService {
 
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 groupDTOs,
-                GroupCSVRequestDTO::getStudentId,    // Maps to "Student Id"
+                GroupCSVRequestDTO::getUserId,       // Maps to "user_id" column in Group CSV
+                GroupCSVRequestDTO::getName,         // Maps to "name" column in Group CSV (username)
                 GroupCSVRequestDTO::getLoginId       // Maps to "login_id" column
         );
 
