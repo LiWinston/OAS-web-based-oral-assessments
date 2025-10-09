@@ -51,6 +51,7 @@
 | Data Import and Export | 1.3           | As an administrator, I want to preview changes before overwriting during re-upload so that I can confirm the correctness of update and avoid data loss                        | Large  | Could Have | Prevents irreversible data changes and improves trust in the system |
 | Data Import and Export | 1.4           | As an administrator, I want to export a CSV file of student marks and feedback in a Canvas-compatible CSV format so that I can upload the results to Canvas                   | Medium | Must Have  | Core function for delivering assessment outcomes to the LMS         |
 | Data Import and Export | 1.5           | As an administrator, I want to see error messages when a CSV upload or export fails so that I can quickly identify and fix issues                                             | Medium | Must Have  | Critical for troubleshooting and ensuring clean data I/O            |
+| Data Import and Export | 1.6           | As an administrator, I want to reuse previously uploaded student, examiner, and group CSV files when creating a new assignment so that I can avoid repetitive uploads for the same course | Medium | Should Have | Speeds up setup of follow-up assignments when rosters stay unchanged |
 
 ## Epic 2: User Account Management
 

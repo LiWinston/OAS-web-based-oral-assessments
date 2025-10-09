@@ -62,6 +62,7 @@ export function AssignmentCreationModal({
   uploadStudentCsv,
   uploadExaminerCsv,
   uploadGroupCsv,
+  existingAssignments = [],
 }) {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState(() => {
@@ -109,6 +110,16 @@ export function AssignmentCreationModal({
     value: null,
     error: null,
   });
+  const [csvHistoryState, setCsvHistoryState] = useState({
+    student: { loading: false, error: null, items: [] },
+    examiner: { loading: false, error: null, items: [] },
+    group: { loading: false, error: null, items: [] },
+  });
+  const [csvHistorySelection, setCsvHistorySelection] = useState({
+    student: "",
+    examiner: "",
+    group: "",
+  });
   const fileInputRef = useRef(null);
   const contentRef = useRef(null);
   const { showNotification } = useNotification();
@@ -137,6 +148,12 @@ export function AssignmentCreationModal({
         student: { uploading: false, error: null },
         examiner: { uploading: false, error: null },
         group: { uploading: false, error: null },
+      });
+      setCsvHistorySelection({ student: "", examiner: "", group: "" });
+      setCsvHistoryState({
+        student: { loading: true, error: null, items: [] },
+        examiner: { loading: true, error: null, items: [] },
+        group: { loading: true, error: null, items: [] },
       });
       setValidationErrors({});
       setShowSuccess(false);
@@ -186,6 +203,103 @@ export function AssignmentCreationModal({
       }));
     }
   }, [formData.type]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const assignmentIds = (existingAssignments || [])
+      .map((item) => Number(item?.id))
+      .filter((id) => Number.isFinite(id));
+
+    if (!assignmentIds.length) {
+      setCsvHistoryState((prev) => ({
+        student: { ...prev.student, loading: false, items: [] },
+        examiner: { ...prev.examiner, loading: false, items: [] },
+        group: { ...prev.group, loading: false, items: [] },
+      }));
+      return;
+    }
+
+    const assignmentIdSet = new Set(assignmentIds);
+    const loadHistoryForType = async (type) => {
+      setCsvHistoryState((prev) => ({
+        ...prev,
+        [type]: { ...prev[type], loading: true, error: null },
+      }));
+
+      try {
+        const typeFilters =
+          type === "group" ? ["group", "mix"] : [type];
+
+        const requests = assignmentIds.flatMap((assignmentId) =>
+          typeFilters.map((importType) =>
+            assignmentService.fetchCsvHistory({
+              assignmentId,
+              importType,
+              pageNum: 1,
+              pageSize: 10,
+            })
+          )
+        );
+
+        const responses = await Promise.all(requests);
+
+        const items = [];
+        const errors = [];
+
+        responses.forEach((result) => {
+          if (result?.success) {
+            const payload =
+              result.data?.items ?? result.data?.data?.items ?? result.data ?? [];
+            if (Array.isArray(payload)) {
+              payload.forEach((item) => {
+                if (assignmentIdSet.has(Number(item.assignmentId))) {
+                  items.push(item);
+                }
+              });
+            }
+          } else if (result) {
+            errors.push(result.message || "Failed to fetch CSV history");
+          }
+        });
+
+        // Deduplicate by history id
+        const seen = new Set();
+        const deduped = items.filter((item) => {
+          const key = item.id;
+          if (seen.has(key)) {
+            return false;
+          }
+          seen.add(key);
+          return true;
+        });
+
+        setCsvHistoryState((prev) => ({
+          ...prev,
+          [type]: {
+            loading: false,
+            error: errors.length ? errors[0] : null,
+            items: deduped,
+          },
+        }));
+      } catch (error) {
+        setCsvHistoryState((prev) => ({
+          ...prev,
+          [type]: {
+            loading: false,
+            error: error?.message || "Failed to fetch CSV history",
+            items: [],
+          },
+        }));
+      }
+    };
+
+    ["student", "examiner", "group"].forEach((type) => {
+      loadHistoryForType(type);
+    });
+  }, [isOpen, existingAssignments]);
 
   // Ensure modal scrolls to top when changing steps
   useEffect(() => {
@@ -368,6 +482,107 @@ export function AssignmentCreationModal({
       ...prev,
       examiner: { uploading: false, error: null },
     }));
+  };
+
+  const handleHistorySelection = async (type, historyId) => {
+    setCsvHistorySelection((prev) => ({
+      ...prev,
+      [type]: historyId,
+    }));
+
+    if (!historyId) {
+      return;
+    }
+
+    const historyItems = csvHistoryState[type]?.items || [];
+    const historyEntry = historyItems.find(
+      (item) => String(item.id) === String(historyId)
+    );
+
+    if (!historyEntry) {
+      return;
+    }
+
+    setCsvUploadStatus((prev) => ({
+      ...prev,
+      [type]: { uploading: true, error: null },
+    }));
+
+    try {
+      const download = await assignmentService.downloadCsvHistoryFile(
+        historyEntry.id
+      );
+
+      if (!download.success || !download.data?.blob) {
+        throw new Error(download.message || "Failed to download CSV");
+      }
+
+      const blob = download.data.blob;
+      const filename =
+        download.data.filename ||
+        historyEntry.originalFilename ||
+        `${type}_roster.csv`;
+      const file = new File([blob], filename, {
+        type: blob.type || "text/csv",
+      });
+
+      let previewResult;
+      if (type === "examiner") {
+        setCsvData((prev) => ({
+          ...prev,
+          examiner: { ...prev.examiner, file, previewData: null },
+        }));
+        previewResult = await previewStudentCsv(file, "examiner");
+      } else if (type === "group") {
+        setCsvData((prev) => ({
+          ...prev,
+          group: { ...prev.group, file, previewData: null },
+        }));
+        previewResult = await previewStudentCsv(file, "group");
+      } else {
+        const importType =
+          historyEntry.importType?.toLowerCase() === "group" ? "group" : "student";
+        setCsvData((prev) => ({
+          ...prev,
+          student: {
+            ...prev.student,
+            file,
+            type: importType,
+            previewData: null,
+          },
+        }));
+        previewResult = await previewStudentCsv(file, importType);
+      }
+
+      if (!previewResult.success) {
+        throw new Error(previewResult.message || "Failed to preview CSV");
+      }
+
+      setCsvData((prev) => ({
+        ...prev,
+        [type]: {
+          ...prev[type],
+          previewData: previewResult.data,
+          file,
+        },
+      }));
+
+      setCsvUploadStatus((prev) => ({
+        ...prev,
+        [type]: { uploading: false, error: null },
+      }));
+
+      showNotification("success", "CSV loaded from history");
+    } catch (error) {
+      setCsvUploadStatus((prev) => ({
+        ...prev,
+        [type]: {
+          uploading: false,
+          error: error?.message || "Failed to load CSV",
+        },
+      }));
+      showNotification("error", error?.message || "Failed to load CSV");
+    }
   };
 
   // Handle CSV upload
@@ -691,6 +906,74 @@ export function AssignmentCreationModal({
     const existingCount =
       summary?.existingCount ?? summary?.existing ?? summary?.duplicates ?? 0;
     return { total, newCount, existingCount };
+  };
+
+  const formatHistoryLabel = (item) => {
+    const filename = item?.originalFilename || "previous_upload.csv";
+    const assignmentLabel = item?.assignmentName || `Assignment ${item?.assignmentId ?? ""}`;
+    let timestamp = "Unknown time";
+    if (item?.createTime) {
+      const parsed = new Date(item.createTime);
+      if (!Number.isNaN(parsed.getTime())) {
+        timestamp = parsed.toLocaleString();
+      }
+    }
+    return `${assignmentLabel} - ${filename} (${timestamp})`;
+  };
+
+  const renderHistoryDropdown = (type) => {
+    const state = csvHistoryState[type] || {
+      loading: false,
+      error: null,
+      items: [],
+    };
+    const hasItems = Array.isArray(state.items) && state.items.length > 0;
+    if (!hasItems && !state.loading && !state.error) {
+      return null;
+    }
+
+    const disabled = state.loading || csvUploadStatus[type]?.uploading;
+    const selection = csvHistorySelection[type] || "";
+
+    return (
+      <div className="mb-4">
+        <div className="flex items-center justify-between">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Reuse previous CSV
+          </label>
+          {state.loading && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Loading...
+            </span>
+          )}
+        </div>
+        {state.error && (
+          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+            {state.error}
+          </p>
+        )}
+        {hasItems && (
+          <>
+            <select
+              className="mt-2 w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+              value={selection}
+              onChange={(e) => handleHistorySelection(type, e.target.value)}
+              disabled={disabled}
+            >
+              <option value="">Select a previous upload</option>
+              {state.items.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {formatHistoryLabel(item)}
+                </option>
+              ))}
+            </select>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              Selecting a record loads and previews the CSV automatically.
+            </p>
+          </>
+        )}
+      </div>
+    );
   };
 
   if (!isOpen) return null;
@@ -1151,6 +1434,7 @@ export function AssignmentCreationModal({
                     template
                   </a>
                 </div>
+                {renderHistoryDropdown("student")}
                 {validationErrors.studentCsv && (
                   <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-sm text-red-700 dark:text-red-300">
@@ -1409,6 +1693,7 @@ export function AssignmentCreationModal({
                     <i className="fas fa-download mr-1"></i>Download Group CSV template
                   </a>
                 </div>
+                {renderHistoryDropdown("group")}
                 {validationErrors.groupCsv && (
                   <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-sm text-red-700 dark:text-red-300">
@@ -1653,6 +1938,7 @@ export function AssignmentCreationModal({
                     CSV template
                   </a>
                 </div>
+                {renderHistoryDropdown("examiner")}
                 {validationErrors.examinerCsv && (
                   <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <p className="text-sm text-red-700 dark:text-red-300">

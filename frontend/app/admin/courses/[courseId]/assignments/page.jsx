@@ -298,22 +298,8 @@ export default function CourseAssignmentsPage() {
   const handleAssignmentCreated = (assignment) => {
     // Close modal and refresh list
     setIsCreateModalOpen(false);
+    showNotification("success", "Assignment created successfully.");
     refreshData();
-    // Proactive post-creation guidance: redirect to Rubric configuration
-    try {
-      if (assignment?.id && courseId) {
-        showNotification(
-          "success",
-          "Assignment created. Next: Configure Rubric."
-        );
-        router.push(
-          `/admin/courses/${courseId}/assignments/${assignment.id}/rubric`
-        );
-      }
-    } catch (e) {
-      // Non-blocking: if redirect fails, user remains on the assignments page
-      console.error("Post-creation redirect failed:", e);
-    }
   };
 
   // Create assignment - integrated from AssignmentCreationModal
@@ -682,6 +668,7 @@ export default function CourseAssignmentsPage() {
         uploadStudentCsv={uploadStudentCsv}
         uploadExaminerCsv={uploadExaminerCsv}
         uploadGroupCsv={uploadGroupCsv}
+        existingAssignments={assignments}
       />
 
       {/* Edit Assignment Modal */}

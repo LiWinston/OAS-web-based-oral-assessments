@@ -7,6 +7,66 @@ const MOCK_FLAG =
   "false";
 const USE_MOCK_API = String(MOCK_FLAG) === "true";
 
+const buildErrorResult = (message, code, data) => ({
+  success: false,
+  message,
+  code,
+  data,
+});
+
+const normalizeResult = (result) => {
+  if (!result) {
+    return buildErrorResult("Empty response from server", "NO_RESPONSE", null);
+  }
+
+  if (result.success) {
+    return result;
+  }
+
+  const fallbackMessage =
+    typeof result.data === "string"
+      ? result.data
+      : result.message ||
+        (typeof result.data === "object" && result.data?.message) ||
+        "Request failed";
+
+  return {
+    ...result,
+    message: fallbackMessage,
+  };
+};
+
+const normalizeAxiosError = (error, defaultMessage) => {
+  const responseData = error?.response?.data;
+  const apiMessage =
+    responseData?.message ||
+    (typeof responseData?.data === "string" ? responseData.data : null);
+  const message = apiMessage || defaultMessage || "Request failed";
+  const code = responseData?.code || error?.response?.status || 500;
+  const data =
+    typeof responseData?.data === "object" ? responseData.data : responseData?.data;
+
+  return buildErrorResult(message, code, data);
+};
+
+const extractFilenameFromHeaders = (headers) => {
+  if (!headers) return null;
+  const disposition =
+    headers["content-disposition"] || headers["Content-Disposition"];
+  if (!disposition) return null;
+
+  const match = /filename\*=UTF-8''([^;]+)|filename="?([^";]+)"?/i.exec(
+    disposition
+  );
+  if (!match) return null;
+
+  try {
+    return decodeURIComponent(match[1] || match[2]);
+  } catch (_e) {
+    return match[1] || match[2];
+  }
+};
+
 // Utility function to convert date strings to datetime format for Java backend
 const formatDateForBackend = (dateString) => {
   if (!dateString) return dateString;
@@ -520,13 +580,9 @@ export const assignmentService = {
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data;
+      return normalizeResult(response.data);
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || error.response?.data?.data || "Failed to upload CSV",
-        code: error.response?.data?.code || error.response?.status || 500,
-      };
+      return normalizeAxiosError(error, "Failed to preview CSV");
     }
   },
 
@@ -558,13 +614,9 @@ export const assignmentService = {
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data;
+      return normalizeResult(response.data);
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Failed to upload CSV",
-        code: error.response?.status || 500,
-      };
+      return normalizeAxiosError(error, "Failed to upload CSV");
     }
   },
 
@@ -597,18 +649,14 @@ export const assignmentService = {
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data;
+      return normalizeResult(response.data);
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Failed to preview CSV",
-        code: error.response?.status || 500,
-      };
+      return normalizeAxiosError(error, "Failed to preview CSV");
     }
   },
 
   // Examiner CSV Upload - Upload examiner CSV data to backend
-  async uploadExaminerCsv(file) {
+  async uploadExaminerCsv(file, assignmentId) {
     if (USE_MOCK_API) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       
@@ -627,19 +675,115 @@ export const assignmentService = {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", "examiner");
+      if (assignmentId != null) {
+        formData.append("assignmentId", assignmentId);
+      }
       
       const response = await api.post("/api/csv/import", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
-      return response.data;
+      return normalizeResult(response.data);
     } catch (error) {
+      return normalizeAxiosError(error, "Failed to upload CSV");
+    }
+  },
+
+  async fetchCsvHistory(params = {}) {
+    if (USE_MOCK_API) {
       return {
-        success: false,
-        message: error.response?.data?.message || "Failed to upload CSV",
-        code: error.response?.status || 500,
+        success: true,
+        data: {
+          pageNum: 1,
+          pageSize: params.pageSize ?? 10,
+          total: 0,
+          items: [],
+        },
       };
     }
-  }
+
+    try {
+      const response = await api.post("/api/csv/history/list", params);
+      return normalizeResult(response.data);
+    } catch (error) {
+      return normalizeAxiosError(error, "Failed to fetch CSV history");
+    }
+  },
+
+  async downloadCsvHistoryFile(id) {
+    if (USE_MOCK_API) {
+      const blob = new Blob(["name,canvas_user_id"], { type: "text/csv" });
+      return {
+        success: true,
+        data: {
+          blob,
+          filename: "history.csv",
+        },
+      };
+    }
+
+    try {
+      const response = await api.get(`/api/csv/history/download/${id}`, {
+        responseType: "blob",
+      });
+
+      const blob = response.data;
+      const headerContentType = response.headers?.["content-type"];
+      const normalizedContentType = (blob?.type || headerContentType || "").toLowerCase();
+
+      if (normalizedContentType.includes("application/json")) {
+        try {
+          const text = await blob.text();
+          const payload = JSON.parse(text);
+          const message =
+            payload?.message ||
+            (typeof payload?.data === "string" ? payload.data : null) ||
+            "Failed to download CSV";
+          return buildErrorResult(
+            message,
+            payload?.code || "DOWNLOAD_ERROR",
+            payload?.data ?? null
+          );
+        } catch (parseError) {
+          return buildErrorResult(
+            parseError?.message || "Failed to download CSV",
+            "DOWNLOAD_ERROR",
+            null
+          );
+        }
+      }
+
+      if (!normalizedContentType || normalizedContentType.includes("text/plain")) {
+        try {
+          const text = await blob.text();
+          const trimmed = text.trim();
+          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            const payload = JSON.parse(trimmed);
+            const message =
+              payload?.message ||
+              (typeof payload?.data === "string" ? payload.data : null) ||
+              "Failed to download CSV";
+            return buildErrorResult(
+              message,
+              payload?.code || "DOWNLOAD_ERROR",
+              payload?.data ?? null
+            );
+          }
+        } catch (_ignored) {
+          // fall through assuming it's actual CSV
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          blob,
+          filename: extractFilenameFromHeaders(response.headers),
+        },
+      };
+    } catch (error) {
+      return normalizeAxiosError(error, "Failed to download CSV");
+    }
+  },
 };
