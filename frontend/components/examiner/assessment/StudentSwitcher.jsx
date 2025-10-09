@@ -8,7 +8,10 @@ export default function StudentSwitcher({
   setSelectedStudent,
   perStudentMissing = [],
   isAllStudentsComplete,
+  absentStudents = [],
+  onToggleAbsent,
 }) {
+  const selectedInfo = perStudentMissing.find((s) => s.studentId === selectedStudent);
   return (
     <Card className="dashboard-card">
       <CardContent className="p-4">
@@ -30,33 +33,52 @@ export default function StudentSwitcher({
               );
             })}
           </select>
+          {/* extra right-of-select summary removed to avoid duplication */}
         </div>
-        <div className="mt-3">
-          <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quick scan (click to switch):</div>
-          <div className="flex flex-wrap gap-2">
-            {individuals.map((student) => {
-              const ps = perStudentMissing.find((s) => s.studentId === student.studentId);
-              const filled = ps ? ps.required - ps.missing : 0;
-              const req = ps ? ps.required : 0;
-              const isComplete = ps ? ps.missing === 0 : false;
-              const color = isComplete
-                ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800'
-                : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800';
-              const ring = selectedStudent === student.studentId ? 'ring-2 ring-blue-400 dark:ring-blue-500' : '';
-              return (
-                <button
-                  key={student.studentId}
-                  type="button"
-                  onClick={() => setSelectedStudent(student.studentId)}
-                  className={`text-xs px-3 py-1 rounded-full border transition-colors ${color} ${ring}`}
-                  title={`${student.name}: ${filled}/${req} complete`}
-                >
-                  {student.name.split(' ')[0]} • {filled}/{req}
-                </button>
-              );
-            })}
+        {individuals.length > 1 && (
+          <div className="mt-3">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Quick scan (click to switch):</div>
+            <div className="flex flex-wrap gap-2">
+              {individuals.map((student) => {
+                const ps = perStudentMissing.find((s) => s.studentId === student.studentId);
+                const filled = ps ? ps.required - ps.missing : 0;
+                const req = ps ? ps.required : 0;
+                const isComplete = ps ? ps.missing === 0 : false;
+                const isAbsent = Array.isArray(absentStudents) && absentStudents.includes(student.studentId);
+                const color = isAbsent
+                  ? 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800'
+                  : isComplete
+                  ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800'
+                  : 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800';
+                const ring = selectedStudent === student.studentId ? 'ring-2 ring-blue-400 dark:ring-blue-500' : '';
+                return (
+                  <button
+                    key={student.studentId}
+                    type="button"
+                    onClick={() => setSelectedStudent(student.studentId)}
+                    className={`text-xs px-3 py-1 rounded-full border transition-colors ${color} ${ring}`}
+                    title={`${student.name}: ${isAbsent ? 'Absent' : `${filled}/${req} complete`}`}
+                  >
+                    {student.name} • {isAbsent ? 'Absent' : `${filled}/${req}`}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
+        {selectedStudent && (
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              id="toggle-absent"
+              type="checkbox"
+              checked={Array.isArray(absentStudents) && absentStudents.includes(selectedStudent)}
+              onChange={(e) => onToggleAbsent?.(selectedStudent, e.target.checked)}
+            />
+            <label htmlFor="toggle-absent" className="text-sm text-gray-700 dark:text-gray-300">
+              Mark selected student as Absent (final score = 0)
+            </label>
+          </div>
+        )}
         {isAllStudentsComplete && (
           <div className="mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 flex items-center">
             <i className="fas fa-check-circle text-green-600 dark:text-green-300 mr-2"></i>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Card } from '../../../../../../components/ui/card';
 import { Button } from '../../../../../../components/ui/button';
@@ -14,6 +14,7 @@ import HeaderStatusBar from '../../../../../../components/examiner/assessment/He
 import RubricTable from '../../../../../../components/examiner/assessment/RubricTable';
 import SubmitDialog from '../../../../../../components/examiner/assessment/SubmitDialog';
 import StudentSwitcher from '../../../../../../components/examiner/assessment/StudentSwitcher';
+import TotalsPanel from '../../../../../../components/examiner/assessment/TotalsPanel';
 
 // Hooks  
 import { useMarkingSessionQuery, useSaveDraftMutation, useSubmitAssessmentMutation } from '../../../../../../hooks/examiner/assessment/useMarkingSessionQuery';
@@ -66,6 +67,8 @@ export default function ExaminerAssessmentMarking() {
     setAssessmentId,
     isDraft,
     setIsDraft,
+    absentStudents,
+    setAbsentStudents,
   } = useAssessmentDraft(sessionContext);
 
   // Mutations
@@ -84,7 +87,8 @@ export default function ExaminerAssessmentMarking() {
       individualComments,
       overallFeedback,
       privateNotes,
-    }), [sessionContext, examinerId, groupRatings, individualRatings, groupComments, individualComments, overallFeedback, privateNotes]);
+      absentStudents,
+    }), [sessionContext, examinerId, groupRatings, individualRatings, groupComments, individualComments, overallFeedback, privateNotes, absentStudents]);
 
   // Auto-save
   useAutoSave({
@@ -156,6 +160,7 @@ export default function ExaminerAssessmentMarking() {
         individualComments,
         overallFeedback,
         privateNotes,
+        absentStudents,
       });
       
       // Include sessionContext for backend API conversion
@@ -203,7 +208,7 @@ export default function ExaminerAssessmentMarking() {
   };
 
   // UI State
-  const [currentTab, setCurrentTab] = useState('rubric');
+  const [currentTab, setCurrentTab] = useState('group');
 
   // Validation（覆盖小组与所有个体）
   const criteria = sessionContext?.assignment?.rubric?.criteria || [];
@@ -212,6 +217,20 @@ export default function ExaminerAssessmentMarking() {
 
   const groupCriteria = criteria.filter(appliesToGroup);
   const individualCriteria = criteria.filter(appliesToIndividual);
+  const hasGroup = groupCriteria.length > 0 && (sessionContext?.assignment?.type === 'group' || sessionContext?.assignment?.type === 'mixed');
+  const hasIndividual = individualCriteria.length > 0 && (sessionContext?.assignment?.type === 'individual' || sessionContext?.assignment?.type === 'mixed');
+
+  // Ensure current tab is valid when data loads
+  useEffect(() => {
+    if (currentTab !== 'feedback') {
+      if (!hasGroup && currentTab === 'group' && hasIndividual) {
+        setCurrentTab('individual');
+      }
+      if (!hasGroup && !hasIndividual && currentTab !== 'feedback') {
+        setCurrentTab('feedback');
+      }
+    }
+  }, [currentTab, hasGroup, hasIndividual]);
 
   const groupRequired = groupCriteria.length;
   const groupFilled = groupCriteria.filter((c) => !!groupRatings?.[c.criterionId]).length;
@@ -222,16 +241,26 @@ export default function ExaminerAssessmentMarking() {
     const ratings = individualRatings?.[stu.studentId] || {};
     const required = individualCriteria.length;
     const filled = individualCriteria.filter((c) => !!ratings[c.criterionId]).length;
+    const isAbsent = Array.isArray(absentStudents) && absentStudents.includes(stu.studentId);
     return {
       studentId: stu.studentId,
       name: stu.name || `Student ${stu.studentId}`,
       required,
-      missing: Math.max(0, required - filled),
+      missing: isAbsent ? 0 : Math.max(0, required - filled),
     };
   });
 
   const totalMissing = groupMissing + perStudentMissing.reduce((sum, s) => sum + s.missing, 0);
   const validation = { groupRequired, groupMissing, perStudentMissing, totalMissing };
+
+  // absent toggle handler
+  const handleToggleAbsent = (studentId, checked) => {
+    setAbsentStudents((prev) => {
+      const set = new Set(prev || []);
+      if (checked) set.add(studentId); else set.delete(studentId);
+      return Array.from(set);
+    });
+  };
 
   // Get ratings and comments for the selected target
   const selectedRatings = assessmentType === 'GROUP' 
@@ -293,15 +322,15 @@ export default function ExaminerAssessmentMarking() {
           {/* Session Info */}
           <SessionInfo sessionContext={sessionContext} />
 
-          {/* Individual student switcher（仅个体或混合且存在多名学生时显示） */}
-          {Array.isArray(sessionContext?.entity?.individuals) && sessionContext.entity.individuals.length > 1 && (
-            <StudentSwitcher
-              individuals={sessionContext.entity.individuals}
-              selectedStudent={selectedStudent}
-              setSelectedStudent={setSelectedStudent}
-              perStudentMissing={validation.perStudentMissing}
-              isAllStudentsComplete={validation.perStudentMissing.every((s) => s.missing === 0)}
-            />
+          {/* Bucket summary */}
+          {sessionContext?.assignment?.rubric?.weightBasis && (
+            <Card className="p-4">
+              <div className="text-sm text-gray-700 dark:text-gray-300">
+                Weighting: {sessionContext.assignment.rubric.weightBasis === 'points'
+                  ? `Group ${sessionContext.assignment.groupWeight ?? 0} pts • Individual ${sessionContext.assignment.individualWeight ?? 0} pts`
+                  : `Group ${sessionContext.assignment.groupWeight ?? 0}% • Individual ${sessionContext.assignment.individualWeight ?? 0}%`}
+              </div>
+            </Card>
           )}
 
 
@@ -312,28 +341,72 @@ export default function ExaminerAssessmentMarking() {
               <Card className="h-full">
                 <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
                   <div className="border-b px-6 py-4">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="rubric">Rubric</TabsTrigger>
+                    <TabsList className="flex w-full gap-2">
+                      {hasGroup && <TabsTrigger value="group">Group</TabsTrigger>}
+                      {hasIndividual && <TabsTrigger value="individual">Individual</TabsTrigger>}
                       <TabsTrigger value="feedback">Feedback</TabsTrigger>
                     </TabsList>
                   </div>
 
                   <div className="flex-1 p-6 overflow-auto">
-                    <TabsContent value="rubric" className="mt-0">
-                      <RubricTable
-                        criteria={criteria}
-                        selectedRatings={selectedRatings}
-                        onRatingChange={handleRatingChange}
-                        comments={commentsForSelected}
-                        onCommentChange={handleCommentChange}
-                        predefinedComments={sessionContext?.predefinedComments || {}}
-                        onSavePredefinedComment={handleSavePredefinedComment}
-                        disabled={disabledInputs}
-                        assessmentType={assessmentType}
-                        assignmentId={assignmentId}
-                      />
-                    </TabsContent>
+                    {/* Group Tab */}
+                    {hasGroup && (
+                      <TabsContent value="group" className="mt-0 space-y-4">
+                        <RubricTable
+                          criteria={groupCriteria}
+                          selectedRatings={groupRatings}
+                          onRatingChange={handleRatingChange}
+                          comments={groupComments}
+                          onCommentChange={(cid, v) => handleCommentChange(cid, v)}
+                          predefinedComments={sessionContext?.predefinedComments || {}}
+                          onSavePredefinedComment={handleSavePredefinedComment}
+                          disabled={disabledInputs}
+                          assessmentType={'GROUP'}
+                          assignmentId={assignmentId}
+                          showTotals={false}
+                        />
+                      </TabsContent>
+                    )}
 
+                    {/* Individual Tab */}
+                    {hasIndividual && (
+                      <TabsContent value="individual" className="mt-0 space-y-4">
+                        {Array.isArray(sessionContext?.entity?.individuals) && sessionContext.entity.individuals.length > 0 && (
+                          <StudentSwitcher
+                            individuals={sessionContext.entity.individuals}
+                            selectedStudent={selectedStudent}
+                            setSelectedStudent={setSelectedStudent}
+                            perStudentMissing={validation.perStudentMissing}
+                            isAllStudentsComplete={validation.perStudentMissing.every((s) => s.missing === 0)}
+                            absentStudents={absentStudents}
+                            onToggleAbsent={handleToggleAbsent}
+                          />
+                        )}
+                        <RubricTable
+                          criteria={individualCriteria}
+                          selectedRatings={individualRatings?.[selectedStudent] || {}}
+                          onRatingChange={(cid, rating) => handleRatingChange(cid, rating)}
+                          comments={individualComments?.[selectedStudent] || {}}
+                          onCommentChange={(cid, v) => handleCommentChange(cid, v)}
+                          predefinedComments={sessionContext?.predefinedComments || {}}
+                          onSavePredefinedComment={handleSavePredefinedComment}
+                          disabled={disabledInputs || (absentStudents || []).includes(selectedStudent)}
+                          assessmentType={'INDIVIDUAL'}
+                          assignmentId={assignmentId}
+                          showTotals={false}
+                        />
+                        <TotalsPanel
+                          assignment={sessionContext.assignment}
+                          criteria={criteria}
+                          groupRatings={groupRatings}
+                          individualRatings={individualRatings}
+                          individuals={individuals}
+                          absentStudents={absentStudents}
+                        />
+                      </TabsContent>
+                    )}
+
+                    {/* Feedback Tab */}
                     <TabsContent value="feedback" className="mt-0">
                       <div className="space-y-6">
                         <div>

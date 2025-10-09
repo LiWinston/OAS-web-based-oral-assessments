@@ -12,6 +12,7 @@ export function useAssessmentDraft(sessionContext) {
   const [individualComments, setIndividualComments] = useState({});
   const [overallFeedback, setOverallFeedback] = useState("");
   const [privateNotes, setPrivateNotes] = useState("");
+  const [absentStudents, setAbsentStudents] = useState([]); // list of studentIds
 
   const [assessmentId, setAssessmentId] = useState(null);
   const [isDraft, setIsDraft] = useState(true); // Default to draft to allow editing
@@ -100,6 +101,10 @@ export function useAssessmentDraft(sessionContext) {
               .join("\n");
           }
         });
+        // Interpret ABSENT marker
+        if (entity?.overallFeedback === 'ABSENT' || entity?.notes === 'ABSENT') {
+          setAbsentStudents((prev) => Array.from(new Set([...(prev || []), entity.studentId])));
+        }
       });
       setIndividualRatings(indRatings);
       setIndividualComments(indComments);
@@ -174,6 +179,10 @@ export function useAssessmentDraft(sessionContext) {
     setPrivateNotes,
     handleRatingChange,
     handleCommentChange,
+
+    // absence tracking
+    absentStudents,
+    setAbsentStudents,
 
     // persistence flags
     assessmentId,

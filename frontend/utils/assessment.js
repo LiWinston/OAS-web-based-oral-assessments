@@ -8,6 +8,7 @@ export function buildAssessmentPayload({
   individualComments,
   overallFeedback,
   privateNotes,
+  absentStudents = [],
 }) {
   const entities = [];
 
@@ -82,6 +83,7 @@ export function buildAssessmentPayload({
     entities,
     overallFeedback: overallFeedback || '',
     privateNotes: privateNotes || '',
+    absentStudents,
   };
 }
 

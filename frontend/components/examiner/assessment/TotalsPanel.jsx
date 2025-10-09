@@ -34,28 +34,54 @@ export default function TotalsPanel({
   groupRatings = {},
   individualRatings = {},
   individuals = [],
+  absentStudents = [],
 }) {
   const type = assignment?.type || 'individual';
-  const groupWeight = type === 'mixed' ? (assignment?.groupWeight ?? 0.5) : 1;
-  const individualWeight = type === 'mixed' ? (assignment?.individualWeight ?? 0.5) : 1;
+  const weightBasis = assignment?.rubric?.weightBasis || 'percentage';
+  const groupWeight = Number(assignment?.groupWeight ?? 0) || 0;
+  const individualWeight = Number(assignment?.individualWeight ?? 0) || 0;
 
   const groupCriteria = filterCriteria(criteria, 'GROUP');
   const individualCriteria = filterCriteria(criteria, 'INDIVIDUAL');
 
-  const groupScore = weightedScore(groupCriteria, groupRatings);
+  // Sum of max points by bucket
+  const sumMaxPoints = (arr) => arr.reduce((s, c) => {
+    const max = Math.max(...(c.levels || []).map(l => Number(l.maxPoints || 0)));
+    return s + (Number.isFinite(max) ? max : 0);
+  }, 0);
+
+  const sumAchieved = (arr, ratings) => arr.reduce((s, c) => {
+    const r = ratings[c.criterionId];
+    return s + (r && typeof r.points === 'number' ? r.points : 0);
+  }, 0);
+
+  const groupMax = sumMaxPoints(groupCriteria) || 0;
+  const indMax = sumMaxPoints(individualCriteria) || 0;
+  // Weighted contributions based on criterion.weight (points or percentage)
+  const groupContribution = weightedScore(groupCriteria, groupRatings);
   const groupFill = countFilled(groupCriteria, groupRatings);
 
   const rows = individuals.map(stu => {
     const ratings = individualRatings[stu.studentId] || {};
-    const indScore = weightedScore(individualCriteria, ratings);
+    const indContribution = weightedScore(individualCriteria, ratings);
     const indFill = countFilled(individualCriteria, ratings);
-    const final = type === 'mixed'
-      ? (groupScore * groupWeight + indScore * individualWeight)
-      : (type === 'group' ? groupScore : indScore);
+    let final;
+    if (Array.isArray(absentStudents) && absentStudents.includes(stu.studentId)) {
+      final = 0;
+    } else if (type === 'mixed') {
+      // For both bases, contributions already reflect units of weights
+      final = groupContribution + indContribution;
+    } else if (type === 'group') {
+      final = groupContribution;
+    } else {
+      final = indContribution;
+    }
+
     return {
       studentId: stu.studentId,
       name: stu.name,
-      indScore,
+      groupScore: (Array.isArray(absentStudents) && absentStudents.includes(stu.studentId)) ? 0 : groupContribution,
+      indScore: (Array.isArray(absentStudents) && absentStudents.includes(stu.studentId)) ? 0 : indContribution,
       indFill,
       final,
     };
@@ -76,7 +102,7 @@ export default function TotalsPanel({
               Group score (criteria: {groupFill.filled}/{groupFill.required})
             </div>
             <div className="text-xl font-bold text-blue-700 dark:text-blue-300">
-              {groupScore.toFixed(2)} / 100
+              {groupContribution.toFixed(2)} {weightBasis === 'points' ? 'pts' : '%'}
             </div>
           </div>
         )}
@@ -87,7 +113,9 @@ export default function TotalsPanel({
               <div className="text-sm font-medium text-gray-800 dark:text-gray-200">Per-student totals</div>
               {type === 'mixed' && (
                 <div className="text-xs text-gray-600 dark:text-gray-400">
-                  Weighting: Group {Math.round(groupWeight * 100)}% • Individual {Math.round(individualWeight * 100)}%
+                  Weighting: {weightBasis === 'points'
+                    ? `Group ${groupWeight} pts • Individual ${individualWeight} pts`
+                    : `Group ${groupWeight}% • Individual ${individualWeight}%`}
                 </div>
               )}
             </div>
@@ -96,6 +124,7 @@ export default function TotalsPanel({
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700 text-left">
                     <th className="py-2 pr-3">Student</th>
+                    {(type === 'group' || type === 'mixed') && <th className="py-2 pr-3">Group</th>}
                     {type !== 'group' && <th className="py-2 pr-3">Individual</th>}
                     {type === 'mixed' && <th className="py-2 pr-3">Final</th>}
                     {type === 'individual' && <th className="py-2 pr-3">Total</th>}
@@ -109,22 +138,28 @@ export default function TotalsPanel({
                         <div className="font-medium">{r.name}</div>
                         <div className="text-xs text-gray-500">ID: {r.studentId}</div>
                       </td>
+                      {(type === 'group' || type === 'mixed') && (
+                        <td className="py-2 pr-3">
+                          <span className="font-semibold">{r.groupScore.toFixed(2)}</span>
+                          <span className="text-gray-500 dark:text-gray-400"> {weightBasis === 'points' ? 'pts' : '%'}</span>
+                        </td>
+                      )}
                       {type !== 'group' && (
                         <td className="py-2 pr-3">
                           <span className="font-semibold">{r.indScore.toFixed(2)}</span>
-                          <span className="text-gray-500 dark:text-gray-400"> / 100</span>
+                          <span className="text-gray-500 dark:text-gray-400"> {weightBasis === 'points' ? 'pts' : '%'}</span>
                         </td>
                       )}
                       {type === 'mixed' && (
                         <td className="py-2 pr-3">
                           <span className="font-semibold">{r.final.toFixed(2)}</span>
-                          <span className="text-gray-500 dark:text-gray-400"> / 100</span>
+                          <span className="text-gray-500 dark:text-gray-400"> {weightBasis === 'points' ? 'pts' : '%'}</span>
                         </td>
                       )}
                       {type === 'individual' && (
                         <td className="py-2 pr-3">
                           <span className="font-semibold">{r.indScore.toFixed(2)}</span>
-                          <span className="text-gray-500 dark:text-gray-400"> / 100</span>
+                          <span className="text-gray-500 dark:text-gray-400"> {weightBasis === 'points' ? 'pts' : '%'}</span>
                         </td>
                       )}
                       <td className="py-2">

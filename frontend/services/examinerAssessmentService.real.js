@@ -150,7 +150,6 @@ const examinerAssessmentServiceReal = {
         
       // Parse JSON strings from backend
       let rubricMeta = {};
-      let rubricsInfo = [];
       let scores = [];
       
       try {
@@ -161,23 +160,7 @@ const examinerAssessmentServiceReal = {
         console.warn('Failed to parse rubricMetaSnapshot:', e);
       }
       
-      try {
-        if (assessment.rubricsInfoSnapshot) {
-          const parsed = JSON.parse(assessment.rubricsInfoSnapshot);
-          // Handle different formats: direct array or object with criteria property
-          if (Array.isArray(parsed)) {
-            rubricsInfo = parsed;
-          } else if (parsed && Array.isArray(parsed.criteria)) {
-            rubricsInfo = parsed.criteria;
-          } else {
-            console.warn('rubricsInfoSnapshot is not in expected format:', parsed);
-            rubricsInfo = [];
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to parse rubricsInfoSnapshot:', e);
-        rubricsInfo = [];
-      }
+      // NOTE: rubricsInfoSnapshot is legacy/duplicated; ignore and rely solely on rubricMetaSnapshot (per backend guidance)
       
       try {
         if (assessment.scoresJson) {
@@ -195,9 +178,59 @@ const examinerAssessmentServiceReal = {
         scores = [];
       }
       
-      // Build session context in expected format
-      const assignmentType = assessment.subjectType?.toLowerCase() === 'group' ? 'group' : 'individual';
-      const appliesFromType = (assignmentType === 'group') ? 'GROUP' : (assignmentType === 'individual') ? 'INDIVIDUAL' : 'BOTH';
+      // Build criteria from rubric meta (bucketed)
+      const mapLevels = (levels = []) => (Array.isArray(levels) ? levels.map((lvl, i) => ({
+        levelId: lvl.levelId || `L${i + 1}`,
+        startPoint: Number(lvl.startPoint ?? lvl.minPoints ?? 0),
+        endPoint: Number(lvl.endPoint ?? lvl.maxPoints ?? 0),
+        description: lvl.description || `Level ${i + 1}`,
+        preDefinedComment: Array.isArray(lvl.preDefinedComment) ? lvl.preDefinedComment : [],
+      })) : []);
+
+      const individualRubrics = Array.isArray(rubricMeta?.individualRubrics) ? rubricMeta.individualRubrics : [];
+      const groupRubrics = Array.isArray(rubricMeta?.groupRubrics) ? rubricMeta.groupRubrics : [];
+      const criteriaFromMeta = [];
+      let criterionCounter = 0;
+      groupRubrics.forEach((c) => {
+        criterionCounter += 1;
+        criteriaFromMeta.push({
+          criterionId: `C${criterionCounter}`,
+          description: c.description || `Criterion ${criterionCounter}`,
+          weight: Number(c.weight) || 0,
+          scaleType: c.scaleType || 'points',
+          appliesTo: 'GROUP',
+          levels: mapLevels(c.performanceLevel).map((l) => ({
+            levelId: l.levelId,
+            minPoints: l.startPoint,
+            maxPoints: l.endPoint,
+            description: l.description,
+            preDefinedComment: l.preDefinedComment,
+          })),
+          performanceLevel: mapLevels(c.performanceLevel),
+        });
+      });
+      individualRubrics.forEach((c) => {
+        criterionCounter += 1;
+        criteriaFromMeta.push({
+          criterionId: `C${criterionCounter}`,
+          description: c.description || `Criterion ${criterionCounter}`,
+          weight: Number(c.weight) || 0,
+          scaleType: c.scaleType || 'points',
+          appliesTo: 'INDIVIDUAL',
+          levels: mapLevels(c.performanceLevel).map((l) => ({
+            levelId: l.levelId,
+            minPoints: l.startPoint,
+            maxPoints: l.endPoint,
+            description: l.description,
+            preDefinedComment: l.preDefinedComment,
+          })),
+          performanceLevel: mapLevels(c.performanceLevel),
+        });
+      });
+
+      const assignmentType = (groupRubrics.length && individualRubrics.length)
+        ? 'mixed'
+        : (groupRubrics.length ? 'group' : 'individual');
 
       const sessionContext = {
         submissionId: assessment.submissionId,
@@ -208,29 +241,11 @@ const examinerAssessmentServiceReal = {
           type: assignmentType,
           rubric: {
             id: `rubric-${assessment.assignmentId}`,
-            criteria: Array.isArray(rubricsInfo) ? rubricsInfo.map((criterion, index) => ({
-              criterionId: `C${index + 1}`,
-              description: criterion?.description || 'Criterion',
-              weight: criterion?.weight || 0,
-              scaleType: criterion?.scaleType || 'points',
-              appliesTo: appliesFromType,
-              // Provide both field names for compatibility
-              levels: Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel.map((level, levelIndex) => ({
-                levelId: `L${levelIndex + 1}`,
-                minPoints: level?.startPoint || 0,
-                maxPoints: level?.endPoint || 100,
-                description: level?.description || 'Level',
-                preDefinedComment: level?.preDefinedComment || []
-              })) : [],
-              performanceLevel: Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel.map((level, levelIndex) => ({
-                levelId: `L${levelIndex + 1}`,
-                startPoint: level?.startPoint || 0,
-                endPoint: level?.endPoint || 100,
-                description: level?.description || 'Level',
-                preDefinedComment: level?.preDefinedComment || []
-              })) : []
-            })) : []
-          }
+            criteria: criteriaFromMeta,
+            weightBasis: (rubricMeta?.weightBasis === 'points' || rubricMeta?.weightBasis === 'percentage') ? rubricMeta.weightBasis : 'percentage',
+          },
+          groupWeight: Number(rubricMeta?.groupWeight ?? 0) || 0,
+          individualWeight: Number(rubricMeta?.individualWeight ?? 0) || 0,
         },
         entity: {
           kind: assessment.subjectType || 'INDIVIDUAL',
@@ -252,200 +267,65 @@ const examinerAssessmentServiceReal = {
           submittedAt: assessment.submittedAt,
           totalScore: assessment.totalScore,
           overallFeedback: assessment.overallFeedback,
-          // Convert scores back to entities format for useAssessmentDraft
-          entities: [{
-            kind: assessment.subjectType || 'INDIVIDUAL',
-            ...(assessment.subjectType === 'GROUP' ? {
-              items: scores.map((score, index) => {
-                // Find the criterion index to get the correct criterionId
-                const criterionIndex = rubricsInfo.findIndex(c => c.description === score.description);
-                const criterionId = criterionIndex >= 0 ? `C${criterionIndex + 1}` : `C${index + 1}`;
-                
-                // Find levelId from selectedLevel or points
-                let levelId = null;
-                const criterion = rubricsInfo[criterionIndex];
-                
-                console.log('DEBUG existingAssessment GROUP - Converting score:', {
-                  scoreDescription: score.description,
-                  criterionIndex,
-                  criterionId,
-                  hasSelectedLevel: !!score.selectedLevel,
-                  selectedLevelDescription: score.selectedLevel?.description,
-                  hasInputPoints: score.inputPoints !== undefined && score.inputPoints !== null,
-                  inputPoints: score.inputPoints,
-                  criterionPerformanceLevels: criterion?.performanceLevel?.map(l => ({ 
-                    levelId: l.levelId, 
-                    description: l.description 
-                  }))
-                });
-                
-                if (score.selectedLevel) {
-                  // For descriptive scales: find level by description match
-                  if (criterion?.performanceLevel) {
-                    const level = criterion.performanceLevel.find(l => l.description === score.selectedLevel.description);
-                    console.log('DEBUG existingAssessment GROUP - Found level by description:', { 
-                      targetDescription: score.selectedLevel.description,
-                      foundLevel: level,
-                      levelProps: level ? Object.keys(level) : 'no level found'
-                    });
-                    
-                    // The performanceLevel has real levelId, but we need to map it properly
-                    if (level) {
-                      // If level has levelId field, use it directly
-                      if (level.levelId) {
-                        levelId = level.levelId;
-                      } else {
-                        // Otherwise, find the corresponding level in criterion.levels by description
-                        // Can't use sessionContext here as it's still being constructed
-                        // Instead, construct levelId directly from performanceLevel index
-                        const performanceLevelIndex = criterion.performanceLevel.findIndex(l => l.description === level.description);
-                        levelId = performanceLevelIndex >= 0 ? `L${performanceLevelIndex + 1}` : null;
-                      }
-                    }
-                    
-                    console.log('DEBUG existingAssessment GROUP - Level ID extraction:', { 
-                      levelId_field: level?.levelId,
-                      level_description: level?.description,
-                      finalLevelId: levelId
-                    });
-                  }
-                } else if (score.inputPoints !== undefined && score.inputPoints !== null) {
-                  // For points scales: find level by points range
-                  if (criterion?.performanceLevel) {
-                    const level = criterion.performanceLevel.find(l => 
-                      score.inputPoints >= l.startPoint && score.inputPoints <= l.endPoint
-                    );
-                    console.log('DEBUG existingAssessment GROUP - Found level by points:', { 
-                      targetPoints: score.inputPoints,
-                      foundLevel: level,
-                      levelProps: level ? Object.keys(level) : 'no level found'
-                    });
-                    
-                    // The performanceLevel has real levelId, but we need to map it properly
-                    if (level) {
-                      // If level has levelId field, use it directly
-                      if (level.levelId) {
-                        levelId = level.levelId;
-                      } else {
-                        // Otherwise, find the corresponding level in criterion.levels by description
-                        // Can't use sessionContext here as it's still being constructed
-                        // Instead, construct levelId directly from performanceLevel index
-                        const performanceLevelIndex = criterion.performanceLevel.findIndex(l => l.description === level.description);
-                        levelId = performanceLevelIndex >= 0 ? `L${performanceLevelIndex + 1}` : null;
-                      }
-                    }
-                    
-                    console.log('DEBUG existingAssessment GROUP - Level ID extraction:', { 
-                      levelId_field: level?.levelId,
-                      level_description: level?.description,
-                      finalLevelId: levelId
-                    });
-                  }
-                }
-                
-                // Build result item based on scale type
-                let itemPoints = 0;
-                
-                if (score.inputPoints !== undefined && score.inputPoints !== null) {
-                  // For points-based scales, use the actual inputPoints
-                  itemPoints = score.inputPoints;
-                } else if (score.selectedLevel && levelId) {
-                  // For descriptive scales, calculate points from selectedLevel
-                  const selectedLevel = score.selectedLevel;
-                  if (selectedLevel.startPoint !== undefined && selectedLevel.endPoint !== undefined) {
-                    // Use the midpoint of the range as the points value
-                    itemPoints = (selectedLevel.startPoint + selectedLevel.endPoint) / 2;
-                  }
-                }
-                
-                const resultItem = {
-                  criterionId,
-                  levelId,
-                  points: itemPoints,
-                  comments: score.comment ? [{ text: score.comment }] : []
-                };
-                
-                console.log('DEBUG existingAssessment GROUP - Final item:', resultItem);
-                
-                return resultItem;
-              }),
-              overallFeedback: assessment.overallFeedback || '',
-              notes: assessment.adminNote || ''
-            } : {
-              studentId: assessment.subjectId,
-              items: scores.map((score, index) => {
-                // Find the criterion index to get the correct criterionId  
-                const criterionIndex = rubricsInfo.findIndex(c => c.description === score.description);
-                const criterionId = criterionIndex >= 0 ? `C${criterionIndex + 1}` : `C${index + 1}`;
-                
-                // Find levelId from selectedLevel or points
-                let levelId = null;
-                const criterion = rubricsInfo[criterionIndex];
-                
-                if (score.selectedLevel) {
-                  // For descriptive scales: find level by description match
-                  if (criterion?.performanceLevel) {
-                    const level = criterion.performanceLevel.find(l => l.description === score.selectedLevel.description);
-                    // Map to proper levelId
-                    if (level) {
-                      if (level.levelId) {
-                        levelId = level.levelId;
-                      } else {
-                        // Can't use sessionContext here as it's still being constructed
-                        // Instead, construct levelId directly from performanceLevel index
-                        const performanceLevelIndex = criterion.performanceLevel.findIndex(l => l.description === level.description);
-                        levelId = performanceLevelIndex >= 0 ? `L${performanceLevelIndex + 1}` : null;
-                      }
-                    }
-                  }
-                } else if (score.inputPoints !== undefined && score.inputPoints !== null) {
-                  // For points scales: find level by points range
-                  if (criterion?.performanceLevel) {
-                    const level = criterion.performanceLevel.find(l => 
-                      score.inputPoints >= l.startPoint && score.inputPoints <= l.endPoint
-                    );
-                    // Map to proper levelId
-                    if (level) {
-                      if (level.levelId) {
-                        levelId = level.levelId;
-                      } else {
-                        // Can't use sessionContext here as it's still being constructed
-                        // Instead, construct levelId directly from performanceLevel index
-                        const performanceLevelIndex = criterion.performanceLevel.findIndex(l => l.description === level.description);
-                        levelId = performanceLevelIndex >= 0 ? `L${performanceLevelIndex + 1}` : null;
-                      }
-                    }
-                  }
-                }
-                
-                // Build result item based on scale type
-                let itemPoints = 0;
-                
-                if (score.inputPoints !== undefined && score.inputPoints !== null) {
-                  // For points-based scales, use the actual inputPoints
-                  itemPoints = score.inputPoints;
-                } else if (score.selectedLevel && levelId) {
-                  // For descriptive scales, calculate points from selectedLevel
-                  const selectedLevel = score.selectedLevel;
-                  if (selectedLevel.startPoint !== undefined && selectedLevel.endPoint !== undefined) {
-                    // Use the midpoint of the range as the points value
-                    itemPoints = (selectedLevel.startPoint + selectedLevel.endPoint) / 2;
-                  }
-                }
-                
-                const resultItem = {
-                  criterionId,
-                  levelId,
-                  points: itemPoints,
-                  comments: score.comment ? [{ text: score.comment }] : []
-                };
-                
-                return resultItem;
-              })
-            })
-          }]
+          // Convert scores back into separate entities using criteriaFromMeta
+          entities: (() => {
+            const byDesc = new Map(criteriaFromMeta.map((c) => [c.description, c]));
+
+            const makeItem = (score) => {
+              const criterion = byDesc.get(score.description);
+              if (!criterion) return null;
+              // resolve levelId
+              let levelId = null;
+              if (score.selectedLevel && Array.isArray(criterion.performanceLevel)) {
+                const lvl = criterion.performanceLevel.find((l) => l.description === score.selectedLevel.description
+                  || (typeof score.selectedLevel.description === 'string' && l.description === score.selectedLevel.description));
+                levelId = lvl?.levelId || null;
+              }
+              if (!levelId && Array.isArray(criterion.performanceLevel) && (score.inputPoints ?? null) !== null) {
+                const lvl = criterion.performanceLevel.find((l) => score.inputPoints >= l.startPoint && score.inputPoints <= l.endPoint);
+                levelId = lvl?.levelId || null;
+              }
+              const points = Number(score.inputPoints || 0);
+              return {
+                criterionId: criterion.criterionId,
+                levelId,
+                points,
+                comments: score.comment ? [{ text: score.comment }] : [],
+              };
+            };
+
+            const groupItems = [];
+            const individualItems = [];
+            (scores || []).forEach((s) => {
+              const criterion = byDesc.get(s.description);
+              if (!criterion) return;
+              const item = makeItem(s);
+              if (!item) return;
+              if (criterion.appliesTo === 'GROUP') groupItems.push(item);
+              else individualItems.push(item);
+            });
+
+            const arr = [];
+            if (groupItems.length) {
+              arr.push({ kind: 'GROUP', items: groupItems, overallFeedback: assessment.overallFeedback || '', notes: assessment.adminNote || '' });
+            }
+            if (individualItems.length) {
+              arr.push({ kind: 'INDIVIDUAL', studentId: assessment.subjectId, items: individualItems });
+            }
+            return arr;
+          })()
         } : null
       };
+
+      // Enrich with weight basis and bucket weights if available
+      try {
+        const weightBasis = (rubricMeta?.weightBasis === 'points' || rubricMeta?.weightBasis === 'percentage') ? rubricMeta.weightBasis : 'percentage';
+        sessionContext.assignment.rubric.weightBasis = weightBasis;
+        if (rubricMeta?.groupWeight != null) sessionContext.assignment.groupWeight = Number(rubricMeta.groupWeight) || 0;
+        if (rubricMeta?.individualWeight != null) sessionContext.assignment.individualWeight = Number(rubricMeta.individualWeight) || 0;
+      } catch (_) {
+        // ignore
+      }
       
       console.log('DEBUG - Constructed criteria structure:', sessionContext.assignment.rubric.criteria);
       console.log('DEBUG - Constructed existingAssessment:', sessionContext.existingAssessment);
@@ -483,103 +363,119 @@ const examinerAssessmentServiceReal = {
       const subjectId = isGroup 
         ? (sessionContext?.entity?.groupId?.replace('G-', '') || 1)
         : (sessionContext?.entity?.individuals?.[0]?.studentId || 1);
+      // Split payload into group scores and per-student individualScores
+      const rubricCriteria = sessionContext?.assignment?.rubric?.criteria || [];
+      const isGroupCriterion = (criterionId) => {
+        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
+        const a = (c?.appliesTo || 'BOTH').toUpperCase();
+        return a === 'GROUP' || a === 'BOTH';
+      };
+      const isIndividualCriterion = (criterionId) => {
+        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
+        const a = (c?.appliesTo || 'BOTH').toUpperCase();
+        return a === 'INDIVIDUAL' || a === 'BOTH';
+      };
 
+      const absentSet = new Set(assessmentData?.absentStudents || []);
 
-      // Convert entities to scores format expected by backend
-      const scores = [];
-      if (assessmentData.entities && Array.isArray(assessmentData.entities)) {
-        assessmentData.entities.forEach(entity => {
-          if (entity.items && Array.isArray(entity.items)) {
-            entity.items.forEach(item => {
-              // Find the criterion info from rubric to get proper details
-              const criterion = sessionContext?.assignment?.rubric?.criteria?.find(
-                c => c.criterionId === item.criterionId
-              );
-              
-              // Get the selected level details from the criterion's performance levels
-              let selectedLevel = null;
-              
-              // Debug: Log the search process
-              console.log('🔍 SEARCH - Looking for selectedLevel:', {
-                criterionId: item.criterionId,
-                levelId: item.levelId,
-                points: item.points,
-                availableLevels: criterion?.performanceLevel?.map(l => ({
-                  levelId: l.levelId,
-                  description: l.description,
-                  range: `${l.startPoint}-${l.endPoint}`
-                }))
-              });
-              
-              
-              if (criterion?.performanceLevel && Array.isArray(criterion.performanceLevel)) {
-                // Strategy 1: Find by levelId field
-                if (item.levelId) {
-                  selectedLevel = criterion.performanceLevel.find(level => level.levelId === item.levelId);
-                  console.log('🔍 Strategy 1 (levelId):', { found: !!selectedLevel, searched: item.levelId });
-                  
-                  // Strategy 2: Find by description as fallback
-                  if (!selectedLevel) {
-                    selectedLevel = criterion.performanceLevel.find(level => level.description === item.levelId);
-                    console.log('🔍 Strategy 2 (description):', { found: !!selectedLevel, searched: item.levelId });
-                  }
-                }
-                
-                // Strategy 3: Find by points range (always try as backup)
-                if (!selectedLevel && item.points !== undefined && item.points !== null) {
-                  selectedLevel = criterion.performanceLevel.find(level => 
-                    item.points >= level.startPoint && item.points <= level.endPoint
-                  );
-                  console.log('🔍 Strategy 3 (points range):', { found: !!selectedLevel, points: item.points });
-                }
-                
-                // Strategy 4: Find closest match by distance if still not found
-                if (!selectedLevel && item.points !== undefined && item.points !== null) {
-                  let closestLevel = null;
-                  let minDistance = Infinity;
-                  
-                  criterion.performanceLevel.forEach(level => {
-                    const midPoint = (level.startPoint + level.endPoint) / 2;
-                    const distance = Math.abs(item.points - midPoint);
-                    if (distance < minDistance) {
-                      minDistance = distance;
-                      closestLevel = level;
-                    }
-                  });
-                  
-                  selectedLevel = closestLevel;
-                  console.log('🔍 Strategy 4 (closest match):', { found: !!selectedLevel, points: item.points, closest: closestLevel?.description });
-                }
-              }
-              
-              console.log('🔍 FINAL RESULT - selectedLevel:', selectedLevel ? {
-                description: selectedLevel.description,
-                range: `${selectedLevel.startPoint}-${selectedLevel.endPoint}`
-              } : 'NULL - This will cause the error!');
-              
-              // Build score entry - all criteria now include both selectedLevel and inputPoints
-              const baseEntry = {
-                description: criterion?.description || '',
-                scaleType: criterion?.scaleType || 'points',
-                weight: criterion?.weight || 0,
-                comment: item.comments && item.comments.length > 0 ? item.comments[0].text : ''
-              };
+      const buildScoreEntry = (criterion, item) => {
+        // Find selected level using levelId or points range
+        const levels = Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel : [];
+        let selectedLevel = null;
+        if (item.levelId) {
+          selectedLevel = levels.find(l => l.levelId === item.levelId) || levels.find(l => l.description === item.levelId) || null;
+        }
+        if (!selectedLevel && (item.points ?? null) !== null) {
+          selectedLevel = levels.find(l => item.points >= l.startPoint && item.points <= l.endPoint) || null;
+        }
+        if (!selectedLevel && (item.points ?? null) !== null && levels.length) {
+          // closest by midpoint
+          selectedLevel = levels.reduce((best, l) => {
+            const mid = (l.startPoint + l.endPoint) / 2;
+            const d = Math.abs((item.points || 0) - mid);
+            if (!best || d < best.d) return { l, d };
+            return best;
+          }, null)?.l || null;
+        }
+        return {
+          description: criterion?.description || '',
+          scaleType: criterion?.scaleType || 'points',
+          weight: Number(criterion?.weight) || 0,
+          comment: Array.isArray(item.comments) && item.comments.length > 0 ? (item.comments[0].text || '') : '',
+          inputPoints: Number(item.points || 0),
+          selectedLevel: selectedLevel ? {
+            description: selectedLevel.description,
+            startPoint: selectedLevel.startPoint,
+            endPoint: selectedLevel.endPoint,
+          } : null,
+        };
+      };
 
-              // All scale types now include both selectedLevel and inputPoints
-              const scoreEntry = {
-                ...baseEntry,
-                inputPoints: item.points || 0,
-                selectedLevel: selectedLevel ? {
-                  description: selectedLevel.description,
-                  startPoint: selectedLevel.startPoint,
-                  endPoint: selectedLevel.endPoint
-                } : null
-              };
-              scores.push(scoreEntry);
-            });
-          }
+      const scores = []; // group bucket
+      const individualScores = []; // per student
+
+      const entities = Array.isArray(assessmentData.entities) ? assessmentData.entities : [];
+      // Group entity → single scores list
+      const groupEntity = entities.find(e => e.kind === 'GROUP');
+      if (groupEntity?.items?.length) {
+        groupEntity.items.forEach(item => {
+          if (!isGroupCriterion(item.criterionId)) return;
+          const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
+          scores.push(buildScoreEntry(criterion, item));
         });
       }
+
+      // Individual entities → per student scores
+      const individualEntities = entities.filter(e => e.kind === 'INDIVIDUAL');
+      individualEntities.forEach(entity => {
+        const stuId = entity.studentId;
+        if (absentSet.has(stuId)) {
+          // Absent student → upload zero for each individual criterion
+          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
+          individualScores.push({
+            studentId: stuId,
+            individualFeedback: 'ABSENT',
+            scores: stuCriteria.map(c => ({
+              description: c.description || '',
+              scaleType: c.scaleType || 'points',
+              weight: Number(c.weight) || 0,
+              comment: '',
+              inputPoints: 0,
+              selectedLevel: null,
+            }))
+          });
+          return;
+        }
+        const items = Array.isArray(entity.items) ? entity.items : [];
+        const converted = items
+          .filter(item => isIndividualCriterion(item.criterionId))
+          .map(item => {
+            const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
+            return buildScoreEntry(criterion, item);
+          });
+        individualScores.push({ studentId: stuId, individualFeedback: '', scores: converted });
+      });
+
+      // Ensure all absent students are included even if no items entity exists
+      const allIndividuals = sessionContext?.entity?.individuals || [];
+      const alreadyIncluded = new Set(individualScores.map(s => s.studentId));
+      allIndividuals.forEach(stu => {
+        if (absentSet.has(stu.studentId) && !alreadyIncluded.has(stu.studentId)) {
+          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
+          individualScores.push({
+            studentId: stu.studentId,
+            individualFeedback: 'ABSENT',
+            scores: stuCriteria.map(c => ({
+              description: c.description || '',
+              scaleType: c.scaleType || 'points',
+              weight: Number(c.weight) || 0,
+              comment: '',
+              inputPoints: 0,
+              selectedLevel: null,
+            }))
+          });
+        }
+      });
 
       // Build the request payload matching backend API format for Save Draft
       // Note: Save Draft does NOT include submissionId
@@ -591,7 +487,8 @@ const examinerAssessmentServiceReal = {
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
         adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
-        scores: scores
+        scores,
+        individualScores
       };
       
       const response = await apiClient.post(
@@ -650,102 +547,114 @@ const examinerAssessmentServiceReal = {
       const subjectId = isGroup 
         ? (sessionContext?.entity?.groupId?.replace('G-', '') || 1)
         : (sessionContext?.entity?.individuals?.[0]?.studentId || 1);
+      // Split payload into group scores and per-student individualScores
+      const rubricCriteria = sessionContext?.assignment?.rubric?.criteria || [];
+      const isGroupCriterion = (criterionId) => {
+        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
+        const a = (c?.appliesTo || 'BOTH').toUpperCase();
+        return a === 'GROUP' || a === 'BOTH';
+      };
+      const isIndividualCriterion = (criterionId) => {
+        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
+        const a = (c?.appliesTo || 'BOTH').toUpperCase();
+        return a === 'INDIVIDUAL' || a === 'BOTH';
+      };
 
-      // Convert entities to scores format expected by backend
+      const absentSet = new Set(assessmentData?.absentStudents || []);
+
+      const buildScoreEntry = (criterion, item) => {
+        const levels = Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel : [];
+        let selectedLevel = null;
+        if (item.levelId) {
+          selectedLevel = levels.find(l => l.levelId === item.levelId) || levels.find(l => l.description === item.levelId) || null;
+        }
+        if (!selectedLevel && (item.points ?? null) !== null) {
+          selectedLevel = levels.find(l => item.points >= l.startPoint && item.points <= l.endPoint) || null;
+        }
+        if (!selectedLevel && (item.points ?? null) !== null && levels.length) {
+          selectedLevel = levels.reduce((best, l) => {
+            const mid = (l.startPoint + l.endPoint) / 2;
+            const d = Math.abs((item.points || 0) - mid);
+            if (!best || d < best.d) return { l, d };
+            return best;
+          }, null)?.l || null;
+        }
+        return {
+          description: criterion?.description || '',
+          scaleType: criterion?.scaleType || 'points',
+          weight: Number(criterion?.weight) || 0,
+          comment: Array.isArray(item.comments) && item.comments.length > 0 ? (item.comments[0].text || '') : '',
+          inputPoints: Number(item.points || 0),
+          selectedLevel: selectedLevel ? {
+            description: selectedLevel.description,
+            startPoint: selectedLevel.startPoint,
+            endPoint: selectedLevel.endPoint,
+          } : null,
+        };
+      };
+
       const scores = [];
-      if (assessmentData.entities && Array.isArray(assessmentData.entities)) {
-        assessmentData.entities.forEach(entity => {
-          if (entity.items && Array.isArray(entity.items)) {
-            entity.items.forEach(item => {
-              // Find the criterion info from rubric to get proper details
-              const criterion = sessionContext?.assignment?.rubric?.criteria?.find(
-                c => c.criterionId === item.criterionId
-              );
-              
-              // Get the selected level details from the criterion's performance levels
-              let selectedLevel = null;
-              
-              // Debug: Log the search process
-              console.log('🔍 SEARCH - Looking for selectedLevel:', {
-                criterionId: item.criterionId,
-                levelId: item.levelId,
-                points: item.points,
-                availableLevels: criterion?.performanceLevel?.map(l => ({
-                  levelId: l.levelId,
-                  description: l.description,
-                  range: `${l.startPoint}-${l.endPoint}`
-                }))
-              });
-              
-              
-              if (criterion?.performanceLevel && Array.isArray(criterion.performanceLevel)) {
-                // Strategy 1: Find by levelId field
-                if (item.levelId) {
-                  selectedLevel = criterion.performanceLevel.find(level => level.levelId === item.levelId);
-                  console.log('🔍 Strategy 1 (levelId):', { found: !!selectedLevel, searched: item.levelId });
-                  
-                  // Strategy 2: Find by description as fallback
-                  if (!selectedLevel) {
-                    selectedLevel = criterion.performanceLevel.find(level => level.description === item.levelId);
-                    console.log('🔍 Strategy 2 (description):', { found: !!selectedLevel, searched: item.levelId });
-                  }
-                }
-                
-                // Strategy 3: Find by points range (always try as backup)
-                if (!selectedLevel && item.points !== undefined && item.points !== null) {
-                  selectedLevel = criterion.performanceLevel.find(level => 
-                    item.points >= level.startPoint && item.points <= level.endPoint
-                  );
-                  console.log('🔍 Strategy 3 (points range):', { found: !!selectedLevel, points: item.points });
-                }
-                
-                // Strategy 4: Find closest match by distance if still not found
-                if (!selectedLevel && item.points !== undefined && item.points !== null) {
-                  let closestLevel = null;
-                  let minDistance = Infinity;
-                  
-                  criterion.performanceLevel.forEach(level => {
-                    const midPoint = (level.startPoint + level.endPoint) / 2;
-                    const distance = Math.abs(item.points - midPoint);
-                    if (distance < minDistance) {
-                      minDistance = distance;
-                      closestLevel = level;
-                    }
-                  });
-                  
-                  selectedLevel = closestLevel;
-                  console.log('🔍 Strategy 4 (closest match):', { found: !!selectedLevel, points: item.points, closest: closestLevel?.description });
-                }
-              }
-              
-              console.log('🔍 FINAL RESULT - selectedLevel:', selectedLevel ? {
-                description: selectedLevel.description,
-                range: `${selectedLevel.startPoint}-${selectedLevel.endPoint}`
-              } : 'NULL - This will cause the error!');
-              
-              // Build score entry - all criteria now include both selectedLevel and inputPoints
-              const baseEntry = {
-                description: criterion?.description || '',
-                scaleType: criterion?.scaleType || 'points',
-                weight: criterion?.weight || 0,
-                comment: item.comments && item.comments.length > 0 ? item.comments[0].text : ''
-              };
+      const individualScores = [];
 
-              // All scale types now include both selectedLevel and inputPoints
-              const scoreEntry = {
-                ...baseEntry,
-                inputPoints: item.points || 0,
-                selectedLevel: selectedLevel ? {
-                  description: selectedLevel.description,
-                  startPoint: selectedLevel.startPoint,
-                  endPoint: selectedLevel.endPoint
-                } : null
-              };
-              scores.push(scoreEntry);
-            });
-          }
+      const entities = Array.isArray(assessmentData.entities) ? assessmentData.entities : [];
+      const groupEntity = entities.find(e => e.kind === 'GROUP');
+      if (groupEntity?.items?.length) {
+        groupEntity.items.forEach(item => {
+          if (!isGroupCriterion(item.criterionId)) return;
+          const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
+          scores.push(buildScoreEntry(criterion, item));
         });
       }
+
+      const individualEntities = entities.filter(e => e.kind === 'INDIVIDUAL');
+      individualEntities.forEach(entity => {
+        const stuId = entity.studentId;
+        if (absentSet.has(stuId)) {
+          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
+          individualScores.push({
+            studentId: stuId,
+            individualFeedback: 'ABSENT',
+            scores: stuCriteria.map(c => ({
+              description: c.description || '',
+              scaleType: c.scaleType || 'points',
+              weight: Number(c.weight) || 0,
+              comment: '',
+              inputPoints: 0,
+              selectedLevel: null,
+            }))
+          });
+          return;
+        }
+        const items = Array.isArray(entity.items) ? entity.items : [];
+        const converted = items
+          .filter(item => isIndividualCriterion(item.criterionId))
+          .map(item => {
+            const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
+            return buildScoreEntry(criterion, item);
+          });
+        individualScores.push({ studentId: stuId, individualFeedback: '', scores: converted });
+      });
+
+      // Ensure all absent students are included even if no items entity exists
+      const allIndividuals2 = sessionContext?.entity?.individuals || [];
+      const alreadyIncluded2 = new Set(individualScores.map(s => s.studentId));
+      allIndividuals2.forEach(stu => {
+        if (absentSet.has(stu.studentId) && !alreadyIncluded2.has(stu.studentId)) {
+          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
+          individualScores.push({
+            studentId: stu.studentId,
+            individualFeedback: 'ABSENT',
+            scores: stuCriteria.map(c => ({
+              description: c.description || '',
+              scaleType: c.scaleType || 'points',
+              weight: Number(c.weight) || 0,
+              comment: '',
+              inputPoints: 0,
+              selectedLevel: null,
+            }))
+          });
+        }
+      });
 
       // Build the request payload matching backend API format for Complete Assessment
       const payload = {
@@ -756,7 +665,8 @@ const examinerAssessmentServiceReal = {
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
         adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
-        scores: scores
+        scores,
+        individualScores
       };
 
       
