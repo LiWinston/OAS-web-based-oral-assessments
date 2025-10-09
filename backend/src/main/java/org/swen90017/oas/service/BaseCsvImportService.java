@@ -74,10 +74,19 @@ public class BaseCsvImportService {
         log.debug("Found {} existing user emails in the database", existingEmails.size());
 
         // Filter out new students to be inserted (both student ID and email must not exist)
+        // Also filter out records with invalid email data (sisUserId is null and no email column)
         List<T> toInsert = csvData.stream()
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
+                    String csvEmail = emailExtractor != null ? emailExtractor.apply(dto) : null;
+                    
+                    // Skip records without valid email identifier
+                    if (StringUtils.isEmpty(sisUserId) && StringUtils.isEmpty(csvEmail)) {
+                        log.warn("Skipping record for student {} - missing both SIS Login ID and email", studentId);
+                        return false;
+                    }
+                    
                     String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
                     
                     boolean studentExists = existingStudentIds.contains(studentId);
@@ -187,7 +196,12 @@ public class BaseCsvImportService {
                 }
             }
             if (StringUtils.isEmpty(resolvedEmail)) {
-                resolvedEmail = sisUserIdExtractor.apply(dto) + "@student.unimelb.edu.au";
+                String sisUserId = sisUserIdExtractor.apply(dto);
+                if (StringUtils.isEmpty(sisUserId)) {
+                    log.error("Cannot create user - both sisUserId and email are empty for user: {}", userNameExtractor.apply(dto));
+                    throw new IllegalArgumentException("Missing both SIS Login ID and email for user: " + userNameExtractor.apply(dto));
+                }
+                resolvedEmail = sisUserId + "@student.unimelb.edu.au";
             }
             user.setEmail(resolvedEmail);
             users.add(user);
@@ -283,10 +297,17 @@ public class BaseCsvImportService {
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
-                    String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                    
+                    // Skip records without valid email identifier (consistent with import logic)
+                    if (StringUtils.isEmpty(sisUserId)) {
+                        log.warn("Skipping record in preview for student {} - missing SIS Login ID", studentId);
+                        return false;
+                    }
+                    
+                    String email = sisUserId + "@student.unimelb.edu.au";
                     
                     boolean studentExists = existingStudentIds.contains(studentId);
-                    boolean emailExists = email != null && existingEmails.contains(email);
+                    boolean emailExists = existingEmails.contains(email);
                     
                     return !studentExists && !emailExists;
                 })
@@ -296,10 +317,16 @@ public class BaseCsvImportService {
                 .filter(dto -> {
                     String studentId = studentIdExtractor.apply(dto);
                     String sisUserId = sisUserIdExtractor.apply(dto);
-                    String email = sisUserId != null ? sisUserId + "@student.unimelb.edu.au" : null;
+                    
+                    // Skip records without valid email identifier (consistent with import logic)
+                    if (StringUtils.isEmpty(sisUserId)) {
+                        return false;
+                    }
+                    
+                    String email = sisUserId + "@student.unimelb.edu.au";
                     
                     boolean studentExists = existingStudentIds.contains(studentId);
-                    boolean emailExists = email != null && existingEmails.contains(email);
+                    boolean emailExists = existingEmails.contains(email);
                     
                     return studentExists || emailExists;
                 })
