@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import useAdminAssignments from "@/hooks/admin/useAdminAssignments.js";
 import ReportsLayout from "@/components/admin/reports/ReportsLayout.jsx";
@@ -143,7 +144,7 @@ const buildShareUrl = ({ assignmentId, date, status, venue }) => {
   if (assignmentId) params.set("assignmentId", assignmentId);
   if (date) params.set("date", date);
   if (status && status !== "all") params.set("status", status);
-  if (venue && venue !== "all") params.set("venue", venue);
+  if (venue && venue !== "all") params.set("venueId", venue);
   return `${window.location.origin}/admin/reports/scheduling?${params.toString()}`;
 };
 
@@ -211,6 +212,7 @@ const exportCsv = (assignmentId, sessions) => {
 export default function SchedulingOverviewReportPage() {
   const { user } = useAuthStore();
   const adminId = user?.id;
+  const searchParams = useSearchParams();
 
   const { assignments } = useAdminAssignments(adminId, { enabled: Boolean(adminId) });
 
@@ -238,6 +240,28 @@ export default function SchedulingOverviewReportPage() {
     touchRefreshed,
     resetFilters,
   } = useSchedulingReportStore();
+
+  // Hydrate state from URL params for shareable views
+  useEffect(() => {
+    if (!searchParams) return;
+    const aId = searchParams.get("assignmentId");
+    const date = searchParams.get("date");
+    const status = searchParams.get("status");
+    const venueFromId = searchParams.get("venueId");
+    const venueLegacy = searchParams.get("venue");
+    if (aId) setAssignmentId(String(aId));
+    if (date) {
+      setSelectedDate(toDateKey(date));
+      const mk = toMonthKeyFromDateKey(toDateKey(date));
+      if (mk) setSelectedMonth(mk);
+    }
+    if (status && ["fully", "partial", "none", "all"].includes(status)) {
+      setStatusFilter(status);
+    }
+    const v = venueFromId || venueLegacy;
+    if (v) setVenueFilter(String(v));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   // Default assignment selection
   useEffect(() => {
@@ -280,11 +304,14 @@ export default function SchedulingOverviewReportPage() {
 
   const sessionParams = useMemo(() => {
     const trimmedSearch = searchTerm?.trim() || "";
-    return {
+    const params = {
       date: selectedDate,
       q: trimmedSearch ? trimmedSearch : undefined,
     };
-  }, [selectedDate, searchTerm]);
+    if (statusFilter && statusFilter !== "all") params.status = statusFilter;
+    if (venueFilter && venueFilter !== "all") params.venueId = isNaN(Number(venueFilter)) ? venueFilter : Number(venueFilter);
+    return params;
+  }, [selectedDate, searchTerm, statusFilter, venueFilter]);
 
   const sessionsQuery = useSchedulingSessions(assignmentId, sessionParams, {
     enabled: Boolean(assignmentId && selectedDate),
@@ -775,6 +802,17 @@ export default function SchedulingOverviewReportPage() {
       sideRail={sideRail}
     >
       <div className="space-y-6">
+        {/* Warnings and errors */}
+        {(calendarQuery.isError || assignmentMetaQuery.isError || publishStatusQuery.isError || sessionsQuery.data?.outsideAssignmentRange) && (
+          <div className="rounded-3xl border border-amber-200 bg-amber-50 px-6 py-4 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/30 dark:text-amber-200">
+            <ul className="list-disc pl-5 space-y-1">
+              {calendarQuery.isError && <li>Failed to load calendar data.</li>}
+              {assignmentMetaQuery.isError && <li>Failed to load assignment metadata.</li>}
+              {publishStatusQuery.isError && <li>Failed to load publish status.</li>}
+              {sessionsQuery.data?.outsideAssignmentRange && <li>Selected date is outside of the assignment window.</li>}
+            </ul>
+          </div>
+        )}
         {summaryStrip}
         {calendarSection}
         {chartsSection}

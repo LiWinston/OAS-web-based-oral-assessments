@@ -1,16 +1,11 @@
-import mockService from "@/services/adminSchedulingReportService.mock";
 import realService from "@/services/adminSchedulingReportService.real";
 
-const mockFlag = process.env.NEXT_PUBLIC_USE_MOCK_REPORTS ?? process.env.NEXT_PUBLIC_USE_MOCK_API ?? "true";
-const USE_MOCKS = String(mockFlag).toLowerCase() === "true";
-
-const service = USE_MOCKS ? mockService : realService;
-
+// Always use REAL service; mock and fallback removed per product decision
 if (typeof window !== "undefined") {
   // eslint-disable-next-line no-console
-  console.info(`[AdminSchedulingReportService] Using ${USE_MOCKS ? "MOCK" : "REAL"} implementation`);
+  console.info("[AdminSchedulingReportService] Using REAL implementation");
 }
 
-export default service;
+export default realService;
 
-export const adminSchedulingReportService = service;
+export const adminSchedulingReportService = realService;

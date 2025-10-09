@@ -1,15 +1,5 @@
 import apiClient from "@/services/apiClient.js";
 import { courseAdminSessionService } from "@/services/courseAdminSessionService.js";
-import mockService from "@/services/adminSchedulingReportService.mock";
-
-const fallbackFlag = String(process.env.NEXT_PUBLIC_REPORT_FALLBACK || "false").toLowerCase();
-const FALLBACK_ENABLED = fallbackFlag === "true" || fallbackFlag === "1";
-
-const logFallback = (scope, error) => {
-  if (!FALLBACK_ENABLED || typeof window === "undefined") return;
-  // eslint-disable-next-line no-console
-  console.warn(`[AdminSchedulingReportService] Falling back to mock data for ${scope}`, error?.message || error);
-};
 
 const withStaffingStatus = (session) => {
   const assigned = session?.assignedExaminers?.length || 0;
@@ -112,88 +102,52 @@ const computeSummary = (sessions = [], backendSummary = {}) => {
 
 const adminSchedulingReportServiceReal = {
   async getCalendar(assignmentId, month) {
-    try {
-      const result = await courseAdminSessionService.getSessionsCalendar(assignmentId, month);
-      return { success: true, data: result?.data || {} };
-    } catch (error) {
-      logFallback("calendar", error);
-      if (FALLBACK_ENABLED) {
-        const fallback = await mockService.getCalendar(assignmentId, month);
-        return { ...fallback, fallback: true };
-      }
-      throw error;
-    }
+    const result = await courseAdminSessionService.getSessionsCalendar(assignmentId, month);
+    return { success: true, data: result?.data || {} };
   },
 
   async getSessions(assignmentId, params = {}) {
-    try {
-      const response = await courseAdminSessionService.getSessions(assignmentId, params);
-      const sessions = normaliseSessionsResponse(response?.data);
-      const summary = computeSummary(sessions, response?.summary || {});
-      const venues = deriveVenues(sessions);
-      const outsideAssignmentRange = Boolean(response?.outsideAssignmentRange);
+    const response = await courseAdminSessionService.getSessions(assignmentId, params);
+    const sessions = normaliseSessionsResponse(response?.data);
+    const summary = computeSummary(sessions, response?.summary || {});
+    const venues = deriveVenues(sessions);
+    const outsideAssignmentRange = Boolean(response?.outsideAssignmentRange);
 
-      return {
-        success: true,
-        data: {
-          sessions,
-          summary,
-          venues,
-          outsideAssignmentRange,
-        },
-      };
-    } catch (error) {
-      logFallback("sessions", error);
-      if (FALLBACK_ENABLED) {
-        const fallback = await mockService.getSessions(assignmentId, params);
-        return { ...fallback, fallback: true };
-      }
-      throw error;
-    }
+    return {
+      success: true,
+      data: {
+        sessions,
+        summary,
+        venues,
+        outsideAssignmentRange,
+      },
+    };
   },
 
   async getPublishStatus(assignmentId) {
-    try {
-      const response = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-      return { success: true, data: response?.data || { examiners: false, students: false } };
-    } catch (error) {
-      logFallback("publish-status", error);
-      if (FALLBACK_ENABLED) {
-        const fallback = await mockService.getPublishStatus(assignmentId);
-        return { ...fallback, fallback: true };
-      }
-      throw error;
-    }
+    const response = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+    return { success: true, data: response?.data || { examiners: false, students: false } };
   },
 
   async getAssignmentMeta(assignmentId) {
-    try {
-      const resp = await apiClient.get(`/api/assignments/${assignmentId}`);
-      const payload = resp?.data?.data || resp?.data || null;
-      if (!payload) {
-        return { success: false, data: null };
-      }
-
-      return {
-        success: true,
-        data: {
-          id: payload.id ?? assignmentId,
-          name: payload.name ?? payload.assignmentName ?? "",
-          courseName: payload.courseName ?? payload.course?.name ?? payload.course?.courseName,
-          courseCode: payload.courseCode ?? payload.course?.code ?? payload.course?.courseCode,
-          windowStart: payload.startDate ?? payload.windowStart,
-          windowEnd: payload.endDate ?? payload.windowEnd,
-          timezone: payload.timezone ?? "Australia/Melbourne",
-        },
-      };
-    } catch (error) {
-      logFallback("assignment-meta", error);
-      if (FALLBACK_ENABLED) {
-        const fallback = await mockService.getAssignmentMeta(assignmentId);
-        return { ...fallback, fallback: true };
-      }
-      throw error;
+    const resp = await apiClient.get(`/api/assignments/${assignmentId}`);
+    const payload = resp?.data?.data || resp?.data || null;
+    if (!payload) {
+      return { success: false, data: null };
     }
+
+    return {
+      success: true,
+      data: {
+        id: payload.id ?? assignmentId,
+        name: payload.name ?? payload.assignmentName ?? "",
+        courseName: payload.courseName ?? payload.course?.name ?? payload.course?.courseName,
+        courseCode: payload.courseCode ?? payload.course?.code ?? payload.course?.courseCode,
+        windowStart: payload.startDate ?? payload.windowStart,
+        windowEnd: payload.endDate ?? payload.windowEnd,
+        timezone: payload.timezone ?? "Australia/Melbourne",
+      },
+    };
   },
 };
 
