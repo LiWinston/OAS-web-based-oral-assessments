@@ -1,5 +1,6 @@
 "use client";
 import React, { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { examinerTimeslotService } from '@/services/examinerTimeslotService';
 import { useExaminerAuth } from '@/hooks/useExaminerAuth';
@@ -12,6 +13,7 @@ import { toLocalDateKey } from '@/utils/dateUtils';
 import useScheduleFilterStore from '@/store/scheduleFilterStore';
 
 const ExaminerCalendar = () => {
+  const router = useRouter();
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -520,8 +522,11 @@ const ExaminerCalendar = () => {
                 {selectedEvent.isBooked && (
                   <button
                     onClick={() => {
-                      // Navigate to assessment page
+                      // Navigate to assessment session page: /examiner/assessment/{assignmentId}/{sessionId}
+                      const assignmentId = selectedEvent.assignmentId;
+                      const sessionId = selectedEvent.sessionId || selectedEvent.slotId;
                       setShowEventModal(false);
+                      router.push(`/examiner/assessment/${assignmentId}/${sessionId}`);
                     }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
                   >

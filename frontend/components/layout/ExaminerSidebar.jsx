@@ -31,16 +31,6 @@ const navigationItems = [
     ],
   },
   {
-    section: "CONFIGURATION",
-    items: [
-      {
-        href: "/examiner/settings",
-        icon: "fas fa-cog",
-        label: "Settings",
-      },
-    ],
-  },
-  {
     section: "HELP",
     items: [
       {

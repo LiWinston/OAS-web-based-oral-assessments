@@ -98,7 +98,7 @@ export default function ExaminerSchedule() {
       );
       const assignments = res?.data?.assignments || [];
       const events = assignments.flatMap((a) =>
-        a.slots.map((s) => ({
+        (a.sessions || a.slots || []).map((s) => ({
           assignmentId: a.assignmentId,
           assignmentName: a.assignmentName,
           courseCode: a.courseCode,
@@ -143,15 +143,19 @@ export default function ExaminerSchedule() {
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
         "PRODID:-//OAS//Examiner Schedule//EN",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
       ];
       filtered.forEach((e) => {
+        if (!e.start || !e.end) return; // skip invalid events
         const uid = `${e.assignmentId}-${e.start}-${e.end}@oas`;
         const dtStart = toICSDate(e.start);
         const dtEnd = toICSDate(e.end);
         const summary = `${e.courseCode} ${e.assignmentName}`;
-        const location = e.venue
-          ? `${e.venue.name} ${e.venue.building} ${e.venue.room}`
-          : "";
+        const v = e.venue || {};
+        const name = v.venueName || v.name || "";
+        const where = [v.building, v.room].filter(Boolean).join(" ");
+        const location = [name, where].filter(Boolean).join(", ");
         const desc =
           e.participants && e.participants.length
             ? `Participants: ${e.participants.join(", ")}`
@@ -164,6 +168,7 @@ export default function ExaminerSchedule() {
         icsLines.push(`SUMMARY:${escapeICS(summary)}`);
         if (location) icsLines.push(`LOCATION:${escapeICS(location)}`);
         if (desc) icsLines.push(`DESCRIPTION:${escapeICS(desc)}`);
+        icsLines.push("STATUS:CONFIRMED");
         icsLines.push("END:VEVENT");
       });
       icsLines.push("END:VCALENDAR");

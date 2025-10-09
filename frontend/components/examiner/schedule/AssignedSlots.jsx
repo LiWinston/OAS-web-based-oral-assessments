@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { examinerTimeslotService } from "../../../services/examinerTimeslotService";
 import { useExaminerAuth } from "../../../hooks/useExaminerAuth";
@@ -34,6 +35,7 @@ function formatDate(isoString) {
 // centralized formatter used via import
 
 export default function AssignedSlots({ showDebugSection = false }) {
+  const router = useRouter();
   const { examinerId, isValidExaminer } = useExaminerAuth();
   const { selectedCourse, assessmentType } = useScheduleFilterStore();
   const { withdrawFromSession, isSubmitting, canWithdraw } =
@@ -333,8 +335,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
                           {slot.bookingCount > 0 && (
                             <Button
                               onClick={() => {
-                                // Navigate to assessment page with sessionId
-                                window.location.href = `/examiner/assessment/${slot.slotId}`;
+                                // Navigate to assessment page: /examiner/assessment/{assignmentId}/{sessionId}
+                                const assignmentId = slot.assignmentId;
+                                const sessionId = slot.sessionId || slot.slotId;
+                                router.push(`/examiner/assessment/${assignmentId}/${sessionId}`);
                               }}
                               variant="default"
                               size="sm"
@@ -430,8 +434,10 @@ export default function AssignedSlots({ showDebugSection = false }) {
                         <div className="flex items-end">
                           <Button
                             onClick={() => {
-                              // Navigate to assessment page to view/edit assessment
-                              window.location.href = `/examiner/assessment/${slot.slotId}`;
+                              // Navigate to session assessments page
+                              const assignmentId = slot.assignmentId;
+                              const sessionId = slot.sessionId || slot.slotId;
+                              router.push(`/examiner/assessment/${assignmentId}/${sessionId}`);
                             }}
                             variant="outline"
                             size="sm"
