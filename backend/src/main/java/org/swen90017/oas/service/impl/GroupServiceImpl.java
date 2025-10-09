@@ -207,35 +207,63 @@ public class GroupServiceImpl implements GroupService {
 
     /**
      * Create or get group information
+     * Optimized logic: Collect all unique canvas_group_ids, batch query existing ones, then only insert new ones
      */
     private Map<String, SysGroup> createOrGetGroups(List<GroupCSVRequestDTO> dtos, Long assignmentId) {
         Map<String, SysGroup> groupMap = new HashMap<>();
         
+        // Step 1: Collect all unique canvas_group_ids and their corresponding group names
+        Map<String, String> canvasGroupIdToName = new LinkedHashMap<>();
         for (GroupCSVRequestDTO dto : dtos) {
             String canvasGroupId = dto.getCanvasGroupId();
-            if (canvasGroupId != null && !groupMap.containsKey(canvasGroupId)) {
-                // Look for existing group with same canvas_group_id and assignment_id
-                QueryWrapper<SysGroup> queryWrapper = new QueryWrapper<>();
-                queryWrapper.eq("canvas_group_id", canvasGroupId);
-                if (assignmentId != null) {
-                    queryWrapper.eq("assignment_id", assignmentId);
-                }
-                SysGroup group = groupMapper.selectOne(queryWrapper);
-                
-                if (group == null) {
-                    group = new SysGroup();
-                    group.setGroupName(dto.getGroupName());
-                    group.setCanvasGroupId(canvasGroupId);
-                    group.setAssignmentId(assignmentId);
-                    group.setCreateTime(LocalDateTime.now());
-                    groupMapper.insert(group);
-                    log.debug("Created new group with ID: {} for assignment: {}", group.getGroupId(), assignmentId);
-                }
-                groupMap.put(canvasGroupId, group);
+            if (canvasGroupId != null && !canvasGroupIdToName.containsKey(canvasGroupId)) {
+                canvasGroupIdToName.put(canvasGroupId, dto.getGroupName());
             }
         }
         
-        log.info("Processed {} groups for assignment {}", groupMap.size(), assignmentId);
+        if (canvasGroupIdToName.isEmpty()) {
+            log.info("No groups to process for assignment {}", assignmentId);
+            return groupMap;
+        }
+        
+        // Step 2: Batch query existing groups
+        QueryWrapper<SysGroup> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("canvas_group_id", canvasGroupIdToName.keySet());
+        if (assignmentId != null) {
+            queryWrapper.eq("assignment_id", assignmentId);
+        }
+        List<SysGroup> existingGroups = groupMapper.selectList(queryWrapper);
+        
+        // Add existing groups to map
+        for (SysGroup group : existingGroups) {
+            groupMap.put(group.getCanvasGroupId(), group);
+        }
+        log.info("Found {} existing groups for assignment {}", existingGroups.size(), assignmentId);
+        
+        // Step 3: Find new canvas_group_ids and batch insert
+        List<SysGroup> newGroups = new ArrayList<>();
+        for (Map.Entry<String, String> entry : canvasGroupIdToName.entrySet()) {
+            String canvasGroupId = entry.getKey();
+            if (!groupMap.containsKey(canvasGroupId)) {
+                SysGroup group = new SysGroup();
+                group.setGroupName(entry.getValue());
+                group.setCanvasGroupId(canvasGroupId);
+                group.setAssignmentId(assignmentId);
+                group.setCreateTime(LocalDateTime.now());
+                newGroups.add(group);
+            }
+        }
+        
+        // Batch insert new groups
+        if (!newGroups.isEmpty()) {
+            for (SysGroup group : newGroups) {
+                groupMapper.insert(group);
+                groupMap.put(group.getCanvasGroupId(), group);
+            }
+            log.info("Created {} new groups for assignment {}", newGroups.size(), assignmentId);
+        }
+        
+        log.info("Processed total {} groups for assignment {}", groupMap.size(), assignmentId);
         return groupMap;
     }
 
