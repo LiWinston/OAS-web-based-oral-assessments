@@ -63,7 +63,7 @@ public class GroupServiceImpl implements GroupService {
                 dtos,
                 GroupCSVRequestDTO::getStudentId,    // Student ID extractor (maps to "Student Id")
                 GroupCSVRequestDTO::getStudent,      // Username extractor (maps to "Student")
-                GroupCSVRequestDTO::getSisLoginId,   // SIS user ID extractor (maps to "SIS Login ID")
+                GroupCSVRequestDTO::getLoginId,      // Login ID extractor (maps to "login_id" column, used to build email)
                 GroupCSVRequestDTO::getEmail         // Email extractor
         );
 
@@ -125,8 +125,8 @@ public class GroupServiceImpl implements GroupService {
         
         Set<String> csvEmails = dtos.stream()
                 .map(dto -> {
-                    if (dto.getSisLoginId() != null && !dto.getSisLoginId().isEmpty()) {
-                        return dto.getSisLoginId() + "@student.unimelb.edu.au";
+                    if (dto.getLoginId() != null && !dto.getLoginId().isEmpty()) {
+                        return dto.getLoginId() + "@student.unimelb.edu.au";
                     }
                     return dto.getEmail();
                 })
@@ -316,9 +316,9 @@ public class GroupServiceImpl implements GroupService {
             } else if (dto != null) {
                 // Student record with this student_number doesn't exist
                 // But the email might belong to an existing student with different student_number
-                String sisLoginId = dto.getSisLoginId();
-                if (sisLoginId != null) {
-                    String email = sisLoginId + "@student.unimelb.edu.au";
+                String loginId = dto.getLoginId();
+                if (loginId != null) {
+                    String email = loginId + "@student.unimelb.edu.au";
                     SysUser user = sysUserMapper.selectOne(new QueryWrapper<SysUser>().eq("email", email));
                     
                     if (user != null) {
@@ -383,7 +383,7 @@ public class GroupServiceImpl implements GroupService {
         Map<String, Object> previewData = baseCsvImportService.previewImport(
                 groupDTOs,
                 GroupCSVRequestDTO::getStudentId,    // Maps to "Student Id"
-                GroupCSVRequestDTO::getSisLoginId    // Maps to "SIS Login ID"
+                GroupCSVRequestDTO::getLoginId       // Maps to "login_id" column
         );
 
         // Calculate unique group count
