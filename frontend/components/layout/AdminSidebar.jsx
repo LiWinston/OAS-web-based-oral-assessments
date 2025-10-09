@@ -13,8 +13,7 @@ const navigationItems = [
     items: [
       { href: '/admin', icon: 'fas fa-tachometer-alt', label: 'Dashboard', exact: true },
       { href: '/admin/courses', icon: 'fas fa-book', label: 'Courses' },
-      { href: '/admin/users', icon: 'fas fa-users', label: 'Users' },
-      { href: '/admin/notifications', icon: 'fas fa-bell', label: 'Notifications' }
+      { href: '/admin/users', icon: 'fas fa-users', label: 'Users' }
     ]
   },
   {

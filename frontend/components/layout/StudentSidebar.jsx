@@ -40,7 +40,7 @@ const navigationItems = [
         icon: "fas fa-question-circle",
         label: "Help Center",
       },
-      { href: "/student/settings", icon: "fas fa-cog", label: "Settings" },
+      // Settings removed per product decision
     ],
   },
 ];
