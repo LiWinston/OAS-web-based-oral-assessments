@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import useAuth from '../../../hooks/useAuth';
 import ResultsFilters from '../../../components/examiner/results/ResultsFilters';
@@ -8,6 +8,20 @@ import ResultsTable from '../../../components/examiner/results/ResultsTable';
 import { useExaminerResultsQuery } from '../../../hooks/examiner/results/useExaminerResultsQuery';
 
 export default function ExaminerResultsPage() {
+  return (
+    <Suspense
+      fallback={(
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      )}
+    >
+      <ExaminerResultsPageContent />
+    </Suspense>
+  );
+}
+
+function ExaminerResultsPageContent() {
   const { userId } = useAuth();
   const searchParams = useSearchParams();
   const preselectedAssignmentId = searchParams.get('assignmentId') || undefined;
