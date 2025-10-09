@@ -10,7 +10,9 @@ import {
   toggleFavourite,
   getFavourites,
   getRecents,
+  clearRecents,
 } from '@/search/persistence';
+import { tokenize, scoreItem } from '@/search/ranking';
 
 const isInputLikeElement = (element) => {
   if (!element) return false;
@@ -241,7 +243,54 @@ export function GlobalSearchPalette() {
       .filter(Boolean);
   }, [sections, query]);
 
-  const allItems = useMemo(() => flattenSections(sectionData), [sectionData]);
+  // Build enhanced sections list with a global "Best matches" block between pinned and others
+  const enhancedSections = useMemo(() => {
+    if (!Array.isArray(sections)) return [];
+    const pinnedIds = new Set(['.favourites', '.recents']);
+
+    const filtered = sectionData;
+
+    if (!query) return filtered; // no best-matches without query
+
+    // Build candidate pool from raw sections (not limited by per-section defaultLimit)
+    const othersRaw = (sections || []).filter(
+      (s) => !(s?.id?.endsWith('.favourites') || s?.id?.endsWith('.recents'))
+    );
+    const poolMap = new Map();
+    othersRaw.forEach((s) => {
+      const its = Array.isArray(s.items) ? s.items : [];
+      its.forEach((it) => {
+        if (it?.id && !poolMap.has(it.id)) {
+          poolMap.set(it.id, it);
+        }
+      });
+    });
+
+    const tokens = tokenize(query);
+    const ranked = Array.from(poolMap.values())
+      .map((it) => ({ it, score: scoreItem(tokens, it) }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10)
+      .map((x) => x.it);
+
+    if (!ranked.length) return filtered;
+
+    const pinned = filtered.filter((s) => s?.id?.endsWith('.favourites') || s?.id?.endsWith('.recents'));
+    const others = filtered.filter((s) => !(s?.id?.endsWith('.favourites') || s?.id?.endsWith('.recents')));
+
+    return [
+      ...pinned,
+      {
+        id: 'global.best-matches',
+        label: 'Best matches',
+        items: ranked,
+      },
+      ...others,
+    ];
+  }, [sections, sectionData, query]);
+
+  const allItems = useMemo(() => flattenSections(enhancedSections), [enhancedSections]);
 
   const closePalette = useCallback(() => {
     setOpen(false);
@@ -364,23 +413,50 @@ export function GlobalSearchPalette() {
     [shouldAllowFavourite, role, userId, syncSections]
   );
 
+  const handleClearRecents = useCallback(
+    (event) => {
+      event?.preventDefault?.();
+      if (!enablePersistence || !hasRecentsSection) return;
+      clearRecents(role, userId);
+      syncSections({ recentsList: [] });
+      setHighlightedIndex(0);
+    },
+    [enablePersistence, hasRecentsSection, role, userId, syncSections]
+  );
+
+  const safeDomId = (str) => String(str || '').replace(/[^a-z0-9_-]+/gi, '-');
+
   const renderSection = (section, startIndex) => {
     return (
       <div key={section.id} className="mt-4 first:mt-0">
-        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-          {section.label}
+        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center justify-between">
+          <span>{section.label}</span>
+          {section.id?.endsWith('.recents') && enablePersistence && (
+            <button
+              type="button"
+              onClick={handleClearRecents}
+              className="text-[11px] text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              aria-label="Clear recents"
+            >
+              Clear
+            </button>
+          )}
         </div>
         <div className="rounded-lg border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700 overflow-hidden">
           {section.items.map((item, index) => {
             const flatIndex = startIndex + index;
             const isActive = highlightedIndex === flatIndex;
             const isFavourite = Boolean(item.isFavourite);
+            const optionId = `gs-item-${safeDomId(section.id)}-${safeDomId(item.id)}`;
             return (
               <button
                 key={item.id}
                 type="button"
                 onMouseEnter={() => setHighlightedIndex(flatIndex)}
                 onClick={() => handleSelect(item, section.id)}
+                role="option"
+                id={optionId}
+                aria-selected={isActive}
                 className={`w-full flex flex-col items-start px-4 py-3 text-left transition-colors ${
                   isActive
                     ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-100'
@@ -433,11 +509,22 @@ export function GlobalSearchPalette() {
 
   let runningIndex = 0;
 
+  const activeEntry = allItems[highlightedIndex];
+  const activeId = activeEntry
+    ? `gs-item-${safeDomId(activeEntry.section)}-${safeDomId(activeEntry.item.id)}`
+    : undefined;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4 backdrop-blur-sm bg-black/30"
       role="dialog"
       aria-modal="true"
+      onMouseDown={(e) => {
+        // close when clicking outside the panel
+        if (e.target === e.currentTarget) {
+          closePalette();
+        }
+      }}
     >
       <div className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -453,8 +540,26 @@ export function GlobalSearchPalette() {
               placeholder="Search courses, assignments, or actions"
               className="flex-1 bg-transparent text-sm text-gray-800 dark:text-gray-100 placeholder:text-gray-400 outline-none"
               aria-label="Global search"
+              aria-controls="global-search-results"
             />
             <div className="text-xs text-gray-400 dark:text-gray-500 ml-3">⌘K</div>
+            <button
+              type="button"
+              onClick={closePalette}
+              className="ml-3 p-1.5 rounded-md text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+              aria-label="Close search"
+              title="Close"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+            <button
+              type="button"
+              onClick={closePalette}
+              className="ml-2 px-2 py-1 rounded-md text-xs border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+              aria-label="Cancel"
+            >
+              Cancel
+            </button>
           </div>
         </div>
 
@@ -462,6 +567,8 @@ export function GlobalSearchPalette() {
           className="max-h-96 overflow-y-auto px-4 py-4"
           role="listbox"
           aria-live="polite"
+          aria-activedescendant={activeId}
+          id="global-search-results"
         >
           {loading && (
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -482,7 +589,7 @@ export function GlobalSearchPalette() {
           )}
 
           {!loading && !error &&
-            sectionData.map((section) => {
+            enhancedSections.map((section) => {
               const rendered = renderSection(section, runningIndex);
               runningIndex += section.items.length;
               return rendered;

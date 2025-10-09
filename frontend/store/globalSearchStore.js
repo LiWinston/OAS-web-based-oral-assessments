@@ -7,6 +7,7 @@ export const useGlobalSearchStore = create((set) => ({
   error: "",
   sections: [],
   lastFetchedKey: null,
+  lastFetchedAt: 0,
   setOpen: (isOpen) => set({ isOpen }),
   setQuery: (query) => set({ query }),
   setLoading: (loading) => set({ loading }),
@@ -16,5 +17,6 @@ export const useGlobalSearchStore = create((set) => ({
       sections: typeof sections === "function" ? sections(state.sections) : sections,
     })),
   setLastFetchedKey: (lastFetchedKey) => set({ lastFetchedKey }),
+  setLastFetchedAt: (ts) => set({ lastFetchedAt: ts || Date.now() }),
   reset: () => set({ query: "", isOpen: false }),
 }));

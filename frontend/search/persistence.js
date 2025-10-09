@@ -62,10 +62,13 @@ const upsertItem = (items, item, limit, { timestampField = 'updatedAt', timestam
 
 const RECENTS_LIMIT = 15;
 const FAVOURITES_LIMIT = 50;
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 export const getRecents = (role, userId) => {
   const key = storageKey('recents', role, userId);
-  const list = readList(key);
+  const now = Date.now();
+  const list = readList(key)
+    .filter((item) => !item.updatedAt || now - item.updatedAt <= ONE_DAY_MS); // TTL: 1 day
   return list
     .filter((item) => item && item.id && item.href && item.title)
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
@@ -81,9 +84,17 @@ export const addRecent = (role, userId, item) => {
   return next;
 };
 
+export const clearRecents = (role, userId) => {
+  const key = storageKey('recents', role, userId);
+  writeList(key, []);
+  return [];
+};
+
 export const getFavourites = (role, userId) => {
   const key = storageKey('favourites', role, userId);
-  const list = readList(key);
+  const now = Date.now();
+  const list = readList(key)
+    .filter((item) => !item.favouritedAt || now - item.favouritedAt <= ONE_DAY_MS); // TTL: 1 day
   return list
     .filter((item) => item && item.id && item.href && item.title)
     .sort((a, b) => (b.favouritedAt ?? 0) - (a.favouritedAt ?? 0));
@@ -130,5 +141,27 @@ export const toggleFavourite = (role, userId, item, explicitState) => {
 export const getFavouritesSet = (role, userId) => {
   const favourites = getFavourites(role, userId);
   return new Set(favourites.map((item) => item.id));
+};
+
+// Purge helpers for removing stale entries that no longer exist in current catalog
+const pruneListByIds = (list, validIdsSet) => {
+  if (!Array.isArray(list) || !validIdsSet) return list || [];
+  return list.filter((item) => item?.id && validIdsSet.has(item.id));
+};
+
+export const pruneRecents = (role, userId, validIdsSet) => {
+  const key = storageKey('recents', role, userId);
+  const current = readList(key);
+  const pruned = pruneListByIds(current, validIdsSet);
+  writeList(key, pruned);
+  return pruned;
+};
+
+export const pruneFavourites = (role, userId, validIdsSet) => {
+  const key = storageKey('favourites', role, userId);
+  const current = readList(key);
+  const pruned = pruneListByIds(current, validIdsSet);
+  writeList(key, pruned);
+  return pruned;
 };
 

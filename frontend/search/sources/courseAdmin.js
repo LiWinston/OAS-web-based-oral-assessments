@@ -283,7 +283,7 @@ const buildAssignmentItems = (assignment, course) => {
         .filter(Boolean)
         .join(' • ') || 'Assessment Results',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/results`,
-    keywords: `${baseKeywords} results moderation release ${releaseStatus || ''} ${markingProgress || ''}`,
+    keywords: `${baseKeywords} results result moderation release 成绩 分数 mark marks ${releaseStatus || ''} ${markingProgress || ''}`,
   };
 
   const rubricItem = {
@@ -294,7 +294,7 @@ const buildAssignmentItems = (assignment, course) => {
         .filter(Boolean)
         .join(' • ') || 'Rubric configuration',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/rubric`,
-    keywords: `${baseKeywords} rubric criteria feedback ${rubricSummary || ''}`,
+    keywords: `${baseKeywords} rubric criteria 评分标准 feedback ${rubricSummary || ''}`,
   };
 
   const scheduleItem = {
@@ -305,7 +305,7 @@ const buildAssignmentItems = (assignment, course) => {
         .filter(Boolean)
         .join(' • ') || 'Session scheduling',
     href: `/admin/courses/${courseId}/assignments/${assignmentId}/timeslots`,
-    keywords: `${baseKeywords} timeslots schedule timeslots availability ${scheduleSummary || ''}`,
+    keywords: `${baseKeywords} timeslot timeslots session sessions schedule booking 排期 时段 availability ${scheduleSummary || ''}`,
   };
 
   return {
