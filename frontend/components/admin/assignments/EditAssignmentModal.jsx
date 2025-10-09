@@ -83,13 +83,8 @@ export function EditAssignmentModal({
       setHasChanges(false);
       setValidationErrors({});
 
-      const initialCsvType =
-        assignment.type === 'group' || assignment.type === 'mixed'
-          ? 'group'
-          : 'student';
-
       setRosterData({
-        student: { file: null, type: initialCsvType, previewData: null },
+        student: { file: null, type: 'student', previewData: null },
         examiner: { file: null, previewData: null },
         group: { file: null, previewData: null },
       });
@@ -114,19 +109,6 @@ export function EditAssignmentModal({
       setHasChanges(changed);
     }
   }, [formData, assignment]);
-
-  useEffect(() => {
-    setRosterData((prev) => ({
-      ...prev,
-      student: {
-        ...prev.student,
-        type:
-          formData.type === 'group' || formData.type === 'mixed'
-            ? 'group'
-            : 'student',
-      },
-    }));
-  }, [formData.type]);
 
   // Validate form
   const validateForm = () => {
@@ -226,10 +208,6 @@ export function EditAssignmentModal({
       [type]: { loading: false, error: null },
     }));
 
-    setRosterImportStatus((prev) => ({
-      ...prev,
-      [type]: { loading: false, error: null, success: false, timestamp: null },
-    }));
   };
 
   const handleRosterPreview = async (type) => {
@@ -263,7 +241,7 @@ export function EditAssignmentModal({
         if (!previewStudentCsv) {
           throw new Error('Student preview service not available');
         }
-        result = await previewStudentCsv(current.file, current.type || 'student');
+        result = await previewStudentCsv(current.file, 'student');
       }
 
       const payload = extractPreviewPayload(result);
@@ -302,95 +280,119 @@ export function EditAssignmentModal({
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
+
+    const shouldUpdateDetails = hasChanges;
+    const hasRosterUploads = Boolean(
+      rosterData.student.file || rosterData.examiner.file || rosterData.group.file
+    );
+
+    if (!shouldUpdateDetails && !hasRosterUploads) {
+      showNotification('info', 'No changes detected to update.');
+      return;
+    }
+
+    if (shouldUpdateDetails && !validateForm()) {
       return;
     }
 
     setIsSubmitting(true);
-    
+
     try {
-      const updateData = {
-        id: assignment.id,
-        subjectId: assignment.subjectId,
-        name: formData.name,
-        description: formData.description,
-        type: formData.type,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        weight: Number(formData.weight),
-      };
-      
-      const result = await assignmentService.updateAssignment(assignment.id, updateData);
-      
-      if (result.success) {
-        const uploadErrors = [];
-        const nextRosterState = { ...rosterData };
+      let updatedAssignment = assignment;
 
-        if (rosterData.student.file) {
-          if (uploadStudentCsv) {
-            try {
-              await uploadStudentCsv(rosterData.student.file, rosterData.student.type || 'student', assignment.id);
-              nextRosterState.student = { ...nextRosterState.student, file: null, previewData: null };
-            } catch (error) {
-              console.error('Student CSV upload error:', error);
-              uploadErrors.push('student CSV');
-            }
-          } else {
-            uploadErrors.push('student CSV (service unavailable)');
-          }
+      if (shouldUpdateDetails) {
+        const updateData = {
+          id: assignment.id,
+          subjectId: assignment.subjectId,
+          name: formData.name,
+          description: formData.description,
+          type: formData.type,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          weight: Number(formData.weight),
+          status: assignment.status ?? 'PENDING',
+          progress: assignment.progress ?? 0,
+        };
+
+        const result = await assignmentService.updateAssignment(assignment.id, updateData);
+
+        if (!result.success) {
+          const errorMessage = result.data || result.message || 'Failed to update assignment';
+          showNotification('error', errorMessage);
+          return;
         }
 
-        if (rosterData.examiner.file) {
-          if (uploadExaminerCsv) {
-            try {
-              await uploadExaminerCsv(rosterData.examiner.file, assignment.id);
-              nextRosterState.examiner = { ...nextRosterState.examiner, file: null, previewData: null };
-            } catch (error) {
-              console.error('Examiner CSV upload error:', error);
-              uploadErrors.push('examiner CSV');
-            }
-          } else {
-            uploadErrors.push('examiner CSV (service unavailable)');
-          }
-        }
-
-        if (rosterData.group.file) {
-          if (uploadGroupCsv) {
-            try {
-              await uploadGroupCsv(rosterData.group.file, assignment.id);
-              nextRosterState.group = { ...nextRosterState.group, file: null, previewData: null };
-            } catch (error) {
-              console.error('Group CSV upload error:', error);
-              uploadErrors.push('group CSV');
-            }
-          } else {
-            uploadErrors.push('group CSV (service unavailable)');
-          }
-        }
-
-        if (uploadErrors.length) {
-          showNotification(
-            'warning',
-            `Assignment updated, but ${uploadErrors.join(', ')} failed to upload. Please retry.`
-          );
-        }
-
-        setRosterData(nextRosterState);
-        setRosterPreviewStatus((prev) => ({
-          student: rosterData.student.file ? { loading: false, error: null } : prev.student,
-          examiner: rosterData.examiner.file ? { loading: false, error: null } : prev.examiner,
-          group: rosterData.group.file ? { loading: false, error: null } : prev.group,
-        }));
-
-        onAssignmentUpdated(result.data);
-      } else {
-        // Handle backend validation errors
-        const errorMessage = result.data || result.message || 'Failed to update assignment';
-        showNotification('error', errorMessage);
+        updatedAssignment = result.data;
       }
+
+      if (!hasRosterUploads) {
+        onAssignmentUpdated(updatedAssignment);
+        return;
+      }
+
+      const uploadErrors = [];
+      const nextRosterState = { ...rosterData };
+
+      if (rosterData.student.file) {
+        if (uploadStudentCsv) {
+          try {
+            await uploadStudentCsv(rosterData.student.file, 'student', assignment.id);
+            nextRosterState.student = { ...nextRosterState.student, file: null, previewData: null };
+          } catch (error) {
+            console.error('Student CSV upload error:', error);
+            uploadErrors.push('student CSV');
+          }
+        } else {
+          uploadErrors.push('student CSV (service unavailable)');
+        }
+      }
+
+      if (rosterData.examiner.file) {
+        if (uploadExaminerCsv) {
+          try {
+            await uploadExaminerCsv(rosterData.examiner.file, assignment.id);
+            nextRosterState.examiner = { ...nextRosterState.examiner, file: null, previewData: null };
+          } catch (error) {
+            console.error('Examiner CSV upload error:', error);
+            uploadErrors.push('examiner CSV');
+          }
+        } else {
+          uploadErrors.push('examiner CSV (service unavailable)');
+        }
+      }
+
+      if (rosterData.group.file) {
+        if (uploadGroupCsv) {
+          try {
+            await uploadGroupCsv(rosterData.group.file, assignment.id);
+            nextRosterState.group = { ...nextRosterState.group, file: null, previewData: null };
+          } catch (error) {
+            console.error('Group CSV upload error:', error);
+            uploadErrors.push('group CSV');
+          }
+        } else {
+          uploadErrors.push('group CSV (service unavailable)');
+        }
+      }
+
+      if (uploadErrors.length) {
+        showNotification(
+          'warning',
+          `Roster upload completed with issues: ${uploadErrors.join(', ')}. Please retry the failed uploads.`
+        );
+      }
+
+      setRosterData(nextRosterState);
+      setRosterPreviewStatus((prev) => ({
+        student: rosterData.student.file ? { loading: false, error: null } : prev.student,
+        examiner: rosterData.examiner.file ? { loading: false, error: null } : prev.examiner,
+        group: rosterData.group.file ? { loading: false, error: null } : prev.group,
+      }));
+
+      onAssignmentUpdated(updatedAssignment);
     } catch (error) {
-      showNotification('error', 'Failed to update assignment');
+      console.error('Assignment update error:', error);
+      showNotification('error', 'Failed to update assignment or upload roster CSVs.');
     } finally {
       setIsSubmitting(false);
     }
@@ -483,6 +485,11 @@ export function EditAssignmentModal({
   };
 
   const actionButtonBase = 'px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm';
+
+  const hasPendingRosterUploads = Boolean(
+    rosterData.student.file || rosterData.examiner.file || rosterData.group.file
+  );
+  const canSubmit = hasChanges || hasPendingRosterUploads;
 
   const renderRosterSection = (type) => {
     const config = rosterConfigs[type];
@@ -951,10 +958,10 @@ export function EditAssignmentModal({
 
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting || !hasChanges}
+            disabled={isSubmitting || !canSubmit}
             className={`
               px-6 py-2 text-sm font-medium text-white rounded-lg transition-all duration-200
-              ${hasChanges 
+              ${canSubmit 
                 ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-105' 
                 : 'bg-gray-400 cursor-not-allowed'
               }

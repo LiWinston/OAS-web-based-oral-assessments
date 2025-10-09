@@ -191,20 +191,6 @@ export function AssignmentCreationModal({
 
   // Update CSV type when assignment type changes
   useEffect(() => {
-    if (formData.type === "group" || formData.type === "mixed") {
-      setCsvData((prev) => ({
-        ...prev,
-        student: { ...prev.student, type: "group" },
-      }));
-    } else {
-      setCsvData((prev) => ({
-        ...prev,
-        student: { ...prev.student, type: "student" },
-      }));
-    }
-  }, [formData.type]);
-
-  useEffect(() => {
     if (!isOpen) {
       return;
     }
@@ -602,7 +588,7 @@ export function AssignmentCreationModal({
         // Use parent's preview function with simplified parameters
         const result = await previewStudentCsv(
           csvData.student.file,
-          csvData.student.type
+          "student"
         );
 
         setCsvUploadStatus((prev) => ({
@@ -808,7 +794,7 @@ export function AssignmentCreationModal({
             if (csvData.student.file) {
               const uploadResult = await uploadStudentCsv(
                 csvData.student.file,
-                csvData.student.type,
+                "student",
                 assignmentId
               );
               console.log("Student CSV uploaded successfully");
