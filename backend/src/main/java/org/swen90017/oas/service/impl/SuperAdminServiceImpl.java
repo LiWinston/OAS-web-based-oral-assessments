@@ -126,11 +126,11 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         if (StringUtils.isNotEmpty(request.getRegistrationStatus())) {
             String s = request.getRegistrationStatus().toUpperCase();
             if (Objects.equals(s, "PENDING")) {
-                query.setStatus(RegistrationStatus.Pending.code());
+                query.setRegistrationStatus(RegistrationStatus.Pending.code());
             } else if (Objects.equals(s, "REGISTERED")) {
-                query.setStatus(RegistrationStatus.REGISTERED.code());
-            }else if (Objects.equals(s, "EXPIRED")) {
-                query.setStatus(RegistrationStatus.EXPIRED.code());
+                query.setRegistrationStatus(RegistrationStatus.REGISTERED.code());
+            } else if (Objects.equals(s, "EXPIRED")) {
+                query.setRegistrationStatus(RegistrationStatus.EXPIRED.code());
             }
         }
         // Build dynamic query conditions
@@ -255,11 +255,18 @@ public class SuperAdminServiceImpl implements SuperAdminService {
     @Transactional
     public SysAdmin inviteAdmin(AdminInviteDTO dto) {
         // Determine email: prefer sisLoginId@unimelb.edu.au; fallback to provided email
+        String loginId = null;
+        if (StringUtils.isNotBlank(dto.getSisLoginId())) {
+            loginId = StringUtils.trim(dto.getSisLoginId());
+        } else if (StringUtils.isNotBlank(dto.getSisUserId())) {
+            loginId = StringUtils.trim(dto.getSisUserId());
+        }
+
         String email = null;
-        if (dto.getEmail() != null && !dto.getEmail().isEmpty()) {
-            email = dto.getEmail();
-        } else if (dto.getSisUserId() != null && !dto.getSisUserId().isEmpty()) {
-            email = dto.getSisLoginId() + "@unimelb.edu.au";
+        if (StringUtils.isNotBlank(dto.getEmail())) {
+            email = StringUtils.trim(dto.getEmail());
+        } else if (loginId != null) {
+            email = loginId + "@unimelb.edu.au";
         } else {
             throw new BusinessException("Email and login id cannot be both null", CommonError.BAD_REQUEST.getCode());
         }
@@ -280,7 +287,15 @@ public class SuperAdminServiceImpl implements SuperAdminService {
 
         // 1) state=2 invited
         SysUser u = new SysUser();
-        u.setUserName(dto.getName() != null ? dto.getName() : dto.getEmail());
+        String displayName = null;
+        if (StringUtils.isNotBlank(dto.getName())) {
+            displayName = StringUtils.trim(dto.getName());
+        } else if (StringUtils.isNotBlank(dto.getEmail())) {
+            displayName = StringUtils.trim(dto.getEmail());
+        } else if (loginId != null) {
+            displayName = loginId;
+        }
+        u.setUserName(displayName);
         u.setEmail(email);
         u.setStatus(UserStatus.INACTIVE.code());
         u.setRegistrationStatus(RegistrationStatus.Pending.code());
@@ -305,6 +320,9 @@ public class SuperAdminServiceImpl implements SuperAdminService {
         admin.setUserId(u.getUserId());
         admin.setDepartment(dto.getDepartment());
         admin.setToken(token);
+        if (loginId != null) {
+            admin.setSisLoginId(loginId);
+        }
         log.info("[InviteAdmin] Insert sys_admin for userId={}, department={}", u.getUserId(), dto.getDepartment());
         sysAdminMapper.insert(admin);
 
