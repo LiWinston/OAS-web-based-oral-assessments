@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../../ui/tooltip";
 
 const urgencyMeta = {
   OVERDUE: {
@@ -70,7 +76,8 @@ export function PendingFeedback({
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <TooltipProvider delayDuration={150}>
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {isLoading && renderSkeletonItems()}
 
           {!isLoading &&
@@ -153,15 +160,23 @@ export function PendingFeedback({
 
                   <div className="mt-4 flex justify-end">
                     {item.actionDisabled ? (
-                      <Button
-                        size="sm"
-                        disabled
-                        title={item.actionTooltip || "Action unavailable"}
-                        className={`${urgency.buttonClass} disabled:pointer-events-auto cursor-not-allowed`}
-                      >
-                        <i className={`fas ${item.actionIcon || "fa-ban"} mr-2`} />
-                        {item.actionLabel || "Open marking"}
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex cursor-not-allowed">
+                            <Button
+                              size="sm"
+                              disabled
+                              className={urgency.buttonClass}
+                            >
+                              <i className={`fas ${item.actionIcon || "fa-ban"} mr-2`} />
+                              {item.actionLabel || "Open marking"}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="end">
+                          {item.actionTooltip || "Session not booked yet. Marking opens once a student is scheduled."}
+                        </TooltipContent>
+                      </Tooltip>
                     ) : (
                       <Link href={item.actionHref || resultsHref} className="inline-flex">
                         <Button size="sm" className={urgency.buttonClass}>
@@ -174,7 +189,8 @@ export function PendingFeedback({
                 </div>
               );
             })}
-        </div>
+          </div>
+        </TooltipProvider>
 
         {!isLoading && items.length > 4 && (
           <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
