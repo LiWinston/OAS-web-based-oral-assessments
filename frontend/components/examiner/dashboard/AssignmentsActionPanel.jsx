@@ -79,8 +79,8 @@ export function AssignmentsActionPanel({
                   </div>
                 )}
               </div>
-
-              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              {/* TODO: Investigate if we need this, how to display this correctly */}
+              {/* <div className="mt-3 flex flex-wrap gap-2 text-xs">
                 <span className="inline-flex items-center px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300">
                   <i className="fas fa-user-plus mr-1" />
                   {assignment.unmarkedCount} awaiting marking
@@ -99,7 +99,7 @@ export function AssignmentsActionPanel({
                     {assignment.availableSessions} slots need examiners
                   </span>
                 )}
-              </div>
+              </div> */}
 
               <div className="mt-4 flex gap-2 flex-wrap">
                 <Link
@@ -111,7 +111,7 @@ export function AssignmentsActionPanel({
                     Manage sessions
                   </Button>
                 </Link>
-                <Link
+                {/* <Link
                   href={`${resultsHref}?assignmentId=${assignment.assignmentId}`}
                   className="inline-flex"
                 >
@@ -119,7 +119,7 @@ export function AssignmentsActionPanel({
                     <i className="fas fa-poll mr-2" />
                     View submissions
                   </Button>
-                </Link>
+                </Link> */}
               </div>
             </div>
           ))}
