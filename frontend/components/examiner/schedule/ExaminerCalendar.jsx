@@ -7,6 +7,8 @@ import { useExaminerAuth } from '@/hooks/useExaminerAuth';
 import { useNotification } from '@/hooks/useNotification';
 import { useTimeslotAssignment } from '@/hooks/useTimeslotAssignment';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import SessionDetailsDialog from "@/components/examiner/common/SessionDetailsDialog";
+import { Button } from "@/components/ui/button";
 import OperationResultDialog from "@/components/examiner/schedule/OperationResultDialog";
 import { formatVenue } from '@/utils/formatVenue';
 import { toLocalDateKey } from '@/utils/dateUtils';
@@ -18,7 +20,7 @@ const ExaminerCalendar = () => {
   const { selectedCourse, searchText, assessmentType } = useScheduleFilterStore();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showEventModal, setShowEventModal] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showNotification } = useNotification();
@@ -146,34 +148,72 @@ const ExaminerCalendar = () => {
     return date.toDateString() === today.toDateString();
   };
 
-  const handleEventClick = (event, slot) => {
-    event.stopPropagation();
-    setSelectedEvent(slot);
-    setShowEventModal(true);
+  const buildSessionDetails = (slot) => {
+    if (!slot) return null;
+    const sessionId = slot.sessionId ?? slot.slotId;
+    const startDate = slot.start ? new Date(slot.start) : null;
+    const endDate = slot.end ? new Date(slot.end) : null;
+    const assignmentId = slot.assignmentId ?? slot.assignment?.id ?? null;
+    return {
+      ...slot,
+      rawSlot: slot,
+      sessionId,
+      assignmentId,
+      startDate,
+      endDate,
+      venueLabel: slot.venueLabel ?? formatVenue(slot.venue) ?? 'Venue to be confirmed',
+      participantsLabel: slot.participantsLabel,
+      bookingCount: typeof slot.bookingCount === 'number' ? slot.bookingCount : slot.isBooked ? 1 : 0,
+      isBooked: typeof slot.isBooked === 'boolean' ? slot.isBooked : Boolean(slot.bookingCount),
+      actionHref:
+        assignmentId != null
+          ? `/examiner/assessment/${assignmentId}/${sessionId}`
+          : `/examiner/assessment?sessionId=${sessionId}`,
+      canWithdraw: canWithdraw(slot),
+      cannotWithdrawReason: slot.cannotWithdrawReason,
+    };
   };
 
-  const confirmWithdraw = () => setConfirmOpen(true);
+  const handleEventClick = (event, slot) => {
+    event.stopPropagation();
+    const details = buildSessionDetails(slot);
+    setSelectedEvent(details);
+    setDetailsOpen(true);
+  };
 
   const handleWithdraw = async () => {
     if (!selectedEvent) return;
     setIsWithdrawing(true);
     try {
-      const res = await withdrawFromSession(selectedEvent, async () => {
+      const res = await withdrawFromSession(selectedEvent.rawSlot ?? selectedEvent, async () => {
         setConfirmOpen(false);
-        setShowEventModal(false);
+        setDetailsOpen(false);
         await refetch();
       });
       if (res?.success) {
-        const start = selectedEvent.start ? new Date(selectedEvent.start) : null;
-        const end = selectedEvent.end ? new Date(selectedEvent.end) : null;
+        const start = selectedEvent.startDate ?? (selectedEvent.start ? new Date(selectedEvent.start) : null);
+        const end = selectedEvent.endDate ?? (selectedEvent.end ? new Date(selectedEvent.end) : null);
         const detail = start && end
-          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})} – ${end.toLocaleTimeString('en-AU', {hour:'numeric', minute:'2-digit'})}`
+          ? `${start.toLocaleDateString('en-AU', { month: 'short', day: 'numeric' })} ${start.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })} – ${end.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}`
           : `Timeslot #${selectedEvent.sessionId ?? selectedEvent.slotId}`;
-        setResultProps({ status: 'success', title: 'Withdrawn from Session', message: 'Your schedule has been updated.', details: [detail], autoDismiss: true, autoDismissMs: 1300 });
+        setResultProps({
+          status: 'success',
+          title: 'Withdrawn from Session',
+          message: 'Your schedule has been updated.',
+          details: [detail],
+          autoDismiss: true,
+          autoDismissMs: 1300,
+        });
         setResultOpen(true);
       }
     } catch (e) {
-      setResultProps({ status: 'error', title: 'Withdraw Failed', message: e?.message || 'Failed to withdraw from timeslot', autoDismiss: false, primaryActionLabel: 'Close' });
+      setResultProps({
+        status: 'error',
+        title: 'Withdraw Failed',
+        message: e?.message || 'Failed to withdraw from timeslot',
+        autoDismiss: false,
+        primaryActionLabel: 'Close',
+      });
       setResultOpen(true);
     } finally {
       setIsWithdrawing(false);
@@ -420,124 +460,51 @@ const ExaminerCalendar = () => {
       </div>
 
       {/* Event Details Modal */}
-      {showEventModal && selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-50" onClick={() => setShowEventModal(false)}></div>
-          <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
-                {selectedEvent.assignmentName}
-              </h3>
-              <button
-                onClick={() => setShowEventModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+      <SessionDetailsDialog
+        session={selectedEvent}
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) {
+            setTimeout(() => setSelectedEvent(null), 200);
+          }
+        }}
+        renderFooter={({ session, close }) => (
+          <>
+            <Button variant="outline" onClick={close}>
+              Close
+            </Button>
+            <div className="flex flex-1 justify-end gap-2">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (!session?.canWithdraw) return;
+                  setConfirmOpen(true);
+                }}
+                disabled={!session?.canWithdraw || isSubmitting}
               >
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-
-            <div className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-400 mr-3">
-                    <i className="fas fa-graduation-cap"></i>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Course</span>
-                    <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {selectedEvent.courseName} ({selectedEvent.courseCode})
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-400 mr-3">
-                    <i className="fas fa-users"></i>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Participants</span>
-                    <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {selectedEvent.participants?.[0] || 'TBA'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mr-3">
-                    <i className="fas fa-clock"></i>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Time</span>
-                    <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {formatTime(selectedEvent.start)} - {formatTime(selectedEvent.end)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900 flex items-center justify-center text-red-600 dark:text-red-400 mr-3">
-                    <i className="fas fa-map-marker-alt"></i>
-                  </div>
-                  <div>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">Location</span>
-                  <div className="font-medium text-gray-800 dark:text-gray-200">{formatVenue(selectedEvent.venue)}</div>
-                  </div>
-                </div>
-
-                {/* Status indicators */}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center">
-                    <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Status:</span>
-                    {selectedEvent.isBooked ? (
-                      <span className="px-2 py-1 text-xs rounded-full bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                        <i className="fas fa-check-circle mr-1"></i>
-                        Booked
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
-                        <i className="fas fa-clock mr-1"></i>
-                        Awaiting Students
-                      </span>
-                    )}
-                  </div>
-                  
-                  {canWithdraw(selectedEvent) ? (
-                    <button onClick={confirmWithdraw} className="text-xs text-red-600 dark:text-red-400 hover:underline" disabled={isSubmitting}>
-                      <i className="fas fa-times-circle mr-1"></i>
-                      Withdraw
-                    </button>
-                  ) : (
-                    <span className="text-xs text-gray-400">Withdrawal not allowed</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowEventModal(false)}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Close
-                </button>
-                {selectedEvent.isBooked && (
-                  <button
-                    onClick={() => {
-                      // Navigate to assessment session page: /examiner/assessment/{assignmentId}/{sessionId}
-                      const assignmentId = selectedEvent.assignmentId;
-                      const sessionId = selectedEvent.sessionId || selectedEvent.slotId;
-                      setShowEventModal(false);
-                      router.push(`/examiner/assessment/${assignmentId}/${sessionId}`);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
-                  >
-                    Start Assessment
-                  </button>
+                {isSubmitting ? (
+                  <i className="fas fa-spinner fa-spin mr-2" />
+                ) : (
+                  <i className="fas fa-times mr-2" />
                 )}
-              </div>
+                Withdraw
+              </Button>
+              <Button
+                onClick={() => {
+                  if (!session?.actionHref) return;
+                  close();
+                  router.push(session.actionHref);
+                }}
+                disabled={!session?.isBooked}
+              >
+                <i className="fas fa-arrow-right mr-2" />
+                Start assessment
+              </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      />
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>

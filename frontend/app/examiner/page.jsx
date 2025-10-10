@@ -427,6 +427,10 @@ export default function ExaminerDashboard() {
               : session.markingStatus === "UNMARKED"
               ? "Pending"
               : "",
+          courseCode: session.courseCode,
+          courseName: session.courseName,
+          assignmentId: session.assignmentId,
+          session,
         })),
       });
     }
@@ -467,6 +471,10 @@ export default function ExaminerDashboard() {
               : "TBC",
             status: session.timelineStatus,
             markingStatus: session.markingStatus,
+            courseCode: session.courseCode,
+            courseName: session.courseName,
+            assignmentId: session.assignmentId,
+            session,
           })),
         });
       }

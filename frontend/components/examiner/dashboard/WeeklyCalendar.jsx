@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Button } from "../../ui/button";
+import SessionDetailsDialog from "../common/SessionDetailsDialog";
 
 const statusStyles = {
   IN_PROGRESS: "bg-green-100/90 dark:bg-green-900/40 text-green-800 dark:text-green-200",
@@ -37,30 +41,31 @@ function renderSkeletonWeek() {
   );
 }
 
-function EventBadge({ event }) {
+function EventBadge({ event, onSelect }) {
   const pillClass =
     statusStyles[event.markingStatus] ??
     statusStyles[event.status] ??
     statusStyles.UPCOMING;
 
   return (
-    <div
-      key={event.id}
+    <button
+      type="button"
       className={cn(
-        "rounded-xl px-3 py-2 text-xs shadow-sm transition-colors",
+        "w-full rounded-xl px-3 py-2 text-left text-xs shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
         pillClass
       )}
+      onClick={() => onSelect?.(event)}
     >
       <div className="font-semibold truncate">{event.title}</div>
       <div className="mt-1 flex items-center justify-between text-[11px] opacity-85">
         <span>{event.timeLabel}</span>
         {event.markingLabel && <span>{event.markingLabel}</span>}
       </div>
-    </div>
+    </button>
   );
 }
 
-function MonthGrid({ month }) {
+function MonthGrid({ month, onEventSelect }) {
   return (
     <div className="grid grid-cols-7 gap-2">
       {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
@@ -103,10 +108,12 @@ function MonthGrid({ month }) {
             </div>
             <div className="mt-2 space-y-2">
               {day.events.slice(0, 2).map((event) => (
-                <div
+                <button
                   key={event.id}
+                  type="button"
+                  onClick={() => onEventSelect?.(event)}
                   className={cn(
-                    "rounded-md px-2 py-1 text-[11px] font-medium shadow-sm",
+                    "w-full rounded-md px-2 py-1 text-left text-[11px] font-medium shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900",
                     statusStyles[event.markingStatus] ??
                       statusStyles[event.status] ??
                       statusStyles.UPCOMING
@@ -116,7 +123,7 @@ function MonthGrid({ month }) {
                   <div className="text-[10px] opacity-80">
                     {event.timeLabel}
                   </div>
-                </div>
+                </button>
               ))}
               {day.events.length > 2 && (
                 <div className="text-[11px] font-medium text-blue-600 dark:text-blue-300">
@@ -138,6 +145,48 @@ export function WeeklyCalendar({
   onViewChange,
   isLoading = false,
 }) {
+  const router = useRouter();
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  const handleEventSelect = (event) => {
+    const session = event?.session ?? event;
+    if (!session) return;
+
+    const sessionId = session.sessionId ?? session.slotId ?? session.id;
+    const assignmentId = session.assignmentId ?? session.assignment?.id ?? null;
+
+    const normalized = {
+      ...session,
+      sessionId,
+      assignmentId,
+      assignmentName: session.assignmentName ?? event.title,
+      courseName: session.courseName ?? event.courseName ?? "",
+      courseCode: session.courseCode ?? event.courseCode ?? "",
+      startDate: session.startDate instanceof Date
+        ? session.startDate
+        : session.start
+        ? new Date(session.start)
+        : null,
+      endDate: session.endDate instanceof Date
+        ? session.endDate
+        : session.end
+        ? new Date(session.end)
+        : null,
+      actionHref:
+        assignmentId != null
+          ? `/examiner/assessment/${assignmentId}/${sessionId}`
+          : sessionId
+          ? `/examiner/assessment?sessionId=${sessionId}`
+          : null,
+      isBooked: typeof session.isBooked === "boolean" ? session.isBooked : Boolean(session.bookingCount),
+      participantsLabel: session.participantsLabel ?? event.entity ?? session.entity ?? "",
+    };
+
+    setSelectedSession(normalized);
+    setDetailsOpen(true);
+  };
+
   const handleViewChange = (value) => {
     if (value !== view) {
       onViewChange?.(value);
@@ -211,7 +260,11 @@ export function WeeklyCalendar({
                       </div>
                     )}
                     {day.events.map((event) => (
-                      <EventBadge key={`${day.dateKey}-${event.id}`} event={event} />
+                      <EventBadge
+                        key={`${day.dateKey}-${event.id}`}
+                        event={event}
+                        onSelect={handleEventSelect}
+                      />
                     ))}
                   </div>
                 </div>
@@ -227,7 +280,7 @@ export function WeeklyCalendar({
 
         {!isLoading && view === "month" && (
           <>
-            <MonthGrid month={month} />
+            <MonthGrid month={month} onEventSelect={handleEventSelect} />
             {month.length === 0 && (
               <div className="py-10 text-center text-sm text-gray-500 dark:text-gray-400">
                 No sessions scheduled this month.
@@ -236,6 +289,39 @@ export function WeeklyCalendar({
           </>
         )}
       </CardContent>
+      <SessionDetailsDialog
+        session={selectedSession}
+        open={detailsOpen}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) {
+            setTimeout(() => setSelectedSession(null), 200);
+          }
+        }}
+        renderFooter={({ session, close }) => (
+          <>
+            <Button variant="outline" onClick={close}>
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                if (!session?.actionHref) return;
+                close();
+                router.push(session.actionHref);
+              }}
+              disabled={!session?.isBooked}
+              title={
+                session?.isBooked
+                  ? "Open marking workspace"
+                  : "This session is awaiting bookings"
+              }
+            >
+              <i className="fas fa-arrow-right mr-2" />
+              {session?.isBooked ? "Open marking" : "Awaiting booking"}
+            </Button>
+          </>
+        )}
+      />
     </Card>
   );
 }
