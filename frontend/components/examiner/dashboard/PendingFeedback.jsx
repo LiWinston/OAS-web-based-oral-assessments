@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
@@ -58,7 +59,23 @@ export function PendingFeedback({
   isLoading = false,
   resultsHref = "/examiner/results",
 }) {
+  const [expanded, setExpanded] = useState(false);
   const overdueCount = items.filter((item) => item.urgency === "OVERDUE").length;
+  const visibleItems = useMemo(
+    () => (expanded ? items : items.slice(0, 4)),
+    [expanded, items]
+  );
+
+  useEffect(() => {
+    if (items.length <= 4 && expanded) {
+      setExpanded(false);
+    }
+  }, [items.length, expanded]);
+
+  const handleToggleExpanded = (event) => {
+    event.preventDefault();
+    setExpanded((prev) => !prev);
+  };
 
   return (
     <Card className="dashboard-card">
@@ -81,7 +98,7 @@ export function PendingFeedback({
           {isLoading && renderSkeletonItems()}
 
           {!isLoading &&
-            items.slice(0, 4).map((item) => {
+            visibleItems.map((item) => {
               const urgency = urgencyMeta[item.urgency] ?? urgencyMeta.UPCOMING;
               return (
                 <div
@@ -193,13 +210,15 @@ export function PendingFeedback({
         </TooltipProvider>
 
         {!isLoading && items.length > 4 && (
-          <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700">
-            <Link
-              href={resultsHref}
-              className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+          <div className="p-4 border-t border-gray-200 dark:border-gray-700 text-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-200"
+              onClick={handleToggleExpanded}
             >
-              View all {items.length} items
-            </Link>
+              {expanded ? "Show fewer items" : `View all ${items.length} items`}
+            </Button>
           </div>
         )}
 

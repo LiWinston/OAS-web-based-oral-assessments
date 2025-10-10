@@ -20,6 +20,7 @@ import '@/search/sources/examiner';
  */
 export default function ExaminerLayout({ children }) {
   const pathname = usePathname();
+  const isDashboard = pathname === '/examiner';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const toggleSidebar = () => {
@@ -39,21 +40,23 @@ export default function ExaminerLayout({ children }) {
 
           {/* Main content */}
           <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-100 dark:bg-gray-900">
-            {/* Only show default header for dashboard page */}
-            {pathname === '/examiner' && (
-              <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                    Examiner Dashboard
-                  </h1>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Welcome back! Here's what's happening with your assessments today.
-                  </p>
+            <div className="mx-auto w-full max-w-[1360px]">
+              {/* Only show default header for dashboard page */}
+              {isDashboard && (
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                  <div>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
+                      Examiner Dashboard
+                    </h1>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Welcome back! Here's what's happening with your assessments today.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {children}
+              {children}
+            </div>
           </main>
         </div>
       </div>

@@ -67,14 +67,14 @@ export function AssignmentsActionPanel({
                     </div>
                   )}
                 </div>
-                {assignment.nextSessionDate && (
+                {assignment.nextEventLabel && assignment.nextEventDate && (
                   <div className="text-right text-sm text-gray-500 dark:text-gray-400">
-                    <div>Next session</div>
+                    <div>{assignment.nextEventLabel}</div>
                     <div className="font-medium text-gray-800 dark:text-gray-200">
-                      {assignment.nextSessionDate}
+                      {assignment.nextEventDate}
                     </div>
-                    {assignment.nextSessionTime && (
-                      <div>{assignment.nextSessionTime}</div>
+                    {assignment.nextEventTime && (
+                      <div>{assignment.nextEventTime}</div>
                     )}
                   </div>
                 )}

@@ -15,8 +15,6 @@ import { examinerTimeslotService } from "@/services/examinerTimeslotService";
 import examinerResultsService from "@/services/examinerResultsService";
 import formatVenue from "@/utils/formatVenue";
 
-const SCHEDULE_DAYS_AHEAD = 7;
-
 function startOfDay(date) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -35,7 +33,64 @@ function formatISODate(date) {
   return date.toISOString().split("T")[0];
 }
 
-function formatRelativeTime(target, now) {
+function formatDisplayDate(date, timeZone) {
+  try {
+    return new Intl.DateTimeFormat("en-AU", {
+      timeZone: timeZone || undefined,
+      month: "short",
+      day: "numeric",
+    }).format(date);
+  } catch (error) {
+    return date.toLocaleDateString("en-AU", {
+      month: "short",
+      day: "numeric",
+    });
+  }
+}
+
+function formatDisplayTime(date, timeZone) {
+  try {
+    return new Intl.DateTimeFormat("en-AU", {
+      timeZone: timeZone || undefined,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
+  } catch (error) {
+    return date.toLocaleTimeString("en-AU", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+}
+
+function getZonedDayStart(date, timeZone) {
+  if (!timeZone) {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+  }
+  try {
+    const formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const parts = formatter.formatToParts(date);
+    const year = Number(parts.find((p) => p.type === "year")?.value ?? "0");
+    const month = Number(parts.find((p) => p.type === "month")?.value ?? "1") - 1;
+    const day = Number(parts.find((p) => p.type === "day")?.value ?? "1");
+    return new Date(Date.UTC(year, month, day));
+  } catch (error) {
+    const copy = new Date(date);
+    copy.setHours(0, 0, 0, 0);
+    return copy;
+  }
+}
+
+function formatRelativeTime(target, now, { timeZone } = {}) {
   const diffMs = target.getTime() - now.getTime();
   const diffMinutes = Math.round(diffMs / 60000);
 
@@ -57,8 +112,11 @@ function formatRelativeTime(target, now) {
     const hours = Math.floor(diffMinutes / 60);
     return `In ${hours}h`;
   }
-  const diffDays = Math.floor(diffMinutes / 1440);
+  const targetDay = getZonedDayStart(target, timeZone);
+  const nowDay = getZonedDayStart(now, timeZone);
+  const diffDays = Math.round((targetDay.getTime() - nowDay.getTime()) / (24 * 60 * 60 * 1000));
   if (diffDays === 1) return "Tomorrow";
+  if (diffDays === 0) return "Later today";
   return `In ${diffDays} days`;
 }
 
@@ -109,9 +167,8 @@ function normalizeAssessmentsResponse(response) {
 export default function ExaminerDashboard() {
   const { user, examinerId, isValidExaminer } = useExaminerAuth();
   const today = startOfDay(new Date());
-  const weekEnd = new Date(today);
-  weekEnd.setDate(today.getDate() + SCHEDULE_DAYS_AHEAD);
   const [calendarView, setCalendarView] = useState("week");
+  const displayName = user?.username || user?.name || user?.email || "Examiner";
 
   const assignmentsQuery = useQuery({
     queryKey: ["examiner-dashboard", "assignments", examinerId],
@@ -128,11 +185,7 @@ export default function ExaminerDashboard() {
     enabled: isValidExaminer,
     staleTime: 60 * 1000,
     refetchInterval: 60 * 1000,
-    queryFn: () =>
-      examinerTimeslotService.getExaminerSchedule(examinerId, {
-        dateFrom: formatISODate(today),
-        dateTo: formatISODate(weekEnd),
-      }),
+    queryFn: () => examinerTimeslotService.getExaminerSchedule(examinerId),
   });
 
   const resultsQuery = useQuery({
@@ -313,20 +366,8 @@ export default function ExaminerDashboard() {
 
         const sessionTimeRange = session.startDate
           ? session.endDate
-            ? `${session.startDate.toLocaleTimeString("en-AU", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })} - ${session.endDate.toLocaleTimeString("en-AU", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })}`
-            : session.startDate.toLocaleTimeString("en-AU", {
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })
+            ? `${formatDisplayTime(session.startDate, session.timezone)} - ${formatDisplayTime(session.endDate, session.timezone)}`
+            : formatDisplayTime(session.startDate, session.timezone)
           : "";
 
         const venueLabel = session.venueLabel || formatVenue(session.venue) || "";
@@ -339,16 +380,14 @@ export default function ExaminerDashboard() {
           courseCode: session.courseCode,
           entity: session.participantsLabel,
           sessionDate: session.startDate
-            ? session.startDate.toLocaleDateString("en-AU", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })
+            ? formatDisplayDate(session.startDate, session.timezone)
             : "TBC",
           sessionTimeRange,
           venueLabel,
           isBooked,
-          timeLabel: session.startDate ? formatRelativeTime(session.startDate, now) : "",
+          timeLabel: session.startDate
+            ? formatRelativeTime(session.startDate, now, { timeZone: session.timezone })
+            : "",
           urgency,
           progressLabel: isSubmitted
             ? "Submitted"
@@ -362,6 +401,9 @@ export default function ExaminerDashboard() {
           actionTooltip: actionDisabled
             ? "Session not booked yet. Marking opens once a student is scheduled."
             : undefined,
+          assignmentId: session.assignmentId,
+          startDate: session.startDate,
+          timezone: session.timezone,
         };
       });
   }, [upcomingSessions, assessmentsBySessionId, today]);
@@ -483,6 +525,18 @@ export default function ExaminerDashboard() {
     return weeks;
   }, [scheduleSessions, today]);
 
+  const queueAssignmentsMap = useMemo(() => {
+    const map = new Map();
+    queueItems.forEach((item) => {
+      if (!item.assignmentId || !item.startDate) return;
+      const existing = map.get(item.assignmentId);
+      if (!existing || item.startDate < existing.startDate) {
+        map.set(item.assignmentId, item);
+      }
+    });
+    return map;
+  }, [queueItems]);
+
   const assignmentSummaries = useMemo(() => {
     const summaryMap = new Map();
     assignmentsList.forEach((assignment) => {
@@ -496,8 +550,11 @@ export default function ExaminerDashboard() {
         unmarkedCount: 0,
         draftCount: 0,
         submittedCount: 0,
-        nextSessionDate: null,
-        nextSessionTime: null,
+        nextEventLabel: null,
+        nextEventDate: null,
+        nextEventTime: null,
+        _nextUpcomingSession: null,
+        _nextPendingAssessment: null,
       });
     });
 
@@ -515,8 +572,11 @@ export default function ExaminerDashboard() {
           unmarkedCount: 0,
           draftCount: 0,
           submittedCount: 0,
-          nextSessionDate: null,
-          nextSessionTime: null,
+          nextEventLabel: null,
+          nextEventDate: null,
+          nextEventTime: null,
+          _nextUpcomingSession: null,
+          _nextPendingAssessment: null,
         });
       }
       const entry = summaryMap.get(assignmentId);
@@ -529,23 +589,64 @@ export default function ExaminerDashboard() {
         entry.unmarkedCount += 1;
       }
 
-      if (session.startDate && (!entry.nextSessionDateObj || session.startDate < entry.nextSessionDateObj)) {
-        entry.nextSessionDateObj = session.startDate;
-        entry.nextSessionDate = session.startDate.toLocaleDateString("en-AU", {
-          month: "short",
-          day: "numeric",
-        });
-        entry.nextSessionTime = session.startDate.toLocaleTimeString("en-AU", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
+      if (session.startDate) {
+        if (session.markingStatus && session.markingStatus !== "SUBMITTED") {
+          if (
+            !entry._nextPendingAssessment ||
+            session.startDate < entry._nextPendingAssessment.date
+          ) {
+            entry._nextPendingAssessment = {
+              date: session.startDate,
+              timeZone: session.timezone,
+            };
+          }
+        }
+
+        if (session.startDate >= today) {
+          if (
+            !entry._nextUpcomingSession ||
+            session.startDate < entry._nextUpcomingSession.date
+          ) {
+            entry._nextUpcomingSession = {
+              date: session.startDate,
+              timeZone: session.timezone,
+            };
+          }
+        }
       }
     });
 
     return Array.from(summaryMap.values())
       .map((entry) => {
-        delete entry.nextSessionDateObj;
+        const queueItem = queueAssignmentsMap.get(entry.assignmentId);
+        if (queueItem) {
+          entry.nextEventLabel = "Next assessment";
+          entry.nextEventDate = formatDisplayDate(queueItem.startDate, queueItem.timezone);
+          entry.nextEventTime = formatDisplayTime(queueItem.startDate, queueItem.timezone);
+        } else if (entry._nextUpcomingSession) {
+          entry.nextEventLabel = "Next session";
+          entry.nextEventDate = formatDisplayDate(
+            entry._nextUpcomingSession.date,
+            entry._nextUpcomingSession.timeZone
+          );
+          entry.nextEventTime = formatDisplayTime(
+            entry._nextUpcomingSession.date,
+            entry._nextUpcomingSession.timeZone
+          );
+        } else if (entry._nextPendingAssessment) {
+          entry.nextEventLabel = "Next assessment";
+          entry.nextEventDate = formatDisplayDate(
+            entry._nextPendingAssessment.date,
+            entry._nextPendingAssessment.timeZone
+          );
+          entry.nextEventTime = formatDisplayTime(
+            entry._nextPendingAssessment.date,
+            entry._nextPendingAssessment.timeZone
+          );
+        }
+
+        delete entry._nextUpcomingSession;
+        delete entry._nextPendingAssessment;
         return entry;
       })
       .sort(
@@ -555,7 +656,7 @@ export default function ExaminerDashboard() {
           (b.availableSessions || 0) -
           (a.unmarkedCount + a.draftCount + (a.availableSessions || 0))
       );
-  }, [assignmentsList, scheduleSessions]);
+  }, [assignmentsList, scheduleSessions, today, queueAssignmentsMap]);
 
   const recentResults = useMemo(
     () =>
@@ -612,7 +713,7 @@ export default function ExaminerDashboard() {
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 p-6 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-            Welcome back, {user?.name || "Examiner"}!
+            Welcome back, {displayName}!
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Here is the latest snapshot of your assessments and schedule.
@@ -648,8 +749,8 @@ export default function ExaminerDashboard() {
         isLoading={assignmentsQuery.isLoading || scheduleQuery.isLoading}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
           <WeeklyCalendar
             week={weeklyCalendar}
             month={monthCalendar}
