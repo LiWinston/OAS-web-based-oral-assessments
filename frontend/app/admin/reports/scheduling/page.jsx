@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { Suspense, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -209,7 +209,7 @@ const exportCsv = (assignmentId, sessions) => {
   URL.revokeObjectURL(url);
 };
 
-export default function SchedulingOverviewReportPage() {
+function SchedulingOverviewContent() {
   const { user } = useAuthStore();
   const adminId = user?.id;
   const searchParams = useSearchParams();
@@ -837,5 +837,13 @@ export default function SchedulingOverviewReportPage() {
         }}
       />
     </ReportsLayout>
+  );
+}
+
+export default function SchedulingOverviewReportPage() {
+  return (
+    <Suspense fallback={null}>
+      <SchedulingOverviewContent />
+    </Suspense>
   );
 }
