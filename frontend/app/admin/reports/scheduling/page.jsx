@@ -271,9 +271,17 @@ function SchedulingOverviewContent() {
     }
   }, [assignments, assignmentId, setAssignmentId]);
 
-  const calendarQuery = useSchedulingCalendar(assignmentId, selectedMonth, {
-    enabled: Boolean(assignmentId && selectedMonth),
-  });
+  const calendarQuery = useSchedulingCalendar(
+    assignmentId,
+    selectedMonth,
+    { enabled: Boolean(assignmentId && selectedMonth) },
+    {
+      venueId:
+        venueFilter && venueFilter !== "all"
+          ? (isNaN(Number(venueFilter)) ? venueFilter : Number(venueFilter))
+          : undefined,
+    }
+  );
 
   const assignmentMetaQuery = useSchedulingAssignmentMeta(assignmentId, {
     enabled: Boolean(assignmentId),

@@ -101,8 +101,8 @@ const computeSummary = (sessions = [], backendSummary = {}) => {
 };
 
 const adminSchedulingReportServiceReal = {
-  async getCalendar(assignmentId, month) {
-    const result = await courseAdminSessionService.getSessionsCalendar(assignmentId, month);
+  async getCalendar(assignmentId, month, params = {}) {
+    const result = await courseAdminSessionService.getSessionsCalendar(assignmentId, month, params);
     return { success: true, data: result?.data || {} };
   },
 

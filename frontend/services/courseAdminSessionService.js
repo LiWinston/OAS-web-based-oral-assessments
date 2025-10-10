@@ -244,8 +244,10 @@ export const courseAdminSessionService = {
   },
 
   // Sessions calendar (assignment-level, month in YYYY-MM)
-  async getSessionsCalendar(assignmentId, month) {
-    const resp = await apiClient.get(`/api/admin/sessions/assignments/${assignmentId}/calendar`, { params: { month } });
+  // Accept optional extra params (e.g., { venueId }) for backend-filtered aggregates
+  async getSessionsCalendar(assignmentId, month, extraParams = {}) {
+    const params = { month, ...extraParams };
+    const resp = await apiClient.get(`/api/admin/sessions/assignments/${assignmentId}/calendar`, { params });
     const raw = extract(resp) || {};
     // Accept either { dates: {...} } or direct map { 'YYYY-MM-DD': {...} }
     const dates = raw.dates || raw || {};

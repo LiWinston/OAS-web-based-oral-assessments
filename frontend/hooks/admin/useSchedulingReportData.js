@@ -11,8 +11,9 @@ const defaultSessionsData = {
   outsideAssignmentRange: false,
 };
 
-export function useSchedulingCalendar(assignmentId, month, options = {}) {
+export function useSchedulingCalendar(assignmentId, month, options = {}, params = {}) {
   const enabled = Boolean(assignmentId) && (options.enabled ?? true);
+  const venueKey = params?.venueId ?? "";
 
   return useQuery({
     queryKey: [
@@ -21,9 +22,10 @@ export function useSchedulingCalendar(assignmentId, month, options = {}) {
       "calendar",
       assignmentId,
       month || "",
+      venueKey,
     ],
     queryFn: async () => {
-      const response = await adminSchedulingReportService.getCalendar(assignmentId, month);
+      const response = await adminSchedulingReportService.getCalendar(assignmentId, month, params);
       return response?.data || defaultCalendarData;
     },
     enabled,
@@ -103,4 +105,3 @@ export function useSchedulingAssignmentMeta(assignmentId, options = {}) {
     refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
   });
 }
-
