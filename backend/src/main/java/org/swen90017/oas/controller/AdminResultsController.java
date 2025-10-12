@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.common.PageResult;
 import org.swen90017.oas.common.Result;
@@ -155,6 +154,38 @@ public class AdminResultsController {
         ReleaseAssessmentResponseDTO result = adminResultsService.releaseAssessment(
                 subjectId, assignmentId, submissionId, request, loginUser.getUserId());
         
+        return Result.success(result);
+    }
+
+    @GetMapping("/individual/{studentId}")
+    @Operation(summary = "Get examiner scoring for individual student", 
+               description = "Get all examiner scoring information for a specific student in an assignment")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner scoring"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Student or assignment not found")
+    })
+    public Result<ExaminerScoringDTO> getIndividualExaminerScoring(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Student ID") Long studentId) {
+        ExaminerScoringDTO result = adminResultsService.getIndividualExaminerScoring(subjectId, assignmentId, studentId);
+        return Result.success(result);
+    }
+
+    @GetMapping("/group/{groupId}")
+    @Operation(summary = "Get examiner scoring for group", 
+               description = "Get all examiner scoring information for a specific group in an assignment")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner scoring"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Group or assignment not found")
+    })
+    public Result<ExaminerScoringDTO> getGroupExaminerScoring(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Group ID") Long groupId) {
+        ExaminerScoringDTO result = adminResultsService.getGroupExaminerScoring(subjectId, assignmentId, groupId);
         return Result.success(result);
     }
 }

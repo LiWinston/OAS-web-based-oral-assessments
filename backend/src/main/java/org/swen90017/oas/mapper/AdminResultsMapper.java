@@ -150,4 +150,36 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("subjectType") String subjectType,
             @Param("subjectId") Long subjectId
     );
+
+    /**
+     * Get examiner scoring information for an individual student
+     */
+    Map<String, Object> getIndividualExaminerScoring(
+            @Param("assignmentId") Long assignmentId,
+            @Param("studentId") Long studentId
+    );
+
+    /**
+     * Get examiner scoring information for a group
+     */
+    Map<String, Object> getGroupExaminerScoring(
+            @Param("assignmentId") Long assignmentId,
+            @Param("groupId") Long groupId
+    );
+
+    /**
+     * Get all examiner markings for an individual student across all sessions
+     */
+    List<Map<String, Object>> getIndividualExaminerMarkings(
+            @Param("assignmentId") Long assignmentId,
+            @Param("studentId") Long studentId
+    );
+
+    /**
+     * Get all examiner markings for a group across all sessions
+     */
+    List<Map<String, Object>> getGroupExaminerMarkings(
+            @Param("assignmentId") Long assignmentId,
+            @Param("groupId") Long groupId
+    );
 }
