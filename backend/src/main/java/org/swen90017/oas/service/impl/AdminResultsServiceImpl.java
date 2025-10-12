@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import org.swen90017.oas.common.BusinessError;
+import org.swen90017.oas.common.CommonError;
 import org.swen90017.oas.common.PageResult;
 import org.swen90017.oas.dto.RubricMetaInfo;
 import org.swen90017.oas.dto.RubricsInfoDto;
@@ -168,6 +169,26 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AssessmentSubmission submission = assessmentSubmissionMapper.selectById(submissionId);
         if (submission == null) {
             throw new BusinessException(BusinessError.SUBMISSION_NOT_FOUND);
+        }
+        
+        // Check if this is a mix rubric assignment - if so, prevent manual override
+        try {
+            String rubricMetaJson = submission.getRubricMetaSnapshot();
+            if (rubricMetaJson != null) {
+                RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaJson, RubricMetaInfo.class);
+                Double individualWeight = metaInfo.getIndividualWeight() != null ? metaInfo.getIndividualWeight() : 0.0;
+                Double groupWeight = metaInfo.getGroupWeight() != null ? metaInfo.getGroupWeight() : 0.0;
+                
+                // If both weights are > 0, this is a mix rubric type - prevent manual override
+                if (individualWeight > 0 && groupWeight > 0) {
+                    throw new BusinessException(BusinessError.MIX_RUBRIC_MANUAL_OVERRIDE_FORBIDDEN);
+                }
+            }
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("Could not parse rubric meta info to check for mix rubric type: {}", e.getMessage());
+            // Continue with manual override if we can't parse the rubric meta
         }
         
         // Set final score override for all examiner submissions of the same student in the same assignment
@@ -616,12 +637,25 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         List<Map<String, Object>> examinerMarkings = adminResultsMapper.getExaminerMarkings(
                 assignmentId, sessionId, subjectType, subjectId);
         
-        // Calculate average from SUBMITTED examiners
-        List<Double> submittedScores = examinerMarkings.stream()
-                .filter(marking -> "SUBMITTED".equals(marking.get("assessment_status")))
-                .map(marking -> convertToDouble(marking.get("total_score")))
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        // Check assignment type from rawData
+        String assignmentType = (String) rawData.get("assignment_type");
+        
+        List<Double> submittedScores;
+        if ("mixed".equalsIgnoreCase(assignmentType)) {
+            // For mix rubric type, calculate final scores using individual and group weights
+            submittedScores = examinerMarkings.stream()
+                    .filter(marking -> "SUBMITTED".equals(marking.get("assessment_status")))
+                    .map(marking -> calculateMixRubricFinalScore(marking, subjectId))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            // For non-mix types, use existing logic
+            submittedScores = examinerMarkings.stream()
+                    .filter(marking -> "SUBMITTED".equals(marking.get("assessment_status")))
+                    .map(marking -> convertToDouble(marking.get("total_score")))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
         
         Double averageScore = submittedScores.isEmpty() ? null : 
                 submittedScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
@@ -639,11 +673,31 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         // Similar to computeAssessmentScores but for detailed view
         // Implementation would be similar but with more detailed override information
         
-        List<Double> submittedScores = detail.getExaminers().stream()
-                .filter(examiner -> "SUBMITTED".equals(examiner.getAssessmentStatus()))
-                .map(ExaminerMarkDetailDTO::getExaminerScorePct1dp)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        // Get assignment type from the first examiner's rubric meta snapshot
+        String assignmentType = null;
+        if (!detail.getExaminers().isEmpty()) {
+            ExaminerMarkDetailDTO firstExaminer = detail.getExaminers().get(0);
+            // Extract assignment type from rubric meta if available
+            assignmentType = extractAssignmentTypeFromRubricMeta(firstExaminer);
+        }
+        
+        List<Double> submittedScores;
+        if ("mixed".equalsIgnoreCase(assignmentType)) {
+            // For mix rubric type, calculate final scores using individual and group weights
+            Long subjectId = detail.getAssessment().getKey().getEntityId();
+            submittedScores = detail.getExaminers().stream()
+                    .filter(examiner -> "SUBMITTED".equals(examiner.getAssessmentStatus()))
+                    .map(examiner -> calculateMixRubricFinalScoreFromExaminer(examiner, subjectId))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            // For non-mix types, use existing logic
+            submittedScores = detail.getExaminers().stream()
+                    .filter(examiner -> "SUBMITTED".equals(examiner.getAssessmentStatus()))
+                    .map(ExaminerMarkDetailDTO::getExaminerScorePct1dp)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
         
         Double averageScore = submittedScores.isEmpty() ? null : 
                 submittedScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
@@ -670,6 +724,166 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 finalGrade.setGradeLetter(convertPercentageToLetterGrade(effectiveScore));
             }
         }
+    }
+
+    /**
+     * Calculate final score for mix rubric type assessment
+     * Combines individual and group scores based on their weights
+     * @param examinerMarking The examiner marking data from database
+     * @param subjectId The subject ID (group ID for mix type)
+     * @return Final score percentage (0-100) or null if calculation fails
+     */
+    private Double calculateMixRubricFinalScore(Map<String, Object> examinerMarking, Long subjectId) {
+        try {
+            // Parse rubric meta info to get weights
+            String rubricMetaJson = (String) examinerMarking.get("rubric_meta_snapshot");
+            if (rubricMetaJson == null) {
+                log.warn("No rubric meta snapshot found for examiner marking");
+                return convertToDouble(examinerMarking.get("total_score"));
+            }
+            
+            RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaJson, RubricMetaInfo.class);
+            Double individualWeight = metaInfo.getIndividualWeight() != null ? metaInfo.getIndividualWeight() : 0.0;
+            Double groupWeight = metaInfo.getGroupWeight() != null ? metaInfo.getGroupWeight() : 0.0;
+            
+            // Validate weights sum to 100
+            if (Math.abs(individualWeight + groupWeight - 100.0) > 0.01) {
+                log.warn("Mix rubric weights don't sum to 100: individual={}, group={}", individualWeight, groupWeight);
+                return convertToDouble(examinerMarking.get("total_score"));
+            }
+            
+            // Parse scores to separate individual and group scores
+            String scoresJson = (String) examinerMarking.get("scores_json");
+            String rubricsInfoJson = (String) examinerMarking.get("rubrics_info_snapshot");
+            
+            if (scoresJson == null || rubricsInfoJson == null) {
+                log.warn("Missing scores or rubrics info for mix rubric calculation");
+                return convertToDouble(examinerMarking.get("total_score"));
+            }
+            
+            // Calculate individual and group scores separately
+            Double individualScore = calculateIndividualScore(metaInfo.getIndividualRubrics(), scoresJson);
+            Double groupScore = calculateGroupScore(metaInfo.getGroupRubrics(), scoresJson);
+            
+            // Calculate final score using weights
+            Double finalScore = 0.0;
+            if (individualWeight > 0 && individualScore != null) {
+                finalScore += (individualScore * individualWeight / 100.0);
+            }
+            if (groupWeight > 0 && groupScore != null) {
+                finalScore += (groupScore * groupWeight / 100.0);
+            }
+            
+            log.debug("Mix rubric final score calculation: individual={}*{}/100 + group={}*{}/100 = {}", 
+                    individualScore, individualWeight, groupScore, groupWeight, finalScore);
+            
+            return finalScore;
+            
+        } catch (Exception e) {
+            log.error("Error calculating mix rubric final score", e);
+            // Fallback to total_score if calculation fails
+            return convertToDouble(examinerMarking.get("total_score"));
+        }
+    }
+    
+    /**
+     * Calculate final score for mix rubric type from ExaminerMarkDetailDTO
+     * @param examiner The examiner detail DTO
+     * @param subjectId The subject ID (group ID for mix type)
+     * @return Final score percentage (0-100) or null if calculation fails
+     */
+    private Double calculateMixRubricFinalScoreFromExaminer(ExaminerMarkDetailDTO examiner, Long subjectId) {
+        // For now, return the examiner score as-is since we don't have access to rubric meta in DTO
+        // TODO: Enhance ExaminerMarkDetailDTO to include rubric meta info for proper mix calculation
+        return examiner.getExaminerScorePct1dp();
+    }
+    
+    /**
+     * Extract assignment type from examiner's rubric meta snapshot
+     * @param examiner The examiner detail DTO
+     * @return Assignment type or null if not found
+     */
+    private String extractAssignmentTypeFromRubricMeta(ExaminerMarkDetailDTO examiner) {
+        // For now, we can't extract this from the current DTO structure
+        // TODO: Enhance to properly extract assignment type
+        return null;
+    }
+    
+    /**
+     * Calculate individual score from individual rubrics and scores
+     * @param individualRubrics The individual rubric criteria
+     * @param scoresJson The scores JSON string
+     * @return Individual score percentage (0-100) or null if calculation fails
+     */
+    private Double calculateIndividualScore(List<RubricsInfoDto> individualRubrics, String scoresJson) {
+        if (individualRubrics == null || individualRubrics.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            List<SaveAssessmentDraftRequestDTO.ScoreItem> scores = objectMapper.readValue(
+                scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {});
+            
+            return computeScoreForRubrics(individualRubrics, scores);
+        } catch (Exception e) {
+            log.error("Error calculating individual score", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Calculate group score from group rubrics and scores
+     * @param groupRubrics The group rubric criteria
+     * @param scoresJson The scores JSON string
+     * @return Group score percentage (0-100) or null if calculation fails
+     */
+    private Double calculateGroupScore(List<RubricsInfoDto> groupRubrics, String scoresJson) {
+        if (groupRubrics == null || groupRubrics.isEmpty()) {
+            return null;
+        }
+        
+        try {
+            List<SaveAssessmentDraftRequestDTO.ScoreItem> scores = objectMapper.readValue(
+                scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {});
+            
+            return computeScoreForRubrics(groupRubrics, scores);
+        } catch (Exception e) {
+            log.error("Error calculating group score", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Compute score for a set of rubrics and matching score items
+     * @param rubrics The rubric criteria
+     * @param scores The score items
+     * @return Computed score percentage (0-100)
+     */
+    private Double computeScoreForRubrics(List<RubricsInfoDto> rubrics, List<SaveAssessmentDraftRequestDTO.ScoreItem> scores) {
+        double total = 0.0;
+        double totalWeight = 0.0;
+        
+        for (RubricsInfoDto rubric : rubrics) {
+            double weight = rubric.getWeight() != null ? rubric.getWeight() : 0.0;
+            totalWeight += weight;
+            
+            SaveAssessmentDraftRequestDTO.ScoreItem matchedScore = scores.stream()
+                    .filter(s -> rubric.getDescription() != null && 
+                               rubric.getDescription().trim().equalsIgnoreCase(
+                                   s.getDescription() != null ? s.getDescription().trim() : ""))
+                    .findFirst()
+                    .orElse(null);
+            
+            double normalizedScore = 0.0;
+            if (matchedScore != null && matchedScore.getInputPoints() != null) {
+                normalizedScore = Math.max(0.0, Math.min(100.0, matchedScore.getInputPoints()));
+            }
+            
+            total += normalizedScore * weight / 100.0;
+        }
+        
+        // If total weight is 0, return 0; otherwise normalize to percentage
+        return totalWeight > 0 ? (total / totalWeight) * 100.0 : 0.0;
     }
 
     /**
@@ -711,5 +925,134 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     private String formatDateTime(LocalDateTime dateTime) {
         if (dateTime == null) return null;
         return dateTime.atZone(ZoneId.of("Australia/Melbourne")).format(ISO_FORMATTER);
+    }
+
+    @Override
+    public ExaminerScoringDTO getIndividualExaminerScoring(Long subjectId, Long assignmentId, Long studentId) {
+        // Get basic subject and assignment info
+        Map<String, Object> subjectData = adminResultsMapper.getIndividualExaminerScoring(assignmentId, studentId);
+        if (subjectData == null || subjectData.isEmpty()) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+        
+        // Get all examiner markings for this student
+        List<Map<String, Object>> examinerData = adminResultsMapper.getIndividualExaminerMarkings(assignmentId, studentId);
+        
+        // Build response DTO
+        return buildExaminerScoringDTO(subjectData, examinerData);
+    }
+
+    @Override
+    public ExaminerScoringDTO getGroupExaminerScoring(Long subjectId, Long assignmentId, Long groupId) {
+        // Get basic subject and assignment info
+        Map<String, Object> subjectData = adminResultsMapper.getGroupExaminerScoring(assignmentId, groupId);
+        if (subjectData == null || subjectData.isEmpty()) {
+            throw new BusinessException(CommonError.NOT_FOUND);
+        }
+        
+        // Get all examiner markings for this group
+        List<Map<String, Object>> examinerData = adminResultsMapper.getGroupExaminerMarkings(assignmentId, groupId);
+        
+        // Build response DTO
+        return buildExaminerScoringDTO(subjectData, examinerData);
+    }
+
+    private ExaminerScoringDTO buildExaminerScoringDTO(Map<String, Object> subjectData, List<Map<String, Object>> examinerData) {
+        ExaminerScoringDTO dto = new ExaminerScoringDTO();
+        
+        // Set assignment info
+        ExaminerScoringDTO.AssignmentInfo assignment = new ExaminerScoringDTO.AssignmentInfo();
+        assignment.setId((Long) subjectData.get("assignment_id"));
+        assignment.setName((String) subjectData.get("assignment_name"));
+        dto.setAssignment(assignment);
+        
+        // Set subject info
+        ExaminerScoringDTO.SubjectInfo subject = new ExaminerScoringDTO.SubjectInfo();
+        subject.setId((Long) subjectData.get("subject_id"));
+        subject.setName((String) subjectData.get("subject_name"));
+        subject.setType((String) subjectData.get("subject_type"));
+        if (subjectData.get("member_count") != null) {
+            subject.setMemberCount(((Number) subjectData.get("member_count")).intValue());
+        }
+        dto.setSubject(subject);
+        
+        // Convert examiner data to DTOs
+        List<ExaminerMarkDetailDTO> examiners = examinerData.stream()
+                .map(this::mapToExaminerMarkDetail)
+                .collect(Collectors.toList());
+        dto.setExaminers(examiners);
+        
+        // Compute score summary
+        ExaminerScoringDTO.ScoreSummary scores = computeScoreSummary(examinerData);
+        dto.setScores(scores);
+        
+        return dto;
+    }
+
+    private ExaminerScoringDTO.ScoreSummary computeScoreSummary(List<Map<String, Object>> examinerData) {
+        ExaminerScoringDTO.ScoreSummary summary = new ExaminerScoringDTO.ScoreSummary();
+        
+        // Check if this is a mix rubric assignment
+        boolean isMixRubric = false;
+        if (!examinerData.isEmpty()) {
+            try {
+                String rubricMetaJson = (String) examinerData.get(0).get("rubric_meta_snapshot");
+                if (rubricMetaJson != null) {
+                    RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaJson, RubricMetaInfo.class);
+                    Double individualWeight = metaInfo.getIndividualWeight() != null ? metaInfo.getIndividualWeight() : 0.0;
+                    Double groupWeight = metaInfo.getGroupWeight() != null ? metaInfo.getGroupWeight() : 0.0;
+                    isMixRubric = (individualWeight > 0 && groupWeight > 0);
+                }
+            } catch (Exception e) {
+                log.warn("Could not parse rubric meta info to check for mix rubric type: {}", e.getMessage());
+            }
+        }
+        
+        List<Double> submittedScores;
+        if (isMixRubric) {
+            // For mix rubric type, calculate final scores using individual and group weights
+            submittedScores = examinerData.stream()
+                    .filter(marking -> "SUBMITTED".equals(marking.get("assessment_status")))
+                    .map(marking -> calculateMixRubricFinalScore(marking, null)) // subjectId not needed for this calculation
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        } else {
+            // For non-mix types, use existing logic
+            submittedScores = examinerData.stream()
+                    .filter(marking -> "SUBMITTED".equals(marking.get("assessment_status")))
+                    .map(marking -> convertToDouble(marking.get("total_score")))
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+        }
+        
+        Double averageScore = submittedScores.isEmpty() ? null : 
+                submittedScores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        
+        summary.setAverageScorePct1dp(averageScore);
+        summary.setSubmittedCount(submittedScores.size());
+        summary.setTotalCount(examinerData.size());
+        
+        // Check for manual override - use the first one found (they should all be the same)
+        Map<String, Object> firstWithOverride = examinerData.stream()
+                .filter(data -> data.get("final_score_override") != null)
+                .findFirst()
+                .orElse(null);
+        
+        if (firstWithOverride != null) {
+            ExaminerScoringDTO.ScoreSummary.ManualOverride override = new ExaminerScoringDTO.ScoreSummary.ManualOverride();
+            override.setValuePct1dp(convertToDouble(firstWithOverride.get("final_score_override")));
+            override.setReason((String) firstWithOverride.get("override_reason"));
+            override.setOverrideAt(formatDateTime((LocalDateTime) firstWithOverride.get("override_at")));
+            override.setOverrideByUserId((Long) firstWithOverride.get("override_by_user_id"));
+            summary.setManualOverride(override);
+            
+            // Use override as effective score
+            summary.setEffectiveFinalScorePct1dp(override.getValuePct1dp());
+        } else {
+            // Use average as effective score
+            summary.setEffectiveFinalScorePct1dp(averageScore);
+        }
+        
+        return summary;
     }
 }

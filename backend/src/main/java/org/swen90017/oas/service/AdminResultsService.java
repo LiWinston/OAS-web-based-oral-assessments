@@ -73,4 +73,22 @@ public interface AdminResultsService {
             ReleaseAssessmentRequestDTO request,
             Long adminUserId
     );
+
+    /**
+     * Get examiner scoring information for an individual student
+     */
+    ExaminerScoringDTO getIndividualExaminerScoring(
+            Long subjectId,
+            Long assignmentId,
+            Long studentId
+    );
+
+    /**
+     * Get examiner scoring information for a group
+     */
+    ExaminerScoringDTO getGroupExaminerScoring(
+            Long subjectId,
+            Long assignmentId,
+            Long groupId
+    );
 }

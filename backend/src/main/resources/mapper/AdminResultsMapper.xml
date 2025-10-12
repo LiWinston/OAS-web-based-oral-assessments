@@ -6,6 +6,7 @@
     <select id="listAssessmentSummaries" resultType="java.util.Map">
         SELECT DISTINCT
             a.id as assignment_id,
+            a.type as assignment_type,
             GROUP_CONCAT(asub.id ORDER BY asub.id) as submission_ids,
             asub.session_id,
             asub.subject_type,
@@ -132,6 +133,7 @@
     <select id="getAssessmentDetail" resultType="java.util.Map">
         SELECT 
             a.id as assignment_id,
+            a.type as assignment_type,
             a.name as assignment_name,
             a.rubric_meta_info,
             a.rubrics_info,
@@ -423,6 +425,109 @@
             -- For group-level submissions, count all group members
             (asub.subject_type = 'GROUP' AND asub.subject_id = #{subjectId} AND #{subjectType} = 'GROUP')
         )
+    </select>
+
+    <!-- Get examiner scoring information for an individual student -->
+    <select id="getIndividualExaminerScoring" resultType="java.util.Map">
+        SELECT 
+            a.id as assignment_id,
+            a.name as assignment_name,
+            su.user_id as subject_id,
+            su.user_name as subject_name,
+            'INDIVIDUAL' as subject_type,
+            NULL as member_count
+        FROM assignment a
+        JOIN sys_user su ON su.user_id = #{studentId}
+        WHERE a.id = #{assignmentId}
+        LIMIT 1
+    </select>
+
+    <!-- Get examiner scoring information for a group -->
+    <select id="getGroupExaminerScoring" resultType="java.util.Map">
+        SELECT 
+            a.id as assignment_id,
+            a.name as assignment_name,
+            sg.group_id as subject_id,
+            sg.group_name as subject_name,
+            'GROUP' as subject_type,
+            (SELECT COUNT(*) FROM sys_student_group sgm WHERE sgm.group_id = sg.group_id) as member_count
+        FROM assignment a
+        JOIN sys_group sg ON sg.group_id = #{groupId}
+        WHERE a.id = #{assignmentId}
+        LIMIT 1
+    </select>
+
+    <!-- Get all examiner markings for an individual student across all sessions -->
+    <select id="getIndividualExaminerMarkings" resultType="java.util.Map">
+        SELECT 
+            asub.id as submission_id,
+            asub.examiner_id,
+            asub.status as assessment_status,
+            asub.submitted_at,
+            asub.total_score,
+            asub.overall_feedback,
+            asub.admin_note as notes,
+            asub.rubric_meta_snapshot,
+            asub.rubrics_info_snapshot,
+            asub.scores_json,
+            asub.session_id,
+            asub.final_score_override,
+            asub.override_reason,
+            asub.override_at,
+            asub.override_by_user_id,
+            
+            -- Examiner info
+            u.user_name as examiner_name
+            
+        FROM assessment_submission asub
+        JOIN sys_user u ON asub.examiner_id = u.user_id
+        
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.subject_type = 'INDIVIDUAL'
+        AND asub.subject_id = #{studentId}
+        
+        ORDER BY asub.session_id, asub.examiner_id
+    </select>
+
+    <!-- Get all examiner markings for a group across all sessions -->
+    <select id="getGroupExaminerMarkings" resultType="java.util.Map">
+        SELECT 
+            asub.id as submission_id,
+            asub.examiner_id,
+            asub.status as assessment_status,
+            asub.submitted_at,
+            asub.total_score,
+            asub.overall_feedback,
+            asub.admin_note as notes,
+            asub.rubric_meta_snapshot,
+            asub.rubrics_info_snapshot,
+            asub.scores_json,
+            asub.session_id,
+            asub.final_score_override,
+            asub.override_reason,
+            asub.override_at,
+            asub.override_by_user_id,
+            
+            -- Examiner info
+            u.user_name as examiner_name
+            
+        FROM assessment_submission asub
+        JOIN sys_user u ON asub.examiner_id = u.user_id
+        
+        WHERE asub.assignment_id = #{assignmentId}
+        AND (
+            -- Direct group submissions
+            (asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = #{groupId})
+            OR
+            -- Individual submissions from group members (for MIX type assignments)
+            (asub.subject_type = 'INDIVIDUAL' AND asub.subject_id IN (
+                SELECT sg.user_id 
+                FROM sys_student_group sg 
+                WHERE sg.group_id = #{groupId}
+            ))
+        )
+        
+        ORDER BY asub.session_id, asub.examiner_id
     </select>
 
 </mapper>
