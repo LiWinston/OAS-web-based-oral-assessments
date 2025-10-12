@@ -191,6 +191,14 @@ const useAuthStore = create(
           }
         }
 
+        if (typeof window !== "undefined") {
+          try {
+            window.localStorage.removeItem("oas-users-last-scope");
+          } catch (error) {
+            console.warn("Failed to clear user-management scope cache", error);
+          }
+        }
+
         set({
           user: null,
           userId: null,
