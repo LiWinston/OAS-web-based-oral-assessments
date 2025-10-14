@@ -41,16 +41,19 @@ public class SaveAssessmentDraftRequestDTO {
     private Long sessionId;
 
     @Schema(
-        description = "Subject type being assessed. Must be either 'INDIVIDUAL' for student assessment or 'GROUP' for group assessment",
+        description = "Subject type being assessed. Options: " +
+            "'INDIVIDUAL' for student assessment, " +
+            "'GROUP' for group assessment, " +
+            "'MIX' for mixed type assessment (both individual and group scores in unified scores array)",
         example = "INDIVIDUAL",
-        allowableValues = {"INDIVIDUAL", "GROUP", "STUDENT"},
+        allowableValues = {"INDIVIDUAL", "GROUP", "MIX"},
         required = true
     )
     @NotNull(message = "Subject type is required")
     private String subjectType;
 
     @Schema(
-        description = "Subject ID - Student ID for individual assessment or Group ID for group assessment",
+        description = "Subject ID - Student ID for INDIVIDUAL assessment, Group ID for GROUP or MIX assessment",
         example = "105",
         required = true
     )
@@ -80,20 +83,56 @@ public class SaveAssessmentDraftRequestDTO {
     @Valid
     private List<ScoreItem> scores;
     
+    /**
+     * @deprecated Use the unified 'scores' array with 'type' field instead.
+     * For MIX type assessments, include both GROUP and INDIVIDUAL scores in the 'scores' array,
+     * using the 'type' and 'studentId' fields to distinguish them.
+     */
+    @Deprecated
     @Schema(
-        description = "Individual scores for MIX type assessments. Only applicable when subjectType is GROUP and assignment type is 'mixed'. " +
+        description = "DEPRECATED: Use unified 'scores' array with 'type' field instead. " +
+            "Individual scores for MIX type assessments. Only applicable when subjectType is GROUP and assignment type is 'mixed'. " +
             "If provided, the system will automatically save individual assessments for each student in the group.",
-        nullable = true
+        nullable = true,
+        deprecated = true
     )
     @Valid
     private List<IndividualStudentScore> individualScores;
 
     /**
      * Individual score item for a rubric criterion
+     * For MIX type assessments, use 'type' field to distinguish between GROUP and INDIVIDUAL scores
      */
     @Data
     @Schema(description = "Score item for a specific rubric criterion")
     public static class ScoreItem {
+
+        @Schema(
+            description = "Score type: 'GROUP' for group criteria or 'INDIVIDUAL' for individual student criteria. " +
+                "For non-MIX assignments, this field can be omitted (defaults to the submission's subjectType). " +
+                "For MIX type assignments, this field is required to distinguish group vs individual scores.",
+            example = "GROUP",
+            allowableValues = {"GROUP", "INDIVIDUAL"},
+            nullable = true
+        )
+        private String type;
+        
+        @Schema(
+            description = "Student ID - required only when type='INDIVIDUAL' for MIX type assessments. " +
+                "Identifies which student this individual score belongs to.",
+            example = "201",
+            nullable = true
+        )
+        private Long studentId;
+        
+        @Schema(
+            description = "Individual feedback for this student - only applicable when type='INDIVIDUAL'",
+            example = "Great individual contribution!",
+            maxLength = 2000,
+            nullable = true
+        )
+        @Size(max = 2000, message = "Individual feedback cannot exceed 2000 characters")
+        private String individualFeedback;
 
         @Schema(
             description = "Rubric criterion description that matches the assignment's rubric configuration",

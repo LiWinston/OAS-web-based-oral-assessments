@@ -66,6 +66,20 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // 2.1 Normalize subjectType synonyms
         String normalizedSubjectType = normalizeSubjectType(request.getSubjectType());
+        
+        // 2.1.1 Check if this is a MIX type request (front-end explicitly specifies MIX)
+        if ("MIX".equals(normalizedSubjectType)) {
+            // For MIX type, we need to query enrollment by GROUP type to get the enrollmentId
+            Long enrollmentId = null;
+            if (request.getSessionId() != null) {
+                SessionStudent enrollment = sessionStudentMapper.selectBySessionAndSubject(
+                    request.getSessionId(), "GROUP", request.getSubjectId());
+                if (enrollment != null) {
+                    enrollmentId = enrollment.getId();
+                }
+            }
+            return handleMixTypeAssessment(request, examinerId, assignment, enrollmentId);
+        }
 
         // 2.2 Query enrollment_id (if sessionId provided)
         Long enrollmentId = null;
@@ -76,7 +90,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             if (enrollment != null) {
                 enrollmentId = enrollment.getId();
                 
-                // Handle MIX type specially - create both individual and group submissions
+                // Handle MIX type specially (detected from enrollment type for backward compatibility)
                 if ("MIX".equals(enrollment.getType())) {
                     return handleMixTypeAssessment(request, examinerId, assignment, enrollmentId);
                 }
@@ -158,7 +172,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         target.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, target.getSubjectType()));
         
         // If this submission carries scores/feedback, sync them into the record before submit
-        boolean needUpdateContent = request.getScores() != null || request.getOverallFeedback() != null || request.getAdminNote() != null;
+        boolean needUpdateContent = request.getScores() != null || request.getOverallFeedback() != null || request.getAdminNote() != null || request.getIndividualScores() != null;
         if (needUpdateContent) {
             // Use saveDraft validation/normalization once
             SaveAssessmentDraftRequestDTO save = new SaveAssessmentDraftRequestDTO();
@@ -169,6 +183,7 @@ public class AssessmentServiceImpl implements AssessmentService {
             save.setOverallFeedback(request.getOverallFeedback());
             save.setAdminNote(request.getAdminNote());
             save.setScores(request.getScores());
+            save.setIndividualScores(request.getIndividualScores()); // Support MIX type individual scores
             AssessmentSubmissionDTO updated = saveDraft(save, examinerId);
             // Reload latest entity (saveDraft has already refreshed snapshots)
             target = submissionMapper.selectById(updated.getSubmissionId());
@@ -431,6 +446,7 @@ public class AssessmentServiceImpl implements AssessmentService {
         dto.setSubmissionId(record.getId());
         dto.setAssignmentId(record.getAssignmentId());
         dto.setSessionId(record.getSessionId());
+        dto.setEnrollmentId(record.getEnrollmentId());
         dto.setSubjectType(record.getSubjectType());
         dto.setSubjectId(record.getSubjectId());
         dto.setExaminerId(record.getExaminerId());
@@ -989,6 +1005,45 @@ public class AssessmentServiceImpl implements AssessmentService {
                 throw new BusinessException("No students found in group " + groupId);
             }
             
+            // Separate GROUP and INDIVIDUAL scores from the unified scores array
+            // Map to store individual scores by studentId
+            java.util.Map<Long, java.util.List<SaveAssessmentDraftRequestDTO.ScoreItem>> individualScoresByStudent = new java.util.HashMap<>();
+            java.util.Map<Long, String> individualFeedbackByStudent = new java.util.HashMap<>();
+            java.util.List<SaveAssessmentDraftRequestDTO.ScoreItem> groupScoresOnly = new java.util.ArrayList<>();
+            
+            if (request.getScores() != null) {
+                for (SaveAssessmentDraftRequestDTO.ScoreItem score : request.getScores()) {
+                    String scoreType = score.getType();
+                    // Default to GROUP if type is not specified for backward compatibility
+                    if (scoreType == null || "GROUP".equals(scoreType)) {
+                        groupScoresOnly.add(score);
+                    } else if ("INDIVIDUAL".equals(scoreType)) {
+                        if (score.getStudentId() != null) {
+                            individualScoresByStudent.computeIfAbsent(score.getStudentId(), k -> new java.util.ArrayList<>()).add(score);
+                            // Collect individual feedback if provided
+                            if (score.getIndividualFeedback() != null && !score.getIndividualFeedback().trim().isEmpty()) {
+                                individualFeedbackByStudent.put(score.getStudentId(), score.getIndividualFeedback());
+                            }
+                        } else {
+                            log.warn("INDIVIDUAL score without studentId: {}", score.getDescription());
+                        }
+                    }
+                }
+            }
+            
+            // Backward compatibility: also check deprecated individualScores field
+            if (request.getIndividualScores() != null && !request.getIndividualScores().isEmpty()) {
+                log.info("Using deprecated individualScores field for backward compatibility");
+                for (SaveAssessmentDraftRequestDTO.IndividualStudentScore studentScore : request.getIndividualScores()) {
+                    if (studentScore.getStudentId() != null) {
+                        individualScoresByStudent.put(studentScore.getStudentId(), studentScore.getScores());
+                        if (studentScore.getIndividualFeedback() != null) {
+                            individualFeedbackByStudent.put(studentScore.getStudentId(), studentScore.getIndividualFeedback());
+                        }
+                    }
+                }
+            }
+            
             // Create individual assessment submissions only if individualWeight > 0
             if (individualWeight > 0) {
                 // Convert individual rubrics to JSON
@@ -997,14 +1052,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                 for (SysStudentGroup studentGroup : studentGroups) {
                     Long studentId = studentGroup.getUserId();
                     
-                    // Find scores for this student from request.individualScores
-                    SaveAssessmentDraftRequestDTO.IndividualStudentScore studentScore = null;
-                    if (request.getIndividualScores() != null) {
-                        studentScore = request.getIndividualScores().stream()
-                            .filter(s -> s.getStudentId().equals(studentId))
-                            .findFirst()
-                            .orElse(null);
-                    }
+                    // Get scores for this student
+                    java.util.List<SaveAssessmentDraftRequestDTO.ScoreItem> studentScores = individualScoresByStudent.get(studentId);
+                    String studentFeedback = individualFeedbackByStudent.get(studentId);
                     
                     // Check if individual submission already exists
                     AssessmentSubmission existingIndividual = submissionMapper.selectByUniqueTarget(
@@ -1029,15 +1079,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                         individualSubmission.setRubricsInfoSnapshot(individualRubricsJson);
                         
                         // Process scores if provided for this student
-                        if (studentScore != null && studentScore.getScores() != null && !studentScore.getScores().isEmpty()) {
+                        if (studentScores != null && !studentScores.isEmpty()) {
                             // Create a temporary request for validation
                             SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
-                            tempRequest.setScores(studentScore.getScores());
+                            tempRequest.setScores(studentScores);
                             String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), individualRubricsJson, tempRequest);
                             individualSubmission.setScoresJson(normalizedScoresJson);
                             Double total = computeTotalScore(assignment.getRubricMetaInfo(), individualRubricsJson, normalizedScoresJson, "INDIVIDUAL");
                             individualSubmission.setTotalScore(total);
-                            individualSubmission.setOverallFeedback(studentScore.getIndividualFeedback());
+                            individualSubmission.setOverallFeedback(studentFeedback);
                         } else {
                             individualSubmission.setScoresJson("[]");
                             individualSubmission.setTotalScore(null);
@@ -1057,16 +1107,16 @@ public class AssessmentServiceImpl implements AssessmentService {
                         existingIndividual.setRubricsInfoSnapshot(individualRubricsJson);
                         
                         // Update scores if provided for this student
-                        if (studentScore != null && studentScore.getScores() != null && !studentScore.getScores().isEmpty()) {
+                        if (studentScores != null && !studentScores.isEmpty()) {
                             SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
-                            tempRequest.setScores(studentScore.getScores());
+                            tempRequest.setScores(studentScores);
                             String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), individualRubricsJson, tempRequest);
                             existingIndividual.setScoresJson(normalizedScoresJson);
                             Double total = computeTotalScore(assignment.getRubricMetaInfo(), individualRubricsJson, normalizedScoresJson, "INDIVIDUAL");
                             existingIndividual.setTotalScore(total);
                             
-                            if (studentScore.getIndividualFeedback() != null) {
-                                existingIndividual.setOverallFeedback(studentScore.getIndividualFeedback());
+                            if (studentFeedback != null) {
+                                existingIndividual.setOverallFeedback(studentFeedback);
                             }
                         }
                         
@@ -1104,9 +1154,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                     groupSubmission.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
                     groupSubmission.setRubricsInfoSnapshot(groupRubricsJson);
                     
-                    // Process scores if provided
-                    if (request.getScores() != null && !request.getScores().isEmpty()) {
-                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, request);
+                    // Process GROUP scores only (filtered from unified scores array)
+                    if (groupScoresOnly != null && !groupScoresOnly.isEmpty()) {
+                        SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
+                        tempRequest.setScores(groupScoresOnly);
+                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, tempRequest);
                         groupSubmission.setScoresJson(normalizedScoresJson);
                         Double total = computeTotalScore(assignment.getRubricMetaInfo(), groupRubricsJson, normalizedScoresJson, "GROUP");
                         groupSubmission.setTotalScore(total);
@@ -1126,9 +1178,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                     // Update existing group submission
                     groupSubmission = existingGroup;
                     
-                    // Update scores if provided
-                    if (request.getScores() != null && !request.getScores().isEmpty()) {
-                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, request);
+                    // Update GROUP scores only (filtered from unified scores array)
+                    if (groupScoresOnly != null && !groupScoresOnly.isEmpty()) {
+                        SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
+                        tempRequest.setScores(groupScoresOnly);
+                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, tempRequest);
                         groupSubmission.setScoresJson(normalizedScoresJson);
                         Double total = computeTotalScore(assignment.getRubricMetaInfo(), groupRubricsJson, normalizedScoresJson, "GROUP");
                         groupSubmission.setTotalScore(total);

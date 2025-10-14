@@ -11,6 +11,10 @@ public class AssessmentSubmissionDTO {
     private Long submissionId;
     private Long assignmentId;
     private Long sessionId;
+    
+    @Schema(description = "Enrollment ID - links to session_student. For MIX type, all related submissions (group + individuals) share the same enrollmentId")
+    private Long enrollmentId;
+    
     private String subjectType;
     private Long subjectId;
     private Long examinerId;
