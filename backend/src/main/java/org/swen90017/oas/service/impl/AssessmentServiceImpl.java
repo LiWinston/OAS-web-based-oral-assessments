@@ -110,11 +110,14 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         // 4) Generate/maintain rubric snapshots
+        // Always save rubricMetaInfo as the primary source
         if (isCreate || record.getRubricMetaSnapshot() == null) {
             record.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
         }
+        // Extract rubrics from meta based on subject type and store in rubricsInfoSnapshot
+        // This maintains backward compatibility while using the new unified format
         if (isCreate || record.getRubricsInfoSnapshot() == null) {
-            record.setRubricsInfoSnapshot(assignment.getRubricsInfo());
+            record.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, normalizedSubjectType));
         }
 
         // 5) Validate scores and compute total (draft can be incomplete; partial nulls allowed here)
@@ -392,7 +395,8 @@ public class AssessmentServiceImpl implements AssessmentService {
                 draft.setExaminerId(examinerId);
                 draft.setStatus("DRAFT");
                 draft.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
-                draft.setRubricsInfoSnapshot(assignment.getRubricsInfo());
+                // Extract rubrics from meta based on subject type
+                draft.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, normalizedType));
                 draft.setScoresJson("[]");
                 draft.setCreatedAt(LocalDateTime.now());
                 draft.setUpdatedAt(LocalDateTime.now());
@@ -598,6 +602,57 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (sortOrder == null) return "desc";
         String o = sortOrder.trim().toLowerCase();
         return ("asc".equals(o) || "desc".equals(o)) ? o : "desc";
+    }
+
+    /**
+     * Extract rubrics from rubricMetaInfo based on assignment type and subject type
+     * For new unified rubric format, all rubric information is stored in rubricMetaInfo
+     * 
+     * @param assignment The assignment entity
+     * @param subjectType The subject type (INDIVIDUAL/GROUP)
+     * @return JSON string of rubrics list, or null if not found
+     */
+    private String extractRubricsFromMeta(Assignment assignment, String subjectType) {
+        try {
+            // If rubricMetaInfo is empty, fall back to old rubricsInfo for backward compatibility
+            if (assignment.getRubricMetaInfo() == null || assignment.getRubricMetaInfo().trim().isEmpty()) {
+                return assignment.getRubricsInfo();
+            }
+            
+            RubricMetaInfo metaInfo = objectMapper.readValue(assignment.getRubricMetaInfo(), RubricMetaInfo.class);
+            
+            // For MIX type assignments, extract based on subjectType
+            if ("INDIVIDUAL".equals(subjectType)) {
+                if (metaInfo.getIndividualRubrics() != null && !metaInfo.getIndividualRubrics().isEmpty()) {
+                    return objectMapper.writeValueAsString(metaInfo.getIndividualRubrics());
+                }
+            } else if ("GROUP".equals(subjectType)) {
+                if (metaInfo.getGroupRubrics() != null && !metaInfo.getGroupRubrics().isEmpty()) {
+                    return objectMapper.writeValueAsString(metaInfo.getGroupRubrics());
+                }
+            }
+            
+            // For non-MIX type (pure INDIVIDUAL or GROUP assignments):
+            // Check if old rubricsInfo exists, use it; otherwise, try to get from individualRubrics or groupRubrics
+            if (assignment.getRubricsInfo() != null && !assignment.getRubricsInfo().trim().isEmpty()) {
+                return assignment.getRubricsInfo();
+            }
+            
+            // Try individualRubrics or groupRubrics as fallback
+            if (metaInfo.getIndividualRubrics() != null && !metaInfo.getIndividualRubrics().isEmpty()) {
+                return objectMapper.writeValueAsString(metaInfo.getIndividualRubrics());
+            }
+            if (metaInfo.getGroupRubrics() != null && !metaInfo.getGroupRubrics().isEmpty()) {
+                return objectMapper.writeValueAsString(metaInfo.getGroupRubrics());
+            }
+            
+            // If nothing found, return old rubricsInfo as last resort
+            return assignment.getRubricsInfo();
+            
+        } catch (Exception e) {
+            log.warn("Failed to extract rubrics from meta, falling back to old rubricsInfo: {}", e.getMessage());
+            return assignment.getRubricsInfo();
+        }
     }
 
     /**
