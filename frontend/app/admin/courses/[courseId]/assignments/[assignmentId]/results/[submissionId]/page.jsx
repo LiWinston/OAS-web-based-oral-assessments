@@ -32,32 +32,68 @@ const FALLBACK_ASSIGNMENTS = {
   103: { name: 'Team Demo', type: 'group' },
 };
 
+const numberOrNull = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
 const deriveLevelRanges = (performanceLevels = []) => {
   if (!Array.isArray(performanceLevels)) return [];
 
   return performanceLevels.map((level, index) => {
-    const currentValueRaw = Number(level?.value);
-    const currentValue = Number.isFinite(currentValueRaw) ? currentValueRaw : 0;
+    const next = performanceLevels?.[index + 1];
 
-    const nextValueRaw = Number(performanceLevels?.[index + 1]?.value);
-    const nextValue = Number.isFinite(nextValueRaw) ? nextValueRaw : 0;
+    const explicitMin = numberOrNull(
+      level?.minPoints ??
+      level?.min ??
+      level?.startPoint ??
+      level?.lowerBound ??
+      level?.levelRange?.min
+    );
 
-    // Treat backend provided "value" as the upper bound for the level.
-    // Until the API supplies explicit ranges, approximate the lower bound using the
-    // next performance level's value (or zero for the final band). This keeps the
-    // admin view aligned with the examiner UI expectations.
-    const upperBound = Math.max(0, currentValue);
-    const inferredLower = nextValue <= upperBound ? nextValue : 0;
-    const lowerBound = Math.max(0, inferredLower);
+    const explicitMax = numberOrNull(
+      level?.maxPoints ??
+      level?.max ??
+      level?.endPoint ??
+      level?.upperBound ??
+      level?.value ??
+      level?.levelRange?.max
+    );
 
-    const levelId = level?.levelId || `L${index + 1}`;
-    const levelLabel = level?.label || level?.levelId || `Level ${index + 1}`;
+    let lowerBound = explicitMin;
+    let upperBound = explicitMax;
+
+    if (lowerBound == null && upperBound == null) {
+      const currentValue = numberOrNull(level?.value);
+      const nextValue = numberOrNull(
+        next?.minPoints ??
+        next?.startPoint ??
+        next?.value
+      );
+      upperBound = currentValue != null ? Math.max(0, currentValue) : 0;
+      lowerBound = nextValue != null ? Math.max(0, Math.min(nextValue, upperBound)) : 0;
+    } else {
+      if (lowerBound == null) lowerBound = upperBound != null ? Math.min(upperBound, 0) : 0;
+      if (upperBound == null) upperBound = lowerBound != null ? Math.max(lowerBound, 0) : 0;
+      if (lowerBound > upperBound) {
+        const temp = lowerBound;
+        lowerBound = upperBound;
+        upperBound = temp;
+      }
+      lowerBound = Math.max(0, lowerBound);
+      upperBound = Math.max(lowerBound, upperBound);
+    }
+
+    const levelId = level?.levelId || level?.id || `L${index + 1}`;
+    const levelLabel = level?.label || level?.levelLabel || levelId || `Level ${index + 1}`;
 
     return {
       levelId,
       levelLabel,
       description: level?.description,
-      // Provide both range representations for compatibility with RubricTable.
+      preDefinedComment: ensureArray(level?.preDefinedComment),
       levelRange: { min: lowerBound, max: upperBound },
       minPoints: lowerBound,
       maxPoints: upperBound,
@@ -66,25 +102,125 @@ const deriveLevelRanges = (performanceLevels = []) => {
   });
 };
 
-function toFrozenRubric(rubric) {
-  if (!rubric) return { criteria: [] };
+const normalizeComponent = (value) => {
+  const normalized = (value || '').toString().trim().toUpperCase();
+  if (normalized === 'GROUP' || normalized === 'G') return 'GROUP';
+  if (normalized === 'INDIVIDUAL' || normalized === 'I') return 'INDIVIDUAL';
+  if (normalized === 'BOTH' || normalized === 'ALL') return 'BOTH';
+  return null;
+};
 
-  const scale = rubric?.rubricMetaInfo?.scale || 'weight';
+function toFrozenRubric(rubric) {
+  if (!rubric) {
+    return {
+      criteria: [],
+      weights: { group: 0, individual: 0 },
+      bucketCriteria: { group: [], individual: [] },
+      weightBasis: 'percentage',
+    };
+  }
+
+  const meta = rubric?.rubricMetaInfo ?? {};
+  const scale = meta?.scale || meta?.weightBasis || 'weight';
   const scaleType = scale === 'points' ? 'points' : 'descriptive';
 
-  const criteria = (rubric.criteria || []).map((criterion) => ({
-    criterionId: criterion.criterionId,
-    text: criterion.title || criterion.criterionId,
-    weightPct: criterion.weightOrPoints ?? 0,
-    appliesTo: 'BOTH',
-    scaleType,
-    levels: deriveLevelRanges(criterion.performanceLevels),
-  }));
+  const parseWeight = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const groupWeight = parseWeight(
+    meta?.groupWeight ??
+    meta?.weights?.group ??
+    meta?.bucketWeights?.group
+  );
+  const individualWeight = parseWeight(
+    meta?.individualWeight ??
+    meta?.weights?.individual ??
+    meta?.bucketWeights?.individual
+  );
+
+  const criteriaMap = new Map();
+  const groupSet = new Set();
+  const individualSet = new Set();
+
+  const registerCriterion = (criterion, appliesDefault = null) => {
+    if (!criterion) return;
+    const criterionId = (criterion?.criterionId || criterion?.id || `criterion-${criteriaMap.size + 1}`).toString();
+    const appliesRaw =
+      normalizeComponent(criterion?.component) ??
+      normalizeComponent(criterion?.appliesTo) ??
+      normalizeComponent(appliesDefault) ??
+      (ensureArray(criterion?.targets)?.length === 1 ? normalizeComponent(criterion.targets[0]) : null);
+    const appliesTo = appliesRaw || 'BOTH';
+    const weight = parseWeight(criterion?.weightOrPoints ?? criterion?.weight ?? criterion?.points);
+    const levels = deriveLevelRanges(
+      criterion?.performanceLevels ??
+      criterion?.levels ??
+      criterion?.performanceLevel ??
+      []
+    );
+
+    if (!criteriaMap.has(criterionId)) {
+      criteriaMap.set(criterionId, {
+        criterionId,
+        text: criterion?.title || criterion?.name || criterion?.description || criterionId,
+        weightPct: weight,
+        appliesTo,
+        scaleType,
+        levels,
+      });
+    } else {
+      // Merge appliesTo/levels if multiple sources reference the same criterion
+      const existing = criteriaMap.get(criterionId);
+      const mergedApplies =
+        existing.appliesTo === appliesTo
+          ? appliesTo
+          : existing.appliesTo === 'BOTH' || appliesTo === 'BOTH'
+            ? 'BOTH'
+            : existing.appliesTo !== appliesTo
+              ? 'BOTH'
+              : appliesTo;
+      existing.appliesTo = mergedApplies;
+      if (!existing.weightPct && weight) existing.weightPct = weight;
+      if ((!existing.levels || existing.levels.length === 0) && levels.length) {
+        existing.levels = levels;
+      }
+    }
+
+    if (appliesTo === 'GROUP' || appliesTo === 'BOTH') groupSet.add(criterionId);
+    if (appliesTo === 'INDIVIDUAL' || appliesTo === 'BOTH') individualSet.add(criterionId);
+  };
+
+  // Prioritise explicit bucket arrays if provided
+  ensureArray(meta?.groupRubrics).forEach((criterion) => registerCriterion(criterion, 'GROUP'));
+  ensureArray(meta?.individualRubrics).forEach((criterion) => registerCriterion(criterion, 'INDIVIDUAL'));
+  ensureArray(meta?.bucketInfo?.group?.criteria).forEach((criterion) => registerCriterion(criterion, 'GROUP'));
+  ensureArray(meta?.bucketInfo?.individual?.criteria).forEach((criterion) => registerCriterion(criterion, 'INDIVIDUAL'));
+  ensureArray(rubric?.groupCriteria).forEach((criterion) => registerCriterion(criterion, 'GROUP'));
+  ensureArray(rubric?.individualCriteria).forEach((criterion) => registerCriterion(criterion, 'INDIVIDUAL'));
+
+  // Fall back to generic criteria array
+  if (criteriaMap.size === 0) {
+    ensureArray(rubric?.criteria).forEach((criterion) => registerCriterion(criterion));
+  } else {
+    // Ensure any remaining top-level criteria are accounted for without overriding explicit buckets
+    ensureArray(rubric?.criteria)
+      .filter((criterion) => !criteriaMap.has((criterion?.criterionId || criterion?.id || '').toString()))
+      .forEach((criterion) => registerCriterion(criterion));
+  }
 
   return {
-    rubricId: rubric?.rubricMetaInfo?.rubricId,
+    rubricId: meta?.rubricId,
     version: 1,
-    criteria,
+    criteria: Array.from(criteriaMap.values()),
+    weights: { group: groupWeight, individual: individualWeight },
+    bucketCriteria: {
+      group: Array.from(groupSet),
+      individual: Array.from(individualSet),
+    },
+    weightBasis: scale === 'points' ? 'points' : 'percentage',
+    rubricMetaInfo: meta,
   };
 }
 
