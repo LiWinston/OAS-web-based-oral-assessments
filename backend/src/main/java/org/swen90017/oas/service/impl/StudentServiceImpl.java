@@ -18,7 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -119,57 +118,56 @@ public class StudentServiceImpl implements StudentService {
             }
         }
 
-        // Create AssignmentParticipant relations for existing students
-        Set<String> allIds = studentDTOs.stream().map(StudentCSVRequestDTO::getStudentId).collect(Collectors.toSet());
-        Set<String> newIds = invitedStudents.stream().map(SysStudent::getStudentNumber).collect(Collectors.toSet());
-        Set<String> existingIds = new HashSet<>(allIds);
-        existingIds.removeAll(newIds);
-
-        if (!existingIds.isEmpty()) {
-            List<SysStudent> existingStudents = studentMapper.selectList(
-                    new QueryWrapper<SysStudent>().in("student_number", existingIds)
-            );
-
-            Map<String, SysStudent> existingMap = existingStudents.stream()
-                    .collect(Collectors.toMap(SysStudent::getStudentNumber, s -> s));
-
-            Map<String, String> studentIdToAssignmentId = studentDTOs.stream()
-                    .collect(Collectors.toMap(StudentCSVRequestDTO::getStudentId, StudentCSVRequestDTO::getAssignmentId, (a, b) -> a));
-
-            for (Map.Entry<String, SysStudent> entry : existingMap.entrySet()) {
-                String studentId = entry.getKey();
-                SysStudent sysStudent = entry.getValue();
-                if (assignmentIdParam != null) {
-                    Long assignmentId = assignmentIdParam;
-                    QueryWrapper<AssignmentParticipant> existsWrapper = new QueryWrapper<>();
-                    existsWrapper.eq("assignment_id", assignmentId)
-                            .eq("user_id", sysStudent.getUserId())
-                            .last("limit 1");
-                    AssignmentParticipant existing = assignmentParticipantMapper.selectOne(existsWrapper);
-                    if (existing != null) {
-                        continue;
+        // Create AssignmentParticipant relations for existing students (not included in invitedStudents)
+        // Find users by email who already exist but weren't newly created
+        Set<String> newStudentNumbers = invitedStudents.stream()
+                .map(SysStudent::getStudentNumber)
+                .collect(Collectors.toSet());
+        
+        // Build email list for existing students (those not newly created)
+        List<String> existingStudentEmails = studentDTOs.stream()
+                .filter(dto -> !newStudentNumbers.contains(dto.getStudentId()))
+                .map(dto -> {
+                    String sisLoginId = dto.getSisLoginId();
+                    String email = dto.getEmail();
+                    if (sisLoginId != null && !sisLoginId.trim().isEmpty()) {
+                        return sisLoginId + "@student.unimelb.edu.au";
                     }
-
-                    AssignmentParticipant participant = new AssignmentParticipant();
-                    participant.setAssignmentId(assignmentId);
-                    participant.setUserId(sysStudent.getUserId());
-                    participant.setRoleId(UserRole.STUDENT.sort());
-                    participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
-                    assignmentParticipantMapper.insert(participant);
-                    log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
-                } else {
-                    String assignmentIdStr = studentIdToAssignmentId.get(studentId);
-                    if (StringUtils.isBlank(assignmentIdStr)) {
-                        continue;
-                    }
-                    try {
-                        Long assignmentId = Long.valueOf(assignmentIdStr);
+                    return email;
+                })
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        
+        if (!existingStudentEmails.isEmpty()) {
+            // Query sys_user by email to get user_id
+            QueryWrapper<org.swen90017.oas.entity.SysUser> userWrapper = new QueryWrapper<>();
+            userWrapper.in("email", existingStudentEmails);
+            List<org.swen90017.oas.entity.SysUser> existingUsers = userMapper.selectList(userWrapper);
+            
+            if (!existingUsers.isEmpty()) {
+                // Use user_id to query sys_student
+                List<Long> userIds = existingUsers.stream()
+                        .map(org.swen90017.oas.entity.SysUser::getUserId)
+                        .collect(Collectors.toList());
+                
+                QueryWrapper<SysStudent> studentWrapper = new QueryWrapper<>();
+                studentWrapper.in("user_id", userIds);
+                List<SysStudent> existingStudents = studentMapper.selectList(studentWrapper);
+                
+                log.info("Found {} existing students to link to assignment", existingStudents.size());
+                
+                // Create assignment participants for existing students
+                for (SysStudent sysStudent : existingStudents) {
+                    if (assignmentIdParam != null) {
+                        Long assignmentId = assignmentIdParam;
                         QueryWrapper<AssignmentParticipant> existsWrapper = new QueryWrapper<>();
                         existsWrapper.eq("assignment_id", assignmentId)
                                 .eq("user_id", sysStudent.getUserId())
                                 .last("limit 1");
                         AssignmentParticipant existing = assignmentParticipantMapper.selectOne(existsWrapper);
                         if (existing != null) {
+                            log.debug("Assignment participant already exists for user {} and assignment {}", sysStudent.getUserId(), assignmentId);
                             continue;
                         }
 
@@ -180,8 +178,6 @@ public class StudentServiceImpl implements StudentService {
                         participant.setIfJoin(0); // Set to 0 on import; changed to 1 when released to students
                         assignmentParticipantMapper.insert(participant);
                         log.info("Linked existing user {} to assignment {} as STUDENT", sysStudent.getUserId(), assignmentId);
-                    } catch (NumberFormatException ex) {
-                        log.warn("Invalid assignmentId '{}' for existing studentId '{}', skipping", assignmentIdStr, studentId);
                     }
                 }
             }
