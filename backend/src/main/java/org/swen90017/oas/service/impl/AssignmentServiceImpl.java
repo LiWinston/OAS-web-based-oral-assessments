@@ -333,6 +333,16 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
      * Validate rubrics info with weight basis support
      */
     private void validateRubricsInfo(List<RubricsInfoDto> rubricsInfo, RubricMetaInfo rubricMetaInfo) {
+        validateRubricsInfo(rubricsInfo, rubricMetaInfo, true);
+    }
+    
+    /**
+     * Validate rubrics info with weight basis support
+     * @param rubricsInfo List of rubric items to validate
+     * @param rubricMetaInfo Rubric meta information
+     * @param checkTotalWeight Whether to check if total weight equals 100 (false for mixed type sub-rubrics)
+     */
+    private void validateRubricsInfo(List<RubricsInfoDto> rubricsInfo, RubricMetaInfo rubricMetaInfo, boolean checkTotalWeight) {
         if (rubricsInfo == null || rubricsInfo.isEmpty()) {
             return;
         }
@@ -400,12 +410,16 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
         }
 
         // Validate total weight based on weight basis
-        double expectedTotal = "percentage".equals(weightBasis) ? 100.0 : totalPoints;
-        if (Math.abs(totalWeight - expectedTotal) > 5.0) {
-            if ("percentage".equals(weightBasis)) {
-                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_WEIGHT);
-            } else {
-                throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_POINTS);
+        // Skip this check for mixed type sub-rubrics (individualRubrics/groupRubrics)
+        // as their weights should sum to their respective individualWeight/groupWeight, not 100
+        if (checkTotalWeight) {
+            double expectedTotal = "percentage".equals(weightBasis) ? 100.0 : totalPoints;
+            if (Math.abs(totalWeight - expectedTotal) > 5.0) {
+                if ("percentage".equals(weightBasis)) {
+                    throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_WEIGHT);
+                } else {
+                    throw new BusinessException(BusinessError.ASSIGNMENT_INVALID_TOTAL_POINTS);
+                }
             }
         }
     }
@@ -488,8 +502,8 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             if (Math.abs(totalIndWeight - indWeight) > 0.01) {
                 throw new BusinessException(BusinessError.RUBRIC_INDIVIDUAL_WEIGHT_MISMATCH);
             }
-            // Validate each individual rubric
-            validateRubricsInfo(individualRubrics, rubricMetaInfo);
+            // Validate each individual rubric (skip total weight check for mixed type)
+            validateRubricsInfo(individualRubrics, rubricMetaInfo, false);
         }
 
         // Rule 4: If group weight > 0, validate group rubrics
@@ -504,8 +518,8 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             if (Math.abs(totalGrpWeight - grpWeight) > 0.01) {
                 throw new BusinessException(BusinessError.RUBRIC_GROUP_WEIGHT_MISMATCH);
             }
-            // Validate each group rubric
-            validateRubricsInfo(groupRubrics, rubricMetaInfo);
+            // Validate each group rubric (skip total weight check for mixed type)
+            validateRubricsInfo(groupRubrics, rubricMetaInfo, false);
         }
     }
 
