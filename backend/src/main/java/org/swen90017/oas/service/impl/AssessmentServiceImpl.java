@@ -110,15 +110,10 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         // 4) Generate/maintain rubric snapshots
-        // Always save rubricMetaInfo as the primary source
-        if (isCreate || record.getRubricMetaSnapshot() == null) {
-            record.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
-        }
-        // Extract rubrics from meta based on subject type and store in rubricsInfoSnapshot
-        // This maintains backward compatibility while using the new unified format
-        if (isCreate || record.getRubricsInfoSnapshot() == null) {
-            record.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, normalizedSubjectType));
-        }
+        // Always refresh rubric snapshots from current assignment data
+        // This ensures old submissions get updated with correct rubrics based on subjectType
+        record.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+        record.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, normalizedSubjectType));
 
         // 5) Validate scores and compute total (draft can be incomplete; partial nulls allowed here)
         // Use rubricMetaSnapshot for both validation and calculation (contains all rubric metadata)
@@ -146,6 +141,22 @@ public class AssessmentServiceImpl implements AssessmentService {
     @Transactional
     public AssessmentSubmissionDTO submit(SubmitAssessmentRequestDTO request, Long examinerId) {
         AssessmentSubmission target = resolveTargetSubmission(request, examinerId);
+        
+        // Get assignment to refresh rubric snapshots (handles both old and new submissions)
+        Assignment assignment = assignmentMapper.selectById(target.getAssignmentId());
+        if (assignment == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+        
+        // Check if this is a MIX type submission (GROUP submission in a mixed assignment)
+        boolean isMixTypeGroupSubmission = false;
+        if ("GROUP".equals(target.getSubjectType()) && "mixed".equalsIgnoreCase(assignment.getType())) {
+            isMixTypeGroupSubmission = true;
+        }
+        
+        // Always refresh rubric snapshots from current assignment data
+        // This ensures old submissions get correct rubrics based on subjectType
+        target.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+        target.setRubricsInfoSnapshot(extractRubricsFromMeta(assignment, target.getSubjectType()));
+        
         // If this submission carries scores/feedback, sync them into the record before submit
         boolean needUpdateContent = request.getScores() != null || request.getOverallFeedback() != null || request.getAdminNote() != null;
         if (needUpdateContent) {
@@ -159,9 +170,10 @@ public class AssessmentServiceImpl implements AssessmentService {
             save.setAdminNote(request.getAdminNote());
             save.setScores(request.getScores());
             AssessmentSubmissionDTO updated = saveDraft(save, examinerId);
-            // Reload latest entity
+            // Reload latest entity (saveDraft has already refreshed snapshots)
             target = submissionMapper.selectById(updated.getSubmissionId());
         }
+        
         if (!Objects.equals(target.getExaminerId(), examinerId)) {
             throw new BusinessException(SecurityError.INSUFFICIENT_PRIVILEGES);
         }
@@ -177,7 +189,75 @@ public class AssessmentServiceImpl implements AssessmentService {
         target.setSubmittedAt(LocalDateTime.now());
         target.setUpdatedAt(LocalDateTime.now());
         submissionMapper.updateById(target);
+        
+        // For MIX type, also submit all related individual submissions
+        if (isMixTypeGroupSubmission) {
+            submitRelatedIndividualSubmissions(target, examinerId);
+        }
+        
         return toDTO(target);
+    }
+    
+    /**
+     * Submit all related individual submissions for a MIX type group submission
+     * This ensures that when a group submission is submitted, all individual submissions are also submitted
+     */
+    @Transactional
+    private void submitRelatedIndividualSubmissions(AssessmentSubmission groupSubmission, Long examinerId) {
+        try {
+            Long groupId = groupSubmission.getSubjectId();
+            
+            // Get all students in the group
+            QueryWrapper<SysStudentGroup> wrapper = new QueryWrapper<>();
+            wrapper.eq("group_id", groupId);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(wrapper);
+            
+            if (studentGroups.isEmpty()) {
+                log.warn("No students found in group {} for MIX type submission", groupId);
+                return;
+            }
+            
+            // Submit each individual submission
+            for (SysStudentGroup studentGroup : studentGroups) {
+                Long studentId = studentGroup.getUserId();
+                
+                // Find individual submission for this student
+                AssessmentSubmission individualSubmission = submissionMapper.selectByUniqueTarget(
+                    groupSubmission.getAssignmentId(),
+                    groupSubmission.getSessionId(),
+                    "INDIVIDUAL",
+                    studentId,
+                    examinerId
+                );
+                
+                if (individualSubmission != null && "DRAFT".equalsIgnoreCase(individualSubmission.getStatus())) {
+                    // Validate and submit individual submission
+                    try {
+                        ensureAllCriteriaCompleted(individualSubmission.getRubricsInfoSnapshot(), individualSubmission.getScoresJson());
+                        Double individualTotal = computeTotalScore(
+                            individualSubmission.getRubricMetaSnapshot(),
+                            individualSubmission.getRubricsInfoSnapshot(),
+                            individualSubmission.getScoresJson(),
+                            "INDIVIDUAL"
+                        );
+                        individualSubmission.setTotalScore(individualTotal);
+                        individualSubmission.setStatus("SUBMITTED");
+                        individualSubmission.setSubmittedAt(LocalDateTime.now());
+                        individualSubmission.setUpdatedAt(LocalDateTime.now());
+                        submissionMapper.updateById(individualSubmission);
+                        log.info("Auto-submitted INDIVIDUAL submission for student {} in MIX type assessment", studentId);
+                    } catch (BusinessException e) {
+                        log.warn("Failed to auto-submit INDIVIDUAL submission for student {}: {}", studentId, e.getMessage());
+                        // Don't fail the entire submission if one individual fails
+                    }
+                } else if (individualSubmission == null) {
+                    log.warn("Individual submission not found for student {} in MIX type assessment", studentId);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error submitting related individual submissions", e);
+            // Don't fail the main submission if related submissions fail
+        }
     }
 
     @Override
@@ -917,6 +997,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                 for (SysStudentGroup studentGroup : studentGroups) {
                     Long studentId = studentGroup.getUserId();
                     
+                    // Find scores for this student from request.individualScores
+                    SaveAssessmentDraftRequestDTO.IndividualStudentScore studentScore = null;
+                    if (request.getIndividualScores() != null) {
+                        studentScore = request.getIndividualScores().stream()
+                            .filter(s -> s.getStudentId().equals(studentId))
+                            .findFirst()
+                            .orElse(null);
+                    }
+                    
                     // Check if individual submission already exists
                     AssessmentSubmission existingIndividual = submissionMapper.selectByUniqueTarget(
                         request.getAssignmentId(), 
@@ -938,22 +1027,49 @@ public class AssessmentServiceImpl implements AssessmentService {
                         individualSubmission.setStatus("DRAFT");
                         individualSubmission.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
                         individualSubmission.setRubricsInfoSnapshot(individualRubricsJson);
-                        individualSubmission.setScoresJson("[]");
+                        
+                        // Process scores if provided for this student
+                        if (studentScore != null && studentScore.getScores() != null && !studentScore.getScores().isEmpty()) {
+                            // Create a temporary request for validation
+                            SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
+                            tempRequest.setScores(studentScore.getScores());
+                            String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), individualRubricsJson, tempRequest);
+                            individualSubmission.setScoresJson(normalizedScoresJson);
+                            Double total = computeTotalScore(assignment.getRubricMetaInfo(), individualRubricsJson, normalizedScoresJson, "INDIVIDUAL");
+                            individualSubmission.setTotalScore(total);
+                            individualSubmission.setOverallFeedback(studentScore.getIndividualFeedback());
+                        } else {
+                            individualSubmission.setScoresJson("[]");
+                            individualSubmission.setTotalScore(null);
+                        }
+                        
                         individualSubmission.setCreatedAt(LocalDateTime.now());
                         individualSubmission.setUpdatedAt(LocalDateTime.now());
                         individualSubmission.setVersion(0);
                         submissionMapper.insert(individualSubmission);
                         log.info("Created INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
                     } else {
-                        // Update existing individual submission - keep existing scores but update timestamp
+                        // Update existing individual submission
                         existingIndividual.setUpdatedAt(LocalDateTime.now());
-                        // Optionally update rubric snapshot if it was empty
-                        if (existingIndividual.getRubricMetaSnapshot() == null) {
-                            existingIndividual.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                        
+                        // Always refresh rubric snapshots
+                        existingIndividual.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
+                        existingIndividual.setRubricsInfoSnapshot(individualRubricsJson);
+                        
+                        // Update scores if provided for this student
+                        if (studentScore != null && studentScore.getScores() != null && !studentScore.getScores().isEmpty()) {
+                            SaveAssessmentDraftRequestDTO tempRequest = new SaveAssessmentDraftRequestDTO();
+                            tempRequest.setScores(studentScore.getScores());
+                            String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), individualRubricsJson, tempRequest);
+                            existingIndividual.setScoresJson(normalizedScoresJson);
+                            Double total = computeTotalScore(assignment.getRubricMetaInfo(), individualRubricsJson, normalizedScoresJson, "INDIVIDUAL");
+                            existingIndividual.setTotalScore(total);
+                            
+                            if (studentScore.getIndividualFeedback() != null) {
+                                existingIndividual.setOverallFeedback(studentScore.getIndividualFeedback());
+                            }
                         }
-                        if (existingIndividual.getRubricsInfoSnapshot() == null) {
-                            existingIndividual.setRubricsInfoSnapshot(individualRubricsJson);
-                        }
+                        
                         submissionMapper.updateById(existingIndividual);
                         log.info("Updated INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
                     }
