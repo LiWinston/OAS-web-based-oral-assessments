@@ -1,217 +1,130 @@
-# Student View My Results — User Flow (Current)
+# Student View My Results — User Flow (Rebuild 2025)
 
-Version: 2.1 • Status: Aligned with Spring Boot backend (Oct 2025) • Owner: Student Experience
-
-This document now captures the full lifecycle that leads to a student viewing their released results, including course setup, examiner marking, admin consolidation, and the rubric-aggregation algorithm that determines the final score presented to students. It supersedes earlier drafts that exposed raw examiner rubrics on the student side.
+Version: 3.0 • Status: Ready for implementation (Oct 2025) • Owner: Student Experience
 
 ---
 
-## 1. Upstream Lifecycle (Course → Assignment → Assessment → Result)
+## Purpose & Scope
+- Replace the legacy “My Results” experience with a lean, read-only view that reflects the **final, released** marks after admin moderation.
+- Remove historical UI cruft (table/card toggles, share/export buttons, per-examiner breakdowns) and focus on clarity for students.
+- Support assignments that ship **one rubric** (individual _or_ group) as well as **mixed rubrics** (both individual and group sections) without exposing examiner-level artefacts.
 
-The data a student eventually sees is produced by the following workflow:
+## Key Principles
+- Students only see **final, released** numbers. The guard condition is the same flag used by Admin Review Results: `assignment.resultsReleased === true` (and the Admin release endpoint returns `{ "released": true }`). No draft data, no examiner submissions, no moderation history surfaces to students.
+- Per-criterion values are the **admin-approved aggregate** (e.g., average of released submissions, including moderation adjustments). There is exactly **one score per criterion**.
+- Qualitative feedback is surfaced as a **single combined comment block**, created by concatenating examiner statements with simple prefixes:
+  ```
+  Examiner A: …
+  Examiner B: …
+  Examiner C: …
+  ```
+- Mixed rubric assignments render two tabs (`Group` / `Individual`) that mirror the examiner UI’s structure, but remain read-only and final.
+- Navigation is kept minimal: list of released assignments → pick assignment → view final rubric + feedback. No secondary analytics, no exports.
 
-1. **Course Creation (Course Admin)**
-   - Course Admin creates a *Course* (`subject`) in the admin portal.
-   - Course metadata (code, semester, coordinator) is stored in `subject`.
+## Actors & Data Inputs
+- **Student**: authenticated user with role `STUDENT`.
+- **Backend services**: expose aggregated result payloads scoped by `studentId` and `assignmentId` (see updated API contract).
+- **Prerequisite data**: Admin has released results for the assignment (final scores computed, consolidated comments stored).
 
-2. **Assignment Configuration**
-   - Within a course, the admin creates one or more *Assignments*.
-   - Key inputs: assignment metadata, rubric definition (`rubric_meta_info`, `rubrics_info`), weighting per criterion (or sub-criterion), session duration rules, booking preferences.
-   - Students (individuals or groups) are imported via CSV and linked to the assignment.
-
-3. **Session Planning and Booking**
-   - Admin defines sessions (slots) with capacity for individuals or groups.
-   - Students/group leaders self-book sessions; each booked student/group-instance is treated as an *assessment entity* in later steps.
-
-4. **Examiner Engagement**
-   - Examiners self-assign to sessions and conduct assessments.
-   - For each student/group within a session, every examiner records a submission (`assessment_submission` row) with rubric-level scores, criterion comments, overall feedback, and total score.
-   - `submissionId` uniquely represents an examiner’s marks for a specific assessment entity (student/group) in a session.
-
-5. **Admin Mark Consolidation & Moderation**
-   - Admin views each assessment entity with all associated examiner submissions.
-   - System aggregates examiner scores criterion by criterion (see section 3) and surfaces discrepancies.
-   - Admin may request re-submission from examiners, add notes, or override the final score.
-   - Once satisfied, Admin releases results for the assignment (release is idempotent and can be re-opened for further moderation; any change triggers re-aggregation on demand).
-
-6. **Student Result Availability**
-   - After release, students can browse `/student/results` and view finalised rubric summaries for their assessments.
-   - Students **never** see individual examiner rubrics; only the computed final rubric and examiner-approved feedback are presented.
+## High-level Journey
+1. **Landing**: Student opens `/student/results`.
+2. **Browse released assignments**: Read-only list of assignments with final grade, score, and release metadata.
+3. **Inspect a result**: Student selects an assignment to see detailed rubric sections and combined feedback.
+4. **Exit**: Student can return to the overview list; there are no edit or download actions.
 
 ---
 
-## 2. Student Journey Summary
+## Detailed Flow
 
-1. **Navigate to My Results**
-   - Student accesses `student/results`. Authentication guard ensures role = `STUDENT`.
+### 0. Preconditions
+- Student is authenticated and authorised (`role = STUDENT`).
+- Admin Review Results has run `POST /assignments/{id}/results/release` and the service returned `{ "released": true, ... }`, which flips `assignment.resultsReleased` to `true` and sets `assignment.resultsReleasedAt`.
+- Backend has computed and stored:
+  - Final score per criterion (already moderated/averaged).
+  - Final overall totals (points, percentage, grade).
+  - Combined examiner comments per criterion and overall.
 
-2. **Results Overview**
-   - Frontend calls `GET /api/students/{studentId}/results` with default filters (`status=released`, `semester=all`, `sort=date_desc`).
-   - The list shows every assignment whose results have been released for that student. Columns: course + assignment context, assessed/released dates, final grade badge, final percentage, total/max points, availability of detailed feedback.
+### 1. Results Overview (`/student/results`)
+**Goal**: Show only assignments whose results are released.
 
-3. **Inspect Result Detail**
-   - Selecting an assignment loads `/student/results/{assignmentId}`.
-   - Frontend fetches the following (all data computed dynamically in backend):
-     - `GET /api/students/{studentId}/assignments/{assignmentId}/result`
-     - `GET /.../result/rubric` (returns **final** rubric only)
-     - `GET /.../result/rubric/scale` (optional; used for Canvas-like grid)
-     - `GET /.../result/feedback` (consolidated examiner feedback approved for release)
-   - UI sections:
-     - Header: course context, assessed/released timestamps, final grade/percentage, summary stats (criteria count, examiner count, feedback count).
-     - Tabs: `Overview`, `Rubric Breakdown` (final rubric), `Feedback` (approved examiner feedback only).
-     - Actions: back, refresh, export (if enabled), share link.
+UI components:
+- **Page title**: “My Results”. No gradient hero, no statistical widgets.
+- **Filter strip** (top of list):
+  - Semester dropdown (default “All”).
+  - Optional search box (assignment or course name).
+  - Results count indicator (e.g., “3 released assessments”).
+- **Results list** (single-column stack): each item displays:
+  - Course code + assignment name + semester.
+  - Assessment type badge (`INDIVIDUAL`, `GROUP`, `MIXED`).
+  - Final grade + percentage + `releasedOn` date.
+  - Optional chip “Includes mixed rubric” when both sections exist.
+- **Empty state**: If no released results, show friendly message and a CTA linking to help docs.
 
-4. **Post-release Updates**
-   - If Admin reopens moderation after release (e.g., overrides score, examiner resubmits), backend re-runs aggregation; student view reflects the latest released state on next fetch. No separate final snapshot is stored; the algorithm runs on demand each time (see section 3.6 for best practice discussion).
+Interactions:
+1. Page loads → frontend calls `GET /api/students/{studentId}/results` with default filters (`status=released`).
+2. Backend returns only released assignments (see contract). Pagination is optional; we expect <= 50 results per student.
+3. Student selects an assignment card → navigate to `/student/results/{assignmentId}`.
 
----
+### 2. Result Details (`/student/results/{assignmentId}`)
+**Goal**: Provide final rubric and feedback in a compact, structured layout.
 
-## 3. Final Rubric Aggregation Algorithm
+**Header block**
+- Breadcrumb: `My Results › <Assignment name>`.
+- Assignment context: course name, semester, assessment type badge.
+- Final score summary card:
+  - Final grade (letter), percentage, total/max points.
+  - `releasedAt` timestamp.
+  - Optional session info (if provided by backend): session label/date-time.
 
-Goal: produce a single, student-facing rubric that reflects consensus across examiner submissions while handling disagreements, weighting, and admin overrides.
+**Rubric tabs**
+- When `rubricMetaInfo` lists both `individualRubrics[]` and `groupRubrics[]` (the same payload examiners consume), render `Tabs` with `Group` and `Individual`. If only one array is present, omit tabs and render a single table.
+- Each section shows:
+  - Section total (sum of final criterion points) and weight share if applicable.
+  - Table columns: `Criterion`, `Weight`, `Final Points / Max`, `Level` (if backend supplies a label), `Comments` (combined string).
+  - Comments cell displays the newline-concatenated examiner comments in a single text block.
+- No per-examiner score rows, no toggles for level details.
 
-### 3.1 Definitions
+**Overall feedback block**
+- Title “Overall Comments”.
+- Body text = combined examiner comments (newline-delimited prefixes as described).
+- Optional sub-blocks (if provided): `Strengths` and `Improvements`, each containing newline-concatenated items.
 
-- **Assessment Entity**: a student or group within a specific assignment/session.
-- **Submission**: an examiner’s scoring record for an assessment entity. Identified by `submissionId`.
-- **Criterion**: the atomic scoring item defined in the assignment rubric (can be nested; algorithm operates on leaf criteria).
-- **Weight**: each criterion/sub-criterion carries a weighting (`weightPct` or equivalent) that determines its contribution to the total score.
-- **Max Points**: derived from rubric definition (either explicit or computed from weight × rubric total points).
-- **Performance Levels**: each criterion defines rating tiers with `description`, `startPoint`, `endPoint`, and optional predefined comments; examiners pick a level and record an exact score within the allowed range.
+**Return control**
+- Single “Back to My Results” button at bottom of page. No export/share buttons.
 
-> **Structure example** (truncated from `GET /api/assignments/{id}`)
->
-> ```json
-> {
->   "rubricMetaInfo": {
->     "name": "Requirements Analysis Rubric",
->     "totalPoints": 100
->   },
->   "rubricsInfo": [
->     {
->       "description": "Communication Skills",
->       "weight": 50.0,
->       "scaleType": "points",
->       "performanceLevel": [
->         { "description": "Excellent", "startPoint": 85, "endPoint": 100 },
->         { "description": "Good", "startPoint": 70, "endPoint": 84 }
->       ]
->     },
->     {
->       "description": "New Criterion",
->       "weight": 50.0,
->       "scaleType": "descriptive",
->       "performanceLevel": [
->         { "description": "Very Good", "startPoint": 80, "endPoint": 89 },
->         { "description": "Needs Improvement", "startPoint": 0, "endPoint": 59 }
->       ]
->     }
->   ]
-> }
-> ```
-
-The aggregation algorithm treats each entry in `rubricsInfo` as a top-level criterion. If nested criteria are introduced later, the same logic applies to the leaf nodes while weights continue to dictate relative contributions.
-
-### 3.2 Aggregation Pipeline
-
-For each assessment entity:
-
-1. **Collect Submissions**
-   - Retrieve all `assessment_submission` rows with `status = SUBMITTED` for the same assignment + subjectId (student or group).
-   - Ignore drafts; reopened submissions become SUBMITTED again once examiner resubmits.
-
-2. **Per-Criterion Aggregation**
-   - For every leaf criterion `c`:
-     - Let `scores = {s_1, s_2, ... s_n}` be the points from each examiner submission.
-     - Compute `maxDiff = max(scores) - min(scores)`.
-     - Determine threshold `threshold_c = maxPoints_c * 0.05` (5% of that criterion’s maximum). This aligns with the agreed “simple difference > 5%” rule.
-     - Cases:
-       - **Within tolerance** (`maxDiff ≤ threshold_c`):
-         - Final criterion score = arithmetic mean `avg(scores)`.
-         - Criterion status = `AGGREGATED`.
-       - **Exceeds tolerance** (`maxDiff > threshold_c`):
-         - Criterion flagged as `REVIEW_REQUIRED`.
-         - Admin must intervene before release (see 3.4).
-   - Comments from examiners are retained separately; admin may choose which remarks appear in consolidated feedback.
-
-3. **Weighted Total Calculation**
-   - Normalise criterion weights to fractions: `w_c = weight_c / Σ weight`.
-   - Compute automatic final score (before override): `autoFinal = Σ (finalCriterionPoints_c × w_c_normalised_multiplier)`.
-     - If rubric already uses absolute max points, `w_c_normalised_multiplier` = 1 and weights simply ensure `Σ weight` equals rubric total. Otherwise convert weights into actual point contributions using rubric meta info.
-
-4. **Assessment Status**
-   - If any criterion is `REVIEW_REQUIRED`, assessment status = `PENDING_REVIEW`. Admin cannot release until resolved.
-   - When all criteria are `AGGREGATED` or explicitly resolved (see below), assessment status = `READY_FOR_RELEASE`.
-
-### 3.3 Final Score Without Override
-
-- When no overrides exist and all criteria are within tolerance, the student-visible final score equals `autoFinal`.
-- Final rubric presented to students comprises each criterion’s aggregated score, capped to its max points, plus any consolidated comments approved for release.
-
-### 3.4 Handling Discrepancies (Pending Review)
-
-- For criteria with `REVIEW_REQUIRED`, admin options:
-  1. **Request Examiner Re-submission**: reopen relevant submissions; once examiners resubmit, algorithm reruns.
-  2. **Manual Resolution**: admin inputs a definitive score for the criterion (and optional reasoning). Criterion status becomes `RESOLVED` and participates in total as that explicit value.
-- After all flagged criteria are resolved, aggregation continues as in 3.2 and 3.3.
-
-### 3.5 Admin Override of Final Score
-
-Admins may override the computed final score (e.g., to apply moderation or policy adjustments).
-
-Given:
-- `autoFinal`: weighted sum from aggregation.
-- `overrideFinal`: admin-specified final score.
-- `weights`: normalised criterion weights (`w_c`).
-- `resolvedScores_c`: the criterion points after aggregation/resolution.
-
-Process:
-1. Compute override delta `Δ = overrideFinal - autoFinal`.
-2. Distribute `Δ` across criteria according to weight fractions to maintain rubric weighting:
-   - For each criterion without manual lock:
-     - `adjustment_c = Δ × w_c`
-     - `newScore_c = resolvedScores_c + adjustment_c`
-     - Clamp to `[0, maxPoints_c]` to respect rubric bounds.
-3. If clamping occurs, redistribute remaining delta proportionally among unclamped criteria until either all deltas are exhausted or every criterion hits bounds.
-4. Mark final rubric as `source = OVERRIDE`, storing metadata (reason, admin user, timestamp). Students only see the final numbers, but admin history shows override context.
-
-> Note: this approach retains rubric weighting while eliminating the need for admins to tweak each criterion manually.
-
-### 3.6 Final Rubric Persistence (Best Practice vs MVP)
-
-- **Best Practice**: when an admin releases results, persist a *Final Rubric Snapshot* per assessment entity (immutable JSON or relational schema). This guarantees auditability, shields students from late changes, enables instant delivery, and avoids recomputing historical results.
-- **Current MVP Implementation**: to minimise backend refactors, the system regenerates the final rubric on demand using the latest examiner submissions and any override metadata. Reopening moderation simply triggers another aggregation pass; no snapshot table exists yet.
-- Future work should introduce the snapshot mechanism once bandwidth permits.
+### 3. Error Handling
+- **Unreleased / not found**: show inline error card with message “Results for this assignment haven’t been released yet.” and Back button.
+- **Access denied**: “You don’t have access to this result.”
+- **Network/server error**: Retry button + link back to overview.
 
 ---
 
-## 4. Student-Facing Behaviour
+## Data Requirements From Backend (summary)
+- Overview list must be derived from finalised submissions only (no draft aggregator).
+- Detail endpoint must include:
+  - Assignment metadata (course, semester, assessment type).
+  - Release metadata (`resultsReleased` boolean, `resultsReleasedAt`, optional `finalisedBy`).
+  - Assignment calculation context from Admin Review Results (`status` should be `"RELEASED"`).
+  - Final totals (points, percentage, letter grade).
+  - Rubric sections mapped from `rubricMetaInfo` / `rubricsInfo`:
+    - `rubricMetaInfo` JSON includes `weightBasis`, `individualWeight`, `groupWeight`, and nested `individualRubrics[]` / `groupRubrics[]` definitions exactly as the examiner service uses (see example payload in Admin service).
+    - Each rubric definition provides `description`, `weight`, `scaleType`, and `performanceLevel[]` with optional `preDefinedComment[]`.
+    - Student payload must surface the resolved max points per criterion derived from these definitions.
+  - For each criterion: optional `finalLevelLabel`, combined comment string, and weight.
+  - Combined overall comments + optional grouped highlights.
+- No per-examiner arrays or raw submissions leak to student payloads.
 
-- **Overview page**: only assignments with `resultsReleased = true` are shown. Unreleased or pending assessments never appear.
-- **Rubric Breakdown**: displays the final, aggregated/override-adjusted rubric. Individual examiner rows are *not* exposed.
-- **Feedback tab**: shows consolidated strengths/improvements and examiner overall comments that admins approved for release. Criterion-level comments reflect the final rubric resolution.
-- **Override indicator** (optional UI affordance): if final score differs from `autoFinal`, a subtle note can inform students the mark was moderated.
-- **Error states**: unchanged from previous revision (403 forbidden, 404 not found, 410 not released, 423 not assessed, etc.).
+## Accessibility & Responsiveness
+- All tables must be readable on mobile (stacked layout under 640px – criterion name first, score/weight underneath).
+- Combined comment block preserves line breaks (`white-space: pre-line`).
+- Tabs must be keyboard navigable and announce which rubric type is active.
 
----
+## Out of Scope / Follow-ups
+- PDF export, share links, and bookmarking are deferred.
+- Historical versioning (e.g., showing previous releases) is out of scope for this rebuild.
+- If admin reopens moderation after release, backend must regenerate the final aggregates before surfacing them; frontend simply re-fetches.
 
-## 5. API / Data Considerations
-
-- `/api/students/{studentId}/results` should filter on assignment `resultsReleased = true` server-side (currently TODO).
-- Detail endpoints (`result`, `rubric`, `feedback`) must call the aggregation service that implements section 3, ensuring consistent numbers wherever they are surfaced (admin or student view).
-- Cached responses: frontend still attaches `If-Modified-Since`, but backend has not yet implemented `Last-Modified`. Once available, results can be cached client-side because post-release updates will change modification timestamps.
-- Long-term: once Final Rubric Snapshots are persisted, these endpoints should read from snapshot storage for faster, immutable responses while keeping aggregation logic only for moderation screens.
-
----
-
-## 6. Known Follow-ups
-
-1. **Backend Alignment**: ensure aggregation service reflects the tolerance rule (5% differential), weight-based override redistribution, and on-demand recalculation.
-2. **Admin UI Updates**: expose criterion-level statuses (`AGGREGATED`, `REVIEW_REQUIRED`, `RESOLVED`) and override metadata so admins understand moderation state before release.
-3. **API Filtering**: tighten `/results` endpoint to respect release flags without relying on frontend defaults.
-4. **Final Snapshot Roadmap**: design storage schema + lifecycle for Final Rubric Snapshots to graduate from MVP behaviour.
-5. **Telemetry**: continue measuring overview/detail fetch latency and engagement to validate student experience after algorithm changes.
-
----
-
-This document now mirrors the full operational flow and clarifies that students see only the final, moderated rubric derived from examiner submissions and admin actions.
+## Open Implementation Notes
+- Ensure caching is aligned with release timings (ETag/Last-Modified once backend supports snapshots).
+- When rubric meta lacks explicit max points, backend should supply resolved values to avoid frontend calculation.
+- Provide localisation-ready labels for rubric sections (e.g., “Group Rubric”, “Individual Rubric”).
