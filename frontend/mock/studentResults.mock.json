@@ -1,0 +1,374 @@
+{
+  "overview": {
+    "success": true,
+    "code": "OK",
+    "data": {
+      "pageNum": 0,
+      "pageSize": 50,
+      "total": 2,
+      "data": [
+        {
+          "assignmentId": 301,
+          "assignmentName": "Capstone Presentation",
+          "courseCode": "PROJ3001",
+          "courseName": "Capstone Engineering Project",
+          "semester": "Semester 2 2025",
+          "assignmentType": "mixed",
+          "status": "RELEASED",
+          "resultsReleased": true,
+          "hasMixedRubric": true,
+          "releasedAt": "2025-09-28T02:30:00Z",
+          "assessedOn": "2025-09-20T04:00:00Z",
+          "finalScore": {
+            "grade": "HD",
+            "percentage": 92.4,
+            "totalPoints": 184.8,
+            "maxPoints": 200
+          }
+        },
+        {
+          "assignmentId": 302,
+          "assignmentName": "Research Reflection Essay",
+          "courseCode": "RES4002",
+          "courseName": "Advanced Research Methods",
+          "semester": "Semester 1 2025",
+          "assignmentType": "individual",
+          "status": "RELEASED",
+          "resultsReleased": true,
+          "hasMixedRubric": false,
+          "releasedAt": "2025-06-18T11:15:00Z",
+          "assessedOn": "2025-06-10T09:00:00Z",
+          "finalScore": {
+            "grade": "DI",
+            "percentage": 82.5,
+            "totalPoints": 82.5,
+            "maxPoints": 100
+          }
+        }
+      ]
+    }
+  },
+  "details": {
+    "301": {
+      "success": true,
+      "code": "OK",
+      "data": {
+        "assignment": {
+          "assignmentId": 301,
+          "assignmentName": "Capstone Presentation",
+          "courseCode": "PROJ3001",
+          "courseName": "Capstone Engineering Project",
+          "semester": "Semester 2 2025",
+          "type": "mixed",
+          "status": "RELEASED",
+          "resultsReleased": true,
+          "resultsReleasedAt": "2025-09-28T02:30:00Z"
+        },
+        "release": {
+          "released": true,
+          "releasedAt": "2025-09-28T02:30:00Z",
+          "finalisedBy": 18,
+          "finalisedByName": "Dr. Priya Nair"
+        },
+        "session": {
+          "sessionId": 9102,
+          "sessionLabel": "Panel B — Morning",
+          "startsAt": "2025-09-18T23:30:00Z",
+          "endsAt": "2025-09-19T01:00:00Z"
+        },
+        "finalScore": {
+          "grade": "HD",
+          "percentage": 92.4,
+          "totalPoints": 184.8,
+          "maxPoints": 200
+        },
+        "rubric": {
+          "sections": [
+            {
+              "sectionType": "GROUP",
+              "displayName": "Group Contribution",
+              "weightShare": 50,
+              "totalPoints": 95.6,
+              "maxPoints": 100,
+              "criteria": [
+                {
+                  "criterionId": "GR-1",
+                  "name": "Collaboration",
+                  "description": "Team members coordinate tasks and support each other effectively.",
+                  "weight": 40,
+                  "maxPoints": 40,
+                  "finalPoints": 38.4,
+                  "percentage": 96,
+                  "finalLevelLabel": "Outstanding",
+                  "commentsCombined": "Examiner A: Clear delegation and hand-offs.\nExaminer B: Excellent visibility of shared work."
+                },
+                {
+                  "criterionId": "GR-2",
+                  "name": "Project Ownership",
+                  "description": "Group demonstrates ownership of technical decisions.",
+                  "weight": 30,
+                  "maxPoints": 30,
+                  "finalPoints": 28.2,
+                  "percentage": 94,
+                  "finalLevelLabel": "Very Good",
+                  "commentsCombined": "Examiner A: Presented trade-offs convincingly.\nExaminer C: Strong rationale for architectural choices."
+                },
+                {
+                  "criterionId": "GR-3",
+                  "name": "Impact",
+                  "description": "How well the solution addresses stakeholder needs.",
+                  "weight": 30,
+                  "maxPoints": 30,
+                  "finalPoints": 29.0,
+                  "percentage": 96.7,
+                  "finalLevelLabel": "Outstanding",
+                  "commentsCombined": "Examiner B: Clear evidence of user validation."
+                }
+              ]
+            },
+            {
+              "sectionType": "INDIVIDUAL",
+              "displayName": "Individual Delivery",
+              "weightShare": 50,
+              "totalPoints": 89.2,
+              "maxPoints": 100,
+              "criteria": [
+                {
+                  "criterionId": "IN-1",
+                  "name": "Communication",
+                  "description": "Clarity, pacing, and audience engagement.",
+                  "weight": 35,
+                  "maxPoints": 35,
+                  "finalPoints": 31.5,
+                  "percentage": 90,
+                  "finalLevelLabel": "Excellent",
+                  "commentsCombined": "Examiner A: Strong pacing and confident tone.\nExaminer B: Slides synced well with narration."
+                },
+                {
+                  "criterionId": "IN-2",
+                  "name": "Technical Depth",
+                  "description": "Explains the solution with appropriate depth.",
+                  "weight": 35,
+                  "maxPoints": 35,
+                  "finalPoints": 33.6,
+                  "percentage": 96,
+                  "finalLevelLabel": "Outstanding",
+                  "commentsCombined": "Examiner B: Crisp explanation of optimisation choices."
+                },
+                {
+                  "criterionId": "IN-3",
+                  "name": "Reflection",
+                  "description": "Ability to reflect on learnings and next steps.",
+                  "weight": 30,
+                  "maxPoints": 30,
+                  "finalPoints": 24.1,
+                  "percentage": 80.3,
+                  "finalLevelLabel": "Very Good",
+                  "commentsCombined": "Examiner A: Good acknowledgement of risks; consider mitigation examples."
+                }
+              ]
+            }
+          ],
+          "aggregate": {
+            "totalPoints": 184.8,
+            "maxPoints": 200,
+            "percentage": 92.4
+          },
+          "definition": {
+            "meta": {
+              "name": "Capstone Mixed Rubric",
+              "description": "Combines group delivery and individual presentation criteria.",
+              "totalPoints": 200,
+              "weightBasis": "points",
+              "individualWeight": 50,
+              "groupWeight": 50
+            },
+            "groupRubrics": [
+              {
+                "description": "Collaboration",
+                "weight": 40,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Outstanding", "startPoint": 36, "endPoint": 40 },
+                  { "description": "Very Good", "startPoint": 32, "endPoint": 35 }
+                ]
+              },
+              {
+                "description": "Project Ownership",
+                "weight": 30,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Outstanding", "startPoint": 28, "endPoint": 30 },
+                  { "description": "Very Good", "startPoint": 25, "endPoint": 27 }
+                ]
+              },
+              {
+                "description": "Impact",
+                "weight": 30,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Outstanding", "startPoint": 28, "endPoint": 30 },
+                  { "description": "Very Good", "startPoint": 24, "endPoint": 27 }
+                ]
+              }
+            ],
+            "individualRubrics": [
+              {
+                "description": "Communication",
+                "weight": 35,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Excellent", "startPoint": 31, "endPoint": 35 },
+                  { "description": "Very Good", "startPoint": 27, "endPoint": 30 }
+                ]
+              },
+              {
+                "description": "Technical Depth",
+                "weight": 35,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Outstanding", "startPoint": 32, "endPoint": 35 },
+                  { "description": "Very Good", "startPoint": 28, "endPoint": 31 }
+                ]
+              },
+              {
+                "description": "Reflection",
+                "weight": 30,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "Outstanding", "startPoint": 27, "endPoint": 30 },
+                  { "description": "Very Good", "startPoint": 24, "endPoint": 26 }
+                ]
+              }
+            ]
+          }
+        },
+        "feedback": {
+          "overallCommentsCombined": "Examiner A: Impressive polish and clear next steps.\nExaminer B: Excellent technical storytelling; keep iterating on risk mitigation."
+        }
+      }
+    },
+    "302": {
+      "success": true,
+      "code": "OK",
+      "data": {
+        "assignment": {
+          "assignmentId": 302,
+          "assignmentName": "Research Reflection Essay",
+          "courseCode": "RES4002",
+          "courseName": "Advanced Research Methods",
+          "semester": "Semester 1 2025",
+          "type": "individual",
+          "status": "RELEASED",
+          "resultsReleased": true,
+          "resultsReleasedAt": "2025-06-18T11:15:00Z"
+        },
+        "release": {
+          "released": true,
+          "releasedAt": "2025-06-18T11:15:00Z",
+          "finalisedBy": 27,
+          "finalisedByName": "Prof. Maria Gonzáles"
+        },
+        "finalScore": {
+          "grade": "DI",
+          "percentage": 82.5,
+          "totalPoints": 82.5,
+          "maxPoints": 100
+        },
+        "rubric": {
+          "sections": [
+            {
+              "sectionType": "INDIVIDUAL",
+              "displayName": "Essay Evaluation",
+              "weightShare": 100,
+              "totalPoints": 82.5,
+              "maxPoints": 100,
+              "criteria": [
+                {
+                  "criterionId": "ES-1",
+                  "name": "Argument Clarity",
+                  "description": "Thesis clarity, structure, and logical flow.",
+                  "weight": 40,
+                  "maxPoints": 40,
+                  "finalPoints": 34.0,
+                  "percentage": 85,
+                  "finalLevelLabel": "Distinction",
+                  "commentsCombined": "Examiner A: Strong framing, consider sharpening paragraph transitions."
+                },
+                {
+                  "criterionId": "ES-2",
+                  "name": "Evidence Integration",
+                  "description": "Use of literature and data to support claims.",
+                  "weight": 35,
+                  "maxPoints": 35,
+                  "finalPoints": 29.4,
+                  "percentage": 84,
+                  "finalLevelLabel": "Distinction",
+                  "commentsCombined": "Examiner A: Great synthesis of qualitative sources."
+                },
+                {
+                  "criterionId": "ES-3",
+                  "name": "Reflection",
+                  "description": "Depth of reflection on research process and future work.",
+                  "weight": 25,
+                  "maxPoints": 25,
+                  "finalPoints": 19.1,
+                  "percentage": 76.4,
+                  "finalLevelLabel": "Credit",
+                  "commentsCombined": "Examiner A: Good insights; add concrete examples of iteration."
+                }
+              ]
+            }
+          ],
+          "aggregate": {
+            "totalPoints": 82.5,
+            "maxPoints": 100,
+            "percentage": 82.5
+          },
+          "definition": {
+            "meta": {
+              "name": "Research Essay Rubric",
+              "description": "Assessment rubric for individual research essays.",
+              "totalPoints": 100,
+              "weightBasis": "points",
+              "individualWeight": 100,
+              "groupWeight": 0
+            },
+            "individualRubrics": [
+              {
+                "description": "Argument Clarity",
+                "weight": 40,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "High Distinction", "startPoint": 36, "endPoint": 40 },
+                  { "description": "Distinction", "startPoint": 32, "endPoint": 35 }
+                ]
+              },
+              {
+                "description": "Evidence Integration",
+                "weight": 35,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "High Distinction", "startPoint": 32, "endPoint": 35 },
+                  { "description": "Distinction", "startPoint": 28, "endPoint": 31 }
+                ]
+              },
+              {
+                "description": "Reflection",
+                "weight": 25,
+                "scaleType": "points",
+                "performanceLevel": [
+                  { "description": "High Distinction", "startPoint": 23, "endPoint": 25 },
+                  { "description": "Distinction", "startPoint": 20, "endPoint": 22 }
+                ]
+              }
+            ]
+          }
+        },
+        "feedback": {
+          "overallCommentsCombined": "Examiner A: Well-structured reflection with strong use of sources; expand on practical application of findings."
+        }
+      }
+    }
+  }
+}

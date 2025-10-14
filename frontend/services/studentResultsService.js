@@ -18,127 +18,78 @@ const updateLastModifiedAndCache = (key, axiosResponse) => {
 };
 
 // Real API service implementation
-const realStudentResultsService = {
-  async getStudentResults(studentId, options = {}) {
-    try {
-      const {
-        status = 'released',
-        semester = 'all',
-        pageNum = 0,
-        pageSize = 20,
-        sort = 'date_desc'
-      } = options;
-      
-      const params = new URLSearchParams({
-        status,
-        semester,
-        pageNum: pageNum.toString(),
-        pageSize: pageSize.toString(),
-        sort
-      });
-      
-      const key = `GET:/api/students/${studentId}/results?${params.toString()}`;
-      const config = buildConfigWithIMS(key);
-      const response = await api.get(`/api/students/${studentId}/results?${params}`, config);
-      if (response.status === 304) {
-        const cached = responseBodyCache.get(key);
-        if (cached) return cached;
-      }
-      updateLastModifiedAndCache(key, response);
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
+const USE_MOCK = process.env.NEXT_PUBLIC_USE_STUDENT_RESULTS_MOCK === 'true';
+let mockDataPromise = null;
+
+const deepClone = (value) => JSON.parse(JSON.stringify(value));
+
+const getMockStudentResults = async () => {
+  if (!mockDataPromise) {
+    mockDataPromise = import('../mock/studentResults.mock.json').then((module) => module.default || module);
+  }
+  const mockData = await mockDataPromise;
+  if (!mockData || typeof mockData !== 'object') {
+    throw new Error('Mock student results data unavailable.');
+  }
+  return mockData;
+};
+
+const mockStudentResultsService = {
+  async getStudentResults() {
+    const mock = await getMockStudentResults();
+    return deepClone(mock.overview);
   },
 
-  async getAssignmentResult(studentId, assignmentId) {
-    try {
-      const key = `GET:/api/students/${studentId}/assignments/${assignmentId}/result`;
-      const config = buildConfigWithIMS(key);
-      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result`, config);
-      if (response.status === 304) {
-        const cached = responseBodyCache.get(key);
-        if (cached) return cached;
-      }
-      updateLastModifiedAndCache(key, response);
-      return response.data;
-    } catch (err) {
-      throw err;
+  async getAssignmentResult(_, assignmentId) {
+    const mock = await getMockStudentResults();
+    const detail = mock.details?.[String(assignmentId)];
+    if (!detail) {
+      throw new Error(`No mock result found for assignment ${assignmentId}`);
     }
-  },
-
-  async getRubricBreakdown(studentId, assignmentId) {
-    try {
-      const key = `GET:/api/students/${studentId}/assignments/${assignmentId}/result/rubric`;
-      const config = buildConfigWithIMS(key);
-      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/rubric`, config);
-      if (response.status === 304) {
-        const cached = responseBodyCache.get(key);
-        if (cached) return cached;
-      }
-      updateLastModifiedAndCache(key, response);
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
-  },
-
-  async getExaminerFeedback(studentId, assignmentId) {
-    try {
-      const key = `GET:/api/students/${studentId}/assignments/${assignmentId}/result/feedback`;
-      const config = buildConfigWithIMS(key);
-      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/feedback`, config);
-      if (response.status === 304) {
-        const cached = responseBodyCache.get(key);
-        if (cached) return cached;
-      }
-      updateLastModifiedAndCache(key, response);
-      return response.data;
-    } catch (err) {
-      throw err;
-    }
-  },
-
-  // Attempt to fetch rubric scale from backend; if unavailable, derive from rubric breakdown
-  async getAssignmentRubricScale(studentId, assignmentId) {
-    try {
-      // Try dedicated rubric scale endpoint first (per API contract 3b)
-      const key = `GET:/api/students/${studentId}/assignments/${assignmentId}/result/rubric/scale`;
-      const config = buildConfigWithIMS(key);
-      const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result/rubric/scale`, config);
-      if (response.status === 304) {
-        const cached = responseBodyCache.get(key);
-        if (cached) return cached;
-      }
-      updateLastModifiedAndCache(key, response);
-      return response.data;
-    } catch (e) {
-      // Fallback: derive from rubric breakdown
-      const rb = await realStudentResultsService.getRubricBreakdown(studentId, assignmentId);
-      const criteria = rb?.data?.rubricBreakdown?.criteria || [];
-      const defaultLevelsForMax = (max) => {
-        const pct = (n) => Math.round((n / 100) * (max || 100));
-        return [
-          { id: 'lvl-outstanding', label: 'Outstanding', description: '90–100%', minPoints: pct(90), maxPoints: max || 100 },
-          { id: 'lvl-very-good', label: 'Very Good', description: '80–89%', minPoints: pct(80), maxPoints: pct(89) },
-          { id: 'lvl-good', label: 'Good', description: '70–79%', minPoints: pct(70), maxPoints: pct(79) },
-          { id: 'lvl-satisfactory', label: 'Satisfactory', description: '60–69%', minPoints: pct(60), maxPoints: pct(69) },
-          { id: 'lvl-needs-improvement', label: 'Needs Improvement', description: '0–59%', minPoints: 0, maxPoints: pct(59) },
-        ];
-      };
-      return {
-        success: true,
-        code: 'OK',
-        data: {
-          criteria: criteria.map((c) => ({
-            criterionId: c.criterionId,
-            levels: defaultLevelsForMax(c.maxPoints),
-          })),
-        },
-      };
-    }
+    return deepClone(detail);
   },
 };
 
-// Always export real API service (mock removed)
-export const studentResultsService = realStudentResultsService;
+const realStudentResultsService = {
+  async getStudentResults(studentId, options = {}) {
+    const {
+      status = 'released',
+      semester = 'all',
+      pageNum = 0,
+      pageSize = 20,
+      sort = 'date_desc',
+    } = options;
+
+    const params = new URLSearchParams({
+      status,
+      semester,
+      pageNum: pageNum.toString(),
+      pageSize: pageSize.toString(),
+      sort,
+    });
+
+    const key = `GET:/api/students/${studentId}/results?${params.toString()}`;
+    const config = buildConfigWithIMS(key);
+    const response = await api.get(`/api/students/${studentId}/results?${params}`, config);
+    if (response.status === 304) {
+      const cached = responseBodyCache.get(key);
+      if (cached) return cached;
+    }
+    updateLastModifiedAndCache(key, response);
+    return response.data;
+  },
+
+  async getAssignmentResult(studentId, assignmentId) {
+    const key = `GET:/api/students/${studentId}/assignments/${assignmentId}/result`;
+    const config = buildConfigWithIMS(key);
+    const response = await api.get(`/api/students/${studentId}/assignments/${assignmentId}/result`, config);
+    if (response.status === 304) {
+      const cached = responseBodyCache.get(key);
+      if (cached) return cached;
+    }
+    updateLastModifiedAndCache(key, response);
+    return response.data;
+  },
+};
+
+export const studentResultsService = USE_MOCK ? mockStudentResultsService : realStudentResultsService;
