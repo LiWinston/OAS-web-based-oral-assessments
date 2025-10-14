@@ -12,13 +12,21 @@ export function buildAssessmentPayload({
 }) {
   const entities = [];
 
+  const criteria = sessionContext?.assignment?.rubric?.criteria || [];
+  const appliesToGroup = (criterion) => {
+    const target = (criterion.appliesTo || 'BOTH').toUpperCase();
+    return target === 'GROUP' || target === 'BOTH';
+  };
+  const appliesToIndividual = (criterion) => {
+    const target = (criterion.appliesTo || 'BOTH').toUpperCase();
+    return target === 'INDIVIDUAL' || target === 'BOTH';
+  };
+
+  const hasGroupCriteria = criteria.some(appliesToGroup);
+  const hasIndividualCriteria = criteria.some(appliesToIndividual);
+
   // Add group entity for GROUP assignments or when group ratings exist
-  if (
-    sessionContext?.entity?.kind === "GROUP" ||
-    sessionContext?.assignment?.type === "group" ||
-    sessionContext?.assignment?.type === "mixed" ||
-    (groupRatings && Object.keys(groupRatings).length > 0)
-  ) {
+  if (hasGroupCriteria && groupRatings && Object.keys(groupRatings).length > 0) {
     const groupItems = Object.entries(groupRatings || {}).map(
       ([criterionId, rating]) => {
         const comments = [];
@@ -38,7 +46,7 @@ export function buildAssessmentPayload({
     if (groupItems.length > 0) {
       entities.push({
         kind: "GROUP",
-        groupId: sessionContext?.entity?.groupId || sessionContext?.entity?.group?.groupId,
+        groupId: sessionContext?.entity?.group?.groupId || sessionContext?.entity?.groupId,
         overallFeedback,
         notes: privateNotes,
         items: groupItems,
@@ -47,11 +55,7 @@ export function buildAssessmentPayload({
   }
 
   // Add per-student entities for INDIVIDUAL or MIXED assignments
-  if (
-    sessionContext?.assignment?.type === "individual" ||
-    sessionContext?.assignment?.type === "mixed" ||
-    (individualRatings && Object.keys(individualRatings).length > 0)
-  ) {
+  if (hasIndividualCriteria && individualRatings && Object.keys(individualRatings).length > 0) {
     const students = sessionContext?.entity?.individuals || [];
     students.forEach((student) => {
       const ratings = (individualRatings || {})[student.studentId] || {};
@@ -86,4 +90,3 @@ export function buildAssessmentPayload({
     absentStudents,
   };
 }
-

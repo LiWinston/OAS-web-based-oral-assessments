@@ -63,6 +63,7 @@ export default function ExaminerAssessmentMarking() {
     selectedStudent,
     setSelectedStudent,
     assessmentType,
+    setAssessmentType,
     assessmentId,
     setAssessmentId,
     isDraft,
@@ -212,13 +213,34 @@ export default function ExaminerAssessmentMarking() {
 
   // Validation（覆盖小组与所有个体）
   const criteria = sessionContext?.assignment?.rubric?.criteria || [];
-  const appliesToGroup = (c) => (c.appliesTo === 'GROUP' || c.appliesTo === 'BOTH' || !c.appliesTo);
-  const appliesToIndividual = (c) => (c.appliesTo === 'INDIVIDUAL' || c.appliesTo === 'BOTH' || !c.appliesTo);
+  const appliesToGroup = (c) => {
+    const target = (c.appliesTo || 'BOTH').toUpperCase();
+    return target === 'GROUP' || target === 'BOTH';
+  };
+  const appliesToIndividual = (c) => {
+    const target = (c.appliesTo || 'BOTH').toUpperCase();
+    return target === 'INDIVIDUAL' || target === 'BOTH';
+  };
 
   const groupCriteria = criteria.filter(appliesToGroup);
   const individualCriteria = criteria.filter(appliesToIndividual);
-  const hasGroup = groupCriteria.length > 0 && (sessionContext?.assignment?.type === 'group' || sessionContext?.assignment?.type === 'mixed');
-  const hasIndividual = individualCriteria.length > 0 && (sessionContext?.assignment?.type === 'individual' || sessionContext?.assignment?.type === 'mixed');
+  const hasGroup = groupCriteria.length > 0;
+  const hasIndividual = individualCriteria.length > 0;
+
+  useEffect(() => {
+    if (hasGroup && hasIndividual) {
+      setAssessmentType((prev) => (prev === 'GROUP' || prev === 'INDIVIDUAL') ? prev : 'GROUP');
+      setCurrentTab((prev) => (prev === 'group' || prev === 'individual' || prev === 'feedback') ? prev : 'group');
+    } else if (hasGroup) {
+      setAssessmentType('GROUP');
+      setCurrentTab('group');
+    } else if (hasIndividual) {
+      setAssessmentType('INDIVIDUAL');
+      setCurrentTab('individual');
+    } else {
+      setCurrentTab('feedback');
+    }
+  }, [hasGroup, hasIndividual, setAssessmentType]);
 
   // Ensure current tab is valid when data loads
   useEffect(() => {
@@ -263,11 +285,11 @@ export default function ExaminerAssessmentMarking() {
   };
 
   // Get ratings and comments for the selected target
-  const selectedRatings = assessmentType === 'GROUP' 
-    ? groupRatings 
+  const selectedRatings = assessmentType === 'GROUP'
+    ? groupRatings
     : (individualRatings?.[selectedStudent] || {});
-  const commentsForSelected = assessmentType === 'GROUP' 
-    ? groupComments 
+  const commentsForSelected = assessmentType === 'GROUP'
+    ? groupComments
     : (individualComments?.[selectedStudent] || {});
 
   // Allow editing for draft assessments and new assessments
@@ -295,7 +317,10 @@ export default function ExaminerAssessmentMarking() {
     );
   }
 
-  if (!sessionContext?.entity?.individuals && sessionContext?.entity?.kind !== 'GROUP') {
+  const hasParticipants = (Array.isArray(sessionContext?.entity?.individuals) && sessionContext.entity.individuals.length > 0)
+    || Boolean(sessionContext?.entity?.group?.groupId || sessionContext?.entity?.groupId);
+
+  if (!hasParticipants) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen space-y-4">
         <h1 className="text-2xl font-bold text-red-600">No Students Found</h1>
@@ -312,7 +337,6 @@ export default function ExaminerAssessmentMarking() {
       {/* Header */}
       <HeaderStatusBar
         isDraft={isDraft}
-        assignmentType={sessionContext?.assignment?.type}
         validation={validation}
         selectedStudent={selectedStudent}
       />
@@ -326,9 +350,25 @@ export default function ExaminerAssessmentMarking() {
           {sessionContext?.assignment?.rubric?.weightBasis && (
             <Card className="p-4">
               <div className="text-sm text-gray-700 dark:text-gray-300">
-                Weighting: {sessionContext.assignment.rubric.weightBasis === 'points'
-                  ? `Group ${sessionContext.assignment.groupWeight ?? 0} pts • Individual ${sessionContext.assignment.individualWeight ?? 0} pts`
-                  : `Group ${sessionContext.assignment.groupWeight ?? 0}% • Individual ${sessionContext.assignment.individualWeight ?? 0}%`}
+                {(() => {
+                  const weightBasis = sessionContext.assignment.rubric.weightBasis;
+                  const groupWeight = sessionContext.assignment?.weights?.group ?? sessionContext.assignment?.groupWeight ?? 0;
+                  const individualWeight = sessionContext.assignment?.weights?.individual ?? sessionContext.assignment?.individualWeight ?? 0;
+                  if (!hasGroup && !hasIndividual) return null;
+                  if (hasGroup && hasIndividual) {
+                    return weightBasis === 'points'
+                      ? `Group ${groupWeight} pts • Individual ${individualWeight} pts`
+                      : `Group ${groupWeight}% • Individual ${individualWeight}%`;
+                  }
+                  if (hasGroup) {
+                    return weightBasis === 'points'
+                      ? `Group weighting: ${groupWeight} pts`
+                      : `Group weighting: ${groupWeight}%`;
+                  }
+                  return weightBasis === 'points'
+                    ? `Individual weighting: ${individualWeight} pts`
+                    : `Individual weighting: ${individualWeight}%`;
+                })()}
               </div>
             </Card>
           )}
@@ -339,7 +379,15 @@ export default function ExaminerAssessmentMarking() {
             {/* Assessment Panel */}
             <div className="w-full max-w-6xl">
               <Card className="h-full">
-                <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
+                <Tabs
+                  value={currentTab}
+                  onValueChange={(value) => {
+                    setCurrentTab(value);
+                    if (value === 'group') setAssessmentType('GROUP');
+                    if (value === 'individual') setAssessmentType('INDIVIDUAL');
+                  }}
+                  className="h-full flex flex-col"
+                >
                   <div className="border-b px-6 py-4">
                     <TabsList className="flex w-full gap-2">
                       {hasGroup && <TabsTrigger value="group">Group</TabsTrigger>}

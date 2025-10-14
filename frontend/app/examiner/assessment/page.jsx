@@ -140,14 +140,6 @@ export default function ExaminerAssignmentsList() {
                               {assignment.status?.toUpperCase()}
                             </Badge>
                           )}
-                          {assignment.type && (
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800"
-                            >
-                              {assignment.type?.toUpperCase()}
-                            </Badge>
-                          )}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 text-sm text-gray-600 dark:text-gray-400">

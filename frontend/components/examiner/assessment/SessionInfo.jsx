@@ -14,6 +14,24 @@ export default function SessionInfo({ sessionContext }) {
     return null;
   }
 
+  const rubric = assignment?.rubric;
+  const weightBasis = rubric?.weightBasis || 'percentage';
+  const criteria = rubric?.criteria || [];
+  const hasGroupBucket = criteria.some((c) => {
+    const applies = (c.appliesTo || 'BOTH').toUpperCase();
+    return applies === 'GROUP' || applies === 'BOTH';
+  });
+  const hasIndividualBucket = criteria.some((c) => {
+    const applies = (c.appliesTo || 'BOTH').toUpperCase();
+    return applies === 'INDIVIDUAL' || applies === 'BOTH';
+  });
+  const bucketWeights = assignment?.weights || {};
+  const groupWeight = Number(bucketWeights.group ?? assignment?.groupWeight ?? 0);
+  const individualWeight = Number(bucketWeights.individual ?? assignment?.individualWeight ?? 0);
+
+  const groupInfo = entity?.group;
+  const individuals = Array.isArray(entity?.individuals) ? entity.individuals : [];
+
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return {
@@ -36,6 +54,13 @@ export default function SessionInfo({ sessionContext }) {
     minute: '2-digit' 
   }) : '';
 
+  const getInitials = (name, fallback = '??') => {
+    if (!name || typeof name !== 'string') return fallback;
+    const segments = name.trim().split(/\s+/);
+    if (!segments.length) return fallback;
+    return segments.map((seg) => seg[0]?.toUpperCase() || '').join('').slice(0, 2) || fallback;
+  };
+
   return (
     <Card className="dashboard-card">
       <CardContent className="p-5">
@@ -46,21 +71,30 @@ export default function SessionInfo({ sessionContext }) {
               {assignment?.name || 'Assessment Timeslot'}
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              {assignment?.rubricMeta?.description || 'Oral assessment timeslot'}
+              {rubric?.description || 'Oral assessment timeslot'}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Assessment Type
+                  Rubric Buckets
                 </div>
-                <div className="font-medium capitalize">
-                  {assignment?.type || 'Individual'} Assessment
+                <div className="text-sm text-gray-800 dark:text-gray-200">
+                  {hasGroupBucket ? 'Group Criteria' : '—'}{hasGroupBucket && hasIndividualBucket ? ' • ' : ''}{hasIndividualBucket ? 'Individual Criteria' : (!hasGroupBucket ? '—' : '')}
                 </div>
-                {assignment?.type === 'mixed' && Number.isFinite(assignment?.groupWeight) && Number.isFinite(assignment?.individualWeight) && (
+                {(hasGroupBucket || hasIndividualBucket) && (
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    Group: {Math.round(assignment.groupWeight * 100)}% | 
-                    Individual: {Math.round(assignment.individualWeight * 100)}%
+                    {hasGroupBucket && (
+                      <span>
+                        Group {weightBasis === 'points' ? `${groupWeight} pts` : `${groupWeight}%`}
+                        {hasIndividualBucket ? ' | ' : ''}
+                      </span>
+                    )}
+                    {hasIndividualBucket && (
+                      <span>
+                        Individual {weightBasis === 'points' ? `${individualWeight} pts` : `${individualWeight}%`}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -70,7 +104,7 @@ export default function SessionInfo({ sessionContext }) {
                   Total Points
                 </div>
                 <div className="font-medium">
-                  {assignment?.rubricMeta?.totalPoints || 100} points
+                  {rubric?.totalPoints || 100} points
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400">
                   Weighted assessment
@@ -125,53 +159,59 @@ export default function SessionInfo({ sessionContext }) {
           <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg md:w-80">
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-semibold text-gray-800 dark:text-gray-200">
-                {entity?.kind === 'GROUP' ? entity.group?.groupName : 'Individual Assessment'}
+                {groupInfo ? (groupInfo.groupName || `Group ${groupInfo.groupId}`) : 'Individual Assessments'}
               </h3>
-              {entity?.kind === 'GROUP' && (
+              {groupInfo && (
                 <Badge variant="default">
-                  Group #{entity.group?.groupId}
+                  Group #{groupInfo.groupId}
                 </Badge>
               )}
             </div>
 
-            {entity?.kind === 'GROUP' && entity.group?.members && (
+            {groupInfo && Array.isArray(groupInfo.members) && groupInfo.members.length > 0 && (
               <div className="space-y-2">
-                {entity.group.members.map((member) => (
-                  <div key={member.studentId} className="flex items-center">
+                {groupInfo.members.map((member) => {
+                  const displayName = member?.name || `Student ${member?.studentId ?? ''}`.trim();
+                  return (
+                  <div key={member?.studentId ?? displayName} className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 
                                   flex items-center justify-center text-white text-xs font-semibold mr-2">
-                      {member.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      {getInitials(displayName, 'GR')}
                     </div>
                     <div className="text-sm flex-1">
-                      <div className="font-medium">{member.name}</div>
+                      <div className="font-medium">{displayName}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {member.studentId}
+                        ID: {member?.studentId ?? '—'}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
-            {entity?.kind === 'INDIVIDUAL' && entity.individuals && (
+            {individuals.length > 0 && (
               <div className="space-y-2">
-                {entity.individuals.slice(0, 1).map((student) => (
-                  <div key={student.studentId} className="flex items-center">
+                {individuals.slice(0, 1).map((student) => {
+                  const displayName = student?.name || `Student ${student?.studentId ?? ''}`.trim();
+                  return (
+                  <div key={student?.studentId ?? displayName} className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 
                                   flex items-center justify-center text-white text-sm font-semibold mr-3">
-                      {student.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      {getInitials(displayName, 'ST')}
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium">{student.name}</div>
+                      <div className="font-medium">{displayName}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {student.studentId}
+                        ID: {student?.studentId ?? '—'}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {student.email}
+                        {student?.email || ''}
                       </div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

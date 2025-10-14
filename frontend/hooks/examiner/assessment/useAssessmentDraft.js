@@ -19,16 +19,30 @@ export function useAssessmentDraft(sessionContext) {
 
   // Initialize basic selection defaults when context loads
   useEffect(() => {
-    if (!sessionContext?.assignment) return;
-    const a = sessionContext.assignment;
-    if (a.type === "group") setAssessmentType("GROUP");
-    else if (a.type === "individual") setAssessmentType("INDIVIDUAL");
-    else setAssessmentType("GROUP"); // mixed → default GROUP
+    if (!sessionContext?.assignment?.rubric?.criteria) return;
+    const criteria = sessionContext.assignment.rubric.criteria;
+    const appliesToGroup = (c) => {
+      const target = (c.appliesTo || "BOTH").toUpperCase();
+      return target === "GROUP" || target === "BOTH";
+    };
+    const appliesToIndividual = (c) => {
+      const target = (c.appliesTo || "BOTH").toUpperCase();
+      return target === "INDIVIDUAL" || target === "BOTH";
+    };
 
-    if (a.type === "individual" || a.type === "mixed") {
-      const first = sessionContext.entity?.individuals?.[0]?.studentId;
-      if (first) setSelectedStudent((s) => s ?? first);
+    const hasGroup = criteria.some(appliesToGroup);
+    const hasIndividual = criteria.some(appliesToIndividual);
+
+    if (hasGroup && !hasIndividual) {
+      setAssessmentType("GROUP");
+    } else if (!hasGroup && hasIndividual) {
+      setAssessmentType("INDIVIDUAL");
+    } else if (hasGroup && hasIndividual) {
+      setAssessmentType((prev) => (prev === "GROUP" || prev === "INDIVIDUAL") ? prev : "GROUP");
     }
+
+    const first = sessionContext.entity?.individuals?.[0]?.studentId;
+    if (first) setSelectedStudent((s) => s ?? first);
   }, [sessionContext]);
 
   // Load existing assessment (if present)
@@ -220,4 +234,3 @@ function getRatingRange(sessionContext, criterionId, levelId) {
     ? { minPoints: level.minPoints, maxPoints: level.maxPoints }
     : {};
 }
-

@@ -7,7 +7,6 @@ import { cn } from '../../../lib/utils';
 
 export default function HeaderStatusBar({
   isDraft,
-  assignmentType,
   validation,
   selectedStudent,
   autoSaveStatus = 'saved',
@@ -49,25 +48,23 @@ export default function HeaderStatusBar({
         >
           {isDraft ? 'Draft' : 'In Progress'}
         </Badge>
-        {assignmentType && (
-          <div className="flex items-center gap-2">
-            {(assignmentType === 'group' || assignmentType === 'mixed') && (
+        <div className="flex items-center gap-2">
+          {(validation?.groupRequired ?? 0) > 0 && (
+            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
+              Group {Math.max(0, (validation.groupRequired - validation.groupMissing))}/{validation.groupRequired}
+            </Badge>
+          )}
+          {selectedStudent && (() => {
+            const ps = validation?.perStudentMissing?.find((s) => s.studentId === selectedStudent);
+            if (!ps || !ps.required) return null;
+            const filled = ps.required - ps.missing;
+            return (
               <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
-                Group {Math.max(0, (validation.groupRequired - validation.groupMissing))}/{validation.groupRequired}
+                Student {filled}/{ps.required}
               </Badge>
-            )}
-            {(assignmentType === 'individual' || assignmentType === 'mixed') && selectedStudent && (() => {
-              const ps = validation.perStudentMissing?.find((s) => s.studentId === selectedStudent);
-              const filled = ps ? ps.required - ps.missing : 0;
-              const req = ps ? ps.required : 0;
-              return (
-                <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700">
-                  Student {filled}/{req}
-                </Badge>
-              );
-            })()}
-          </div>
-        )}
+            );
+          })()}
+        </div>
       </div>
 
       <div className="flex items-center space-x-4 mt-4 md:mt-0">
@@ -100,4 +97,3 @@ export default function HeaderStatusBar({
     </div>
   );
 }
-

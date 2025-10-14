@@ -9,7 +9,7 @@ import { useSessionMetaStore } from "../../../store/sessionMetaStore";
 // Helpers to normalize rubric structures (supports mixed buckets)
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
-function buildLevels(rawLevels = [], resolvedCriterionId) {
+function buildLevels(rawLevels = []) {
   if (!Array.isArray(rawLevels)) return [];
   return rawLevels.map((level, idx) => ({
     levelId: level?.levelId || `L${idx + 1}`,
@@ -28,8 +28,8 @@ function mapCriterion(criterion, appliesTo, index) {
     weight: Number(criterion?.weight) || 0,
     scaleType: criterion?.scaleType || "points",
     appliesTo,
-    levels: buildLevels(criterion?.levels || criterion?.performanceLevel || [], criterionId),
-    performanceLevel: buildLevels(criterion?.performanceLevel || criterion?.levels || [], criterionId).map((l) => ({
+    levels: buildLevels(criterion?.levels || criterion?.performanceLevel || []),
+    performanceLevel: buildLevels(criterion?.performanceLevel || criterion?.levels || []).map((l) => ({
       // keep alternative field names for downstream lookups in services
       levelId: l.levelId,
       startPoint: l.minPoints,
@@ -37,6 +37,43 @@ function mapCriterion(criterion, appliesTo, index) {
       description: l.description,
       preDefinedComment: l.preDefinedComment,
     })),
+  };
+}
+
+function parseRubricMeta(meta, options = {}) {
+  const safeMeta = meta && typeof meta === "object" ? meta : {};
+  const groupRubrics = ensureArray(safeMeta.groupRubrics);
+  const individualRubrics = ensureArray(safeMeta.individualRubrics);
+
+  const criteria = [];
+  let counter = 0;
+  groupRubrics.forEach((criterion) => {
+    criteria.push(mapCriterion(criterion, "GROUP", counter));
+    counter += 1;
+  });
+  individualRubrics.forEach((criterion) => {
+    criteria.push(mapCriterion(criterion, "INDIVIDUAL", counter));
+    counter += 1;
+  });
+
+  const weightBasis = safeMeta.weightBasis === "points" ? "points" : "percentage";
+
+  return {
+    name: safeMeta.name || options.fallbackName || "Assessment Rubric",
+    description: safeMeta.description || "",
+    totalPoints: Number(safeMeta.totalPoints) || Number(options.fallbackTotalPoints) || 100,
+    criteria,
+    bucketInfo: {
+      group: {
+        weight: Number(safeMeta.groupWeight ?? 0) || 0,
+        criteria: criteria.filter((c) => c.appliesTo === "GROUP"),
+      },
+      individual: {
+        weight: Number(safeMeta.individualWeight ?? 0) || 0,
+        criteria: criteria.filter((c) => c.appliesTo === "INDIVIDUAL"),
+      },
+    },
+    weightBasis,
   };
 }
 
@@ -79,68 +116,33 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
             if (typeof meta === 'string') {
               try { meta = JSON.parse(meta); } catch (_) { meta = {}; }
             }
-
-            const rawRubrics = assignment.rubricsInfo || assignment.rubricInfo || [];
-            const individualRubrics = ensureArray(meta?.individualRubrics);
-            const groupRubrics = ensureArray(meta?.groupRubrics);
-
-            let criteria = [];
-            let inferredType = (assignment.type || 'mixed').toLowerCase();
-
-            if (individualRubrics.length || groupRubrics.length) {
-              // New bucketed schema from admin builder
-              criteria = [
-                ...groupRubrics.map((c, i) => mapCriterion(c, 'GROUP', i)),
-                ...individualRubrics.map((c, i) => mapCriterion(c, 'INDIVIDUAL', i + groupRubrics.length)),
-              ];
-              inferredType = (groupRubrics.length && individualRubrics.length)
-                ? 'mixed'
-                : (groupRubrics.length ? 'group' : 'individual');
-            } else if (Array.isArray(rawRubrics) && rawRubrics.length) {
-              // Legacy flattened schema; fall back to assignment.type
-              const appliesFromType = (assignment.type === 'group')
-                ? 'GROUP'
-                : (assignment.type === 'individual')
-                  ? 'INDIVIDUAL'
-                  : 'BOTH';
-              criteria = rawRubrics.map((criterion, index) => mapCriterion(criterion, appliesFromType, index));
-            }
-
-            const weightBasis = (meta?.weightBasis === 'points' || meta?.weightBasis === 'percentage')
-              ? meta?.weightBasis
-              : 'percentage';
-
-            // derive bucket weights; meta already validated to map to criteria totals by admin UI
-            const individualWeight = Number(meta?.individualWeight ?? 0) || 0;
-            const groupWeight = Number(meta?.groupWeight ?? 0) || 0;
+            const rubric = parseRubricMeta(meta, {
+              fallbackName: assignment.name || `Assignment ${assignmentId}`,
+              fallbackTotalPoints: assignment.totalPoints,
+            });
 
             const ctx = {
               assignment: {
                 id: assignment.id,
                 name: assignment.name || `Assignment ${assignmentId}`,
-                type: inferredType,
-                groupWeight,
-                individualWeight,
                 rubric: {
-                  name: meta?.name || 'Assessment Rubric',
-                  description: meta?.description || '',
-                  totalPoints: Number(meta?.totalPoints) || 100,
-                  weightBasis,
-                  criteria,
-                }
+                  name: rubric.name,
+                  description: rubric.description,
+                  totalPoints: rubric.totalPoints,
+                  weightBasis: rubric.weightBasis,
+                  criteria: rubric.criteria,
+                },
+                weights: {
+                  group: rubric.bucketInfo.group.weight,
+                  individual: rubric.bucketInfo.individual.weight,
+                },
+                groupWeight: rubric.bucketInfo.group.weight,
+                individualWeight: rubric.bucketInfo.individual.weight,
+                rubricMeta: meta,
               },
               entity: {
-                kind: subjectType.toUpperCase(),
-                ...(subjectType.toUpperCase() === 'GROUP' ? {
-                  groupId: `G-${subjectId}`,
-                  groupName: `Group ${subjectId}`,
-                  members: 1
-                } : {
-                  individuals: [{
-                    studentId: subjectId,
-                    name: `Student ${subjectId}`
-                  }]
-                })
+                group: null,
+                individuals: [],
               },
               existingAssessment: null,
               sessionId: sessionId, // Include sessionId for API calls
@@ -155,8 +157,8 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
 
             // 2) Prefetch session meta from schedule (students/detailed doesn't include timing/venue)
             if (sessionId && examinerId) {
-              const meta = await prefetchSessionMeta(examinerId, assignmentId, sessionId);
-              if (meta) ctx.session = { ...(ctx.session || {}), ...meta };
+              const metaInfo = await prefetchSessionMeta(examinerId, assignmentId, sessionId);
+              if (metaInfo) ctx.session = { ...(ctx.session || {}), ...metaInfo };
             }
 
             // Enrich with session participants from detailed API
@@ -174,11 +176,15 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
                   }));
                   if (individuals.length) ctx.entity.individuals = individuals;
                 }
-                if (data && Array.isArray(data.groups) && data.groups.length && ctx.entity.kind === 'GROUP') {
+                if (data && Array.isArray(data.groups) && data.groups.length) {
                   const g = data.groups[0];
-                  ctx.entity.groupId = g.groupId || ctx.entity.groupId;
-                  ctx.entity.groupName = g.groupName || ctx.entity.groupName;
-                  ctx.entity.members = Array.isArray(g.members) ? g.members.length : ctx.entity.members;
+                  ctx.entity.group = {
+                    groupId: g.groupId,
+                    groupName: g.groupName,
+                    members: Array.isArray(g.members) ? g.members : [],
+                  };
+                  ctx.entity.groupId = ctx.entity.group.groupId;
+                  ctx.entity.groupName = ctx.entity.group.groupName;
                 }
               } catch (_) {}
             }
@@ -186,48 +192,7 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
           }
         } catch (error) {
           console.error('Failed to fetch assignment details for new assessment:', error);
-          
-          // Fallback to minimal context if assignment fetch fails
-          const ctx = {
-            assignment: {
-              id: assignmentId,
-              name: `Assignment ${assignmentId}`,
-              type: subjectType.toLowerCase() === 'individual' ? 'individual' : (subjectType.toLowerCase() === 'group' ? 'group' : 'mixed'),
-              rubric: {
-                criteria: []
-              }
-            },
-            entity: {
-              kind: subjectType.toUpperCase(),
-              ...(subjectType.toUpperCase() === 'GROUP' ? {
-                groupId: `G-${subjectId}`,
-                groupName: `Group ${subjectId}`,
-                members: 1
-              } : {
-                individuals: [{
-                  studentId: subjectId,
-                  name: `Student ${subjectId}`
-                }]
-              })
-            },
-            existingAssessment: null
-          };
-
-          // 1) Use persisted session meta if still missing
-          if (!ctx.session && (sessionId || ctx.sessionId)) {
-            const sid = sessionId || ctx.sessionId;
-            const aId = assignmentId || ctx.assignment?.id;
-            const persisted = useSessionMetaStore.getState().getSessionMeta(aId, sid);
-            if (persisted) ctx.session = persisted;
-          }
-
-          // 2) Best-effort session meta from schedule
-          if (sessionId && examinerId) {
-            const meta = await prefetchSessionMeta(examinerId, assignmentId, sessionId);
-            if (meta) ctx.session = { ...(ctx.session || {}), ...meta };
-          }
-
-          return ctx;
+          throw error;
         }
       }
       
@@ -244,9 +209,42 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
       }
       const ctx = res.data;
 
-      // Enrich rubric: try to parse meta snapshot fields into bucketed appliesTo + weights
-      if (ctx?.assignment?.rubric?.criteria?.length) {
-        // noop; already normalized by service mapping
+      if (!ctx?.assignment?.rubricMeta) {
+        throw new Error('Missing rubric meta information in assessment context');
+      }
+
+      const rubric = parseRubricMeta(ctx.assignment.rubricMeta, {
+        fallbackName: ctx.assignment.name,
+        fallbackTotalPoints: ctx.assignment.rubric?.totalPoints,
+      });
+
+      ctx.assignment = {
+        ...ctx.assignment,
+        rubric: {
+          name: rubric.name,
+          description: rubric.description,
+          totalPoints: rubric.totalPoints,
+          weightBasis: rubric.weightBasis,
+          criteria: rubric.criteria,
+        },
+        weights: {
+          group: rubric.bucketInfo.group.weight,
+          individual: rubric.bucketInfo.individual.weight,
+        },
+        rubricMeta: ctx.assignment.rubricMeta,
+      };
+
+      ctx.assignment.groupWeight = ctx.assignment.weights.group;
+      ctx.assignment.individualWeight = ctx.assignment.weights.individual;
+
+      ctx.entity = ctx.entity || {};
+      if (!ctx.entity.individuals) ctx.entity.individuals = [];
+      if (!ctx.entity.group && ctx.entity.groupId) {
+        ctx.entity.group = {
+          groupId: ctx.entity.groupId,
+          groupName: ctx.entity.groupName,
+          members: ctx.entity.members || [],
+        };
       }
 
       // 1) Use persisted session meta if missing
@@ -281,11 +279,15 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
             }));
             if (individuals.length) ctx.entity.individuals = individuals;
           }
-          if (data && Array.isArray(data.groups) && data.groups.length && ctx.entity.kind === 'GROUP') {
+          if (data && Array.isArray(data.groups) && data.groups.length) {
             const g = data.groups[0];
-            ctx.entity.groupId = g.groupId || ctx.entity.groupId;
-            ctx.entity.groupName = g.groupName || ctx.entity.groupName;
-            ctx.entity.members = Array.isArray(g.members) ? g.members.length : ctx.entity.members;
+            ctx.entity.group = {
+              groupId: g.groupId,
+              groupName: g.groupName,
+              members: Array.isArray(g.members) ? g.members : [],
+            };
+            ctx.entity.groupId = ctx.entity.group.groupId;
+            ctx.entity.groupName = ctx.entity.group.groupName;
           }
         } catch (e) {
           console.warn('Failed to enrich participants from detailed session API:', e);

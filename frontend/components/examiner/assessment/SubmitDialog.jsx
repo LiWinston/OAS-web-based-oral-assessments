@@ -11,8 +11,18 @@ export default function SubmitDialog({
   onConfirm,
 }) {
   const disabled = (validation?.totalMissing || 0) > 0;
-  const groupWeight = assignment?.groupWeight || 0;
-  const individualWeight = assignment?.individualWeight || 0;
+  const weightBasis = assignment?.rubric?.weightBasis || 'percentage';
+  const groupWeight = Number(assignment?.weights?.group ?? assignment?.groupWeight ?? 0) || 0;
+  const individualWeight = Number(assignment?.weights?.individual ?? assignment?.individualWeight ?? 0) || 0;
+  const criteria = assignment?.rubric?.criteria || [];
+  const hasGroup = criteria.some((c) => {
+    const a = (c.appliesTo || 'BOTH').toUpperCase();
+    return a === 'GROUP' || a === 'BOTH';
+  });
+  const hasIndividual = criteria.some((c) => {
+    const a = (c.appliesTo || 'BOTH').toUpperCase();
+    return a === 'INDIVIDUAL' || a === 'BOTH';
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -24,9 +34,9 @@ export default function SubmitDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 text-sm">
-          {assignment?.type === 'mixed' && (
+          {hasGroup && hasIndividual && (
             <p>
-              Final scores will be computed with Group {Math.round(groupWeight * 100)}% and Individual {Math.round(individualWeight * 100)}% weighting.
+              Final scores will be computed with Group {weightBasis === 'points' ? `${groupWeight} pts` : `${groupWeight}%`} and Individual {weightBasis === 'points' ? `${individualWeight} pts` : `${individualWeight}%`} weighting.
             </p>
           )}
           <p>Please confirm you have completed the rubric selections and feedback.</p>
@@ -59,4 +69,3 @@ export default function SubmitDialog({
     </Dialog>
   );
 }
-

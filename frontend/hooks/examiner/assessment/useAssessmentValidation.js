@@ -23,11 +23,8 @@ export function useAssessmentValidation(sessionContext, groupRatings, individual
     // Group side (for group or mixed)
     let groupMissing = 0;
     let groupRequired = 0;
-    if (
-      sessionContext.assignment.type === "group" ||
-      sessionContext.assignment.type === "mixed"
-    ) {
-      const groupCriteria = criteria.filter((c) => applies(c, "GROUP"));
+    const groupCriteria = criteria.filter((c) => applies(c, "GROUP"));
+    if (groupCriteria.length) {
       groupRequired = groupCriteria.length;
       groupMissing = groupCriteria.reduce(
         (acc, c) => acc + (groupRatings?.[c.criterionId]?.levelId ? 0 : 1),
@@ -37,11 +34,8 @@ export function useAssessmentValidation(sessionContext, groupRatings, individual
 
     // Individual side (for individual or mixed)
     const perStudentMissing = [];
-    if (
-      sessionContext.assignment.type === "individual" ||
-      sessionContext.assignment.type === "mixed"
-    ) {
-      const individualCriteria = criteria.filter((c) => applies(c, "INDIVIDUAL"));
+    const individualCriteria = criteria.filter((c) => applies(c, "INDIVIDUAL"));
+    if (individualCriteria.length) {
       const students = sessionContext.entity?.individuals || [];
       for (const stu of students) {
         const ratings = individualRatings?.[stu.studentId] || {};
@@ -63,8 +57,12 @@ export function useAssessmentValidation(sessionContext, groupRatings, individual
   }, [sessionContext, groupRatings, individualRatings]);
 
   const isAllStudentsComplete = useMemo(() => {
-    const type = sessionContext?.assignment?.type;
-    if (!(type === "individual" || type === "mixed")) return false;
+    if (!sessionContext?.assignment?.rubric?.criteria) return false;
+    const hasIndividual = sessionContext.assignment.rubric.criteria.some((c) => {
+      const a = c.appliesTo || "BOTH";
+      return a === "INDIVIDUAL" || a === "BOTH";
+    });
+    if (!hasIndividual) return false;
     const per = validation.perStudentMissing || [];
     if (!per.length) return false;
     const relevant = per.filter((s) => s.required > 0);
@@ -74,4 +72,3 @@ export function useAssessmentValidation(sessionContext, groupRatings, individual
 
   return { validation, isAllStudentsComplete };
 }
-
