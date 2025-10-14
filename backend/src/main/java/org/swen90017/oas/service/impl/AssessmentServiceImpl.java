@@ -552,9 +552,32 @@ public class AssessmentServiceImpl implements AssessmentService {
                 if (!("INDIVIDUAL".equalsIgnoreCase(normalizedType) || "GROUP".equalsIgnoreCase(normalizedType))) {
                     throw new BusinessException(BusinessError.INVALID_PARAM);
                 }
+                
+                // Query enrollmentId from session_student table if sessionId is provided
+                Long enrollmentId = null;
+                if (request.getSessionId() != null) {
+                    // Determine the type for session_student query
+                    String sessionStudentType = normalizedType;
+                    // For GROUP submissions in mixed assignments, the session_student type is "MIX"
+                    if ("GROUP".equalsIgnoreCase(normalizedType) && "mixed".equalsIgnoreCase(assignment.getType())) {
+                        sessionStudentType = "MIX";
+                    }
+                    
+                    SessionStudent sessionStudent = sessionStudentMapper.selectBySessionAndSubject(
+                        request.getSessionId(), 
+                        sessionStudentType, 
+                        request.getSubjectId()
+                    );
+                    
+                    if (sessionStudent != null) {
+                        enrollmentId = sessionStudent.getId();
+                    }
+                }
+                
                 AssessmentSubmission draft = new AssessmentSubmission();
                 draft.setAssignmentId(request.getAssignmentId());
                 draft.setSessionId(request.getSessionId());
+                draft.setEnrollmentId(enrollmentId);  // Set enrollment_id
                 draft.setSubjectType(normalizedType);
                 draft.setSubjectId(request.getSubjectId());
                 draft.setExaminerId(examinerId);
