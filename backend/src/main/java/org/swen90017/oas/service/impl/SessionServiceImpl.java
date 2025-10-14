@@ -320,7 +320,8 @@ public class SessionServiceImpl implements SessionService {
                         studentDTO.setStudentNumber(student.getStudentNumber());
                         enrolledStudents.add(studentDTO);
                     }
-                } else if ("GROUP".equals(enrollment.getType())) {
+                } else if ("GROUP".equals(enrollment.getType()) || "MIX".equals(enrollment.getType())) {
+                    // Handle both GROUP and MIX types (MIX is treated as group for enrollment display)
                     SysGroup group = groupMapper.selectById(enrollment.getSubjectId());
                     if (group != null) {
                         AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();
@@ -480,7 +481,8 @@ public class SessionServiceImpl implements SessionService {
                         studentDTO.setStudentNumber(student.getStudentNumber());
                         enrolledStudents.add(studentDTO);
                     }
-                } else if ("GROUP".equals(enrollment.getType())) {
+                } else if ("GROUP".equals(enrollment.getType()) || "MIX".equals(enrollment.getType())) {
+                    // Handle both GROUP and MIX types (MIX is treated as group for enrollment display)
                     SysGroup group = groupMapper.selectById(enrollment.getSubjectId());
                     if (group != null) {
                         AdminSessionsListResponseDTO.EnrolledGroupDTO groupDTO = new AdminSessionsListResponseDTO.EnrolledGroupDTO();

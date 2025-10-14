@@ -230,12 +230,18 @@ public class AssessmentServiceImpl implements AssessmentService {
         target.setStatus("SUBMITTED");
         target.setSubmittedAt(LocalDateTime.now());
         target.setUpdatedAt(LocalDateTime.now());
+        
+        log.info("Updating submission {} status to SUBMITTED", target.getId());
         submissionMapper.updateById(target);
         
         // For MIX type, also submit all related individual submissions
         if (isMixTypeGroupSubmission) {
             submitRelatedIndividualSubmissions(target, examinerId);
         }
+        
+        // Reload from database to ensure we have the latest state
+        target = submissionMapper.selectById(target.getId());
+        log.info("Returning submission {} with status: {}", target.getId(), target.getStatus());
         
         return toDTO(target);
     }
