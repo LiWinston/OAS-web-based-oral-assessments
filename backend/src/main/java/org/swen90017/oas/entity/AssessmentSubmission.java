@@ -71,9 +71,24 @@ public class AssessmentSubmission implements Serializable {
 
     /**
      * JSON snapshots (stored as TEXT/JSON in DB)
+     * rubricMetaSnapshot: Primary snapshot containing all rubric metadata and criteria (new unified format)
+     * rubricsInfoSnapshot: Legacy field, now populated from rubricMetaSnapshot for backward compatibility
+     * scoresJson: Assessment scores data
      */
+    @Schema(description = "Rubric meta information snapshot (primary source)", example = "{\"name\":\"Oral Presentation Rubric\",\"description\":\"Evaluation criteria\",\"totalPoints\":100,\"individualRubrics\":[...],\"groupRubrics\":[...]}")
     private String rubricMetaSnapshot;
+    
+    /**
+     * @deprecated This field is maintained for backward compatibility only.
+     * Rubric criteria are now extracted from rubricMetaSnapshot based on subjectType.
+     * For INDIVIDUAL assessments, data comes from rubricMetaSnapshot.individualRubrics
+     * For GROUP assessments, data comes from rubricMetaSnapshot.groupRubrics
+     */
+    @Deprecated
+    @Schema(description = "Rubrics info snapshot (deprecated, use rubricMetaSnapshot)", deprecated = true)
     private String rubricsInfoSnapshot;
+    
+    @Schema(description = "Assessment scores in JSON format")
     private String scoresJson;
 
     private LocalDateTime submittedAt;
