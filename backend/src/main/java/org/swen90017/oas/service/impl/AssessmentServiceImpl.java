@@ -64,8 +64,27 @@ public class AssessmentServiceImpl implements AssessmentService {
             }
         }
 
-        // 2.1 Normalize subjectType synonyms
-        String normalizedSubjectType = normalizeSubjectType(request.getSubjectType());
+        // 2.1 Auto-detect subjectType from assignment if not provided
+        String normalizedSubjectType;
+        if (request.getSubjectType() == null || request.getSubjectType().trim().isEmpty()) {
+            // Auto-detect based on assignment type
+            String assignmentType = assignment.getType();
+            if ("mixed".equalsIgnoreCase(assignmentType)) {
+                normalizedSubjectType = "MIX";
+                log.info("Auto-detected subjectType as MIX for mixed assignment {}", request.getAssignmentId());
+            } else if ("individual".equalsIgnoreCase(assignmentType)) {
+                normalizedSubjectType = "INDIVIDUAL";
+                log.info("Auto-detected subjectType as INDIVIDUAL for individual assignment {}", request.getAssignmentId());
+            } else if ("group".equalsIgnoreCase(assignmentType)) {
+                normalizedSubjectType = "GROUP";
+                log.info("Auto-detected subjectType as GROUP for group assignment {}", request.getAssignmentId());
+            } else {
+                throw new BusinessException(BusinessError.INVALID_PARAM.getMessage() + ": Unknown assignment type: " + assignmentType, BusinessError.INVALID_PARAM.getCode());
+            }
+        } else {
+            // Normalize subjectType provided by frontend
+            normalizedSubjectType = normalizeSubjectType(request.getSubjectType());
+        }
         
         // 2.1.1 Check if this is a MIX type request (front-end explicitly specifies MIX)
         if ("MIX".equals(normalizedSubjectType)) {
@@ -471,12 +490,35 @@ public class AssessmentServiceImpl implements AssessmentService {
                 throw new BusinessException(BusinessError.INVALID_PARAM);
             }
         } else {
-            target = submissionMapper.selectByUniqueTarget(request.getAssignmentId(), request.getSessionId(), normalizeSubjectType(request.getSubjectType()), request.getSubjectId(), examinerId);
+            // Auto-detect subjectType if not provided
+            String normalizedType;
+            if (request.getSubjectType() == null || request.getSubjectType().trim().isEmpty()) {
+                if (request.getAssignmentId() == null) {
+                    throw new BusinessException(BusinessError.INVALID_PARAM);
+                }
+                Assignment assignment = assignmentMapper.selectById(request.getAssignmentId());
+                if (assignment == null) throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
+                
+                String assignmentType = assignment.getType();
+                if ("mixed".equalsIgnoreCase(assignmentType)) {
+                    normalizedType = "MIX";
+                } else if ("individual".equalsIgnoreCase(assignmentType)) {
+                    normalizedType = "INDIVIDUAL";
+                } else if ("group".equalsIgnoreCase(assignmentType)) {
+                    normalizedType = "GROUP";
+                } else {
+                    throw new BusinessException(BusinessError.INVALID_PARAM.getMessage() + ": Unknown assignment type: " + assignmentType, BusinessError.INVALID_PARAM.getCode());
+                }
+                log.info("Auto-detected subjectType as {} for submit on assignment {}", normalizedType, request.getAssignmentId());
+            } else {
+                normalizedType = normalizeSubjectType(request.getSubjectType());
+            }
+            
+            target = submissionMapper.selectByUniqueTarget(request.getAssignmentId(), request.getSessionId(), normalizedType, request.getSubjectId(), examinerId);
             // If not exists, allow creating a draft on submit to support "direct submit"
             if (target == null) {
-                // Strict: only allow auto-create when assignmentId + subjectType(INDIVIDUAL/GROUP) + subjectId are provided
-                String normalizedType = normalizeSubjectType(request.getSubjectType());
-                if (request.getAssignmentId() == null || normalizedType == null || request.getSubjectId() == null) {
+                // Strict: only allow auto-create when assignmentId + subjectId are provided
+                if (request.getAssignmentId() == null || request.getSubjectId() == null) {
                     throw new BusinessException(BusinessError.INVALID_PARAM);
                 }
                 Assignment assignment = assignmentMapper.selectById(request.getAssignmentId());

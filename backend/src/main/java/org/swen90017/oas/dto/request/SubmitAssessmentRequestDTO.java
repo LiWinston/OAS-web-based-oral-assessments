@@ -20,8 +20,10 @@ public class SubmitAssessmentRequestDTO {
     private Long sessionId;
     
     @Schema(
-        description = "Subject type: 'INDIVIDUAL' for student, 'GROUP' for group, 'MIX' for mixed assessment with both types",
-        allowableValues = {"INDIVIDUAL", "GROUP", "MIX", "STUDENT"}
+        description = "Subject type: 'INDIVIDUAL' for student, 'GROUP' for group, 'MIX' for mixed assessment with both types. " +
+            "If not provided, will be auto-detected from the assignment type.",
+        allowableValues = {"INDIVIDUAL", "GROUP", "MIX", "STUDENT"},
+        nullable = true
     )
     private String subjectType;
     

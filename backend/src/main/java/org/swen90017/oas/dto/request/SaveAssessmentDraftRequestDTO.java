@@ -44,12 +44,12 @@ public class SaveAssessmentDraftRequestDTO {
         description = "Subject type being assessed. Options: " +
             "'INDIVIDUAL' for student assessment, " +
             "'GROUP' for group assessment, " +
-            "'MIX' for mixed type assessment (both individual and group scores in unified scores array)",
+            "'MIX' for mixed type assessment (both individual and group scores in unified scores array). " +
+            "If not provided, will be auto-detected from the assignment type.",
         example = "INDIVIDUAL",
         allowableValues = {"INDIVIDUAL", "GROUP", "MIX"},
-        required = true
+        nullable = true
     )
-    @NotNull(message = "Subject type is required")
     private String subjectType;
 
     @Schema(
