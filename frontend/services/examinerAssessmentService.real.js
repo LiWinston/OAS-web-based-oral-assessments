@@ -718,17 +718,10 @@ const examinerAssessmentServiceReal = {
       // Resolve submissionId strictly from assessmentData (no fallback)
       const effectiveSubmissionIdRaw = assessmentData?.assessmentId ?? assessmentData?.submissionId;
       const effectiveSubmissionId = Number(effectiveSubmissionIdRaw);
-      if (!Number.isFinite(effectiveSubmissionId)) {
-        return {
-          success: false,
-          code: 'ERROR',
-          message: 'Missing submissionId for submit'
-        };
-      }
 
       // Build the request payload matching backend API format for Complete Assessment
       const payload = {
-        submissionId: effectiveSubmissionId,
+        ...(Number.isFinite(effectiveSubmissionId) ? { submissionId: effectiveSubmissionId } : {}),
         assignmentId: assessmentData.assignmentId || sessionContext?.assignment?.id || 0,
         sessionId: sessionContext?.sessionId || 0,
         subjectType: subjectType,
@@ -753,7 +746,7 @@ const examinerAssessmentServiceReal = {
           data: {
             assessmentId: response.data.data?.assessmentId || payload.assessmentId,
             status: 'SUBMITTED',
-            submissionId: effectiveSubmissionId,
+            submissionId: Number.isFinite(effectiveSubmissionId) ? effectiveSubmissionId : undefined,
             submittedAt: new Date().toISOString()
           }
         };
