@@ -121,9 +121,10 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
 
         // 5) Validate scores and compute total (draft can be incomplete; partial nulls allowed here)
-        String normalizedScoresJson = normalizeAndValidateScores(record.getRubricsInfoSnapshot(), request);
+        // Use rubricMetaSnapshot for both validation and calculation (contains all rubric metadata)
+        String normalizedScoresJson = normalizeAndValidateScores(record.getRubricMetaSnapshot(), record.getRubricsInfoSnapshot(), request);
         record.setScoresJson(normalizedScoresJson);
-        Double total = computeTotalScore(record.getRubricsInfoSnapshot(), normalizedScoresJson);
+        Double total = computeTotalScore(record.getRubricMetaSnapshot(), record.getRubricsInfoSnapshot(), normalizedScoresJson, normalizedSubjectType);
         record.setTotalScore(total);
 
         // 6) Notes and feedback
@@ -170,7 +171,7 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         // Submission validation: must be able to compute total; if missing, mark incomplete (avoid defaulting to 0)
         ensureAllCriteriaCompleted(target.getRubricsInfoSnapshot(), target.getScoresJson());
-        Double total = computeTotalScore(target.getRubricsInfoSnapshot(), target.getScoresJson());
+        Double total = computeTotalScore(target.getRubricMetaSnapshot(), target.getRubricsInfoSnapshot(), target.getScoresJson(), target.getSubjectType());
         target.setTotalScore(total);
         target.setStatus("SUBMITTED");
         target.setSubmittedAt(LocalDateTime.now());
@@ -408,6 +409,121 @@ public class AssessmentServiceImpl implements AssessmentService {
         return target;
     }
 
+    /**
+     * Normalize and validate scores with meta information (new unified format)
+     * 
+     * @param rubricMetaSnapshot JSON string of rubric meta info
+     * @param rubricsInfoSnapshot JSON string of rubric items list
+     * @param request The assessment draft request containing scores
+     * @return Normalized scores JSON string
+     */
+    private String normalizeAndValidateScores(String rubricMetaSnapshot, String rubricsInfoSnapshot, SaveAssessmentDraftRequestDTO request) {
+        try {
+            if (rubricsInfoSnapshot == null || rubricsInfoSnapshot.trim().isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_INFO_EMPTY);
+            }
+            List<RubricsInfoDto> rubricItems = parseRubricItems(rubricsInfoSnapshot);
+            if (rubricItems == null || rubricItems.isEmpty()) {
+                throw new BusinessException(BusinessError.RUBRIC_ITEMS_EMPTY);
+            }
+            
+            // Extract meta information for validation context
+            // Note: Currently not used in validation logic, but reserved for future enhancements
+            // where validation rules might differ based on weightBasis or totalPoints
+            @SuppressWarnings("unused")
+            String weightBasis = "percentage"; // default
+            @SuppressWarnings("unused")
+            Double totalPoints = 100.0; // default
+            
+            if (rubricMetaSnapshot != null && !rubricMetaSnapshot.trim().isEmpty()) {
+                try {
+                    RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaSnapshot, RubricMetaInfo.class);
+                    if (metaInfo.getWeightBasis() != null) {
+                        weightBasis = metaInfo.getWeightBasis();
+                    }
+                    if (metaInfo.getTotalPoints() != null) {
+                        totalPoints = metaInfo.getTotalPoints();
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to parse rubric meta for validation, using defaults: {}", e.getMessage());
+                }
+            }
+            
+            if (request.getScores() == null) return objectMapper.writeValueAsString(new ArrayList<>());
+            
+            for (SaveAssessmentDraftRequestDTO.ScoreItem s : request.getScores()) {
+                RubricsInfoDto matched = rubricItems.stream()
+                        .filter(it -> it.getDescription() != null && it.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
+                        .findFirst().orElse(null);
+                if (matched == null) throw new BusinessException(BusinessError.RUBRIC_CRITERION_NOT_FOUND.getMessage() + ": " + s.getDescription(), BusinessError.RUBRIC_CRITERION_NOT_FOUND.getCode());
+
+                // scaleType validity (support percentage as a synonym of points)
+                String reqType = s.getScaleType();
+                String rubType = matched.getScaleType();
+                if (reqType == null || rubType == null || !isScaleTypeCompatible(reqType, rubType)) {
+                    throw new BusinessException(BusinessError.RUBRIC_MISMATCH);
+                }
+
+                // Unified validation: all scores require inputPoints and selectedLevel
+                if (s.getInputPoints() == null) {
+                    throw new BusinessException(BusinessError.RUBRIC_CRITERION_INCOMPLETE);
+                }
+                
+                if (s.getSelectedLevel() == null) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // Validate basic range of inputPoints (always 0-100 for user input)
+                if (s.getInputPoints() < 0 || s.getInputPoints() > 100) {
+                    throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
+                }
+                
+                // Validate validity of selectedLevel
+                Double st = s.getSelectedLevel().getStartPoint();
+                Double ed = s.getSelectedLevel().getEndPoint();
+                if (st == null || ed == null || st < 0 || ed > 100 || st > ed) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // Validate that the selected level exactly matches a rubric band (description + range)
+                boolean matchAny = false;
+                if (matched.getPerformanceLevel() != null) {
+                    for (PerformanceDto p : matched.getPerformanceLevel()) {
+                        String pd = p.getDescription() == null ? null : p.getDescription().trim();
+                        String sd = s.getSelectedLevel().getDescription() == null ? null : s.getSelectedLevel().getDescription().trim();
+                        if (pd != null && sd != null && pd.equalsIgnoreCase(sd)) {
+                            Double pst = p.getStartPoint();
+                            Double ped = p.getEndPoint();
+                            if (pst != null && ped != null && Math.abs(pst - st) < 1e-6 && Math.abs(ped - ed) < 1e-6) {
+                                matchAny = true; 
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (!matchAny) {
+                    throw new BusinessException(BusinessError.INVALID_SELECTED_LEVEL);
+                }
+                
+                // Validate that inputPoints is within selectedLevel range
+                if (s.getInputPoints() < st || s.getInputPoints() > ed) {
+                    throw new BusinessException(BusinessError.SCORE_OUT_OF_RANGE);
+                }
+            }
+            return objectMapper.writeValueAsString(request.getScores());
+        } catch (BusinessException be) {
+            throw be;
+        } catch (Exception e) {
+            log.warn("Rubric parse/validation failed: {}", e.getMessage(), e);
+            throw new BusinessException(BusinessError.RUBRIC_PARSE_ERROR.getMessage() + ": " + e.getMessage(), BusinessError.RUBRIC_PARSE_ERROR.getCode());
+        }
+    }
+    
+    /**
+     * Normalize and validate scores (backward compatibility version)
+     * @deprecated Use normalizeAndValidateScores(rubricMetaSnapshot, rubricsInfoSnapshot, request) instead
+     */
+    @Deprecated
     private String normalizeAndValidateScores(String rubricsInfoSnapshot, SaveAssessmentDraftRequestDTO request) {
         try {
             if (rubricsInfoSnapshot == null || rubricsInfoSnapshot.trim().isEmpty()) {
@@ -486,6 +602,89 @@ public class AssessmentServiceImpl implements AssessmentService {
         }
     }
 
+    /**
+     * Compute total score with meta information (new unified format)
+     * 
+     * @param rubricMetaSnapshot JSON string of rubric meta info (contains totalPoints, weightBasis, etc.)
+     * @param rubricsInfoSnapshot JSON string of rubric items list
+     * @param scoresJson JSON string of scores
+     * @param subjectType Subject type (INDIVIDUAL/GROUP) for extracting correct meta info
+     * @return Calculated total score
+     */
+    private Double computeTotalScore(String rubricMetaSnapshot, String rubricsInfoSnapshot, String scoresJson, String subjectType) {
+        try {
+            // Parse rubric items and scores
+            List<RubricsInfoDto> rubricItems = parseRubricItems(rubricsInfoSnapshot);
+            List<SaveAssessmentDraftRequestDTO.ScoreItem> scores = objectMapper.readValue(scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>(){});
+            
+            // Extract meta info for totalPoints and weightBasis
+            Double totalPoints = 100.0; // default
+            String weightBasis = "percentage"; // default
+            
+            if (rubricMetaSnapshot != null && !rubricMetaSnapshot.trim().isEmpty()) {
+                try {
+                    RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaSnapshot, RubricMetaInfo.class);
+                    if (metaInfo.getTotalPoints() != null) {
+                        totalPoints = metaInfo.getTotalPoints();
+                    }
+                    if (metaInfo.getWeightBasis() != null) {
+                        weightBasis = metaInfo.getWeightBasis();
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to parse rubric meta snapshot, using defaults: {}", e.getMessage());
+                }
+            }
+            
+            // Calculate weighted score based on weightBasis
+            double total = 0.0;
+            
+            if ("points".equals(weightBasis)) {
+                // Weight represents actual points, not percentage
+                // Each criterion's weight is its max points
+                for (RubricsInfoDto r : rubricItems) {
+                    double maxPoints = r.getWeight() == null ? 0.0 : r.getWeight();
+                    SaveAssessmentDraftRequestDTO.ScoreItem matched = scores.stream()
+                            .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
+                            .findFirst().orElse(null);
+                    if (matched != null && matched.getInputPoints() != null) {
+                        // inputPoints is 0-100, scale it to criterion's max points
+                        double earnedPoints = matched.getInputPoints() * maxPoints / 100.0;
+                        total += earnedPoints;
+                    }
+                }
+            } else {
+                // Default: percentage-based (weight is percentage, inputPoints is 0-100)
+                for (RubricsInfoDto r : rubricItems) {
+                    double weight = r.getWeight() == null ? 0.0 : r.getWeight();
+                    SaveAssessmentDraftRequestDTO.ScoreItem matched = scores.stream()
+                            .filter(s -> r.getDescription() != null && r.getDescription().trim().equalsIgnoreCase(s.getDescription() == null ? "" : s.getDescription().trim()))
+                            .findFirst().orElse(null);
+                    double normalized = 0.0;
+                    if (matched != null && matched.getInputPoints() != null) {
+                        Double p = matched.getInputPoints();
+                        normalized = Math.max(0.0, Math.min(100.0, p));
+                    }
+                    total += normalized * weight / 100.0;
+                }
+                
+                // If totalPoints is not 100, scale the result
+                if (Math.abs(totalPoints - 100.0) > 0.01) {
+                    total = total * totalPoints / 100.0;
+                }
+            }
+            
+            return total;
+        } catch (Exception e) {
+            log.warn("Failed to compute total score", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Compute total score (backward compatibility version)
+     * @deprecated Use computeTotalScore(rubricMetaSnapshot, rubricsInfoSnapshot, scoresJson, subjectType) instead
+     */
+    @Deprecated
     private Double computeTotalScore(String rubricsInfoSnapshot, String scoresJson) {
         try {
             List<RubricsInfoDto> rubricItems = parseRubricItems(rubricsInfoSnapshot);
@@ -791,9 +990,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                     
                     // Process scores if provided
                     if (request.getScores() != null && !request.getScores().isEmpty()) {
-                        String normalizedScoresJson = normalizeAndValidateScores(groupRubricsJson, request);
+                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, request);
                         groupSubmission.setScoresJson(normalizedScoresJson);
-                        Double total = computeTotalScore(groupRubricsJson, normalizedScoresJson);
+                        Double total = computeTotalScore(assignment.getRubricMetaInfo(), groupRubricsJson, normalizedScoresJson, "GROUP");
                         groupSubmission.setTotalScore(total);
                     } else {
                         groupSubmission.setScoresJson("[]");
@@ -813,9 +1012,9 @@ public class AssessmentServiceImpl implements AssessmentService {
                     
                     // Update scores if provided
                     if (request.getScores() != null && !request.getScores().isEmpty()) {
-                        String normalizedScoresJson = normalizeAndValidateScores(groupRubricsJson, request);
+                        String normalizedScoresJson = normalizeAndValidateScores(assignment.getRubricMetaInfo(), groupRubricsJson, request);
                         groupSubmission.setScoresJson(normalizedScoresJson);
-                        Double total = computeTotalScore(groupRubricsJson, normalizedScoresJson);
+                        Double total = computeTotalScore(assignment.getRubricMetaInfo(), groupRubricsJson, normalizedScoresJson, "GROUP");
                         groupSubmission.setTotalScore(total);
                     }
                     
