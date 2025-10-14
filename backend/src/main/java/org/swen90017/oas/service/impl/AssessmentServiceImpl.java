@@ -197,7 +197,15 @@ public class AssessmentServiceImpl implements AssessmentService {
             SaveAssessmentDraftRequestDTO save = new SaveAssessmentDraftRequestDTO();
             save.setAssignmentId(target.getAssignmentId());
             save.setSessionId(target.getSessionId());
-            save.setSubjectType(target.getSubjectType());
+            
+            // For MIX type group submissions, set subjectType to MIX to trigger handleMixTypeAssessment
+            // This is needed when scores contain both GROUP and INDIVIDUAL types
+            String effectiveSubjectType = target.getSubjectType();
+            if (isMixTypeGroupSubmission && hasIndividualScores(request.getScores())) {
+                effectiveSubjectType = "MIX";
+            }
+            
+            save.setSubjectType(effectiveSubjectType);
             save.setSubjectId(target.getSubjectId());
             save.setOverallFeedback(request.getOverallFeedback());
             save.setAdminNote(request.getAdminNote());
@@ -292,6 +300,18 @@ public class AssessmentServiceImpl implements AssessmentService {
             log.error("Error submitting related individual submissions", e);
             // Don't fail the main submission if related submissions fail
         }
+    }
+    
+    /**
+     * Check if the scores list contains any INDIVIDUAL type scores
+     * @param scores List of score items
+     * @return true if there are any INDIVIDUAL type scores, false otherwise
+     */
+    private boolean hasIndividualScores(List<SaveAssessmentDraftRequestDTO.ScoreItem> scores) {
+        if (scores == null || scores.isEmpty()) {
+            return false;
+        }
+        return scores.stream().anyMatch(score -> "INDIVIDUAL".equals(score.getType()));
     }
 
     @Override
