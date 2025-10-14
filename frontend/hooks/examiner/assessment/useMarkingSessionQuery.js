@@ -9,6 +9,55 @@ import { useSessionMetaStore } from "../../../store/sessionMetaStore";
 // Helpers to normalize rubric structures (supports mixed buckets)
 const ensureArray = (v) => (Array.isArray(v) ? v : []);
 
+function normalizeGroupParticipants(groupRaw) {
+  if (!groupRaw) return { group: null, members: [], individualsFallback: [] };
+
+  const memberAssessments = Array.isArray(groupRaw.memberAssessments) ? groupRaw.memberAssessments : [];
+  const assessmentByUserId = new Map(
+    memberAssessments
+      .map((entry) => {
+        const key = Number(entry?.userId ?? entry?.studentId ?? entry?.id);
+        return Number.isFinite(key) ? [key, entry] : null;
+      })
+      .filter(Boolean)
+  );
+
+  const rawMembers = Array.isArray(groupRaw.members) && groupRaw.members.length
+    ? groupRaw.members
+    : memberAssessments;
+
+  const normalizedMembers = (rawMembers || [])
+    .map((member) => {
+      const userKey = Number(member?.userId ?? member?.studentId ?? member?.id);
+      if (!Number.isFinite(userKey)) return null;
+      const assessmentInfo = assessmentByUserId.get(userKey) || {};
+      const merged = { ...member, ...assessmentInfo };
+      const name =
+        merged.studentName ||
+        merged.name ||
+        merged.fullName ||
+        (Number.isFinite(userKey) ? `Student ${userKey}` : 'Student');
+      return {
+        studentId: userKey,
+        userId: userKey,
+        name,
+        studentNumber: merged.studentNumber || merged.studentNo || null,
+        email: merged.email || null,
+        assessmentStatus: merged.assessmentStatus || null,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    group: {
+      groupId: groupRaw.groupId,
+      groupName: groupRaw.groupName,
+      members: normalizedMembers,
+    },
+    individualsFallback: normalizedMembers.map((m) => ({ ...m })),
+  };
+}
+
 function buildLevels(rawLevels = []) {
   if (!Array.isArray(rawLevels)) return [];
   return rawLevels.map((level, idx) => ({
@@ -166,25 +215,29 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
               try {
                 const detailed = await examinerSessionService.getSessionDetailed(sessionId, examinerId);
                 const data = detailed?.data;
+                let individualsLoaded = false;
                 if (data && Array.isArray(data.students)) {
                   const individuals = data.students.map((s) => ({
                     studentId: Number(s.userId),
+                    userId: Number(s.userId),
                     name: s.studentName || `Student ${s.userId}`,
                     studentNumber: s.studentNumber,
                     email: s.email,
                     submissionId: s.assessmentStatus?.submissionId,
-                  }));
-                  if (individuals.length) ctx.entity.individuals = individuals;
+                  })).filter((s) => Number.isFinite(s.studentId));
+                  if (individuals.length) {
+                    ctx.entity.individuals = individuals;
+                    individualsLoaded = true;
+                  }
                 }
                 if (data && Array.isArray(data.groups) && data.groups.length) {
-                  const g = data.groups[0];
-                  ctx.entity.group = {
-                    groupId: g.groupId,
-                    groupName: g.groupName,
-                    members: Array.isArray(g.members) ? g.members : [],
-                  };
-                  ctx.entity.groupId = ctx.entity.group.groupId;
-                  ctx.entity.groupName = ctx.entity.group.groupName;
+                  const { group, individualsFallback } = normalizeGroupParticipants(data.groups[0]);
+                  ctx.entity.group = group;
+                  ctx.entity.groupId = group?.groupId;
+                  ctx.entity.groupName = group?.groupName;
+                  if (!individualsLoaded && individualsFallback.length) {
+                    ctx.entity.individuals = individualsFallback;
+                  }
                 }
               } catch (_) {}
             }
@@ -280,14 +333,14 @@ export function useMarkingSessionQuery(submissionId, examinerId, sessionId = nul
             if (individuals.length) ctx.entity.individuals = individuals;
           }
           if (data && Array.isArray(data.groups) && data.groups.length) {
-            const g = data.groups[0];
-            ctx.entity.group = {
-              groupId: g.groupId,
-              groupName: g.groupName,
-              members: Array.isArray(g.members) ? g.members : [],
-            };
-            ctx.entity.groupId = ctx.entity.group.groupId;
-            ctx.entity.groupName = ctx.entity.group.groupName;
+            const { group, individualsFallback } = normalizeGroupParticipants(data.groups[0]);
+            ctx.entity.group = group;
+            ctx.entity.groupId = group?.groupId;
+            ctx.entity.groupName = group?.groupName;
+
+            if (!ctx.entity.individuals?.length && individualsFallback.length) {
+              ctx.entity.individuals = individualsFallback;
+            }
           }
         } catch (e) {
           console.warn('Failed to enrich participants from detailed session API:', e);

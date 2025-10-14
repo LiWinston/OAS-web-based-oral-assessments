@@ -170,10 +170,19 @@ export default function SessionInfo({ sessionContext }) {
 
             {groupInfo && Array.isArray(groupInfo.members) && groupInfo.members.length > 0 && (
               <div className="space-y-2">
-                {groupInfo.members.map((member) => {
-                  const displayName = member?.name || `Student ${member?.studentId ?? ''}`.trim();
+                {groupInfo.members.map((member, idx) => {
+                  const displayName =
+                    member?.name ||
+                    member?.studentName ||
+                    member?.fullName ||
+                    (member?.studentId ? `Student ${member.studentId}` : 'Student');
+                  const key =
+                    member?.studentId ??
+                    member?.userId ??
+                    member?.email ??
+                    `${displayName || 'member'}-${idx}`;
                   return (
-                  <div key={member?.studentId ?? displayName} className="flex items-center">
+                  <div key={key} className="flex items-center">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-400 to-blue-600 
                                   flex items-center justify-center text-white text-xs font-semibold mr-2">
                       {getInitials(displayName, 'GR')}
@@ -181,7 +190,7 @@ export default function SessionInfo({ sessionContext }) {
                     <div className="text-sm flex-1">
                       <div className="font-medium">{displayName}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {member?.studentId ?? '—'}
+                        ID: {member?.studentId ?? member?.userId ?? '—'}
                       </div>
                     </div>
                   </div>
@@ -190,12 +199,21 @@ export default function SessionInfo({ sessionContext }) {
               </div>
             )}
 
-            {individuals.length > 0 && (
+            {!groupInfo && individuals.length > 0 && (
               <div className="space-y-2">
-                {individuals.slice(0, 1).map((student) => {
-                  const displayName = student?.name || `Student ${student?.studentId ?? ''}`.trim();
+                {individuals.slice(0, 1).map((student, idx) => {
+                  const displayName =
+                    student?.name ||
+                    student?.studentName ||
+                    student?.fullName ||
+                    (student?.studentId ? `Student ${student.studentId}` : 'Student');
+                  const key =
+                    student?.studentId ??
+                    student?.userId ??
+                    student?.email ??
+                    `${displayName || 'student'}-${idx}`;
                   return (
-                  <div key={student?.studentId ?? displayName} className="flex items-center">
+                  <div key={key} className="flex items-center">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-purple-600 
                                   flex items-center justify-center text-white text-sm font-semibold mr-3">
                       {getInitials(displayName, 'ST')}
@@ -203,7 +221,7 @@ export default function SessionInfo({ sessionContext }) {
                     <div className="flex-1">
                       <div className="font-medium">{displayName}</div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        ID: {student?.studentId ?? '—'}
+                        ID: {student?.studentId ?? student?.userId ?? '—'}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {student?.email || ''}

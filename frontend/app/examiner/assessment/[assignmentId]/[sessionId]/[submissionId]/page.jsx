@@ -375,9 +375,9 @@ export default function ExaminerAssessmentMarking() {
 
 
           {/* Main Content */}
-          <div className="flex justify-center">
-            {/* Assessment Panel */}
-            <div className="w-full max-w-6xl">
+        <div className="flex justify-center">
+          {/* Assessment Panel */}
+          <div className="w-full max-w-6xl space-y-6">
               <Card className="h-full">
                 <Tabs
                   value={currentTab}
@@ -443,14 +443,6 @@ export default function ExaminerAssessmentMarking() {
                           assignmentId={assignmentId}
                           showTotals={false}
                         />
-                        <TotalsPanel
-                          assignment={sessionContext.assignment}
-                          criteria={criteria}
-                          groupRatings={groupRatings}
-                          individualRatings={individualRatings}
-                          individuals={individuals}
-                          absentStudents={absentStudents}
-                        />
                       </TabsContent>
                     )}
 
@@ -495,26 +487,37 @@ export default function ExaminerAssessmentMarking() {
                   </div>
                 </Tabs>
               </Card>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row sm:justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-            <div className="mb-4 sm:mb-0">
-              <Button variant="outline" className="mr-3" onClick={onSaveDraftClick} disabled={disabledInputs}>
-                <i className="fas fa-save mr-2"></i>
-                Save as Draft
-              </Button>
-              <Button variant="outline">
-                <i className="fas fa-print mr-2"></i>
-                Print Preview
-              </Button>
-            </div>
-            <div className="flex space-x-3">
-              <Button variant="outline" onClick={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}>Back to Assessments</Button>
-              <Button onClick={() => setConfirmOpen(true)} disabled={disabledInputs || validation.totalMissing > 0} title={validation.totalMissing > 0 ? 'Complete all required rubric selections first' : ''}>
-                Complete Assessment
-              </Button>
+              {(hasGroup || hasIndividual) && (
+                <TotalsPanel
+                  assignment={sessionContext.assignment}
+                  criteria={criteria}
+                  groupRatings={groupRatings}
+                  individualRatings={individualRatings}
+                  individuals={individuals}
+                  absentStudents={absentStudents}
+                />
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row sm:justify-between bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
+                <div className="mb-4 sm:mb-0">
+                  <Button variant="outline" className="mr-3" onClick={onSaveDraftClick} disabled={disabledInputs}>
+                    <i className="fas fa-save mr-2"></i>
+                    Save as Draft
+                  </Button>
+                  <Button variant="outline">
+                    <i className="fas fa-print mr-2"></i>
+                    Print Preview
+                  </Button>
+                </div>
+                <div className="flex space-x-3">
+                  <Button variant="outline" onClick={() => router.push(`/examiner/assessment/${assignmentId}/${sessionId}`)}>Back to Assessments</Button>
+                  <Button onClick={() => setConfirmOpen(true)} disabled={disabledInputs || validation.totalMissing > 0} title={validation.totalMissing > 0 ? 'Complete all required rubric selections first' : ''}>
+                    Complete Assessment
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
