@@ -12,6 +12,194 @@
 
 import apiClient from './apiClient';
 
+// Helper to unify group and individual rubric items into the new scores payload format
+const buildUnifiedScores = ({
+  entities = [],
+  rubricCriteria = [],
+  absentStudentIds = [],
+  individualsList = [],
+}) => {
+  const scoresPayload = [];
+  const absentSet = new Set(
+    Array.isArray(absentStudentIds)
+      ? absentStudentIds.map((id) => Number(id)).filter((id) => Number.isFinite(id))
+      : []
+  );
+  const processedIndividuals = new Set();
+
+  const getCriterion = (criterionId) =>
+    rubricCriteria.find((rc) => rc.criterionId === criterionId);
+
+  const appliesTo = (criterion) => (criterion?.appliesTo || 'BOTH').toUpperCase();
+
+  const isGroupCriterion = (criterion) => {
+    const target = appliesTo(criterion);
+    return target === 'GROUP' || target === 'BOTH';
+  };
+
+  const isIndividualCriterion = (criterion) => {
+    const target = appliesTo(criterion);
+    return target === 'INDIVIDUAL' || target === 'BOTH';
+  };
+
+  const buildScoreEntry = (criterion, item) => {
+    const levels = Array.isArray(criterion?.performanceLevel)
+      ? criterion.performanceLevel
+      : [];
+    let selectedLevel = null;
+
+    if (item?.levelId) {
+      selectedLevel =
+        levels.find((l) => l.levelId === item.levelId) ||
+        levels.find((l) => l.description === item.levelId) ||
+        null;
+    }
+
+    const numericPoints = Number(item?.points ?? item?.inputPoints ?? 0);
+
+    if (!selectedLevel && Number.isFinite(numericPoints)) {
+      selectedLevel =
+        levels.find(
+          (l) =>
+            numericPoints >= Number(l.startPoint ?? l.minPoints ?? 0) &&
+            numericPoints <= Number(l.endPoint ?? l.maxPoints ?? numericPoints)
+        ) || null;
+    }
+
+    if (!selectedLevel && Number.isFinite(numericPoints) && levels.length) {
+      selectedLevel =
+        levels.reduce((best, l) => {
+          const mid = (Number(l.startPoint ?? 0) + Number(l.endPoint ?? 0)) / 2;
+          const distance = Math.abs(numericPoints - mid);
+          if (!best || distance < best.distance) {
+            return { level: l, distance };
+          }
+          return best;
+        }, null)?.level || null;
+    }
+
+    const primaryComment = Array.isArray(item?.comments) && item.comments.length > 0
+      ? String(item.comments[0]?.text ?? item.comments[0] ?? '')
+      : '';
+
+    return {
+      description: criterion?.description || '',
+      scaleType: criterion?.scaleType || 'points',
+      weight: Number(criterion?.weight) || 0,
+      inputPoints: Number.isFinite(numericPoints) ? numericPoints : 0,
+      selectedLevel: selectedLevel
+        ? {
+            description: selectedLevel.description,
+            startPoint: Number(selectedLevel.startPoint ?? selectedLevel.minPoints ?? 0),
+            endPoint: Number(selectedLevel.endPoint ?? selectedLevel.maxPoints ?? 0),
+          }
+        : null,
+      comment: primaryComment,
+    };
+  };
+
+  const buildAbsentScoreEntry = (criterion) => {
+    const levels = Array.isArray(criterion?.performanceLevel)
+      ? criterion.performanceLevel
+      : [];
+    const lowest = levels.reduce((best, current) => {
+      const currentStart = Number(current.startPoint ?? current.minPoints ?? 0);
+      if (!best) return current;
+      const bestStart = Number(best.startPoint ?? best.minPoints ?? 0);
+      return currentStart < bestStart ? current : best;
+    }, null);
+
+    return {
+      description: criterion?.description || '',
+      scaleType: criterion?.scaleType || 'points',
+      weight: Number(criterion?.weight) || 0,
+      inputPoints: 0,
+      selectedLevel: lowest
+        ? {
+            description: lowest.description,
+            startPoint: Number(lowest.startPoint ?? lowest.minPoints ?? 0),
+            endPoint: Number(lowest.endPoint ?? lowest.maxPoints ?? 0),
+          }
+        : null,
+      comment: '',
+    };
+  };
+
+  const pushGroupScore = (score) => {
+    scoresPayload.push({
+      type: 'GROUP',
+      ...score,
+    });
+  };
+
+  const pushIndividualScore = (studentId, score, individualFeedback = '') => {
+    const normalizedId = Number(studentId);
+    if (!Number.isFinite(normalizedId)) return;
+    scoresPayload.push({
+      type: 'INDIVIDUAL',
+      studentId: normalizedId,
+      individualFeedback: individualFeedback || '',
+      ...score,
+    });
+  };
+
+  const addAbsentIndividualScores = (studentId) => {
+    const individualCriteria = rubricCriteria.filter((criterion) =>
+      isIndividualCriterion(criterion)
+    );
+    individualCriteria.forEach((criterion) => {
+      const score = buildAbsentScoreEntry(criterion);
+      pushIndividualScore(studentId, score, 'ABSENT');
+    });
+  };
+
+  const defaultIndividuals = Array.isArray(individualsList) ? individualsList : [];
+
+  const groupEntity = entities.find((entity) => (entity?.kind || '').toUpperCase() === 'GROUP');
+  if (groupEntity?.items?.length) {
+    groupEntity.items.forEach((item) => {
+      const criterion = getCriterion(item?.criterionId);
+      if (!criterion || !isGroupCriterion(criterion)) return;
+      const score = buildScoreEntry(criterion, item);
+      pushGroupScore(score);
+    });
+  }
+
+  entities
+    .filter((entity) => (entity?.kind || '').toUpperCase() === 'INDIVIDUAL')
+    .forEach((entity) => {
+      const studentId = Number(entity?.studentId);
+      if (!Number.isFinite(studentId)) return;
+      processedIndividuals.add(studentId);
+      const isAbsent = absentSet.has(studentId);
+      if (isAbsent) {
+        addAbsentIndividualScores(studentId);
+        return;
+      }
+
+      const individualFeedback = String(
+        entity?.individualFeedback ?? entity?.overallFeedback ?? entity?.notes ?? ''
+      ).trim();
+
+      const items = Array.isArray(entity?.items) ? entity.items : [];
+      items.forEach((item) => {
+        const criterion = getCriterion(item?.criterionId);
+        if (!criterion || !isIndividualCriterion(criterion)) return;
+        const score = buildScoreEntry(criterion, item);
+        pushIndividualScore(studentId, score, individualFeedback);
+      });
+    });
+
+  defaultIndividuals.forEach((student) => {
+    const studentId = Number(student?.studentId ?? student?.id);
+    if (!Number.isFinite(studentId)) return;
+    if (!absentSet.has(studentId) || processedIndividuals.has(studentId)) return;
+    addAbsentIndividualScores(studentId);
+  });
+
+  return scoresPayload;
+};
+
 const examinerAssessmentServiceReal = {
   /**
    * Get all assessments for the current examiner
@@ -381,134 +569,14 @@ const examinerAssessmentServiceReal = {
           message: 'Missing subjectId for draft save'
         };
       }
-      // Split payload into group scores and per-student individualScores
+
       const rubricCriteria = sessionContext?.assignment?.rubric?.criteria || [];
-      const isGroupCriterion = (criterionId) => {
-        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
-        const a = (c?.appliesTo || 'BOTH').toUpperCase();
-        return a === 'GROUP' || a === 'BOTH';
-      };
-      const isIndividualCriterion = (criterionId) => {
-        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
-        const a = (c?.appliesTo || 'BOTH').toUpperCase();
-        return a === 'INDIVIDUAL' || a === 'BOTH';
-      };
-
-      const absentSet = new Set(assessmentData?.absentStudents || []);
-
-      const buildScoreEntry = (criterion, item) => {
-        // Find selected level using levelId or points range
-        const levels = Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel : [];
-        let selectedLevel = null;
-        if (item.levelId) {
-          selectedLevel = levels.find(l => l.levelId === item.levelId) || levels.find(l => l.description === item.levelId) || null;
-        }
-        if (!selectedLevel && (item.points ?? null) !== null) {
-          selectedLevel = levels.find(l => item.points >= l.startPoint && item.points <= l.endPoint) || null;
-        }
-        if (!selectedLevel && (item.points ?? null) !== null && levels.length) {
-          // closest by midpoint
-          selectedLevel = levels.reduce((best, l) => {
-            const mid = (l.startPoint + l.endPoint) / 2;
-            const d = Math.abs((item.points || 0) - mid);
-            if (!best || d < best.d) return { l, d };
-            return best;
-          }, null)?.l || null;
-        }
-        return {
-          description: criterion?.description || '',
-          scaleType: criterion?.scaleType || 'points',
-          weight: Number(criterion?.weight) || 0,
-          comment: Array.isArray(item.comments) && item.comments.length > 0 ? (item.comments[0].text || '') : '',
-          inputPoints: Number(item.points || 0),
-          selectedLevel: selectedLevel ? {
-            description: selectedLevel.description,
-            startPoint: selectedLevel.startPoint,
-            endPoint: selectedLevel.endPoint,
-          } : null,
-        };
-      };
-
-      const scores = []; // group bucket
-      const individualScores = []; // per student
-
       const entities = Array.isArray(assessmentData.entities) ? assessmentData.entities : [];
-      // Group entity → single scores list
-      const groupEntity = entities.find(e => e.kind === 'GROUP');
-      if (groupEntity?.items?.length) {
-        groupEntity.items.forEach(item => {
-          if (!isGroupCriterion(item.criterionId)) return;
-          const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
-          scores.push(buildScoreEntry(criterion, item));
-        });
-      }
-
-      // Individual entities → per student scores
-      const individualEntities = entities.filter(e => e.kind === 'INDIVIDUAL');
-      individualEntities.forEach(entity => {
-        const stuId = entity.studentId;
-        if (absentSet.has(stuId)) {
-          // Absent student → upload zero for each individual criterion, select the lowest band
-          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
-          individualScores.push({
-            studentId: stuId,
-            individualFeedback: 'ABSENT',
-            scores: stuCriteria.map(c => {
-              const levels = Array.isArray(c.performanceLevel) ? c.performanceLevel : [];
-              const lowest = levels.reduce((best, l) => (best == null || (Number(l.startPoint) || 0) < (Number(best.startPoint) || 0)) ? l : best, null);
-              return {
-                description: c.description || '',
-                scaleType: c.scaleType || 'points',
-                weight: Number(c.weight) || 0,
-                comment: '',
-                inputPoints: 0,
-                selectedLevel: lowest ? {
-                  description: lowest.description,
-                  startPoint: lowest.startPoint,
-                  endPoint: lowest.endPoint,
-                } : null,
-              };
-            })
-          });
-          return;
-        }
-        const items = Array.isArray(entity.items) ? entity.items : [];
-        const converted = items
-          .filter(item => isIndividualCriterion(item.criterionId))
-          .map(item => {
-            const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
-            return buildScoreEntry(criterion, item);
-          });
-        individualScores.push({ studentId: stuId, individualFeedback: '', scores: converted });
-      });
-
-      // Ensure all absent students are included even if no items entity exists
-      const allIndividuals = individuals;
-      const alreadyIncluded = new Set(individualScores.map(s => s.studentId));
-      allIndividuals.forEach(stu => {
-        if (absentSet.has(stu.studentId) && !alreadyIncluded.has(stu.studentId)) {
-          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
-          individualScores.push({
-            studentId: stu.studentId,
-            individualFeedback: 'ABSENT',
-        scores: stuCriteria.map(c => {
-          const levels = Array.isArray(c.performanceLevel) ? c.performanceLevel : [];
-          const lowest = levels.reduce((best, l) => (best == null || (Number(l.startPoint) || 0) < (Number(best.startPoint) || 0)) ? l : best, null);
-          return {
-            description: c.description || '',
-            scaleType: c.scaleType || 'points',
-            weight: Number(c.weight) || 0,
-            comment: '',
-            inputPoints: 0,
-            selectedLevel: lowest ? {
-              description: lowest.description,
-              startPoint: lowest.startPoint,
-              endPoint: lowest.endPoint,
-            } : null,
-          };
-        })
-          });
-        }
+      const scores = buildUnifiedScores({
+        entities,
+        rubricCriteria,
+        absentStudentIds: assessmentData?.absentStudents || [],
+        individualsList: individuals,
       });
 
       // Build the request payload matching backend API format for Save Draft
@@ -517,19 +585,17 @@ const examinerAssessmentServiceReal = {
       const payload = {
         assignmentId: assessmentData.assignmentId || sessionContext?.assignment?.id || 0,
         sessionId: assessmentData.sessionId || sessionContext?.sessionId || 0,
-        subjectType: subjectType,
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
         adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
         scores,
-        individualScores
       };
-      
+
       const response = await apiClient.post(
         `/api/examiner/assessments/draft/save`,
         payload
       );
-      
+
       // Ensure consistent response format（优先取后端返回的 submissionId，其次 assessmentId）
       if (response.data) {
         const top = response.data;
@@ -550,7 +616,7 @@ const examinerAssessmentServiceReal = {
         // 非 success 也返回原始 payload，交由调用方处理
         return top;
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Error saving draft:', error);
@@ -563,6 +629,7 @@ const examinerAssessmentServiceReal = {
       };
     }
   },
+
 
   /**
    * Submit assessment (finalize)
@@ -599,120 +666,14 @@ const examinerAssessmentServiceReal = {
           message: 'Missing subjectId for submit'
         };
       }
-      // Split payload into group scores and per-student individualScores
+
       const rubricCriteria = sessionContext?.assignment?.rubric?.criteria || [];
-      const isGroupCriterion = (criterionId) => {
-        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
-        const a = (c?.appliesTo || 'BOTH').toUpperCase();
-        return a === 'GROUP' || a === 'BOTH';
-      };
-      const isIndividualCriterion = (criterionId) => {
-        const c = rubricCriteria.find(rc => rc.criterionId === criterionId);
-        const a = (c?.appliesTo || 'BOTH').toUpperCase();
-        return a === 'INDIVIDUAL' || a === 'BOTH';
-      };
-
-      const absentSet = new Set(assessmentData?.absentStudents || []);
-
-      const buildScoreEntry = (criterion, item) => {
-        const levels = Array.isArray(criterion?.performanceLevel) ? criterion.performanceLevel : [];
-        let selectedLevel = null;
-        if (item.levelId) {
-          selectedLevel = levels.find(l => l.levelId === item.levelId) || levels.find(l => l.description === item.levelId) || null;
-        }
-        if (!selectedLevel && (item.points ?? null) !== null) {
-          selectedLevel = levels.find(l => item.points >= l.startPoint && item.points <= l.endPoint) || null;
-        }
-        if (!selectedLevel && (item.points ?? null) !== null && levels.length) {
-          selectedLevel = levels.reduce((best, l) => {
-            const mid = (l.startPoint + l.endPoint) / 2;
-            const d = Math.abs((item.points || 0) - mid);
-            if (!best || d < best.d) return { l, d };
-            return best;
-          }, null)?.l || null;
-        }
-        return {
-          description: criterion?.description || '',
-          scaleType: criterion?.scaleType || 'points',
-          weight: Number(criterion?.weight) || 0,
-          comment: Array.isArray(item.comments) && item.comments.length > 0 ? (item.comments[0].text || '') : '',
-          inputPoints: Number(item.points || 0),
-          selectedLevel: selectedLevel ? {
-            description: selectedLevel.description,
-            startPoint: selectedLevel.startPoint,
-            endPoint: selectedLevel.endPoint,
-          } : null,
-        };
-      };
-
-      const scores = [];
-      const individualScores = [];
-
       const entities = Array.isArray(assessmentData.entities) ? assessmentData.entities : [];
-      const groupEntity = entities.find(e => e.kind === 'GROUP');
-      if (groupEntity?.items?.length) {
-        groupEntity.items.forEach(item => {
-          if (!isGroupCriterion(item.criterionId)) return;
-          const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
-          scores.push(buildScoreEntry(criterion, item));
-        });
-      }
-
-      const individualEntities = entities.filter(e => e.kind === 'INDIVIDUAL');
-      individualEntities.forEach(entity => {
-        const stuId = entity.studentId;
-        if (absentSet.has(stuId)) {
-          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
-          individualScores.push({
-            studentId: stuId,
-            individualFeedback: 'ABSENT',
-            scores: stuCriteria.map(c => ({
-              description: c.description || '',
-              scaleType: c.scaleType || 'points',
-              weight: Number(c.weight) || 0,
-              comment: '',
-              inputPoints: 0,
-              selectedLevel: null,
-            }))
-          });
-          return;
-        }
-        const items = Array.isArray(entity.items) ? entity.items : [];
-        const converted = items
-          .filter(item => isIndividualCriterion(item.criterionId))
-          .map(item => {
-            const criterion = rubricCriteria.find(c => c.criterionId === item.criterionId);
-            return buildScoreEntry(criterion, item);
-          });
-        individualScores.push({ studentId: stuId, individualFeedback: '', scores: converted });
-      });
-
-      // Ensure all absent students are included even if no items entity exists
-      const alreadyIncluded2 = new Set(individualScores.map(s => s.studentId));
-      individualsList.forEach(stu => {
-        if (absentSet.has(stu.studentId) && !alreadyIncluded2.has(stu.studentId)) {
-          const stuCriteria = rubricCriteria.filter(c => isIndividualCriterion(c.criterionId));
-          individualScores.push({
-            studentId: stu.studentId,
-            individualFeedback: 'ABSENT',
-            scores: stuCriteria.map(c => {
-              const levels = Array.isArray(c.performanceLevel) ? c.performanceLevel : [];
-              const lowest = levels.reduce((best, l) => (best == null || (Number(l.startPoint) || 0) < (Number(best.startPoint) || 0)) ? l : best, null);
-              return {
-                description: c.description || '',
-                scaleType: c.scaleType || 'points',
-                weight: Number(c.weight) || 0,
-                comment: '',
-                inputPoints: 0,
-                selectedLevel: lowest ? {
-                  description: lowest.description,
-                  startPoint: lowest.startPoint,
-                  endPoint: lowest.endPoint,
-                } : null,
-              };
-            })
-          });
-        }
+      const scores = buildUnifiedScores({
+        entities,
+        rubricCriteria,
+        absentStudentIds: assessmentData?.absentStudents || [],
+        individualsList,
       });
 
       // Resolve submissionId strictly from assessmentData (no fallback)
@@ -724,20 +685,17 @@ const examinerAssessmentServiceReal = {
         ...(Number.isFinite(effectiveSubmissionId) ? { submissionId: effectiveSubmissionId } : {}),
         assignmentId: assessmentData.assignmentId || sessionContext?.assignment?.id || 0,
         sessionId: sessionContext?.sessionId || 0,
-        subjectType: subjectType,
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
         adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
         scores,
-        individualScores
       };
 
-      
       const response = await apiClient.post(
         `/api/examiner/assessments/submit`,
         payload
       );
-      
+
       // Ensure consistent response format
       if (response.data?.success) {
         return {
@@ -751,7 +709,7 @@ const examinerAssessmentServiceReal = {
           }
         };
       }
-      
+
       return response.data;
     } catch (error) {
       console.error('Error submitting assessment:', error);
@@ -764,6 +722,7 @@ const examinerAssessmentServiceReal = {
       };
     }
   },
+
 
   /**
    * Get current examiner's assessment
