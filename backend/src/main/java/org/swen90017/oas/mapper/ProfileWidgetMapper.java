@@ -17,7 +17,11 @@ public interface ProfileWidgetMapper {
             "JOIN slot_sessions ss ON ss.session_id = st.session_id " +
             "LEFT JOIN assignment a ON a.id = ss.assignment_id " +
             "LEFT JOIN venue v ON v.id = ss.venue_id " +
-            "WHERE st.subject_id = #{studentId} AND st.type IN ('STUDENT','INDIVIDUAL') " +
+            "WHERE (" +
+            "  (st.type = 'INDIVIDUAL' AND st.subject_id = #{studentId}) " +
+            "  OR " +
+            "  (st.type IN ('GROUP', 'MIX') AND st.subject_id IN (SELECT sg.group_id FROM sys_student_group sg WHERE sg.user_id = #{studentId})) " +
+            ") " +
             "AND ss.start_at >= NOW() " +
             "ORDER BY ss.start_at ASC LIMIT 1")
     SessionSummaryDto findStudentNextSession(@Param("studentId") Long studentId);
@@ -27,7 +31,11 @@ public interface ProfileWidgetMapper {
             "JOIN slot_sessions ss ON ss.session_id = st.session_id " +
             "LEFT JOIN assignment a ON a.id = ss.assignment_id " +
             "LEFT JOIN venue v ON v.id = ss.venue_id " +
-            "WHERE st.subject_id = #{studentId} AND st.type IN ('STUDENT','INDIVIDUAL') " +
+            "WHERE (" +
+            "  (st.type = 'INDIVIDUAL' AND st.subject_id = #{studentId}) " +
+            "  OR " +
+            "  (st.type IN ('GROUP', 'MIX') AND st.subject_id IN (SELECT sg.group_id FROM sys_student_group sg WHERE sg.user_id = #{studentId})) " +
+            ") " +
             "AND ss.start_at < NOW() " +
             "ORDER BY ss.start_at DESC LIMIT #{limit}")
     List<SessionSummaryDto> findStudentRecentSessions(@Param("studentId") Long studentId, @Param("limit") int limit);

@@ -350,13 +350,21 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
             }
         }
         
-        // 2. Find group bookings - check if student belongs to a group for this assignment
+        // 2. Find group bookings (GROUP and MIX types) - check if student belongs to a group for this assignment
         Long groupId = getStudentGroupId(studentId, assignmentId);
         if (groupId != null) {
+            // Query GROUP type bookings
             List<SessionStudent> groupBookings = sessionStudentMapper.listBySubject("GROUP", groupId);
-            
-            // Get the corresponding slot sessions for group bookings
             for (SessionStudent booking : groupBookings) {
+                SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
+                if (session != null && session.getAssignmentId().equals(assignmentId)) {
+                    sessions.add(session);
+                }
+            }
+            
+            // Query MIX type bookings
+            List<SessionStudent> mixBookings = sessionStudentMapper.listBySubject("MIX", groupId);
+            for (SessionStudent booking : mixBookings) {
                 SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
                 if (session != null && session.getAssignmentId().equals(assignmentId)) {
                     sessions.add(session);
@@ -375,11 +383,20 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
 
     @Override
     public SlotSession findActiveBookingByGroup(Long groupId, Long assignmentId) {
-        // Find group bookings from session_student table
-        List<SessionStudent> bookings = sessionStudentMapper.listBySubject("GROUP", groupId);
+        // Find group bookings from session_student table (GROUP and MIX types)
+        List<SessionStudent> groupBookings = sessionStudentMapper.listBySubject("GROUP", groupId);
         
         // Get the corresponding slot session for this assignment
-        for (SessionStudent booking : bookings) {
+        for (SessionStudent booking : groupBookings) {
+            SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
+            if (session != null && session.getAssignmentId().equals(assignmentId)) {
+                return session;
+            }
+        }
+        
+        // Also check MIX type bookings
+        List<SessionStudent> mixBookings = sessionStudentMapper.listBySubject("MIX", groupId);
+        for (SessionStudent booking : mixBookings) {
             SlotSession session = slotSessionMapper.selectById(booking.getSessionId());
             if (session != null && session.getAssignmentId().equals(assignmentId)) {
                 return session;
