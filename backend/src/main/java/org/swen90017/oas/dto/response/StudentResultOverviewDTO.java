@@ -4,7 +4,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.ZonedDateTime;
 import java.util.List;
 
 @Data
@@ -14,30 +13,31 @@ public class StudentResultOverviewDTO implements Serializable {
     private Integer pageSize;
     private Long total;
     private List<Item> data;
-    private Integer cachingHintSeconds;
 
     @Data
+    @Schema(description = "Released assignment result item")
     public static class Item implements Serializable {
         private Long assignmentId;
         private String assignmentName;
         private String courseCode;
         private String courseName;
         private String semester;
-        private String assessmentType;
-        private ResultSummary result;
-        private Boolean hasDetailedFeedback;
+        private String assignmentType;
+        private String status;
+        private Boolean resultsReleased;
+        private Boolean hasMixedRubric;
+        private String releasedAt;
+        private String assessedOn;
+        private FinalScore finalScore;
     }
 
     @Data
-    public static class ResultSummary implements Serializable {
-        private Long resultId;
-        private String finalGrade;
+    @Schema(description = "Final score summary for overview item")
+    public static class FinalScore implements Serializable {
+        private String grade;
         private Double percentage;
         private Double totalPoints;
         private Double maxPoints;
-        private String resultStatus; // released|pending
-        private ZonedDateTime assessedOn;
-        private ZonedDateTime releasedOn;
     }
 }
 
