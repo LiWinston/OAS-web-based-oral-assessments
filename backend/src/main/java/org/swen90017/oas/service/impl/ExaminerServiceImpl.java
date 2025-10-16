@@ -24,6 +24,7 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -139,7 +140,6 @@ public class ExaminerServiceImpl implements ExaminerService {
 
     @Override
     public PreviewCSVResponseDTO previewExaminerImport(List<ExaminerCSVRequestDTO> examinerCSVRequestDTOS) {
-        // Simplified: return counts and placeholders only (DTO is student preview structure; set counts only here)
         PreviewCSVResponseDTO preview = new PreviewCSVResponseDTO();
         if (examinerCSVRequestDTOS == null || examinerCSVRequestDTOS.isEmpty()) {
             preview.setTotalCount(0);
@@ -150,18 +150,52 @@ public class ExaminerServiceImpl implements ExaminerService {
         
         // Filter out blank rows (consistent with ExaminerCsvHandler.validate())
         // A row is blank only when Name, ID and SisUserId are all empty
-        long validCount = examinerCSVRequestDTOS.stream()
+        List<ExaminerCSVRequestDTO> validDTOs = examinerCSVRequestDTOS.stream()
                 .filter(dto -> dto != null && !(
                     (dto.getName() == null || dto.getName().trim().isEmpty()) &&
                     (dto.getId() == null || dto.getId().trim().isEmpty()) &&
                     (dto.getSisUserId() == null || dto.getSisUserId().trim().isEmpty())
                 ))
-                .count();
+                .collect(Collectors.toList());
         
-        int total = (int) validCount;
-        preview.setTotalCount(total);
-        preview.setNewCount(total);
-        preview.setExistingCount(0);
+        // Check which examiners already exist in database
+        Set<String> csvEmails = validDTOs.stream()
+                .map(dto -> dto.getSisLoginId() != null && !dto.getSisLoginId().trim().isEmpty() 
+                    ? dto.getSisLoginId() + "@unimelb.edu.au" 
+                    : null)
+                .filter(email -> email != null)
+                .collect(Collectors.toSet());
+        
+        // Query existing users by email
+        Set<String> existingEmails = new HashSet<>();
+        if (!csvEmails.isEmpty()) {
+            QueryWrapper<SysUser> query = new QueryWrapper<>();
+            query.in("email", csvEmails);
+            List<SysUser> existingUsers = sysUserMapper.selectList(query);
+            existingEmails = existingUsers.stream()
+                    .map(SysUser::getEmail)
+                    .collect(Collectors.toSet());
+        }
+        
+        // Count new vs existing examiners
+        int newCount = 0;
+        int existingCount = 0;
+        
+        for (ExaminerCSVRequestDTO dto : validDTOs) {
+            if (dto.getSisLoginId() == null || dto.getSisLoginId().trim().isEmpty()) {
+                continue; // Skip invalid records
+            }
+            String email = dto.getSisLoginId() + "@unimelb.edu.au";
+            if (existingEmails.contains(email)) {
+                existingCount++;
+            } else {
+                newCount++;
+            }
+        }
+        
+        preview.setTotalCount(validDTOs.size());
+        preview.setNewCount(newCount);
+        preview.setExistingCount(existingCount);
         return preview;
     }
 

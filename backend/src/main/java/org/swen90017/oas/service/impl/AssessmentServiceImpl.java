@@ -135,8 +135,10 @@ public class AssessmentServiceImpl implements AssessmentService {
 
         boolean isCreate = (existing == null);
         AssessmentSubmission record = isCreate ? new AssessmentSubmission() : existing;
-        record.setStatus("DRAFT");
+        
+        // Set status: preserve REOPENED status if exists, otherwise use DRAFT
         if (isCreate) {
+            record.setStatus("DRAFT");
             record.setAssignmentId(request.getAssignmentId());
             record.setSessionId(request.getSessionId());
             record.setEnrollmentId(enrollmentId); // Set enrollment_id
@@ -146,6 +148,11 @@ public class AssessmentServiceImpl implements AssessmentService {
             record.setCreatedAt(LocalDateTime.now());
             record.setUpdatedAt(LocalDateTime.now());
             record.setVersion(record.getVersion() == null ? 0 : record.getVersion());
+        } else {
+            // For existing records, preserve REOPENED status; otherwise keep as DRAFT
+            if (!"REOPENED".equals(existing.getStatus())) {
+                record.setStatus("DRAFT");
+            }
         }
 
         // 4) Generate/maintain rubric snapshots
@@ -225,7 +232,8 @@ public class AssessmentServiceImpl implements AssessmentService {
         if (!Objects.equals(target.getExaminerId(), examinerId)) {
             throw new BusinessException(SecurityError.INSUFFICIENT_PRIVILEGES);
         }
-        if (!"DRAFT".equalsIgnoreCase(target.getStatus())) {
+        // Allow submission for both DRAFT and REOPENED status
+        if (!"DRAFT".equalsIgnoreCase(target.getStatus()) && !"REOPENED".equalsIgnoreCase(target.getStatus())) {
             throw new BusinessException(BusinessError.ASSESSMENT_ALREADY_SUBMITTED);
         }
 
@@ -1214,6 +1222,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                             existingIndividual.setEnrollmentId(enrollmentId);
                         }
                         
+                        // Preserve REOPENED status; otherwise keep as DRAFT
+                        if (!"REOPENED".equals(existingIndividual.getStatus())) {
+                            existingIndividual.setStatus("DRAFT");
+                        }
+                        
                         // Always refresh rubric snapshots
                         existingIndividual.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
                         existingIndividual.setRubricsInfoSnapshot(individualRubricsJson);
@@ -1293,6 +1306,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                     // Update enrollment_id if missing (for old records)
                     if (existingGroup.getEnrollmentId() == null && enrollmentId != null) {
                         existingGroup.setEnrollmentId(enrollmentId);
+                    }
+                    
+                    // Preserve REOPENED status; otherwise keep as DRAFT
+                    if (!"REOPENED".equals(existingGroup.getStatus())) {
+                        groupSubmission.setStatus("DRAFT");
                     }
                     
                     // Update GROUP scores only (filtered from unified scores array)

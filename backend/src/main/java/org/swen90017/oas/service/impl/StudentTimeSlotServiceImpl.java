@@ -587,7 +587,7 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(studentGroupQuery);
         
         for (SysStudentGroup studentGroup : studentGroups) {
-            boolean hasBookingForAssignment = slotSessionMapper.hasGroupBookedAssignment(
+            boolean hasBookingForAssignment = sessionStudentMapper.hasGroupBookedAssignment(
                 studentGroup.getGroupId(), assignmentId);
             
             if (hasBookingForAssignment) {

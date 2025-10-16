@@ -108,6 +108,25 @@ public class SessionServiceImpl implements SessionService {
             throw new BusinessException(BusinessError.EXCEEDS_REQUIRED_EXAMINERS);
         }
 
+        // Examiner session limit validation: check if examiner would exceed their max sessions
+        Long assignmentId = session.getAssignmentId();
+        ExaminerAssignmentLimit personalLimit = limitMapper.findByExaminerAndAssignment(examinerId, assignmentId);
+        Integer maxSessions = personalLimit == null ? null : personalLimit.getMaxSessions();
+        
+        // If no personalized limit, check default configuration
+        if (maxSessions == null) {
+            AssignmentSessionConfig config = sessionConfigMapper.selectById(assignmentId);
+            maxSessions = (config == null) ? null : config.getDefaultMaxSessionsPerExaminer();
+        }
+        
+        // Enforce limit if configured (0 means unlimited)
+        if (maxSessions != null && maxSessions > 0) {
+            int currentSessions = sessionExaminerMapper.countAssignedSessionsByExaminer(assignmentId, examinerId);
+            if (currentSessions >= maxSessions) {
+                throw new BusinessException(BusinessError.EXCEEDS_MAX_SESSIONS);
+            }
+        }
+
         SessionExaminer link = new SessionExaminer();
         link.setSessionId(sessionId);
         link.setExaminerId(examinerId);

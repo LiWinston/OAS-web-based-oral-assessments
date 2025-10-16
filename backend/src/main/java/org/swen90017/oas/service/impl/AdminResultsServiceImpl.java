@@ -221,8 +221,16 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 assignmentId, submission.getSessionId(), 
                 submission.getSubjectType(), submission.getSubjectId());
         
+        // Check for REOPENED status - should not allow release if any examiner has REOPENED status
+        boolean hasReopenedExaminers = examinerMarkings.stream()
+                .anyMatch(marking -> "REOPENED".equals(marking.get("assessment_status")));
+        
+        if (hasReopenedExaminers) {
+            throw new BusinessException("409", "Cannot release results while some assessments are reopened. Examiners must resubmit before release.");
+        }
+        
         boolean hasSubmittedExaminers = examinerMarkings.stream()
-                .anyMatch(marking -> "SUBMITTED".equals(marking.get("assessment_status")) ||  "REOPENED".equals(marking.get("assessment_status")) );
+                .anyMatch(marking -> "SUBMITTED".equals(marking.get("assessment_status")));
         
         if (!hasSubmittedExaminers) {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
