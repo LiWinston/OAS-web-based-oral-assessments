@@ -43,14 +43,24 @@ export function MyGroups() {
       
       const groupsData = await studentGroupsService.getCurrentUserGroups();
 
-      // Format groups for UI display, show all groups (scroll inside card)
-      const formattedGroups = groupsData.map(group => studentGroupsService.formatGroupForUI(group));
-      setGroups(formattedGroups);
+      // Format groups for UI display, removing duplicates that can appear when backend returns overlapping group contexts
+      const formattedGroups = groupsData.map((group) =>
+        studentGroupsService.formatGroupForUI(group)
+      );
+      const uniqueGroups = [];
+      const seenGroupIds = new Set();
+      formattedGroups.forEach((g) => {
+        const key = g.groupId ?? `${g.assignmentId || "na"}-${g.name}`;
+        if (seenGroupIds.has(key)) return;
+        seenGroupIds.add(key);
+        uniqueGroups.push(g);
+      });
+      setGroups(uniqueGroups);
 
       // Concurrently fetch small member previews for each group (up to 3 per group)
       try {
         const previews = {};
-        const promises = formattedGroups.map(async (g) => {
+        const promises = uniqueGroups.map(async (g) => {
           if (memberPreviews[g.groupId]) return;
           const detail = await studentGroupsService.getCurrentUserGroupDetails(g.groupId);
           const members = detail?.members || [];

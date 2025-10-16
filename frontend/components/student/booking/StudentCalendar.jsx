@@ -11,8 +11,23 @@ export default function StudentCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const router = useRouter();
 
-  const monthStart = useMemo(() => new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1), [currentMonth]);
-  const monthEnd = useMemo(() => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0), [currentMonth]);
+  const monthStart = useMemo(
+    () => new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1),
+    [currentMonth]
+  );
+  const monthEnd = useMemo(
+    () => new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0),
+    [currentMonth]
+  );
+  const calendarRange = useMemo(() => {
+    const start = new Date(monthStart.getTime());
+    start.setDate(start.getDate() - start.getDay());
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(monthEnd.getTime());
+    end.setDate(end.getDate() + (6 - end.getDay()));
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+  }, [monthStart, monthEnd]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["studentCalendarBookings", studentId, currentMonth.getFullYear(), currentMonth.getMonth()],
@@ -23,16 +38,16 @@ export default function StudentCalendar() {
   });
 
   const allBookings = data?.data?.data || [];
+  const { start: calendarStart, end: calendarEnd } = calendarRange;
   const bookingEvents = useMemo(() => {
-    const start = monthStart;
-    const end = monthEnd;
+    if (!calendarStart || !calendarEnd) return [];
     return allBookings
-      .filter(b => {
+      .filter((b) => {
         const s = new Date(b.session?.start);
-        return s >= start && s <= end;
+        return s >= calendarStart && s <= calendarEnd;
       })
-      .map(b => ({
-        type: 'booked',
+      .map((b) => ({
+        type: "booked",
         assignmentId: b.assignmentId,
         assignmentName: b.assignmentName,
         courseCode: b.courseCode,
@@ -42,7 +57,7 @@ export default function StudentCalendar() {
         venue: b.session.venue,
         entity: b.entity,
       }));
-  }, [allBookings, monthStart, monthEnd]);
+  }, [allBookings, calendarStart, calendarEnd]);
 
   // Fetch assignments that are bookable, then aggregate availability days for current month
   const { data: bookableAssignmentsRes } = useQuery({
@@ -93,13 +108,16 @@ export default function StudentCalendar() {
 
   const availableEvents = useMemo(() => {
     if (!Array.isArray(availabilityDaysRes)) return [];
-    const ym = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, "0")}`;
     return availabilityDaysRes.flatMap((r) =>
       (r.days || [])
-        .filter((d) => d.startsWith(ym))
-        .map((d) => ({ type: 'available', date: d, assignmentId: r.assignmentId, assignmentName: r.assignmentName }))
+        .filter((d) => {
+          const [y, m, day] = d.split("-").map(Number);
+          const date = new Date(y, m - 1, day);
+          return date >= calendarStart && date <= calendarEnd;
+        })
+        .map((d) => ({ type: "available", date: d, assignmentId: r.assignmentId, assignmentName: r.assignmentName }))
     );
-  }, [availabilityDaysRes, monthStart]);
+  }, [availabilityDaysRes, calendarStart, calendarEnd]);
 
   const navigateMonth = (direction) => {
     setCurrentMonth((prev) => {
