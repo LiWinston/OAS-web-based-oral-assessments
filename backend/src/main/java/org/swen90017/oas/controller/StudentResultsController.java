@@ -8,7 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.annotation.Log;
 import org.swen90017.oas.common.Result;
-import org.swen90017.oas.dto.response.*;
+import org.swen90017.oas.dto.response.StudentResultDetailDTO;
+import org.swen90017.oas.dto.response.StudentResultOverviewDTO;
 import org.swen90017.oas.enums.BusinessType;
 import org.swen90017.oas.service.StudentResultsService;
 
@@ -35,46 +36,15 @@ public class StudentResultsController {
         return ResponseEntity.ok(Result.success(data));
     }
 
-    @Operation(summary = "Get assignment result summary")
+    @Operation(summary = "Get assignment result detail")
     @GetMapping("/{studentId}/assignments/{assignmentId}/result")
     @Log(module = "Student Results", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<StudentResultSummaryDTO>> getAssignmentResultSummary(
+    public ResponseEntity<Result<StudentResultDetailDTO>> getAssignmentResultDetail(
             @Parameter(description = "Student ID") @PathVariable Long studentId,
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
             @RequestHeader(value = "If-Modified-Since", required = false) String ifModifiedSince) {
-        StudentResultSummaryDTO data = studentResultsService.getAssignmentResultSummary(studentId, assignmentId, ifModifiedSince);
-        return ResponseEntity.ok(Result.success(data));
-    }
-
-    @Operation(summary = "Get detailed rubric breakdown")
-    @GetMapping("/{studentId}/assignments/{assignmentId}/result/rubric")
-    @Log(module = "Student Results", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<StudentRubricBreakdownDTO>> getRubricBreakdown(
-            @Parameter(description = "Student ID") @PathVariable Long studentId,
-            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
-        StudentRubricBreakdownDTO data = studentResultsService.getRubricBreakdown(studentId, assignmentId);
-        return ResponseEntity.ok(Result.success(data));
-    }
-
-    @Operation(summary = "Get rubric scale")
-    @GetMapping("/{studentId}/assignments/{assignmentId}/result/rubric/scale")
-    @Log(module = "Student Results", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<StudentRubricScaleDTO>> getRubricScale(
-            @Parameter(description = "Student ID") @PathVariable Long studentId,
-            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
-        StudentRubricScaleDTO data = studentResultsService.getRubricScale(studentId, assignmentId);
-        return ResponseEntity.ok(Result.success(data));
-    }
-
-    @Operation(summary = "Get examiner feedback")
-    @GetMapping("/{studentId}/assignments/{assignmentId}/result/feedback")
-    @Log(module = "Student Results", businessType = BusinessType.QUERY)
-    public ResponseEntity<Result<StudentExaminerFeedbackDTO>> getExaminerFeedback(
-            @Parameter(description = "Student ID") @PathVariable Long studentId,
-            @Parameter(description = "Assignment ID") @PathVariable Long assignmentId) {
-        StudentExaminerFeedbackDTO data = studentResultsService.getExaminerFeedback(studentId, assignmentId);
+        StudentResultDetailDTO data = studentResultsService.getAssignmentResultDetail(studentId, assignmentId, ifModifiedSince);
         return ResponseEntity.ok(Result.success(data));
     }
 }
-
 
