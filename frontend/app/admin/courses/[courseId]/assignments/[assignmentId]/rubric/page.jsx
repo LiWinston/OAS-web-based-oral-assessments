@@ -559,6 +559,26 @@ export default function RubricConfigurationPage() {
     return false;
   };
 
+  const hasScoreOutOfRange = useCallback(() => {
+    if (!Array.isArray(rubric.criteria) || rubric.criteria.length === 0) return false;
+
+    for (const criterion of rubric.criteria) {
+      const levels = Array.isArray(criterion?.levels) ? criterion.levels : [];
+      for (const level of levels) {
+        const min = Number(level?.minPoints ?? 0);
+        const max = Number(level?.maxPoints ?? 0);
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          return true;
+        }
+        if (min < 0 || max < 0 || min > 100 || max > 100) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }, [rubric.criteria]);
+
   const assignmentType = useMemo(
     () => normalizeAssignmentType(assignment?.type),
     [assignment?.type]
@@ -686,6 +706,11 @@ export default function RubricConfigurationPage() {
       return;
     }
 
+    if (hasScoreOutOfRange()) {
+      showNotification("error", "Cannot save: Points must stay between 0 and 100");
+      return;
+    }
+
     const sanitizedCriteria = (rubric.criteria || []).map((criterion, index) => {
       const resolvedCriterionId = criterion.criterionId || criterion.id || generateCriterionId();
       const { value: criterionTypeValue } = coerceCriterionType(criterion.criterionType, assignmentType);
@@ -719,6 +744,20 @@ export default function RubricConfigurationPage() {
         })),
       };
     });
+
+    const hasOutOfRangeAfterSanitize = sanitizedCriteria.some((criterion) =>
+      (criterion.levels || []).some((level) =>
+        level.minPoints < 0 ||
+        level.maxPoints < 0 ||
+        level.minPoints > 100 ||
+        level.maxPoints > 100
+      )
+    );
+
+    if (hasOutOfRangeAfterSanitize) {
+      showNotification("error", "Cannot save: Points must stay between 0 and 100");
+      return;
+    }
 
     if (sanitizedCriteria.some((criterion) => !criterion.title || !criterion.title.trim())) {
       showNotification("error", "Each criterion needs a title before saving");
@@ -968,17 +1007,26 @@ export default function RubricConfigurationPage() {
                 const total = (rubric.criteria || []).reduce((s,c)=> s + (c.weight||0), 0);
                 const expected = rubric.weightBasis === 'percentage' ? 100 : (rubric.totalPoints || 0);
                 const weightOk = total === expected;
-                const disabled = isSaving || hasScoreRangeOverlap() || !weightOk;
+                const outOfRange = hasScoreOutOfRange();
+                const rangeOverlap = hasScoreRangeOverlap();
+                const disabled = isSaving || rangeOverlap || outOfRange || !weightOk;
+                const disableReason = rangeOverlap
+                  ? "Cannot save: Score ranges overlap"
+                  : outOfRange
+                    ? "Cannot save: Points must stay between 0 and 100"
+                    : !weightOk
+                      ? "Cannot save: Total weight/points mismatch"
+                      : "";
                 return (
               <button
                 onClick={handleSaveRubric}
                 disabled={disabled}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all ${
-                  !isSaving && !hasScoreRangeOverlap() && weightOk
+                  !isSaving && !rangeOverlap && !outOfRange && weightOk
                     ? "bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400"
                 }`}
-                title={hasScoreRangeOverlap() ? "Cannot save: Score ranges overlap" : (!weightOk ? "Cannot save: Total weight/points mismatch" : "")}
+                title={disableReason}
               >
                 {isSaving ? (
                   <>
@@ -989,7 +1037,7 @@ export default function RubricConfigurationPage() {
                   <>
                     <Save className="w-5 h-5" />
                     Save Rubric
-                    {(hasScoreRangeOverlap() || !weightOk) && (
+                    {(rangeOverlap || outOfRange || !weightOk) && (
                       <AlertCircle className="w-4 h-4 text-red-500" />
                     )}
                   </>
@@ -1001,6 +1049,11 @@ export default function RubricConfigurationPage() {
               {hasScoreRangeOverlap() && (
                 <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
                   Score ranges cannot overlap
+                </div>
+              )}
+              {hasScoreOutOfRange() && !hasScoreRangeOverlap() && (
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-red-600 text-white text-xs rounded px-2 py-1 whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+                  Points must stay between 0 and 100
                 </div>
               )}
             </div>
