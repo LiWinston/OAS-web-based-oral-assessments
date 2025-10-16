@@ -52,4 +52,18 @@ public interface SessionStudentMapper extends BaseMapper<SessionStudent> {
      * Count bookings for a session
      */
     int countBySession(@Param("sessionId") Long sessionId);
+
+    /**
+     * Check if a student has already booked any session for an assignment
+     * Checks both INDIVIDUAL bookings and GROUP/MIX bookings through student's groups
+     */
+    boolean hasStudentBookedAssignment(@Param("studentId") Long studentId,
+                                       @Param("assignmentId") Long assignmentId);
+
+    /**
+     * Check if a group has already booked any session for an assignment
+     * Checks GROUP and MIX type bookings for the specified group
+     */
+    boolean hasGroupBookedAssignment(@Param("groupId") Long groupId,
+                                     @Param("assignmentId") Long assignmentId);
 }
