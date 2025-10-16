@@ -2,6 +2,7 @@ package org.swen90017.oas.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.swen90017.oas.entity.SlotSession;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -35,6 +36,10 @@ import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.enums.AssignmentType;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
+import org.swen90017.oas.mapper.AssignmentParticipantMapper;
+import org.swen90017.oas.mapper.SessionExaminerMapper;
+import org.swen90017.oas.mapper.SessionStudentMapper;
+import org.swen90017.oas.mapper.AssessmentSubmissionMapper;
 import org.swen90017.oas.mapper.GroupMapper;
 import org.swen90017.oas.mapper.SysStudentGroupMapper;
 import org.swen90017.oas.mapper.SysStudentMapper;
@@ -44,7 +49,6 @@ import org.swen90017.oas.service.AssignmentService;
 import org.swen90017.oas.service.cache.AssignmentCacheSupport;
 import org.swen90017.oas.dto.response.StudentAssignmentResponseDTO;
 import org.swen90017.oas.dto.response.AssignmentAvailabilityResponseDTO;
-import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.mapper.TimeSlotMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
 import org.swen90017.oas.constant.AssignmentConstants;
@@ -76,6 +80,10 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
     private final TimeSlotMapper timeSlotMapper;
     private final SlotSessionMapper slotSessionMapper;
     private final AssignmentSetupStatusService setupStatusService;
+    private final AssignmentParticipantMapper assignmentParticipantMapper;
+    private final SessionExaminerMapper sessionExaminerMapper;
+    private final SessionStudentMapper sessionStudentMapper;
+    private final AssessmentSubmissionMapper assessmentSubmissionMapper;
 
     @Override
     public AssignmentResponseDTO getAssignmentById(Long id) {
@@ -221,9 +229,49 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
 
-        // Check if assignment can be deleted (e.g., no submissions)
-        // This would be implemented when submission service is created
+        // Step 1: Query all sessionIds related to this assignment
+        LambdaQueryWrapper<SlotSession> sessionQueryWrapper = new LambdaQueryWrapper<>();
+        sessionQueryWrapper.eq(SlotSession::getAssignmentId, id);
+        List<SlotSession> sessions = slotSessionMapper.selectList(sessionQueryWrapper);
+        List<Long> sessionIds = sessions.stream()
+                .map(SlotSession::getSessionId)
+                .collect(Collectors.toList());
 
+        // Step 2: If sessions exist, delete related session data
+        if (!sessionIds.isEmpty()) {
+            // Delete data in session_examiner table for corresponding sessionIds
+            sessionIds.forEach(sessionId -> {
+                LambdaQueryWrapper<org.swen90017.oas.entity.SessionExaminer> examinerWrapper = new LambdaQueryWrapper<>();
+                examinerWrapper.eq(org.swen90017.oas.entity.SessionExaminer::getSessionId, sessionId);
+                sessionExaminerMapper.delete(examinerWrapper);
+            });
+
+            // Delete data in session_student table for corresponding sessionIds
+            sessionIds.forEach(sessionId -> {
+                LambdaQueryWrapper<org.swen90017.oas.entity.SessionStudent> studentWrapper = new LambdaQueryWrapper<>();
+                studentWrapper.eq(org.swen90017.oas.entity.SessionStudent::getSessionId, sessionId);
+                sessionStudentMapper.delete(studentWrapper);
+            });
+
+            // Delete data in assessment_submission table for corresponding sessionIds
+            sessionIds.forEach(sessionId -> {
+                LambdaQueryWrapper<org.swen90017.oas.entity.AssessmentSubmission> submissionWrapper = new LambdaQueryWrapper<>();
+                submissionWrapper.eq(org.swen90017.oas.entity.AssessmentSubmission::getSessionId, sessionId);
+                assessmentSubmissionMapper.delete(submissionWrapper);
+            });
+        }
+
+        // Step 3: Delete data in session_slot table with the same assignmentId
+        LambdaQueryWrapper<SlotSession> slotSessionWrapper = new LambdaQueryWrapper<>();
+        slotSessionWrapper.eq(SlotSession::getAssignmentId, id);
+        slotSessionMapper.delete(slotSessionWrapper);
+
+        // Step 4: Delete data in assignment_participant table with the same assignmentId
+        LambdaQueryWrapper<org.swen90017.oas.entity.AssignmentParticipant> participantWrapper = new LambdaQueryWrapper<>();
+        participantWrapper.eq(org.swen90017.oas.entity.AssignmentParticipant::getAssignmentId, id);
+        assignmentParticipantMapper.delete(participantWrapper);
+
+        // Step 5: Delete the assignment itself
         assignmentMapper.deleteById(id);
 
         // Clear cache AFTER successful deletion commit
