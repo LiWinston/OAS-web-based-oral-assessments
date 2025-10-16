@@ -149,11 +149,6 @@ export default function StudentResultsPage() {
                         ? `${result.finalScore.percentage.toFixed(1)}%`
                         : '--'}
                     </span>
-                    <span>
-                      {typeof result.finalScore?.totalPoints === 'number' && typeof result.finalScore?.maxPoints === 'number'
-                        ? `${result.finalScore.totalPoints} / ${result.finalScore.maxPoints} pts`
-                        : '--'}
-                    </span>
                     {releasedAt && <span>Released on {releasedAt}</span>}
                   </div>
                 </CardContent>

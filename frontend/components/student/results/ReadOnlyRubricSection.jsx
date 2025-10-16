@@ -34,41 +34,46 @@ const mapCriteriaForRubricTable = (section, definition) => {
   return section.criteria.map((criterion) => {
     const defEntry = definitionByKey.get(normalizeKey(criterion.name)) || {};
     const performanceLevel = buildPerformanceLevels(defEntry);
+    const maxFromLevels = performanceLevel.reduce((acc, level) => {
+      const upper = level?.maxPoints ?? level?.levelRange?.max;
+      return typeof upper === 'number' ? Math.max(acc, upper) : acc;
+    }, 0);
     return {
       criterionId: criterion.criterionId,
       description: criterion.name,
       appliesTo: section.sectionType,
       weight: criterion.weight ?? defEntry.weight ?? null,
       scaleType: defEntry.scaleType || 'points',
-      maxPoints: criterion.maxPoints,
+      maxPoints: maxFromLevels || null,
       performanceLevel,
     };
   });
 };
 
-const buildSelectedRatings = (section, transformedCriteria) => {
+const buildSelectedRatings = (section, transformedCriteria, weightBasis) => {
   const ratings = {};
+  const basis = (weightBasis || '').toLowerCase() === 'percentage' ? 'percentage' : 'points';
 
   section.criteria.forEach((criterion) => {
     const mapped = transformedCriteria.find((c) => c.criterionId === criterion.criterionId);
     const levels = mapped?.performanceLevel || [];
-    const points = typeof criterion.finalPoints === 'number' ? criterion.finalPoints : null;
+    const percentageValue = typeof criterion.percentage === 'number' ? criterion.percentage : null;
+    const pointsValue = percentageValue ?? (typeof criterion.finalPoints === 'number' ? criterion.finalPoints : null);
 
-    let selectedLevel = null;
-    if (criterion.finalLevelLabel) {
-      const key = normalizeKey(criterion.finalLevelLabel);
-      selectedLevel = levels.find((lvl) => normalizeKey(lvl.levelLabel) === key || normalizeKey(lvl.description) === key);
-    }
-    if (!selectedLevel && points !== null) {
-      selectedLevel = levels.find((lvl) => points >= (lvl.minPoints ?? lvl.levelRange?.min ?? 0)
-        && points <= (lvl.maxPoints ?? lvl.levelRange?.max ?? (mapped?.maxPoints ?? points)));
-    }
+    const levelMax = levels.reduce((acc, level) => {
+      const upper = level?.maxPoints ?? level?.levelRange?.max;
+      return typeof upper === 'number' ? Math.max(acc, upper) : acc;
+    }, 0);
+
+    const maxPoints = basis === 'percentage'
+      ? 100
+      : (mapped?.maxPoints ?? (levelMax || 100));
 
     ratings[criterion.criterionId] = {
-      levelId: selectedLevel?.levelId || null,
-      points: points,
-      minPoints: selectedLevel?.minPoints ?? selectedLevel?.levelRange?.min ?? 0,
-      maxPoints: selectedLevel?.maxPoints ?? selectedLevel?.levelRange?.max ?? mapped?.maxPoints ?? points ?? 0,
+      levelId: null,
+      points: typeof pointsValue === 'number' ? pointsValue : 0,
+      minPoints: 0,
+      maxPoints,
     };
   });
 
@@ -84,12 +89,13 @@ const buildCommentsMap = (section) => {
   }, {});
 };
 
-export default function ReadOnlyRubricSection({ section, definition }) {
+export default function ReadOnlyRubricSection({ section, definition, weightBasis }) {
   if (!section) return null;
 
   const transformedCriteria = mapCriteriaForRubricTable(section, definition);
-  const selectedRatings = buildSelectedRatings(section, transformedCriteria);
+  const selectedRatings = buildSelectedRatings(section, transformedCriteria, weightBasis);
   const comments = buildCommentsMap(section);
+  const scoreUnit = (weightBasis || '').toLowerCase() === 'percentage' ? '%' : 'pts';
 
   return (
     <RubricTable
@@ -101,6 +107,7 @@ export default function ReadOnlyRubricSection({ section, definition }) {
       disabled
       assessmentType={section.sectionType === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'GROUP'}
       showTotals={false}
+      scoreUnit={scoreUnit}
     />
   );
 }

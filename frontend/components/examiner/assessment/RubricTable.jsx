@@ -21,7 +21,8 @@ export default function RubricTable({
   disabled = false,
   assessmentType = 'GROUP',
   showTotals = true,
-  assignmentId = null
+  assignmentId = null,
+  scoreUnit = 'pts'
 }) {
   const [expandedComments, setExpandedComments] = useState({});
   const [localComments, setLocalComments] = useState(comments);
@@ -401,7 +402,7 @@ export default function RubricTable({
                     <div className="flex items-center justify-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
                       <i className="fas fa-star text-amber-500"></i>
                       <span>{selectedRatings[criterion.criterionId]?.points || 0}</span>
-                      <span className="text-xs text-gray-500">pts</span>
+                      <span className="text-xs text-gray-500">{scoreUnit}</span>
                     </div>
                   ) : (
                     /* All scale types: Show editable input */
@@ -416,7 +417,7 @@ export default function RubricTable({
                         max={100}
                         placeholder="0"
                       />
-                      <span className="text-sm text-gray-600 dark:text-gray-400">pts</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{scoreUnit}</span>
                     </div>
                   )}
                   <div className="text-xs text-gray-500 dark:text-gray-500">
