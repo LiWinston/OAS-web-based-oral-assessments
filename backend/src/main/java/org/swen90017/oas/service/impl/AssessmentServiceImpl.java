@@ -88,11 +88,17 @@ public class AssessmentServiceImpl implements AssessmentService {
         
         // 2.1.1 Check if this is a MIX type request (front-end explicitly specifies MIX)
         if ("MIX".equals(normalizedSubjectType)) {
-            // For MIX type, we need to query enrollment by GROUP type to get the enrollmentId
+            // For MIX type, we need to query enrollment by MIX type to get the enrollmentId (for GROUP submission)
             Long enrollmentId = null;
             if (request.getSessionId() != null) {
+                // Try MIX type first (new standard)
                 SessionStudent enrollment = sessionStudentMapper.selectBySessionAndSubject(
-                    request.getSessionId(), "GROUP", request.getSubjectId());
+                    request.getSessionId(), "MIX", request.getSubjectId());
+                // Fallback to GROUP type for backward compatibility
+                if (enrollment == null) {
+                    enrollment = sessionStudentMapper.selectBySessionAndSubject(
+                        request.getSessionId(), "GROUP", request.getSubjectId());
+                }
                 if (enrollment != null) {
                     enrollmentId = enrollment.getId();
                 }
@@ -568,6 +574,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                         sessionStudentType, 
                         request.getSubjectId()
                     );
+                    
+                    // Fallback to GROUP type for backward compatibility if MIX not found
+                    if (sessionStudent == null && "MIX".equals(sessionStudentType)) {
+                        sessionStudent = sessionStudentMapper.selectBySessionAndSubject(
+                            request.getSessionId(), 
+                            "GROUP", 
+                            request.getSubjectId()
+                        );
+                    }
                     
                     if (sessionStudent != null) {
                         enrollmentId = sessionStudent.getId();
@@ -1158,6 +1173,7 @@ public class AssessmentServiceImpl implements AssessmentService {
                     
                     if (existingIndividual == null) {
                         // Create new individual submission
+                        // Use the same enrollmentId from MIX type enrollment (all submissions share the same enrollment)
                         AssessmentSubmission individualSubmission = new AssessmentSubmission();
                         individualSubmission.setAssignmentId(request.getAssignmentId());
                         individualSubmission.setSessionId(request.getSessionId());
@@ -1192,6 +1208,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                     } else {
                         // Update existing individual submission
                         existingIndividual.setUpdatedAt(LocalDateTime.now());
+                        
+                        // Update enrollment_id if missing (for old records)
+                        if (existingIndividual.getEnrollmentId() == null && enrollmentId != null) {
+                            existingIndividual.setEnrollmentId(enrollmentId);
+                        }
                         
                         // Always refresh rubric snapshots
                         existingIndividual.setRubricMetaSnapshot(assignment.getRubricMetaInfo());
@@ -1268,6 +1289,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                 } else {
                     // Update existing group submission
                     groupSubmission = existingGroup;
+                    
+                    // Update enrollment_id if missing (for old records)
+                    if (existingGroup.getEnrollmentId() == null && enrollmentId != null) {
+                        existingGroup.setEnrollmentId(enrollmentId);
+                    }
                     
                     // Update GROUP scores only (filtered from unified scores array)
                     if (groupScoresOnly != null && !groupScoresOnly.isEmpty()) {
