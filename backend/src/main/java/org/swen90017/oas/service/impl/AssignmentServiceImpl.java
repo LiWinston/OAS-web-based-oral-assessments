@@ -780,7 +780,7 @@ public class AssignmentServiceImpl extends ServiceImpl<AssignmentMapper, Assignm
                 "JOIN session_student st ON (" +
                     "(st.type = 'INDIVIDUAL' AND st.subject_id = " + studentId + ") " +
                     "OR " +
-                    "(st.type = 'GROUP' AND st.subject_id IN (" +
+                    "((st.type = 'GROUP' OR st.type = 'MIX') AND st.subject_id IN (" +
                         "SELECT sg.group_id FROM sys_student_group sg WHERE sg.user_id = " + studentId + 
                     "))" +
                 ") " +
