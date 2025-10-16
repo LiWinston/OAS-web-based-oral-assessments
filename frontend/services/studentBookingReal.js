@@ -94,12 +94,9 @@ export const studentBookingServiceReal = {
     // Helper function to normalize datetime format
     const normalizeDateTime = (dt) => {
       if (!dt) return dt;
-      // If datetime is missing seconds/timezone, add them
-      if (dt.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
-        return dt + ":00+10:00"; // Add seconds and Melbourne timezone
-      }
-      if (dt.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/)) {
-        return dt + "+10:00"; // Add Melbourne timezone
+      // If datetime is missing seconds, add them but keep timezone handling elsewhere.
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dt)) {
+        return `${dt}:00`;
       }
       return dt;
     };
@@ -316,12 +313,16 @@ export const studentBookingServiceReal = {
       }
 
       // Normalize datetime format
-      if (session.start && session.start.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
-        session.start = session.start + ":00+10:00";
-      }
-      if (session.end && session.end.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/)) {
-        session.end = session.end + ":00+10:00";
-      }
+      const ensureSeconds = (value) => {
+        if (!value) return value;
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+          return `${value}:00`;
+        }
+        return value;
+      };
+
+      session.start = ensureSeconds(session.start);
+      session.end = ensureSeconds(session.end);
 
       // Ensure timezone is set
       if (!session.timezone) {
