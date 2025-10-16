@@ -745,6 +745,13 @@ export default function RubricConfigurationPage() {
       };
     });
 
+    const hasIndividualCriteria = sanitizedCriteria.some(
+      (criterion) => (criterion.criterionType || "").toString().toUpperCase() === "INDIVIDUAL"
+    );
+    const hasGroupCriteria = sanitizedCriteria.some(
+      (criterion) => (criterion.criterionType || "").toString().toUpperCase() === "GROUP"
+    );
+
     const hasOutOfRangeAfterSanitize = sanitizedCriteria.some((criterion) =>
       (criterion.levels || []).some((level) =>
         level.minPoints < 0 ||
@@ -781,6 +788,38 @@ export default function RubricConfigurationPage() {
         `Individual and group weights total ${weightTargetSum}${weightUnitLabel}, but should equal ${expectedWeightTotal}${weightUnitLabel}`
       );
       return;
+    }
+
+    if (assignmentType === "INDIVIDUAL") {
+      if (Math.abs(groupWeightTarget) > weightTolerance) {
+        showNotification(
+          "error",
+          "Individual assignments cannot include group weighting."
+        );
+        return;
+      }
+      if (hasGroupCriteria) {
+        showNotification(
+          "error",
+          "Individual assignments cannot include group criteria."
+        );
+        return;
+      }
+    } else if (assignmentType === "GROUP") {
+      if (Math.abs(individualWeightTarget) > weightTolerance) {
+        showNotification(
+          "error",
+          "Group assignments cannot include individual weighting."
+        );
+        return;
+      }
+      if (hasIndividualCriteria) {
+        showNotification(
+          "error",
+          "Group assignments cannot include individual criteria."
+        );
+        return;
+      }
     }
 
     const total = sanitizedCriteria.reduce((sum, c) => sum + (c.weight || 0), 0);
@@ -864,8 +903,17 @@ export default function RubricConfigurationPage() {
       // Save rubric (both create and update use the same method now)
       const rubricResponse = await rubricService.createRubric(rubricSaveData);
 
+      if (rubricResponse?.success === false) {
+        const responseMessage =
+          (typeof rubricResponse?.data === "string" && rubricResponse.data.trim())
+            ? rubricResponse.data
+            : rubricResponse?.message || "Failed to save rubric";
+        showNotification("error", responseMessage);
+        return;
+      }
+
       // Handle rubric response structure
-      const savedRubric = rubricResponse?.success !== undefined ? rubricResponse.data : rubricResponse;
+      const savedRubric = rubricResponse?.data !== undefined ? rubricResponse.data : rubricResponse;
       if (savedRubric && savedRubric.id && !rubric.id) {
         setRubric((prev) => ({ ...prev, id: savedRubric.id }));
       }
