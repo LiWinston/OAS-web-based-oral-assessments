@@ -161,17 +161,35 @@ export default function StudentBookingSteps() {
         return v.room;
       }
     }
-    return v.name || "";
+    return "";
   };
   const venueLabel = (v) => {
     if (!v) return "";
-    const room = getRoomCode(v);
+    const room = getRoomCode(v)?.toString().trim();
+    const name = (v.name || "").trim();
     const buildingRaw = v.building || "";
     const [street, ...restParts] = buildingRaw.split(",");
     const streetTitled = titleCaseStreet(street?.trim());
     const rest = restParts.join(",").trim();
-    const buildingFormatted = [streetTitled, rest].filter(Boolean).join(" ");
-    return room ? `Room ${room} — ${buildingFormatted}` : buildingFormatted;
+    const buildingFormatted = [streetTitled, rest].filter(Boolean).join(" ").trim();
+
+    const parts = [];
+    if (room) {
+      parts.push(`Room ${room}`);
+    }
+    if (buildingFormatted) {
+      parts.push(buildingFormatted);
+    } else if (!room && name) {
+      parts.push(name);
+    } else if (room && name && name.toLowerCase() !== room.toLowerCase()) {
+      parts.push(name);
+    }
+
+    if (!parts.length && name) {
+      parts.push(name);
+    }
+
+    return parts.join(" — ");
   };
   const venueLink = (v) => (v?.room && isUrlValue(v.room) ? v.room : null);
   const venueOptions = useMemo(() => {
