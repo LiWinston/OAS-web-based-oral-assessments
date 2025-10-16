@@ -180,6 +180,12 @@ export default function StudentBookingSteps() {
     );
     return ["ALL", ...labels];
   }, [timeSlots]);
+
+  useEffect(() => {
+    if (venueFilter !== "ALL" && !venueOptions.includes(venueFilter)) {
+      setVenueFilter("ALL");
+    }
+  }, [venueFilter, venueOptions]);
   const listSessions = useMemo(() => {
     if (venueFilter === "ALL") return timeSlots;
     return timeSlots.filter((slot) => venueLabel(slot.venue) === venueFilter);
@@ -675,7 +681,7 @@ export default function StudentBookingSteps() {
               })}
             </div>
           </div>
-          {listSessions.length > 0 && (
+          {timeSlots.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -699,7 +705,9 @@ export default function StudentBookingSteps() {
             <div className="text-sm text-gray-500">Loading timeslots…</div>
           ) : listSessions.length === 0 ? (
             <div className="text-sm text-gray-500">
-              No timeslots available for this date.
+              {venueFilter === "ALL"
+                ? "No timeslots available for this date."
+                : "No timeslots match the selected venue."}
             </div>
           ) : (
             <div className="space-y-4">
