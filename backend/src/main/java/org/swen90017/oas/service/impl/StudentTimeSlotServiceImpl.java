@@ -128,13 +128,15 @@ public class StudentTimeSlotServiceImpl implements StudentTimeSlotService {
         }
 
         // Check if already booked for this assignment (prevent duplicate assignment bookings)
+        // Use session_student table joined with slot_sessions to check by assignment_id
         if (bookingType.equals("INDIVIDUAL")) {
-            boolean hasBookedAssignment = slotSessionMapper.hasStudentBookedAssignment(request.getStudentId(), assignmentId);
+            boolean hasBookedAssignment = sessionStudentMapper.hasStudentBookedAssignment(request.getStudentId(), assignmentId);
             if (hasBookedAssignment) {
                 throw new BusinessException(BusinessError.ALREADY_BOOKED);
             }
         } else {
-            boolean hasBookedAssignment = slotSessionMapper.hasGroupBookedAssignment(request.getGroupId(), assignmentId);
+            // For GROUP and MIX types, check if the group has already booked
+            boolean hasBookedAssignment = sessionStudentMapper.hasGroupBookedAssignment(request.getGroupId(), assignmentId);
             if (hasBookedAssignment) {
                 throw new BusinessException(BusinessError.ALREADY_BOOKED);
             }

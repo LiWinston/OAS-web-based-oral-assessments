@@ -58,4 +58,33 @@
         WHERE session_id = #{sessionId}
     </select>
 
+    <!-- Check if a student has already booked any session for an assignment -->
+    <!-- Checks both INDIVIDUAL bookings and GROUP/MIX bookings through student's groups -->
+    <select id="hasStudentBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM session_student ss
+        INNER JOIN slot_sessions sls ON ss.session_id = sls.session_id
+        WHERE sls.assignment_id = #{assignmentId}
+          AND (
+            (ss.type = 'INDIVIDUAL' AND ss.subject_id = #{studentId})
+            OR
+            (ss.type IN ('GROUP', 'MIX') AND ss.subject_id IN (
+              SELECT sg.group_id
+              FROM sys_student_group sg
+              WHERE sg.user_id = #{studentId}
+            ))
+          )
+    </select>
+
+    <!-- Check if a group has already booked any session for an assignment -->
+    <!-- Checks GROUP and MIX type bookings for the specified group -->
+    <select id="hasGroupBookedAssignment" resultType="boolean">
+        SELECT COUNT(1) > 0
+        FROM session_student ss
+        INNER JOIN slot_sessions sls ON ss.session_id = sls.session_id
+        WHERE sls.assignment_id = #{assignmentId}
+          AND ss.type IN ('GROUP', 'MIX')
+          AND ss.subject_id = #{groupId}
+    </select>
+
 </mapper>
