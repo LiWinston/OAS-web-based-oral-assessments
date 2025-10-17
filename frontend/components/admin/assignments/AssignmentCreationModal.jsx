@@ -402,6 +402,29 @@ export function AssignmentCreationModal({
       [field]: value,
     }));
 
+    if (field === "type" && value === "individual") {
+      setCsvData((prev) => ({
+        ...prev,
+        group: { file: null, previewData: null },
+      }));
+      setCsvUploadStatus((prev) => ({
+        ...prev,
+        group: { uploading: false, error: null },
+      }));
+      setCsvHistorySelection((prev) => ({
+        ...prev,
+        group: "",
+      }));
+      setValidationErrors((prev) => {
+        if (!prev.groupCsv) {
+          return prev;
+        }
+        const next = { ...prev };
+        delete next.groupCsv;
+        return next;
+      });
+    }
+
     // Clear validation error when user starts typing
     if (validationErrors[field]) {
       setValidationErrors((prev) => ({
@@ -967,6 +990,7 @@ export function AssignmentCreationModal({
   const stepCompletion = getStepCompletion();
   const isAssignmentCreated = Boolean(createdAssignment?.id);
   const requiresGroupCsv = formData.type === "group";
+  const allowsGroupCsv = formData.type !== "individual";
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -1642,7 +1666,8 @@ export function AssignmentCreationModal({
               </div>
             </div>
 
-              {/* Group CSV Upload */}
+            {/* Group CSV Upload */}
+            {allowsGroupCsv && (
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-5 border border-emerald-200 dark:border-emerald-800">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mr-3 shadow-lg">
@@ -1662,13 +1687,13 @@ export function AssignmentCreationModal({
                       <i className="fas fa-info-circle" />
                       {requiresGroupCsv
                         ? "Required for group assignments"
-                        : "Optional for individual assignments"}
+                        : "Optional for mixed assignments"}
                     </span>
                   </div>
                 </div>
 
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  Provide a CSV mapping students into groups. Individual assignments can skip this step, but group assignments should upload the latest roster.
+                  Provide a CSV mapping students into groups. Mixed assignments can skip this step, but group assignments should upload the latest roster.
                 </p>
                 <div className="mb-4 text-xs">
                   <a
@@ -1897,9 +1922,10 @@ export function AssignmentCreationModal({
                   </div>
                 </div>
               </div>
+            )}
 
-              {/* Examiner CSV Upload */}
-              <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-5 border border-sky-200 dark:border-sky-800">
+            {/* Examiner CSV Upload */}
+            <div className="bg-sky-50 dark:bg-sky-900/20 rounded-lg p-5 border border-sky-200 dark:border-sky-800">
                 <div className="flex items-center mb-4">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-sky-400 to-sky-600 flex items-center justify-center mr-3 shadow-lg">
                     <i className="fas fa-user-tie text-white"></i>

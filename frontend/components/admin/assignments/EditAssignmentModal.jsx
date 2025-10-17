@@ -110,6 +110,34 @@ export function EditAssignmentModal({
     }
   }, [formData, assignment]);
 
+  useEffect(() => {
+    if (formData.type !== 'individual') {
+      return;
+    }
+
+    setRosterData((prev) => {
+      const hasGroupData = prev.group?.file || prev.group?.previewData;
+      if (!hasGroupData) {
+        return prev;
+      }
+      return {
+        ...prev,
+        group: { ...prev.group, file: null, previewData: null },
+      };
+    });
+
+    setRosterPreviewStatus((prev) => {
+      const hasGroupStatus = prev.group?.loading || prev.group?.error;
+      if (!hasGroupStatus) {
+        return prev;
+      }
+      return {
+        ...prev,
+        group: { loading: false, error: null },
+      };
+    });
+  }, [formData.type]);
+
   // Validate form
   const validateForm = () => {
     const errors = {};
@@ -146,6 +174,29 @@ export function EditAssignmentModal({
       ...prev,
       [field]: value
     }));
+
+    if (field === 'type' && value === 'individual') {
+      setRosterData((prev) => {
+        const hasGroupData = prev.group?.file || prev.group?.previewData;
+        if (!hasGroupData) {
+          return prev;
+        }
+        return {
+          ...prev,
+          group: { ...prev.group, file: null, previewData: null },
+        };
+      });
+      setRosterPreviewStatus((prev) => {
+        const hasGroupStatus = prev.group?.loading || prev.group?.error;
+        if (!hasGroupStatus) {
+          return prev;
+        }
+        return {
+          ...prev,
+          group: { loading: false, error: null },
+        };
+      });
+    }
     
     // Clear validation error when user starts typing
     if (validationErrors[field]) {
@@ -170,6 +221,9 @@ export function EditAssignmentModal({
       summary?.existingCount ?? summary?.existing ?? summary?.duplicates ?? summary?.updatedRecords ?? 0;
     return { total, newCount, existingCount };
   };
+
+  const isGroupAssignment = formData.type === 'group';
+  const isIndividualAssignment = formData.type === 'individual';
 
   const resetRosterSection = (type) => {
     setRosterData((prev) => ({
@@ -283,7 +337,9 @@ export function EditAssignmentModal({
 
     const shouldUpdateDetails = hasChanges;
     const hasRosterUploads = Boolean(
-      rosterData.student.file || rosterData.examiner.file || rosterData.group.file
+      rosterData.student.file ||
+        rosterData.examiner.file ||
+        (!isIndividualAssignment && rosterData.group.file)
     );
 
     if (!shouldUpdateDetails && !hasRosterUploads) {
@@ -361,7 +417,7 @@ export function EditAssignmentModal({
         }
       }
 
-      if (rosterData.group.file) {
+      if (!isIndividualAssignment && rosterData.group.file) {
         if (uploadGroupCsv) {
           try {
             await uploadGroupCsv(rosterData.group.file, assignment.id);
@@ -386,7 +442,10 @@ export function EditAssignmentModal({
       setRosterPreviewStatus((prev) => ({
         student: rosterData.student.file ? { loading: false, error: null } : prev.student,
         examiner: rosterData.examiner.file ? { loading: false, error: null } : prev.examiner,
-        group: rosterData.group.file ? { loading: false, error: null } : prev.group,
+        group:
+          !isIndividualAssignment && rosterData.group.file
+            ? { loading: false, error: null }
+            : prev.group,
       }));
 
       onAssignmentUpdated(updatedAssignment);
@@ -472,12 +531,14 @@ export function EditAssignmentModal({
     },
     group: {
       title: 'Group Roster',
-      description: 'Upload group allocations to align bookings and grading. Optional for any assignment type; changes sync when you click Update Assignment.',
+      description: 'Upload group allocations to align bookings and grading. Required for group assignments; optional for mixed assignments.',
       icon: 'fa-users',
       iconBg: 'from-emerald-400 to-emerald-600',
       containerClass: 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800',
-      badgeText: 'Optional',
-      badgeClass: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
+      badgeText: isGroupAssignment ? 'Required' : 'Optional',
+      badgeClass: isGroupAssignment
+        ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
+        : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200',
       buttonClass: 'bg-emerald-600 hover:bg-emerald-700',
       templateHref: '/csv-templates/group_template.csv',
       templateLabel: 'Group CSV template',
@@ -485,9 +546,12 @@ export function EditAssignmentModal({
   };
 
   const actionButtonBase = 'px-4 py-2 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm';
+  const rosterOrder = isIndividualAssignment ? ['student', 'examiner'] : ['student', 'group', 'examiner'];
 
   const hasPendingRosterUploads = Boolean(
-    rosterData.student.file || rosterData.examiner.file || rosterData.group.file
+    rosterData.student.file ||
+      rosterData.examiner.file ||
+      (!isIndividualAssignment && rosterData.group.file)
   );
   const canSubmit = hasChanges || hasPendingRosterUploads;
 
@@ -623,8 +687,6 @@ export function EditAssignmentModal({
       </div>
     );
   };
-
-  const rosterOrder = ['student', 'examiner', 'group'];
 
   if (!isOpen || !assignment) return null;
 

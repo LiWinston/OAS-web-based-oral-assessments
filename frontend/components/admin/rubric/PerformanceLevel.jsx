@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2, AlertCircle, MessageSquare, Plus, Edit3, Check, X } from "lucide-react";
 
 export default function PerformanceLevel({
@@ -101,49 +101,70 @@ export default function PerformanceLevel({
 
   // Validate whether the score range overlaps with other levels
   const validateScoreRange = (minPoints, maxPoints, currentIndex) => {
-    if (!allLevels || allLevels.length <= 1) return "";
-    
-    if (minPoints > maxPoints) {
+    const normalizedMin = Number.isFinite(minPoints) ? minPoints : 0;
+    const normalizedMax = Number.isFinite(maxPoints) ? maxPoints : 0;
+
+    if (normalizedMin < 0 || normalizedMax < 0 || normalizedMin > 100 || normalizedMax > 100) {
+      return "Points must stay between 0 and 100";
+    }
+
+    if (normalizedMin > normalizedMax) {
       return "Minimum points cannot be greater than maximum points";
     }
 
+    if (!allLevels || allLevels.length <= 1) return "";
+
     for (let i = 0; i < allLevels.length; i++) {
       if (i === currentIndex) continue; // Skip current level
-      
+
       const otherLevel = allLevels[i];
-      const otherMin = otherLevel.minPoints || 0;
-      const otherMax = otherLevel.maxPoints || 0;
-      
+      const otherMin = Number.isFinite(otherLevel.minPoints) ? otherLevel.minPoints : 0;
+      const otherMax = Number.isFinite(otherLevel.maxPoints) ? otherLevel.maxPoints : 0;
+
+      if (otherMin > otherMax) {
+        continue;
+      }
+
       // Check for overlap
-      const hasOverlap = 
-        (minPoints >= otherMin && minPoints <= otherMax) || // current min within other range
-        (maxPoints >= otherMin && maxPoints <= otherMax) || // current max within other range
-        (minPoints <= otherMin && maxPoints >= otherMax);   // current range contains other range
-      
+      const hasOverlap =
+        (normalizedMin >= otherMin && normalizedMin <= otherMax) ||
+        (normalizedMax >= otherMin && normalizedMax <= otherMax) ||
+        (normalizedMin <= otherMin && normalizedMax >= otherMax);
+
       if (hasOverlap) {
-        return `Score range ${minPoints}-${maxPoints} overlaps with ${otherMin}-${otherMax}`;
+        return `Score range ${normalizedMin}-${normalizedMax} overlaps with ${otherMin}-${otherMax}`;
       }
     }
-    
+
     return "";
   };
 
   const handlePointsUpdate = (field, value) => {
-    const numValue = parseInt(value) || 0;
+    const parsedValue = Number(value);
+    const numValue = Number.isFinite(parsedValue) ? parsedValue : 0;
     const updatedLevel = { ...level, [field]: numValue };
-    
+
+    const existingMin = Number(level.minPoints ?? 0);
+    const existingMax = Number(level.maxPoints ?? 0);
+    const currentMin = field === "minPoints" ? numValue : (Number.isFinite(existingMin) ? existingMin : 0);
+    const currentMax = field === "maxPoints" ? numValue : (Number.isFinite(existingMax) ? existingMax : 0);
+
     // Validate score range
-    const error = validateScoreRange(
-      field === 'minPoints' ? numValue : level.minPoints || 0,
-      field === 'maxPoints' ? numValue : level.maxPoints || 0,
-      index
-    );
-    
+    const error = validateScoreRange(currentMin, currentMax, index);
     setValidationError(error);
-    
+
     // Update value even if error exists to provide live feedback
     onUpdate(updatedLevel);
   };
+
+  useEffect(() => {
+    const minValue = Number(level.minPoints ?? 0);
+    const maxValue = Number(level.maxPoints ?? 0);
+    const safeMin = Number.isFinite(minValue) ? minValue : 0;
+    const safeMax = Number.isFinite(maxValue) ? maxValue : 0;
+    const error = validateScoreRange(safeMin, safeMax, index);
+    setValidationError(error);
+  }, [level.minPoints, level.maxPoints, allLevels, index]);
 
   const getLetterGrade = (index, total) => {
     const grades = [
@@ -205,6 +226,7 @@ export default function PerformanceLevel({
                     }`}
                     placeholder="Min"
                     min={0}
+                    max={100}
                   />
                 </div>
                 <span className="flex items-center text-gray-500 px-2">-</span>
@@ -218,6 +240,7 @@ export default function PerformanceLevel({
                     }`}
                     placeholder="Max"
                     min={0}
+                    max={100}
                   />
                 </div>
               </div>

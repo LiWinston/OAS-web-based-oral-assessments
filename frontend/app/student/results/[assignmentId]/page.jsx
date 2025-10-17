@@ -24,7 +24,7 @@ const formatDateTime = (value, pattern = "MMMM dd, yyyy 'at' h:mm a") => {
   }
 };
 
-const formatPoints = (value) => {
+const formatNumber = (value) => {
   if (typeof value !== 'number') return '--';
   const rounded = Math.round(value * 10) / 10;
   return Number.isInteger(rounded) ? rounded.toString() : rounded.toFixed(1);
@@ -33,6 +33,11 @@ const formatPoints = (value) => {
 const formatPercentage = (value) => {
   if (typeof value !== 'number') return '--';
   return `${value.toFixed(1)}%`;
+};
+
+const resolveWeightBasis = (rubric) => {
+  const basis = rubric?.definition?.meta?.weightBasis;
+  return typeof basis === 'string' && basis.toLowerCase() === 'percentage' ? 'percentage' : 'points';
 };
 
 const sectionKey = (section) => (section?.sectionType || '').toLowerCase();
@@ -93,6 +98,7 @@ export default function StudentResultDetailPage() {
   const session = detail?.session;
   const rubric = detail?.rubric;
   const feedback = detail?.feedback;
+  const weightBasis = resolveWeightBasis(rubric);
 
   const sections = useMemo(() => (
     Array.isArray(rubric?.sections) ? rubric.sections : []
@@ -117,12 +123,14 @@ export default function StudentResultDetailPage() {
       key: sectionKey(section),
       label: section.displayName || (section.sectionType === 'INDIVIDUAL' ? 'Individual' : 'Group'),
       weightShare: section.weightShare,
-      totalPoints: section.totalPoints,
-      maxPoints: section.maxPoints,
     }))
   ), [sections]);
 
   const releasedOn = formatDateTime(release?.releasedAt || assignment?.resultsReleasedAt);
+  const scoreLabel = weightBasis === 'percentage' ? 'Percentage' : 'Points';
+  const finalScoreValue = weightBasis === 'percentage'
+    ? formatPercentage(finalScore?.percentage)
+    : formatNumber(finalScore?.percentage);
 
   if (loading) {
     return (
@@ -187,12 +195,6 @@ export default function StudentResultDetailPage() {
             </span>
           )}
         </div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          <span className="font-semibold text-gray-900 dark:text-gray-100">
-            {formatPoints(summary.totalPoints)}
-          </span>
-          <span> / {formatPoints(summary.maxPoints)} pts</span>
-        </div>
       </div>
     );
   };
@@ -238,22 +240,14 @@ export default function StudentResultDetailPage() {
               </p>
             )}
           </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-3">
+          <CardContent className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg bg-gray-100 dark:bg-gray-900/40 p-4">
               <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Grade</p>
               <p className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">{finalScore?.grade || '--'}</p>
             </div>
             <div className="rounded-lg bg-gray-100 dark:bg-gray-900/40 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Percentage</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{formatPercentage(finalScore?.percentage)}</p>
-            </div>
-            <div className="rounded-lg bg-gray-100 dark:bg-gray-900/40 p-4">
-              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Points</p>
-              <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                {typeof finalScore?.totalPoints === 'number' && typeof finalScore?.maxPoints === 'number'
-                  ? `${formatPoints(finalScore.totalPoints)} / ${formatPoints(finalScore.maxPoints)}`
-                  : '--'}
-              </p>
+              <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">{scoreLabel}</p>
+              <p className="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{finalScoreValue}</p>
             </div>
           </CardContent>
         </Card>
@@ -285,37 +279,18 @@ export default function StudentResultDetailPage() {
                 {hasGroup && (
                   <TabsContent value="group" className="mt-0 space-y-4">
                     {renderSectionSummary(groupSection)}
-                    <ReadOnlyRubricSection section={groupSection} definition={rubric.definition} />
+                    <ReadOnlyRubricSection section={groupSection} definition={rubric.definition} weightBasis={weightBasis} />
                   </TabsContent>
                 )}
 
                 {hasIndividual && (
                   <TabsContent value="individual" className="mt-0 space-y-4">
                     {renderSectionSummary(individualSection)}
-                    <ReadOnlyRubricSection section={individualSection} definition={rubric.definition} />
+                    <ReadOnlyRubricSection section={individualSection} definition={rubric.definition} weightBasis={weightBasis} />
                   </TabsContent>
                 )}
               </div>
             </Tabs>
-          </Card>
-        )}
-
-        {rubric?.aggregate && (
-          <Card className="border-gray-200 dark:border-gray-700">
-            <CardContent className="flex flex-wrap gap-6 text-sm text-gray-600 dark:text-gray-300">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Rubric Total</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {formatPoints(rubric.aggregate.totalPoints)} / {formatPoints(rubric.aggregate.maxPoints)} pts
-                </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Rubric Percentage</p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  {formatPercentage(rubric.aggregate.percentage)}
-                </p>
-              </div>
-            </CardContent>
           </Card>
         )}
 

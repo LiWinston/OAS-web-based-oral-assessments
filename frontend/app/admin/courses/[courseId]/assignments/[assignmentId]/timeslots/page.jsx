@@ -383,6 +383,15 @@ const assignmentLabel = useMemo(() => {
     setOpenExaminerForSessionId(null);
   };
 
+  const handleLimitsSaved = useCallback(async () => {
+    await reloadAvailableExaminers();
+    if (selectedDate) {
+      await refreshSessions();
+    }
+    await refreshAssignmentSummary();
+    setShowLimits(false);
+  }, [reloadAvailableExaminers, selectedDate, refreshSessions, refreshAssignmentSummary]);
+
   const updateSessionLocal = (sessionId, updater) => {
     setSessions((prev) => prev.map((s) => (s.id === sessionId ? updater(s) : s)));
   };
@@ -406,8 +415,38 @@ const assignmentLabel = useMemo(() => {
   };
   const handleAssignExaminer = async (session, examinerId) => {
     if (!session?.id || !examinerId) return;
+    const numericExaminerId = Number(examinerId);
+    const alreadyAssigned = (session.assignedExaminers || []).some(
+      (e) => (e.id || e.examinerId) === numericExaminerId
+    );
+    if (alreadyAssigned) {
+      showError('该考官已分配到此时段');
+      return;
+    }
+
+    const examiner = examinerLookup.get(numericExaminerId);
+    if (examiner) {
+      const rawMax = examiner.maxSessions ?? examiner.examinerInfo?.maxSessions;
+      const maxSessions = rawMax !== undefined && rawMax !== null ? Number(rawMax) : NaN;
+      const rawAssignments =
+        examiner.currentAssignments ?? examiner.assignments ?? examiner.examinerInfo?.currentAssignments;
+      const currentAssignments = rawAssignments !== undefined && rawAssignments !== null ? Number(rawAssignments) : 0;
+
+      const hasFiniteLimit = Number.isFinite(maxSessions);
+      if (hasFiniteLimit) {
+        if (maxSessions <= 0) {
+          showError(`${examiner.name || '该考官'} 当前限制为 0，无法分配时段`);
+          return;
+        }
+        if (currentAssignments >= maxSessions) {
+          showError(`${examiner.name || '该考官'} 已达到最大可分配 ${maxSessions} 个时段`);
+          return;
+        }
+      }
+    }
+
     try {
-      const res = await courseAdminSessionService.assignSessionExaminers(session.id, [Number(examinerId)]);
+      const res = await courseAdminSessionService.assignSessionExaminers(session.id, [numericExaminerId]);
       if (!res?.success) {
         const reason = res?.message || res?.code || 'Assignment rejected';
         showError(`Unable to assign examiner: ${reason}`);
@@ -415,10 +454,10 @@ const assignmentLabel = useMemo(() => {
       }
       // Update local state: append to assignedExaminers if not already present
       updateSessionLocal(session.id, (s) => {
-        const exists = (s.assignedExaminers || []).some((e) => (e.id || e.examinerId) === Number(examinerId));
+        const exists = (s.assignedExaminers || []).some((e) => (e.id || e.examinerId) === numericExaminerId);
         if (exists) return s;
-        const ex = examinerLookup.get(Number(examinerId));
-        const entry = ex ? { id: ex.id, name: ex.name } : { id: Number(examinerId) };
+        const ex = examinerLookup.get(numericExaminerId);
+        const entry = ex ? { id: ex.id, name: ex.name } : { id: numericExaminerId };
         return { ...s, assignedExaminers: [...(s.assignedExaminers || []), entry] };
       });
       showSuccess('Examiner assigned');
@@ -792,7 +831,7 @@ const assignmentLabel = useMemo(() => {
                 totalSessions={sessionsForSelectedDate.length || sessions.length}
                 summary={assignmentSummary}
                 onPrevious={() => setShowLimits(false)}
-                onComplete={() => setShowLimits(false)}
+                onComplete={handleLimitsSaved}
               />
             </div>
           </div>
