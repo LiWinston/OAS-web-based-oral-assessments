@@ -139,13 +139,39 @@ export function mapSessionConfigToApi(uiConfig) {
 export function mapExaminerFromApi(apiExaminer) {
   if (!apiExaminer) return null;
 
+  const toInt = (value, fallback = 0) => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : fallback;
+    }
+    if (typeof value === 'string') {
+      if (!value.trim()) return fallback;
+      const parsed = Number.parseInt(value, 10);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    }
+    return fallback;
+  };
+
+  const assignments = toInt(
+    apiExaminer.assignments ??
+      apiExaminer.currentAssignments ??
+      apiExaminer.examinerInfo?.currentAssignments
+  );
+  const maxSessions = toInt(
+    apiExaminer.maxSessions ??
+      apiExaminer.examinerInfo?.maxSessions ??
+      apiExaminer.maxAssignments ??
+      apiExaminer.sessionLimit
+  );
+
   return {
     id: apiExaminer.id,
     name: apiExaminer.name,
     email: apiExaminer.email,
     avatar: apiExaminer.avatar || '/api/placeholder/24/24',
-    maxSessions: apiExaminer.maxSessions || 0,
-    assignments: apiExaminer.assignments || apiExaminer.currentAssignments || 0
+    maxSessions,
+    assignments,
+    currentAssignments: assignments
   };
 }
 
