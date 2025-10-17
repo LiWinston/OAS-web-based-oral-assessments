@@ -11,7 +11,7 @@ export function useAssessmentDraft(sessionContext) {
   const [groupComments, setGroupComments] = useState({});
   const [individualComments, setIndividualComments] = useState({});
   const [overallFeedback, setOverallFeedback] = useState("");
-  const [privateNotes, setPrivateNotes] = useState("");
+  const [adminNote, setAdminNote] = useState("");
   const [absentStudents, setAbsentStudents] = useState([]); // list of studentIds
 
   const [assessmentId, setAssessmentId] = useState(null);
@@ -59,6 +59,14 @@ export function useAssessmentDraft(sessionContext) {
     const groupEntity = existing.entities?.find((e) => e.kind === "GROUP");
     const individualEntities = (existing.entities || []).filter((e) => e.kind === "INDIVIDUAL");
 
+    const topLevelOverall =
+      typeof existing.overallFeedback === "string" ? existing.overallFeedback : "";
+    const topLevelAdminNote =
+      typeof existing.adminNote === "string" ? existing.adminNote : "";
+
+    setOverallFeedback(topLevelOverall || groupEntity?.overallFeedback || "");
+    setAdminNote(topLevelAdminNote || groupEntity?.notes || "");
+
     console.log('DEBUG useAssessmentDraft - Found entities:', { groupEntity, individualEntities });
 
     if (groupEntity) {
@@ -92,8 +100,6 @@ export function useAssessmentDraft(sessionContext) {
       
       setGroupRatings(ratings);
       setGroupComments(comments);
-      setOverallFeedback(groupEntity.overallFeedback || "");
-      setPrivateNotes(groupEntity.notes || "");
     }
 
     if (individualEntities.length) {
@@ -163,7 +169,6 @@ export function useAssessmentDraft(sessionContext) {
       groupComments,
       individualComments,
       overallFeedback,
-      privateNotes,
     }),
     [
       groupRatings,
@@ -171,7 +176,6 @@ export function useAssessmentDraft(sessionContext) {
       groupComments,
       individualComments,
       overallFeedback,
-      privateNotes,
     ]
   );
 
@@ -188,9 +192,8 @@ export function useAssessmentDraft(sessionContext) {
     groupComments,
     individualComments,
     overallFeedback,
-    privateNotes,
+    adminNote,
     setOverallFeedback,
-    setPrivateNotes,
     handleRatingChange,
     handleCommentChange,
 

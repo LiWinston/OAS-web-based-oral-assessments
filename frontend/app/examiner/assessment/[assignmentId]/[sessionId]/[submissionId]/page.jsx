@@ -56,8 +56,6 @@ export default function ExaminerAssessmentMarking() {
     individualComments,
     overallFeedback,
     setOverallFeedback,
-    privateNotes,
-    setPrivateNotes,
     handleRatingChange,
     handleCommentChange,
     selectedStudent,
@@ -87,9 +85,8 @@ export default function ExaminerAssessmentMarking() {
       groupComments,
       individualComments,
       overallFeedback,
-      privateNotes,
       absentStudents,
-    }), [sessionContext, examinerId, groupRatings, individualRatings, groupComments, individualComments, overallFeedback, privateNotes, absentStudents]);
+    }), [sessionContext, examinerId, groupRatings, individualRatings, groupComments, individualComments, overallFeedback, absentStudents]);
 
   // Auto-save
   useAutoSave({
@@ -160,7 +157,6 @@ export default function ExaminerAssessmentMarking() {
         groupComments,
         individualComments,
         overallFeedback,
-        privateNotes,
         absentStudents,
       });
       
@@ -466,22 +462,6 @@ export default function ExaminerAssessmentMarking() {
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Private Notes (Examiner Only)
-                          </label>
-                          <textarea
-                            value={privateNotes}
-                            onChange={(e) => setPrivateNotes(e.target.value)}
-                            disabled={disabledInputs}
-                            className="w-full h-32 p-3 border border-gray-300 dark:border-gray-600 rounded-md
-                                     bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100
-                                     placeholder-gray-500 dark:placeholder-gray-400
-                                     focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                     disabled:bg-gray-100 dark:disabled:bg-gray-700 disabled:cursor-not-allowed"
-                            placeholder="Add private notes that won't be visible to students..."
-                          />
-                        </div>
                       </div>
                     </TabsContent>
                   </div>

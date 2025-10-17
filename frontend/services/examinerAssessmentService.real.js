@@ -461,6 +461,7 @@ const examinerAssessmentServiceReal = {
           submittedAt: assessment.submittedAt,
           totalScore: assessment.totalScore,
           overallFeedback: assessment.overallFeedback,
+          adminNote: typeof assessment.adminNote === 'string' ? assessment.adminNote : '',
           // Convert scores back into separate entities using criteriaFromMeta
           entities: (() => {
             const byDesc = new Map(criteria.map((c) => [c.description, c]));
@@ -587,7 +588,6 @@ const examinerAssessmentServiceReal = {
         sessionId: assessmentData.sessionId || sessionContext?.sessionId || 0,
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
-        adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
         scores,
       };
 
@@ -687,7 +687,6 @@ const examinerAssessmentServiceReal = {
         sessionId: sessionContext?.sessionId || 0,
         subjectId: Number(subjectId),
         overallFeedback: assessmentData.overallFeedback || '',
-        adminNote: assessmentData.privateNotes || '', // Backend expects adminNote, not privateNote
         scores,
       };
 

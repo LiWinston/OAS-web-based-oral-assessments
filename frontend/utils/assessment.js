@@ -7,7 +7,6 @@ export function buildAssessmentPayload({
   groupComments,
   individualComments,
   overallFeedback,
-  privateNotes,
   absentStudents = [],
 }) {
   const entities = [];
@@ -48,7 +47,6 @@ export function buildAssessmentPayload({
         kind: "GROUP",
         groupId: sessionContext?.entity?.group?.groupId || sessionContext?.entity?.groupId,
         overallFeedback,
-        notes: privateNotes,
         items: groupItems,
       });
     }
@@ -86,7 +84,6 @@ export function buildAssessmentPayload({
     status,
     entities,
     overallFeedback: overallFeedback || '',
-    privateNotes: privateNotes || '',
     absentStudents,
   };
 }
