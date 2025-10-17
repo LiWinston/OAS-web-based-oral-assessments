@@ -754,6 +754,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                         memberStatus.setStatus(AssessmentStatus.DRAFT);
                         memberStatus.setTotalScore(individualSubmission.getTotalScore());
                         memberStatus.setOverallFeedback(individualSubmission.getOverallFeedback());
+                        memberStatus.setAdminNote(individualSubmission.getAdminNote());
                         memberStatus.setSubmittedAt(individualSubmission.getSubmittedAt());
                         memberStatus.setScoresJson(individualSubmission.getScoresJson());
                     } else if ("REOPENED".equals(dbStatus)) {
@@ -808,6 +809,7 @@ public class ExaminerSelfServiceImpl implements ExaminerSelfService {
                     // Fill detailed information for DRAFT status
                     status.setTotalScore(submission.getTotalScore());
                     status.setOverallFeedback(submission.getOverallFeedback());
+                    status.setAdminNote(submission.getAdminNote());
                     status.setSubmittedAt(submission.getSubmittedAt());
                     status.setScoresJson(submission.getScoresJson());
                 } else if ("REOPENED".equals(dbStatus)) {
