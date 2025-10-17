@@ -5,6 +5,7 @@ import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { showError } from '@/lib/notifications.js';
 import { courseAdminSessionService } from '@/services/courseAdminSessionService.js';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 /**
  * ExaminerLimitsStep - Step 3 of the schedule wizard
@@ -273,6 +274,7 @@ export default function ExaminerLimitsStep({
                     min={toInt(examiner.assignments, 0)}
                     value={examiner.maxSessions}
                     onChange={(e) => handleExaminerLimitChange(examiner.id, e.target.value)}
+                    onWheel={preventNumberInputScroll}
                     disabled={isUpdating}
                   />
                   <button

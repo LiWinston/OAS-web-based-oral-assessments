@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "../../ui/button";
 import { useNotification } from "../../../hooks/useNotification";
 import { assignmentService } from "../../../services/assignmentService";
+import { preventNumberInputScroll } from "@/lib/utils";
 
 function formatDateTimeForInput(date) {
   if (!date) return "";
@@ -1334,10 +1335,7 @@ export function AssignmentCreationModal({
                             }
                           }
                         }}
-                        onWheel={(e) => {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }}
+                        onWheel={preventNumberInputScroll}
                         min="0"
                         max="100"
                         className={`

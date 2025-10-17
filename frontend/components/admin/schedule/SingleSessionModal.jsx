@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 
 import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 export default function SingleSessionModal({ isOpen, onClose, onCreate, onUpdate, defaultDate, assignmentId, mode = 'create', initialSession = null }) {
   const [date, setDate] = useState('');
@@ -109,6 +110,7 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, onUpdate
               className="custom-input bg-white dark:bg-white text-gray-900"
               value={length}
               onChange={(e) => setLength(Number(e.target.value) || 1)}
+              onWheel={preventNumberInputScroll}
             />
           </div>
           <div className="form-field">
@@ -136,11 +138,11 @@ export default function SingleSessionModal({ isOpen, onClose, onCreate, onUpdate
           </div>
           <div className="form-field">
             <label className="text-sm font-medium">Required Examiners</label>
-            <input type="number" min={1} className="custom-input bg-white dark:bg-white text-gray-900" value={requiredExaminers} onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)} />
+            <input type="number" min={1} className="custom-input bg-white dark:bg-white text-gray-900" value={requiredExaminers} onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)} onWheel={preventNumberInputScroll} />
           </div>
           <div className="form-field">
             <label className="text-sm font-medium">Capacity (student groups)</label>
-            <input type="number" min={1} className="custom-input bg-white dark:bg-white text-gray-900" value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 1)} />
+            <input type="number" min={1} className="custom-input bg-white dark:bg-white text-gray-900" value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 1)} onWheel={preventNumberInputScroll} />
           </div>
         </div>
         <div className="mt-6 flex justify-end space-x-3">

@@ -5,6 +5,7 @@ import { showError } from '@/lib/notifications.js';
 import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
 import { calculateEndTimeWithConfig, to24Hour } from '@/lib/timeMath.js';
 import { venueService } from '@/services/venueService.js';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 /**
  * AddTimeSlotModal
@@ -213,6 +214,7 @@ export default function AddTimeSlotModal({
                   min={1}
                   value={sessions}
                   onChange={(e) => setSessions(Number(e.target.value) || 1)}
+                  onWheel={preventNumberInputScroll}
                   aria-label="Timeslot count"
                   className="w-20 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
                 />
@@ -272,6 +274,7 @@ export default function AddTimeSlotModal({
                 min={1}
                 value={requiredExaminers}
                 onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)}
+                onWheel={preventNumberInputScroll}
                 aria-label="Required examiners"
                 className="w-20 text-center py-1 border-t border-b border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
               />

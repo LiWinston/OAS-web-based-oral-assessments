@@ -23,6 +23,7 @@ import RubricPreview from "@/components/admin/rubric/RubricPreview";
 import { rubricService } from "@/services/rubricService";
 import { assignmentService } from "@/services/assignmentService";
 import { courseService } from "@/services/courseService";
+import { preventNumberInputScroll } from "@/lib/utils";
 
 const CRITERION_TYPE_LABELS = {
   INDIVIDUAL: "Individual",
@@ -1269,6 +1270,7 @@ export default function RubricConfigurationPage() {
                         setRubric({ ...rubric, totalPoints: 100 });
                       }
                     }}
+                    onWheel={preventNumberInputScroll}
                     className="form-control w-full max-w-xs"
                     min={1}
                     max={1000}
@@ -1310,17 +1312,18 @@ export default function RubricConfigurationPage() {
                         value={rubric.individualWeight ?? ''}
                         onChange={(e) => {
                           const value = e.target.value;
-                          setRubric({
-                            ...rubric,
-                            individualWeight: value === '' ? '' : Number(value),
-                          });
-                          setHasChanges(true);
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value === '') {
-                            setRubric({
-                              ...rubric,
-                              individualWeight: 0,
+                      setRubric({
+                        ...rubric,
+                        individualWeight: value === '' ? '' : Number(value),
+                      });
+                      setHasChanges(true);
+                    }}
+                    onWheel={preventNumberInputScroll}
+                    onBlur={(e) => {
+                      if (e.target.value === '') {
+                        setRubric({
+                          ...rubric,
+                          individualWeight: 0,
                             });
                           }
                         }}
@@ -1337,17 +1340,18 @@ export default function RubricConfigurationPage() {
                         value={rubric.groupWeight ?? ''}
                         onChange={(e) => {
                           const value = e.target.value;
-                          setRubric({
-                            ...rubric,
-                            groupWeight: value === '' ? '' : Number(value),
-                          });
-                          setHasChanges(true);
-                        }}
-                        onBlur={(e) => {
-                          if (e.target.value === '') {
-                            setRubric({
-                              ...rubric,
-                              groupWeight: 0,
+                      setRubric({
+                        ...rubric,
+                        groupWeight: value === '' ? '' : Number(value),
+                      });
+                      setHasChanges(true);
+                    }}
+                    onWheel={preventNumberInputScroll}
+                    onBlur={(e) => {
+                      if (e.target.value === '') {
+                        setRubric({
+                          ...rubric,
+                          groupWeight: 0,
                             });
                           }
                         }}

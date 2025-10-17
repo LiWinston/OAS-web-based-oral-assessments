@@ -11,6 +11,7 @@ import {
   User,
 } from 'lucide-react';
 import PerformanceLevel from './PerformanceLevel';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 const CRITERION_TYPE_LABELS = {
   INDIVIDUAL: 'Individual',
@@ -170,6 +171,7 @@ export default function RubricCriterion({
                     onUpdate({ ...criterion, weight: 0 });
                   }
                 }}
+                onWheel={preventNumberInputScroll}
                 className="form-control"
                 min={0}
               />

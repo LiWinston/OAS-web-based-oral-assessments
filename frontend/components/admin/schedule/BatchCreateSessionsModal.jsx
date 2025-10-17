@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 import VenueSelect from '@/components/admin/schedule/VenueSelect.jsx';
 
@@ -78,9 +79,9 @@ export default function BatchCreateSessionsModal({ isOpen, onClose, onGenerate, 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="form-field"><label className="text-sm font-medium">Date</label><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
           <div className="form-field"><label className="text-sm font-medium">Start Time</label><input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Timeslot Count</label><input type="number" min={1} value={count} onChange={(e) => setCount(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Length per timeslot (minutes)</label><input type="number" min={1} value={length} onChange={(e) => setLength(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Gap between timeslots (minutes)</label><input type="number" min={0} value={gapTime} onChange={(e) => setGapTime(Number(e.target.value) || 0)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Timeslot Count</label><input type="number" min={1} value={count} onWheel={preventNumberInputScroll} onChange={(e) => setCount(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Length per timeslot (minutes)</label><input type="number" min={1} value={length} onWheel={preventNumberInputScroll} onChange={(e) => setLength(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Gap between timeslots (minutes)</label><input type="number" min={0} value={gapTime} onWheel={preventNumberInputScroll} onChange={(e) => setGapTime(Number(e.target.value) || 0)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
           <div className="form-field"><label className="text-sm font-medium">End Time (calculated)</label><input type="time" value={blockEndTime} readOnly disabled className="custom-input bg-gray-50 dark:bg-gray-800 text-gray-600 cursor-not-allowed" /></div>
           <div className="form-field md:col-span-2">
             <label className="text-sm font-medium">Venue</label>
@@ -95,8 +96,8 @@ export default function BatchCreateSessionsModal({ isOpen, onClose, onGenerate, 
               placeholder="Search or add venue"
             />
           </div>
-          <div className="form-field"><label className="text-sm font-medium">Required Examiners</label><input type="number" min={1} value={requiredExaminers} onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
-          <div className="form-field"><label className="text-sm font-medium">Capacity (student groups)</label><input type="number" min={1} value={capacity} onChange={(e) => setCapacity(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Required Examiners</label><input type="number" min={1} value={requiredExaminers} onWheel={preventNumberInputScroll} onChange={(e) => setRequiredExaminers(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
+          <div className="form-field"><label className="text-sm font-medium">Capacity (student groups)</label><input type="number" min={1} value={capacity} onWheel={preventNumberInputScroll} onChange={(e) => setCapacity(Number(e.target.value) || 1)} className="custom-input bg-white dark:bg-white text-gray-900" /></div>
         </div>
         <div className="mt-6 flex justify-end space-x-3">
           <button onClick={onClose} className="btn btn-secondary">Cancel</button>

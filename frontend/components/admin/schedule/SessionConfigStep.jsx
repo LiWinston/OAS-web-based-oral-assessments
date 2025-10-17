@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSessionConfig } from '@/hooks/useSessionConfig.js';
 import { showError } from '@/lib/notifications.js';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 /**
  * SessionConfigStep - Step 1 of the schedule wizard
@@ -128,6 +129,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 step="5"
                 value={formSessionLength}
                 onChange={(e) => handleSessionLengthChange(Number(e.target.value) || 1)}
+                onWheel={preventNumberInputScroll}
                 disabled={isSaving}
               />
               <button 
@@ -177,6 +179,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 step="1"
                 value={formGapTime}
                 onChange={(e) => handleGapTimeChange(Number(e.target.value) || 0)}
+                onWheel={preventNumberInputScroll}
                 disabled={isSaving}
               />
               <button 
@@ -226,6 +229,7 @@ export default function SessionConfigStep({ assignmentId, onNext }) {
                 step="1"
                 value={formExaminersPerSession}
                 onChange={(e) => handleExaminersPerSessionChange(Number(e.target.value) || 1)}
+                onWheel={preventNumberInputScroll}
                 disabled={isSaving}
               />
               <button 

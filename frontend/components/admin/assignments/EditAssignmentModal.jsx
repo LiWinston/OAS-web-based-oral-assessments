@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNotification } from '../../../hooks/useNotification';
 import { assignmentService } from '../../../services/assignmentService';
+import { preventNumberInputScroll } from '@/lib/utils';
 
 export function EditAssignmentModal({ 
   isOpen, 
@@ -917,6 +918,7 @@ export function EditAssignmentModal({
                           }
                         }
                       }}
+                      onWheel={preventNumberInputScroll}
                       min="0"
                       max="100"
                       className={`

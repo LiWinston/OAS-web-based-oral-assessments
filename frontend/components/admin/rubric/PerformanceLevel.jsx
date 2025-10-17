@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Trash2, AlertCircle, MessageSquare, Plus, Edit3, Check, X } from "lucide-react";
+import { preventNumberInputScroll } from "@/lib/utils";
 
 export default function PerformanceLevel({
   level,
@@ -227,6 +228,7 @@ export default function PerformanceLevel({
                     placeholder="Min"
                     min={0}
                     max={100}
+                    onWheel={preventNumberInputScroll}
                   />
                 </div>
                 <span className="flex items-center text-gray-500 px-2">-</span>
@@ -241,6 +243,7 @@ export default function PerformanceLevel({
                     placeholder="Max"
                     min={0}
                     max={100}
+                    onWheel={preventNumberInputScroll}
                   />
                 </div>
               </div>

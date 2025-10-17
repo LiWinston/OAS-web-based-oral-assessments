@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card } from '../../ui/card';
 import { Button } from '../../ui/button';
-import { cn } from '../../../lib/utils';
+import { cn, preventNumberInputScroll } from '../../../lib/utils';
 import { assignmentService } from '../../../services/assignmentService';
 
 /**
@@ -413,6 +413,7 @@ export default function RubricTable({
                                  bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
                         value={selectedRatings[criterion.criterionId]?.points || ''}
                         onChange={(e) => handlePointsChangeWithLevelSelection(criterion.criterionId, e.target.value, criterion)}
+                        onWheel={preventNumberInputScroll}
                         min={0}
                         max={100}
                         placeholder="0"
