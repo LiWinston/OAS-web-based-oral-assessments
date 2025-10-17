@@ -6,6 +6,8 @@ import { useGlobalSearchStore } from '@/store/globalSearchStore';
 import { getSearchSources } from '@/search/registry';
 import { getFavourites, getFavouritesSet, getRecents, pruneFavourites, pruneRecents } from '@/search/persistence';
 
+const TTL_MS = 60 * 1000; // soft refresh every 60s when palette is opened
+
 const buildContextKey = (user) => {
   const role = user?.role ?? 'unknown-role';
   const id = user?.id ?? 'anonymous';
@@ -22,8 +24,6 @@ export function GlobalSearchProvider({ children }) {
   const lastFetchedAt = useGlobalSearchStore((state) => state.lastFetchedAt);
   const setLastFetchedAt = useGlobalSearchStore((state) => state.setLastFetchedAt);
   const isOpen = useGlobalSearchStore((state) => state.isOpen);
-
-  const TTL_MS = 60 * 1000; // soft refresh every 60s when palette is opened
 
   useEffect(() => {
     setSections([]);
@@ -162,7 +162,7 @@ export function GlobalSearchProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [user, lastFetchedKey, setSections, setError, setLoading, setLastFetchedKey]);
+  }, [user, lastFetchedKey, setSections, setError, setLoading, setLastFetchedKey, setLastFetchedAt]);
 
   // When palette is opened, refresh if TTL expired or key mismatch
   useEffect(() => {

@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -415,12 +416,12 @@ export default function StudentBookingSteps() {
         <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
           <ol className="flex items-center space-x-2">
             <li className="flex items-center">
-              <a
+              <Link
                 href="/student/booking"
                 className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 My Bookings
-              </a>
+              </Link>
             </li>
             <li className="flex items-center">
               <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>

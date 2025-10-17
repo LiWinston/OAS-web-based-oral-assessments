@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Spinner } from "../../ui/spinner";
@@ -18,6 +18,7 @@ export function MyGroups() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [memberPreviews, setMemberPreviews] = useState({}); // groupId -> [{studentId,name,avatarUrl}]
+  const memberPreviewsRef = useRef({});
 
   // Align initials color scheme with My Groups page
   const getInitialsColor = (name) => {
@@ -33,10 +34,10 @@ export function MyGroups() {
   };
 
   useEffect(() => {
-    loadGroups();
-  }, []);
+    memberPreviewsRef.current = memberPreviews;
+  }, [memberPreviews]);
 
-  const loadGroups = async () => {
+  const loadGroups = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,7 +62,7 @@ export function MyGroups() {
       try {
         const previews = {};
         const promises = uniqueGroups.map(async (g) => {
-          if (memberPreviews[g.groupId]) return;
+          if (memberPreviewsRef.current[g.groupId]) return;
           const detail = await studentGroupsService.getCurrentUserGroupDetails(g.groupId);
           const members = detail?.members || [];
           previews[g.groupId] = members.slice(0, 3).map(m => ({
@@ -72,7 +73,14 @@ export function MyGroups() {
         });
         await Promise.allSettled(promises);
         if (Object.keys(previews).length > 0) {
-          setMemberPreviews(prev => ({ ...prev, ...previews }));
+          setMemberPreviews(prev => {
+            const next = { ...prev };
+            Object.entries(previews).forEach(([groupId, members]) => {
+              next[groupId] = members;
+            });
+            memberPreviewsRef.current = next;
+            return next;
+          });
         }
       } catch (_e) {
         // ignore preview errors
@@ -83,7 +91,11 @@ export function MyGroups() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadGroups();
+  }, [loadGroups]);
 
   const generateAvatar = (name) => {
     const initials = name

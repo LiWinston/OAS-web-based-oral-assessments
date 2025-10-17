@@ -80,7 +80,7 @@ export function AdminManagementHub() {
   // Build filter parameters
   const buildFilters = useCallback(() => {
     const filters = {};
-    
+
     if (debouncedSearchName) {
       filters.name = debouncedSearchName;
     }
@@ -96,82 +96,16 @@ export function AdminManagementHub() {
     return filters;
   }, [debouncedSearchName, debouncedSearchEmail, statusFilter]);
 
-  // Check if component is mounted on client
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
-  // Close search dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (isSearchDropdownOpen && !event.target.closest('.search-dropdown')) {
-        setIsSearchDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isSearchDropdownOpen]);
-
-  // Load admin data on component mount
-  useEffect(() => {
-    if (isClient) {
-      loadAdminData();
-    }
-  }, [isClient]);
-
-  // Load admin data when pagination changes
-  useEffect(() => {
-    if (isClient) {
-      loadAdminData();
-    }
-  }, [currentPage, pageSize]);
-
-  // Reload data when filters change
-  useEffect(() => {
-    if (isClient) {
-      setCurrentPage(1); // Reset to first page
-      loadAdminData();
-    }
-  }, [debouncedSearchName, debouncedSearchEmail, statusFilter, pageSize]);
-
-  // Handle page change
-  const handlePageChange = (newPage) => {
-    console.log("🔄 Changing to page:", newPage);
-    setCurrentPage(newPage);
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (newPageSize) => {
-    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
-    setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
-    
-    // Immediately trigger data reload with new page size
-    console.log("🔄 Triggering immediate data reload with new page size");
-  };
-
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSearchName("");
-    setSearchEmail("");
-    setStatusFilter("all");
-    setCurrentPage(1);
-    // No need to call loadAdminData manually; useEffect will trigger
-  };
-
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     try {
       setIsLoading(true);
       const filters = buildFilters();
-      
+
       console.log("🔍 Loading admin data...");
       console.log("Filters:", filters);
       console.log("Page:", currentPage);
       console.log("PageSize:", pageSize);
-      
+
       const response = await adminService.getAdminList(filters, currentPage, pageSize);
       console.log("📊 Admin data response:", response);
 
@@ -188,8 +122,8 @@ export function AdminManagementHub() {
         });
 
         setAdminData(response.data);
-        
-    // Update pagination
+
+        // Update pagination
         if (response.data.pagination) {
           console.log("🔄 Updating pagination state:", response.data.pagination);
           setPagination(response.data.pagination);
@@ -229,6 +163,66 @@ export function AdminManagementHub() {
     } finally {
       setIsLoading(false);
     }
+  }, [buildFilters, currentPage, pageSize]);
+
+  // Check if component is mounted on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Close search dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isSearchDropdownOpen && !event.target.closest('.search-dropdown')) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchDropdownOpen]);
+
+  // Load admin data on component mount
+  useEffect(() => {
+    if (!isClient) {
+      return;
+    }
+    loadAdminData();
+  }, [isClient, loadAdminData]);
+
+  // Reload data when filters change
+  useEffect(() => {
+    if (!isClient) {
+      return;
+    }
+    setCurrentPage(1); // Reset to first page
+  }, [debouncedSearchName, debouncedSearchEmail, statusFilter, isClient]);
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    console.log("🔄 Changing to page:", newPage);
+    setCurrentPage(newPage);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newPageSize) => {
+    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Immediately trigger data reload with new page size
+    console.log("🔄 Triggering immediate data reload with new page size");
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchName("");
+    setSearchEmail("");
+    setStatusFilter("all");
+    setCurrentPage(1);
+    // No need to call loadAdminData manually; useEffect will trigger
   };
 
   const validateEmail = (email) => {

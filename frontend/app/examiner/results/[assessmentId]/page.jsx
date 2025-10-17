@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import useAuth from '../../../../hooks/useAuth';
 import ResultDetailHeader from '../../../../components/examiner/results/ResultDetailHeader';
@@ -42,11 +43,15 @@ export default function ExaminerResultDetailPage() {
       <nav className="text-sm bg-white dark:bg-gray-800 rounded-lg shadow p-3">
         <ol className="flex items-center space-x-2">
           <li>
-            <a href="/examiner" className="text-gray-500 dark:text-gray-400 hover:text-blue-600">Dashboard</a>
+            <Link href="/examiner" className="text-gray-500 dark:text-gray-400 hover:text-blue-600">
+              Dashboard
+            </Link>
           </li>
           <li className="flex items-center">
             <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>
-            <a href="/examiner/results" className="text-gray-500 dark:text-gray-400 hover:text-blue-600">Results</a>
+            <Link href="/examiner/results" className="text-gray-500 dark:text-gray-400 hover:text-blue-600">
+              Results
+            </Link>
           </li>
           <li className="flex items-center">
             <i className="fas fa-chevron-right text-gray-400 mx-2 text-xs"></i>

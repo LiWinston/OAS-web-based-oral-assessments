@@ -221,7 +221,7 @@ export function CourseOverviewTable() {
 
   // After loadCourses is defined, handle initial load and filter change
   useEffect(() => {
-    loadCourses(1, pageSize); // Use current activeSearchTerm
+    loadCourses(1); // Use current activeSearchTerm
     loadCourseStats(); // Also load stats
   }, [loadCourses, loadCourseStats]);
 
@@ -229,7 +229,7 @@ export function CourseOverviewTable() {
   useEffect(() => {
     if (loadCourses) {
       setCurrentPage(1); // Reset to first page
-      loadCourses(1, pageSize); // Use current activeSearchTerm
+      loadCourses(1); // Use current activeSearchTerm
     }
   }, [filterDepartment, filterStatus, pageSize, loadCourses]);
 
