@@ -56,6 +56,7 @@ export default function ExaminerAssessmentMarking() {
     individualComments,
     overallFeedback,
     setOverallFeedback,
+    adminNote,
     handleRatingChange,
     handleCommentChange,
     selectedStudent,
@@ -73,6 +74,8 @@ export default function ExaminerAssessmentMarking() {
   // Mutations
   const saveDraftMutation = useSaveDraftMutation(submissionId);
   const submitMutation = useSubmitAssessmentMutation(submissionId);
+
+  const isReopened = (sessionContext?.existingAssessment?.status || '').toUpperCase() === 'REOPENED';
 
   // Build payload for operations - memoized to prevent repeated calls
   const buildDraftPayload = useCallback(() =>
@@ -461,6 +464,17 @@ export default function ExaminerAssessmentMarking() {
                             placeholder="Provide overall feedback for this assessment..."
                           />
                         </div>
+
+                        {isReopened && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Admin Notes
+                            </label>
+                            <div className="w-full min-h-[4rem] p-3 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-900/40 text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                              {adminNote?.trim() ? adminNote : 'No admin notes provided.'}
+                            </div>
+                          </div>
+                        )}
 
                       </div>
                     </TabsContent>
