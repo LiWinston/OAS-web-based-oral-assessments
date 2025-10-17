@@ -12,6 +12,7 @@ import { EditCourseModal } from "../../../components/admin/courses/EditCourseMod
 
 export default function CoursesPage() {
   const { user } = useAuthStore();
+  const userId = user?.id;
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -47,11 +48,10 @@ export default function CoursesPage() {
         semester: undefined,
         status: statusFilter || undefined,
         courseCode: searchTerm || undefined,
-        adminUserId: user?.id
+        adminUserId: userId
       };
       
-      console.log('User data:', user);
-      console.log('User ID:', user?.id);
+      console.log('User ID:', userId);
       console.log('Filters being sent:', filters);
 
       let result;
@@ -89,7 +89,7 @@ export default function CoursesPage() {
     } finally {
       setLoading(false);
     }
-  }, [viewMode, yearFilter, statusFilter, searchTerm, user?.id]);
+  }, [viewMode, yearFilter, statusFilter, searchTerm, userId]);
 
   // Fetch course statistics
   const fetchCourseStats = useCallback(async () => {
@@ -98,13 +98,13 @@ export default function CoursesPage() {
       setStatsError('');
       
       // Ensure user data is available before making the request
-      if (!user?.id) {
+      if (!userId) {
         console.warn('User ID not available for course stats request');
         setStatsLoading(false);
         return;
       }
       
-      const result = await courseService.getCourseStats(user.id);
+      const result = await courseService.getCourseStats(userId);
       
       if (result.success && result.data) {
         setCourseStats({
@@ -136,22 +136,22 @@ export default function CoursesPage() {
     } finally {
       setStatsLoading(false);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   // Initialize stats - only depends on user ID, not filters
   useEffect(() => {
-    if (user?.id) {
+    if (userId) {
       fetchCourseStats();
     }
-  }, [user?.id, fetchCourseStats]);
+  }, [userId, fetchCourseStats]);
 
   // Fetch courses on init and when filters change - excluding stats
   useEffect(() => {
     // Only fetch courses when user data is loaded
-    if (user?.id) {
+    if (userId) {
       fetchCourses(1);
     }
-  }, [searchTerm, yearFilter, statusFilter, viewMode, user?.id, fetchCourses]);
+  }, [searchTerm, yearFilter, statusFilter, viewMode, userId, fetchCourses]);
 
   // Initialize courseListRef
   useEffect(() => {

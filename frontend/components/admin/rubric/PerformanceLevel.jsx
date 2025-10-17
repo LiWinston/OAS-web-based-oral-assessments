@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Trash2, AlertCircle, MessageSquare, Plus, Edit3, Check, X } from "lucide-react";
 import { preventNumberInputScroll } from "@/lib/utils";
 
@@ -101,7 +101,7 @@ export default function PerformanceLevel({
   };
 
   // Validate whether the score range overlaps with other levels
-  const validateScoreRange = (minPoints, maxPoints, currentIndex) => {
+  const validateScoreRange = useCallback((minPoints, maxPoints, currentIndex) => {
     const normalizedMin = Number.isFinite(minPoints) ? minPoints : 0;
     const normalizedMax = Number.isFinite(maxPoints) ? maxPoints : 0;
 
@@ -138,7 +138,7 @@ export default function PerformanceLevel({
     }
 
     return "";
-  };
+  }, [allLevels]);
 
   const handlePointsUpdate = (field, value) => {
     const parsedValue = Number(value);
@@ -165,7 +165,7 @@ export default function PerformanceLevel({
     const safeMax = Number.isFinite(maxValue) ? maxValue : 0;
     const error = validateScoreRange(safeMin, safeMax, index);
     setValidationError(error);
-  }, [level.minPoints, level.maxPoints, allLevels, index]);
+  }, [level.minPoints, level.maxPoints, allLevels, index, validateScoreRange]);
 
   const getLetterGrade = (index, total) => {
     const grades = [

@@ -37,7 +37,8 @@ export default function StudentCalendar() {
     refetchOnWindowFocus: true,
   });
 
-  const allBookings = data?.data?.data || [];
+  const rawBookings = data?.data?.data;
+  const allBookings = useMemo(() => rawBookings ?? [], [rawBookings]);
   const { start: calendarStart, end: calendarEnd } = calendarRange;
   const bookingEvents = useMemo(() => {
     if (!calendarStart || !calendarEnd) return [];

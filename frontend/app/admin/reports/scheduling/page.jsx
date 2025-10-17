@@ -291,7 +291,8 @@ function SchedulingOverviewContent() {
     enabled: Boolean(assignmentId),
   });
 
-  const calendarData = calendarQuery.data || {};
+  const rawCalendarData = calendarQuery.data;
+  const calendarData = useMemo(() => rawCalendarData ?? {}, [rawCalendarData]);
   const calendarDates = useMemo(() => Object.keys(calendarData).sort(), [calendarData]);
   const assignmentMeta = assignmentMetaQuery.data;
 

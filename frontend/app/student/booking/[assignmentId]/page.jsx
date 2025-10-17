@@ -1,6 +1,6 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import useAuth from "@/hooks/useAuth";
 import { useNotification } from "@/hooks/useNotification";
@@ -58,8 +58,11 @@ export default function StudentBookingSteps() {
       activeBookingEntity?.bookingId
   );
   const [groupContextEnabled, setGroupContextEnabled] = useState(true);
-  const daysWithAvailability =
-    availability?.summary?.daysWithAvailability || [];
+  const rawDaysWithAvailability = availability?.summary?.daysWithAvailability;
+  const daysWithAvailability = useMemo(
+    () => rawDaysWithAvailability ?? [],
+    [rawDaysWithAvailability]
+  );
   // Adjust calendar to show first available date
   const earliestAvailable = useMemo(() => {
     if (!daysWithAvailability?.length) return null;
@@ -118,26 +121,33 @@ export default function StudentBookingSteps() {
       : 30 * 1000,
   });
 
-  const timeSlots = sessionsData?.data?.timeSlots || [];
-  const isUrlValue = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
-  const extractRoomFromUrl = (url) => {
-    try {
-      const u = new URL(url);
-      const loc = u.searchParams.get("loc_code");
-      if (loc) {
-        const parts = loc.split(";");
-        return parts[parts.length - 1] || null;
+  const rawTimeSlots = sessionsData?.data?.timeSlots;
+  const timeSlots = useMemo(() => rawTimeSlots ?? [], [rawTimeSlots]);
+  const isUrlValue = useCallback(
+    (s) => typeof s === "string" && /^https?:\/\//i.test(s),
+    []
+  );
+  const extractRoomFromUrl = useCallback(
+    (url) => {
+      try {
+        const u = new URL(url);
+        const loc = u.searchParams.get("loc_code");
+        if (loc) {
+          const parts = loc.split(";");
+          return parts[parts.length - 1] || null;
+        }
+      } catch (_) {
+        const m = String(url).match(/loc_code=([^&]+)/i);
+        if (m) {
+          const parts = m[1].split(";");
+          return parts[parts.length - 1] || null;
+        }
       }
-    } catch (_) {
-      const m = String(url).match(/loc_code=([^&]+)/i);
-      if (m) {
-        const parts = m[1].split(";");
-        return parts[parts.length - 1] || null;
-      }
-    }
-    return null;
-  };
-  const titleCaseStreet = (street) => {
+      return null;
+    },
+    []
+  );
+  const titleCaseStreet = useCallback((street) => {
     if (!street) return "";
     return street
       .toLowerCase()
@@ -145,59 +155,64 @@ export default function StudentBookingSteps() {
       .map((w) => {
         const keep = ["st", "rd", "dr", "ave", "blvd", "pde", "ct", "ln", "pl", "hwy", "sq"];
         if (keep.includes(w)) return w[0].toUpperCase() + w.slice(1);
-        // preserve numbers/hyphens
         if (/^[0-9\-]+$/.test(w)) return w;
         return w.charAt(0).toUpperCase() + w.slice(1);
       })
       .join(" ");
-  };
-  const getRoomCode = (v) => {
-    if (!v) return "";
-    if (v.room) {
-      if (isUrlValue(v.room)) {
-        const code = extractRoomFromUrl(v.room);
-        if (code) return code;
-      } else {
-        return v.room;
+  }, []);
+  const getRoomCode = useCallback(
+    (v) => {
+      if (!v) return "";
+      if (v.room) {
+        if (isUrlValue(v.room)) {
+          const code = extractRoomFromUrl(v.room);
+          if (code) return code;
+        } else {
+          return v.room;
+        }
       }
-    }
-    return "";
-  };
-  const venueLabel = (v) => {
-    if (!v) return "";
-    const room = getRoomCode(v)?.toString().trim();
-    const name = (v.name || "").trim();
-    const buildingRaw = v.building || "";
-    const [street, ...restParts] = buildingRaw.split(",");
-    const streetTitled = titleCaseStreet(street?.trim());
-    const rest = restParts.join(",").trim();
-    const buildingFormatted = [streetTitled, rest].filter(Boolean).join(" ").trim();
+      return "";
+    },
+    [extractRoomFromUrl, isUrlValue]
+  );
+  const venueLabel = useCallback(
+    (v) => {
+      if (!v) return "";
+      const room = getRoomCode(v)?.toString().trim();
+      const name = (v.name || "").trim();
+      const buildingRaw = v.building || "";
+      const [street, ...restParts] = buildingRaw.split(",");
+      const streetTitled = titleCaseStreet(street?.trim());
+      const rest = restParts.join(",").trim();
+      const buildingFormatted = [streetTitled, rest].filter(Boolean).join(" ").trim();
 
-    const parts = [];
-    if (room) {
-      parts.push(`Room ${room}`);
-    }
-    if (buildingFormatted) {
-      parts.push(buildingFormatted);
-    } else if (!room && name) {
-      parts.push(name);
-    } else if (room && name && name.toLowerCase() !== room.toLowerCase()) {
-      parts.push(name);
-    }
+      const parts = [];
+      if (room) {
+        parts.push(`Room ${room}`);
+      }
+      if (buildingFormatted) {
+        parts.push(buildingFormatted);
+      } else if (!room && name) {
+        parts.push(name);
+      } else if (room && name && name.toLowerCase() !== room.toLowerCase()) {
+        parts.push(name);
+      }
 
-    if (!parts.length && name) {
-      parts.push(name);
-    }
+      if (!parts.length && name) {
+        parts.push(name);
+      }
 
-    return parts.join(" — ");
-  };
+      return parts.join(" — ");
+    },
+    [getRoomCode, titleCaseStreet]
+  );
   const venueLink = (v) => (v?.room && isUrlValue(v.room) ? v.room : null);
   const venueOptions = useMemo(() => {
     const labels = Array.from(
       new Set(timeSlots.map((s) => venueLabel(s.venue)).filter(Boolean))
     );
     return ["ALL", ...labels];
-  }, [timeSlots]);
+  }, [timeSlots, venueLabel]);
 
   useEffect(() => {
     if (venueFilter !== "ALL" && !venueOptions.includes(venueFilter)) {
@@ -207,7 +222,7 @@ export default function StudentBookingSteps() {
   const listSessions = useMemo(() => {
     if (venueFilter === "ALL") return timeSlots;
     return timeSlots.filter((slot) => venueLabel(slot.venue) === venueFilter);
-  }, [timeSlots, venueFilter]);
+  }, [timeSlots, venueFilter, venueLabel]);
 
   const sessionIsBookable = (s) => {
     const avail = s?.availability || {};

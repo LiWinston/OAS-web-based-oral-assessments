@@ -61,6 +61,17 @@ const generateCriterionId = () => {
   return `crit-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 };
 
+const INITIAL_RUBRIC_STATE = {
+  id: null,
+  name: "",
+  description: "",
+  totalPoints: 100,
+  weightBasis: "percentage", // 'percentage' | 'points'
+  individualWeight: 100,
+  groupWeight: 0,
+  criteria: [],
+};
+
 export default function RubricConfigurationPage() {
   const params = useParams();
   const router = useRouter();
@@ -70,16 +81,7 @@ export default function RubricConfigurationPage() {
   // Data states
   const [course, setCourse] = useState(null);
   const [assignment, setAssignment] = useState(null);
-  const [rubric, setRubric] = useState({
-    id: null,
-    name: "",
-    description: "",
-    totalPoints: 100,
-    weightBasis: "percentage", // 'percentage' | 'points'
-    individualWeight: 100,
-    groupWeight: 0,
-    criteria: [],
-  });
+  const [rubric, setRubric] = useState(INITIAL_RUBRIC_STATE);
   const [requiresCriterionTypeReview, setRequiresCriterionTypeReview] = useState(false);
   const [criterionTypeReviewDismissed, setCriterionTypeReviewDismissed] = useState(false);
 
@@ -277,8 +279,8 @@ export default function RubricConfigurationPage() {
       }
 
       if (convertedCriteria.length) {
-        const totalPoints = Number(rubricMetaInfo?.totalPoints) || rubric.totalPoints;
-        const resolvedWeightBasis = rubricMetaInfo?.weightBasis || rubric.weightBasis;
+        const totalPoints = Number(rubricMetaInfo?.totalPoints) || INITIAL_RUBRIC_STATE.totalPoints;
+        const resolvedWeightBasis = rubricMetaInfo?.weightBasis || INITIAL_RUBRIC_STATE.weightBasis;
 
         // If weights are still NaN, fall back to defaults based on assignment type
         if (!Number.isFinite(individualWeight)) {
@@ -325,27 +327,88 @@ export default function RubricConfigurationPage() {
         setCriterionTypeReviewDismissed(usedSplitRubrics);
         setHasChanges(false);
       } else {
-        // Initialize with default criterion
-        const defaultTotal = rubric.weightBasis === "points" ? (Number(rubric.totalPoints) || 100) : 100;
-        const isMixedAssignment = assignmentType === "MIXED";
-        const defaultIndividualWeight = assignmentType === "GROUP"
-          ? 0
-          : isMixedAssignment
-            ? defaultTotal / 2
-            : defaultTotal;
-        const defaultGroupWeight = assignmentType === "INDIVIDUAL"
-          ? 0
-          : isMixedAssignment
-            ? defaultTotal - defaultIndividualWeight
-            : defaultTotal;
+        setRubric((prev) => {
+          const fallbackWeightBasis = prev.weightBasis;
+          const fallbackTotalPoints = Number(prev.totalPoints) || 100;
+          const defaultTotal =
+            fallbackWeightBasis === "points" ? fallbackTotalPoints : 100;
+          const isMixedAssignment = assignmentType === "MIXED";
+          const defaultIndividualWeight =
+            assignmentType === "GROUP"
+              ? 0
+              : isMixedAssignment
+                ? defaultTotal / 2
+                : defaultTotal;
+          const defaultGroupWeight =
+            assignmentType === "INDIVIDUAL"
+              ? 0
+              : isMixedAssignment
+                ? defaultTotal - defaultIndividualWeight
+                : defaultTotal;
 
-        setRubric((r) => ({
-          ...r,
-          name: `${mappedAssignment.title} Rubric`,
-          individualWeight: defaultIndividualWeight,
-          groupWeight: defaultGroupWeight,
-          criteria: [createDefaultCriterion()],
-        }));
+          const existingCriteria = prev.criteria || [];
+          const baseId = generateCriterionId();
+          const { value: criterionTypeValue } = coerceCriterionType(
+            undefined,
+            assignmentType
+          );
+          const generatedTitle = `Criterion ${existingCriteria.length + 1}`;
+          const levelTemplates = [
+            {
+              description: "Outstanding",
+              minPoints: 90,
+              maxPoints: 100,
+            },
+            {
+              description: "Very Good",
+              minPoints: 80,
+              maxPoints: 89,
+            },
+            {
+              description: "Good",
+              minPoints: 70,
+              maxPoints: 79,
+            },
+            {
+              description: "Satisfactory",
+              minPoints: 60,
+              maxPoints: 69,
+            },
+            {
+              description: "Needs Improvement",
+              minPoints: 0,
+              maxPoints: 59,
+            },
+          ];
+          const defaultLevels = levelTemplates.map((level, index) => ({
+            id: `${baseId}-level-${index}`,
+            description: level.description,
+            minPoints: level.minPoints,
+            maxPoints: level.maxPoints,
+            color: "blue",
+            comments: [],
+          }));
+
+          const defaultCriterion = {
+            id: baseId,
+            criterionId: baseId,
+            title: generatedTitle,
+            description: generatedTitle,
+            criterionType: criterionTypeValue,
+            weight: 100,
+            markingScale: "descriptive",
+            levels: defaultLevels,
+            comments: [],
+          };
+
+          return {
+            ...prev,
+            name: `${mappedAssignment.title} Rubric`,
+            individualWeight: defaultIndividualWeight,
+            groupWeight: defaultGroupWeight,
+            criteria: [defaultCriterion],
+          };
+        });
         setRequiresCriterionTypeReview(false);
         setCriterionTypeReviewDismissed(false);
       }

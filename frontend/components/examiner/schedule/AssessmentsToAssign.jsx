@@ -27,7 +27,11 @@ const AssessmentsToAssign = () => {
     enabled: isValidExaminer,
   });
 
-  const assignments = assignmentsData?.data?.data || [];
+  const rawAssignments = assignmentsData?.data?.data;
+  const assignments = React.useMemo(
+    () => rawAssignments ?? [],
+    [rawAssignments]
+  );
   const renderAssignments = React.useMemo(() => {
     let list = assignments;
     if (selectedCourse) {
