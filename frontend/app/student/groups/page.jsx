@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import useAuthStore from '../../../store/authStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
@@ -387,11 +388,14 @@ export default function StudentGroups() {
                             {/* Show up to first 3 real avatars from details (fallback: initials) */}
                             {(memberPreviews[group.groupId] || []).map((m) => (
                               m.avatarUrl ? (
-                                <img
+                                <Image
                                   key={m.studentId}
                                   src={m.avatarUrl}
                                   alt={m.name}
+                                  width={32}
+                                  height={32}
                                   className="h-8 w-8 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                                  unoptimized
                                 />
                               ) : (
                                 <div
@@ -510,11 +514,14 @@ export default function StudentGroups() {
                             <div className="flex -space-x-1">
                               {(memberPreviews[group.groupId] || []).map((m) => (
                                 m.avatarUrl ? (
-                                  <img
+                                  <Image
                                     key={m.studentId}
                                     src={m.avatarUrl}
                                     alt={m.name}
+                                    width={24}
+                                    height={24}
                                     className="h-6 w-6 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                                    unoptimized
                                   />
                                 ) : (
                                   <div

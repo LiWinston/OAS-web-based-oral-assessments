@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Spinner } from "../../ui/spinner";
 import { studentGroupsService } from "../../../services/studentGroupsService";
@@ -190,11 +191,14 @@ export function MyGroups() {
                     <div className="mt-3 flex -space-x-1 overflow-hidden">
                       {(memberPreviews[group.groupId] || []).map((m) => (
                         m.avatarUrl ? (
-                          <img
+                          <Image
                             key={m.studentId}
                             src={m.avatarUrl}
                             alt={m.name}
+                            width={24}
+                            height={24}
                             className="h-6 w-6 rounded-full object-cover ring-2 ring-white dark:ring-gray-800"
+                            unoptimized
                           />
                         ) : (
                           <div

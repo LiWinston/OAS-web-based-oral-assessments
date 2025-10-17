@@ -158,7 +158,7 @@ export default function DocumentationPage() {
     { id: 'technical', name: 'Technical Support', icon: 'fas fa-cog' }
   ]), []);
 
-  const faqData = [
+  const faqData = useMemo(() => ([
     {
       category: 'getting-started',
       question: 'How do I get started with OAS as a new Course Administrator?',
@@ -803,7 +803,7 @@ s1234569,Bob Wilson,bob.wilson@student.unimelb.edu.au,Group-B
 - Escalate to IT support if needed
 - Use built-in feedback system for bug reports`
     }
-  ];
+  ]), []);
   const documentationSections = useMemo(() => (
     topics.map(topic => ({
       ...topic,
