@@ -335,10 +335,15 @@ frontend/
 │       ├── dashboard/           # Student dashboard components
 │       │   ├── MyGroups.jsx              # Group membership display with avatars
 │       │   ├── RecentResults.jsx         # Recent assessment results with grades
-│       │   ├── StudentCalendar.jsx       # Calendar with assessment dates
 │       │   ├── StudentQuickActions.jsx   # Quick action buttons grid
 │       │   ├── StudentStatsCards.jsx     # Statistics cards using shared UI
 │       │   └── UpcomingAssessments.jsx   # Upcoming assessments list
+│       └── booking/             # Student booking workflow
+│           ├── AssignmentsAvailable.jsx  # Bookable assessments list with policy chips
+│           ├── BookingShareFallbackDialog.jsx # Guided fallback when mail clients can’t open
+│           ├── MyBookings.jsx            # Upcoming bookings with export/share/cancel actions
+│           ├── StudentCalendar.jsx       # Calendar view of booked/available sessions
+│           └── ConfirmCancelDialog.jsx   # Cancellation confirmation modal
 │
 ├── services/                    # API integration layer
 │   ├── apiClient.js             # Axios configuration (baseURL points to Spring Boot)
@@ -371,7 +376,10 @@ frontend/
 │
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
-│   └── utils.js                 # Helper functions
+│   ├── utils.js                 # Helper functions
+│   ├── ics.js                   # Reusable ICS calendar generator + download helpers
+│   └── bookings/
+│       └── calendar.js          # Booking-to-event/email mapping utilities
 
 ├── search/                      # Global search registry & role sources
 │   ├── registry.js              # registerSearchSources / getSearchSources
