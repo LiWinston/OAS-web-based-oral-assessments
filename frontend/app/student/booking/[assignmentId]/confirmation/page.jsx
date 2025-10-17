@@ -1,14 +1,26 @@
 "use client";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useAuth from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useNotification } from "@/hooks/useNotification";
+import { createICSBlob, createICSFile, triggerICSDownload } from "@/lib/ics";
+import {
+  bookingToCalendarEvent,
+  buildBookingEmailContent,
+} from "@/lib/bookings/calendar";
 import { studentBookingServiceReal as studentBookingService } from "@/services/studentBookingReal";
+import BookingShareFallbackDialog from "@/components/student/booking/BookingShareFallbackDialog";
 
 export default function BookingConfirmation() {
   const { assignmentId } = useParams();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const studentId = user?.id || user?.userId || user?.studentId;
+  const { showNotification } = useNotification();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
+  const [shareFallbackDetails, setShareFallbackDetails] = useState(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["currentBooking", assignmentId, studentId],
@@ -23,6 +35,14 @@ export default function BookingConfirmation() {
     Boolean(payload?.booking) ||
     Boolean(payload?.bookingId);
   const booking = payload?.booking || payload || null; // Support wrapper or plain booking
+  const origin = useMemo(
+    () => (typeof window !== "undefined" ? window.location.origin : ""),
+    []
+  );
+  const calendarEvent = useMemo(
+    () => bookingToCalendarEvent(booking, { origin }),
+    [booking, origin]
+  );
 
   const isUrlValue = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
   const extractRoomFromUrl = (url) => {
@@ -61,6 +81,117 @@ export default function BookingConfirmation() {
     return room ? `Room ${room} — ${buildingFormatted}` : buildingFormatted;
   };
   const venueLink = (v) => (v?.room && isUrlValue(v.room) ? v.room : null);
+  const sanitizeFileName = (name, fallback = "booking") =>
+    (name || fallback)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || fallback;
+
+  const handleDownloadCalendar = () => {
+    if (!booking || !calendarEvent) {
+      showNotification("error", "Booking details are missing");
+      return;
+    }
+    try {
+      setIsDownloading(true);
+      const blob = createICSBlob([calendarEvent], {
+        calendarName: booking.assignmentName || "Assessment booking",
+      });
+      const fileName = `${sanitizeFileName(
+        `${booking.courseCode || "course"}-${booking.assignmentName || "assessment"}`
+      )}.ics`;
+      triggerICSDownload(blob, fileName);
+      showNotification("success", "Downloaded calendar invite");
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Unable to download calendar invite");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const handleShareCalendar = async () => {
+    if (!booking || !calendarEvent) {
+      showNotification("error", "Booking details are missing");
+      return;
+    }
+    const safeName = sanitizeFileName(
+      `${booking.courseCode || "course"}-${booking.assignmentName || "assessment"}`
+    );
+    const fallbackShare = (calendarFile, emailContent) => {
+      const fileName = calendarFile?.name || `${safeName}.ics`;
+      if (calendarFile) {
+        triggerICSDownload(calendarFile, fileName);
+      }
+      const subject = encodeURIComponent(emailContent.subject || "Assessment booking");
+      const body = encodeURIComponent(emailContent.body);
+      const mailto = `mailto:?subject=${subject}&body=${body}`;
+      setShareFallbackDetails({
+        subject: emailContent.subject || "Assessment booking",
+        body: emailContent.body || "",
+        mailto,
+        fileName,
+      });
+      showNotification(
+        "info",
+        "Calendar invite downloaded. Follow the steps to share via email."
+      );
+    };
+
+    try {
+      setIsSharing(true);
+      const calendarFile = createICSFile([calendarEvent], {
+        fileName: `${safeName}.ics`,
+        calendarName: booking.assignmentName || "Assessment booking",
+      });
+      const emailContent = buildBookingEmailContent(booking, { origin });
+
+      const canUseWebShare =
+        typeof navigator !== "undefined" &&
+        typeof window !== "undefined" &&
+        window.isSecureContext &&
+        navigator.canShare &&
+        (() => {
+          try {
+            return navigator.canShare({ files: [calendarFile] });
+          } catch {
+            return false;
+          }
+        })();
+
+      if (canUseWebShare) {
+        try {
+          await navigator.share({
+            files: [calendarFile],
+            title: emailContent.subject || "Assessment booking",
+            text: emailContent.body,
+          });
+          showNotification("success", "Calendar invite shared");
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            showNotification("info", "Share cancelled");
+            return;
+          }
+          if (error?.name === "NotAllowedError" || error?.name === "NotFoundError") {
+            fallbackShare(calendarFile, emailContent);
+            return;
+          }
+          console.error(error);
+          fallbackShare(calendarFile, emailContent);
+          return;
+        }
+      }
+
+      fallbackShare(calendarFile, emailContent);
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Unable to share booking");
+    } finally {
+      setIsSharing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -240,6 +371,34 @@ export default function BookingConfirmation() {
 
             <div className="flex flex-col sm:flex-row gap-2 justify-end mt-6">
               <button
+                type="button"
+                onClick={handleDownloadCalendar}
+                disabled={isDownloading}
+                aria-label="Download booking as calendar file"
+                className={`px-4 py-2 text-sm rounded-md border ${
+                  isDownloading
+                    ? "border-gray-300 text-gray-500 bg-gray-100 cursor-wait dark:border-gray-700 dark:text-gray-400 dark:bg-gray-800"
+                    : "border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                }`}
+              >
+                <i className="fas fa-calendar-plus mr-1" />
+                {isDownloading ? "Preparing…" : "Add to calendar (.ics)"}
+              </button>
+              <button
+                type="button"
+                onClick={handleShareCalendar}
+                disabled={isSharing}
+                aria-label="Share booking via email"
+                className={`px-4 py-2 text-sm rounded-md border ${
+                  isSharing
+                    ? "border-gray-300 text-gray-500 bg-gray-100 cursor-wait dark:border-gray-700 dark:text-gray-400 dark:bg-gray-800"
+                    : "border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                }`}
+              >
+                <i className="fas fa-envelope mr-1" />
+                {isSharing ? "Opening…" : "Share via email"}
+              </button>
+              <button
                 onClick={() => window.print()}
                 className="px-4 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300"
               >
@@ -256,6 +415,13 @@ export default function BookingConfirmation() {
           </div>
         )}
       </div>
+      <BookingShareFallbackDialog
+        open={Boolean(shareFallbackDetails)}
+        onOpenChange={(open) => {
+          if (!open) setShareFallbackDetails(null);
+        }}
+        details={shareFallbackDetails}
+      />
     </div>
   );
 }

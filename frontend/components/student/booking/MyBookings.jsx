@@ -1,11 +1,17 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import useAuth from "@/hooks/useAuth";
 import { studentBookingServiceReal as studentBookingService } from "@/services/studentBookingReal";
 import { useNotification } from "@/hooks/useNotification";
 import { useRouter } from "next/navigation";
+import { createICSBlob, createICSFile, triggerICSDownload } from "@/lib/ics";
+import {
+  bookingToCalendarEvent,
+  buildBookingEmailContent,
+} from "@/lib/bookings/calendar";
 import ConfirmCancelDialog from "./ConfirmCancelDialog";
+import BookingShareFallbackDialog from "./BookingShareFallbackDialog";
 
 export default function MyBookings() {
   const { user, isAuthenticated } = useAuth();
@@ -16,6 +22,10 @@ export default function MyBookings() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isProcessingCancel, setIsProcessingCancel] = useState(false);
+  const [isExportingAll, setIsExportingAll] = useState(false);
+  const [exportingBookingId, setExportingBookingId] = useState(null);
+  const [sharingBookingId, setSharingBookingId] = useState(null);
+  const [shareFallbackDetails, setShareFallbackDetails] = useState(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["studentMyBookings", studentId],
@@ -26,6 +36,10 @@ export default function MyBookings() {
   });
 
   const bookings = data?.data?.data || [];
+  const origin = useMemo(
+    () => (typeof window !== "undefined" ? window.location.origin : ""),
+    []
+  );
 
   const isUrlValue = (s) => typeof s === "string" && /^https?:\/\//i.test(s);
   const extractRoomFromUrl = (url) => {
@@ -87,6 +101,152 @@ export default function MyBookings() {
     return room ? `Room ${room} — ${buildingFormatted}` : buildingFormatted;
   };
   const venueLink = (v) => (v?.room && isUrlValue(v.room) ? v.room : null);
+  const sanitizeFileName = (name, fallback = "booking") =>
+    (name || fallback)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || fallback;
+
+  const buildEvent = (booking) => {
+    const event = bookingToCalendarEvent(booking, { origin });
+    if (!event) throw new Error("Unable to build calendar event");
+    return event;
+  };
+
+  const handleDownloadSingle = async (booking) => {
+    try {
+      setExportingBookingId(booking.bookingId);
+      const event = buildEvent(booking);
+      const fileName = `${sanitizeFileName(
+        `${booking.courseCode || "course"}-${booking.assignmentName || "assessment"}`
+      )}.ics`;
+      const blob = createICSBlob([event], {
+        calendarName: booking.assignmentName || "Assessment booking",
+      });
+      triggerICSDownload(blob, fileName);
+      showNotification("success", "Downloaded calendar invite");
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Unable to download calendar invite");
+    } finally {
+      setExportingBookingId(null);
+    }
+  };
+
+  const handleDownloadAll = async () => {
+    if (!bookings.length) return;
+    try {
+      setIsExportingAll(true);
+      const events = bookings
+        .map((booking) => {
+          try {
+            return buildEvent(booking);
+          } catch {
+            return null;
+          }
+        })
+        .filter(Boolean);
+      if (!events.length) {
+        showNotification("error", "No bookings available for export");
+        return;
+      }
+      const blob = createICSBlob(events, {
+        calendarName: "OAS Assessment Bookings",
+      });
+      const now = new Date();
+      const fileName = `oas-bookings-${now
+        .toISOString()
+        .slice(0, 10)
+        .replace(/-/g, "")}.ics`;
+      triggerICSDownload(blob, fileName);
+      showNotification("success", "Downloaded all upcoming bookings");
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Unable to export bookings");
+    } finally {
+      setIsExportingAll(false);
+    }
+  };
+
+  const handleShareBooking = async (booking) => {
+    const safeName = sanitizeFileName(
+      `${booking.courseCode || "course"}-${booking.assignmentName || "assessment"}`
+    );
+    const fallbackShare = (calendarFile, emailContent) => {
+      const fileName = calendarFile?.name || `${safeName}.ics`;
+      if (calendarFile) {
+        triggerICSDownload(calendarFile, fileName);
+      }
+      const subject = encodeURIComponent(emailContent.subject || "Assessment booking");
+      const body = encodeURIComponent(emailContent.body);
+      const mailto = `mailto:?subject=${subject}&body=${body}`;
+      setShareFallbackDetails({
+        subject: emailContent.subject || "Assessment booking",
+        body: emailContent.body || "",
+        mailto,
+        fileName,
+      });
+      showNotification(
+        "info",
+        "Calendar invite downloaded. Follow the steps to share via email."
+      );
+    };
+
+    try {
+      setSharingBookingId(booking.bookingId);
+      const event = buildEvent(booking);
+      const calendarFile = createICSFile([event], {
+        fileName: `${safeName}.ics`,
+        calendarName: booking.assignmentName || "Assessment booking",
+      });
+      const emailContent = buildBookingEmailContent(booking, { origin });
+
+      const canUseWebShare =
+        typeof navigator !== "undefined" &&
+        typeof window !== "undefined" &&
+        window.isSecureContext &&
+        navigator.canShare &&
+        (() => {
+          try {
+            return navigator.canShare({ files: [calendarFile] });
+          } catch {
+            return false;
+          }
+        })();
+
+      if (canUseWebShare) {
+        try {
+          await navigator.share({
+            files: [calendarFile],
+            title: emailContent.subject || "Assessment booking",
+            text: emailContent.body,
+          });
+          showNotification("success", "Calendar invite shared");
+          return;
+        } catch (error) {
+          if (error?.name === "AbortError") {
+            showNotification("info", "Share cancelled");
+            return;
+          }
+          if (error?.name === "NotAllowedError" || error?.name === "NotFoundError") {
+            fallbackShare(calendarFile, emailContent);
+            return;
+          }
+          console.error(error);
+          fallbackShare(calendarFile, emailContent);
+          return;
+        }
+      }
+
+      fallbackShare(calendarFile, emailContent);
+    } catch (error) {
+      console.error(error);
+      showNotification("error", "Unable to share booking");
+    } finally {
+      setSharingBookingId(null);
+    }
+  };
 
   const formatDateTime = (start, end) => {
     const s = new Date(start);
@@ -271,7 +431,7 @@ export default function MyBookings() {
 
   return (
     <div className="dashboard-card mb-6">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
             <i className="fas fa-bookmark text-blue-600 dark:text-blue-400 mr-2"></i>
@@ -280,6 +440,22 @@ export default function MyBookings() {
           <span className="ml-3 px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
             {bookings.length} upcoming
           </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleDownloadAll}
+            disabled={isExportingAll || !bookings.length}
+            aria-label="Download all upcoming bookings as calendar file"
+            className={`px-3 py-1.5 text-xs rounded-md border ${
+              isExportingAll || !bookings.length
+                ? "border-gray-300 text-gray-500 bg-gray-100 cursor-not-allowed dark:border-gray-700 dark:text-gray-500 dark:bg-gray-800"
+                : "border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+            }`}
+          >
+            <i className="fas fa-calendar-arrow-down mr-1"></i>
+            {isExportingAll ? "Preparing..." : "Download all (.ics)"}
+          </button>
         </div>
       </div>
 
@@ -320,15 +496,45 @@ export default function MyBookings() {
                   </p>
                 )}
               </div>
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <span className="px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
                   Upcoming
                 </span>
                 <button
-                  onClick={() => onView(b.assignmentId)}
-                  className="px-3 py-1.5 text-xs rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                  type="button"
+                  onClick={() => handleDownloadSingle(b)}
+                  disabled={exportingBookingId === b.bookingId}
+                  aria-label="Download this booking as calendar file"
+                  className={`px-3 py-1.5 text-xs rounded-md border ${
+                    exportingBookingId === b.bookingId
+                      ? "border-gray-300 text-gray-500 bg-gray-100 cursor-wait dark:border-gray-700 dark:text-gray-500 dark:bg-gray-800"
+                      : "border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                  }`}
                 >
-                  View Details
+                  <i className="fas fa-calendar-plus mr-1"></i>
+                  {exportingBookingId === b.bookingId
+                    ? "Preparing..."
+                    : "Add to calendar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleShareBooking(b)}
+                  disabled={sharingBookingId === b.bookingId}
+                  aria-label="Share this booking via email"
+                  className={`px-3 py-1.5 text-xs rounded-md border ${
+                    sharingBookingId === b.bookingId
+                      ? "border-gray-300 text-gray-500 bg-gray-100 cursor-wait dark:border-gray-700 dark:text-gray-500 dark:bg-gray-800"
+                      : "border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                  }`}
+                >
+                  <i className="fas fa-envelope mr-1"></i>
+                  {sharingBookingId === b.bookingId ? "Opening..." : "Share via email"}
+                </button>
+                <button
+                  onClick={() => onView(b.assignmentId)}
+                  className="px-3 py-1.5 text-xs rounded-md border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-200 dark:hover:bg-blue-900/30"
+                >
+                  View details
                 </button>
                 {(() => {
                   const g = isCancelDisabled(b);
@@ -338,11 +544,11 @@ export default function MyBookings() {
                       disabled={g.disabled}
                       className={`px-3 py-1.5 text-xs rounded-md ${
                         g.disabled
-                          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                          ? "bg-gray-300 text-gray-600 cursor-not-allowed dark:bg-gray-700 dark:text-gray-400"
                           : "bg-red-500 text-white hover:bg-red-600"
                       }`}
                     >
-                      Cancel Booking
+                      Cancel booking
                     </button>
                   );
                 })()}
@@ -373,6 +579,15 @@ export default function MyBookings() {
         onConfirm={onCancelConfirm}
         booking={selectedBooking}
         isProcessing={isProcessingCancel}
+      />
+      <BookingShareFallbackDialog
+        open={Boolean(shareFallbackDetails)}
+        onOpenChange={(open) =>
+          open
+            ? null
+            : setShareFallbackDetails(null)
+        }
+        details={shareFallbackDetails}
       />
     </div>
   );
