@@ -14,6 +14,7 @@ import { assignmentService } from '@/services/assignmentService.js';
 import { courseService } from '@/services/courseService.js';
 import { confirm, showSuccess, showError } from '@/lib/notifications.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
+import { useExaminerLimits } from '@/hooks/useExaminerLimits.js';
 
 /**
  * AssignmentTimeSlotsPage - Refactored timeslot management
@@ -41,24 +42,72 @@ export default function AssignmentTimeSlotsPage() {
   const [showLimits, setShowLimits] = useState(false);
   const [openExaminerForSessionId, setOpenExaminerForSessionId] = useState(null);
   const [openBookedForSessionId, setOpenBookedForSessionId] = useState(null);
-  const [availableExaminers, setAvailableExaminers] = useState([]);
   const [assignmentWindow, setAssignmentWindow] = useState({ start: null, end: null });
   const [assignmentMeta, setAssignmentMeta] = useState(null);
   const [assignmentSummary, setAssignmentSummary] = useState(null);
   const [courseMeta, setCourseMeta] = useState(null);
   // Status API temporarily disabled per request; no publish status is fetched
 
-const [calendarRefresh, setCalendarRefresh] = useState(0);
-const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false });
+  const {
+    data: examinerLimits = [],
+    refetch: refetchExaminerLimits,
+    isLoading: isLoadingExaminerLimits,
+  } = useExaminerLimits(assignmentId);
 
-const refreshAssignmentPublish = useCallback(async () => {
-  try {
-    const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
-    setAssignmentPublish(res?.data || { examiners: false, students: false });
-  } catch (e) {
-    // ignore status errors
-  }
-}, [assignmentId]);
+  const availableExaminers = useMemo(() => {
+    return examinerLimits.map((examiner) => {
+      const assignments =
+        examiner.currentAssignments ??
+        examiner.assignments ??
+        examiner.examinerInfo?.currentAssignments ??
+        0;
+      const maxSessionsRaw =
+        examiner.maxSessions ??
+        examiner.examinerInfo?.maxSessions ??
+        0;
+      const maxSessions =
+        typeof maxSessionsRaw === 'number'
+          ? maxSessionsRaw
+          : Number.parseInt(maxSessionsRaw, 10) || 0;
+
+      const parsedAssignments =
+        typeof assignments === 'number'
+          ? assignments
+          : Number.parseInt(assignments, 10) || 0;
+
+      return {
+        ...examiner,
+        maxSessions,
+        assignments: parsedAssignments,
+        currentAssignments: parsedAssignments,
+      };
+    });
+  }, [examinerLimits]);
+  const [calendarRefresh, setCalendarRefresh] = useState(0);
+  const [assignmentPublish, setAssignmentPublish] = useState({ examiners: false, students: false });
+  const [isUpdatingExaminerRelease, setIsUpdatingExaminerRelease] = useState(false);
+  const [isUpdatingStudentRelease, setIsUpdatingStudentRelease] = useState(false);
+
+  const isStudentReleaseLocked = Boolean(assignmentPublish.students);
+  const studentLockHint = 'Cannot modify while released to students';
+
+  useEffect(() => {
+    if (!isStudentReleaseLocked) return;
+    setShowBatchModal(false);
+    setShowSingleModal(false);
+    setShowLimits(false);
+    setOpenExaminerForSessionId(null);
+    setOpenBookedForSessionId(null);
+  }, [isStudentReleaseLocked]);
+
+  const refreshAssignmentPublish = useCallback(async () => {
+    try {
+      const res = await courseAdminSessionService.getAssignmentPublishStatus(assignmentId);
+      setAssignmentPublish(res?.data || { examiners: false, students: false });
+    } catch (e) {
+      // ignore status errors
+    }
+  }, [assignmentId]);
 
   const refreshCourseDetails = useCallback(async () => {
     if (!courseId) return;
@@ -271,6 +320,7 @@ const assignmentLabel = useMemo(() => {
     return merged;
   };
   const handleAddBatchSessions = async (generator) => {
+    if (isStudentReleaseLocked) return;
     if (!generator || !generator.date || !generator.startTime) return;
     try {
       const res = await courseAdminSessionService.generateSessions(assignmentId, generator);
@@ -287,6 +337,7 @@ const assignmentLabel = useMemo(() => {
     }
   };
   const handleAddSingleSession = async (session) => {
+    if (isStudentReleaseLocked) return;
     if (!session) return;
     try {
       const res = await courseAdminSessionService.createSessionsBatch(assignmentId, { sessions: [session] });
@@ -304,6 +355,7 @@ const assignmentLabel = useMemo(() => {
   };
 
   const handleDeleteTimeSlot = async (id) => {
+    if (isStudentReleaseLocked) return;
     const confirmed = await confirm('Delete this timeslot?');
     if (!confirmed) return;
     try {
@@ -324,18 +376,21 @@ const assignmentLabel = useMemo(() => {
 
   // Duplicate/edit handlers for timeslots
   const handleDuplicateSession = (session) => {
+    if (isStudentReleaseLocked) return;
     setSingleMode('create');
     setEditingSession({ ...session, id: undefined });
     setShowSingleModal(true);
   };
 
   const handleEditSession = (session) => {
+    if (isStudentReleaseLocked) return;
     setSingleMode('edit');
     setEditingSession(session);
     setShowSingleModal(true);
   };
 
   const handleUpdateSingleSession = async (session) => {
+    if (isStudentReleaseLocked) return;
     if (!session?.id) return;
     try {
       const res = await courseAdminSessionService.updateSession(assignmentId, session.id, session);
@@ -353,23 +408,22 @@ const assignmentLabel = useMemo(() => {
 
   // Examiners dropdown logic
   const ensureExaminersLoaded = async () => {
-    if (availableExaminers.length) return;
+    if (availableExaminers.length || isLoadingExaminerLimits) return;
     try {
-      const res = await courseAdminSessionService.getAvailableExaminers(assignmentId);
-      setAvailableExaminers(Array.isArray(res?.data) ? res.data : []);
+      await refetchExaminerLimits();
     } catch (e) {
       // ignore
     }
   };
   const reloadAvailableExaminers = useCallback(async () => {
     try {
-      const res = await courseAdminSessionService.getAvailableExaminers(assignmentId);
-      setAvailableExaminers(Array.isArray(res?.data) ? res.data : []);
+      await refetchExaminerLimits();
     } catch (e) {
       // ignore
     }
-  }, [assignmentId]);
+  }, [refetchExaminerLimits]);
   const toggleExaminers = async (sessionId) => {
+    if (isStudentReleaseLocked) return;
     if (openExaminerForSessionId === sessionId) {
       setOpenExaminerForSessionId(null);
       return;
@@ -414,6 +468,7 @@ const assignmentLabel = useMemo(() => {
     }
   };
   const handleAssignExaminer = async (session, examinerId) => {
+    if (isStudentReleaseLocked) return;
     if (!session?.id || !examinerId) return;
     const numericExaminerId = Number(examinerId);
     const alreadyAssigned = (session.assignedExaminers || []).some(
@@ -468,6 +523,7 @@ const assignmentLabel = useMemo(() => {
     }
   };
   const handleRemoveExaminer = async (session, examinerId) => {
+    if (isStudentReleaseLocked) return;
     if (!session?.id || !examinerId) return;
     try {
       await courseAdminSessionService.unassignSessionExaminer(session.id, Number(examinerId));
@@ -522,8 +578,10 @@ const assignmentLabel = useMemo(() => {
           <button
             className={`px-3 py-2 rounded-lg text-sm font-medium text-white ${assignmentPublish.examiners ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'}`}
             onClick={async () => {
+              if (isUpdatingExaminerRelease) return;
               const next = !assignmentPublish.examiners;
               try {
+                setIsUpdatingExaminerRelease(true);
                 const res = await courseAdminSessionService.setAssignmentPublishToExaminers(assignmentId, next);
                 if (res?.success) {
                   await refreshAssignmentPublish();
@@ -534,17 +592,29 @@ const assignmentLabel = useMemo(() => {
                 }
               } catch (e) {
                 showError(next ? 'Failed to release to examiners' : 'Failed to withdraw examiner release');
+              } finally {
+                setIsUpdatingExaminerRelease(false);
               }
             }}
             title={assignmentPublish.examiners ? 'Withdraw examiner release (this date)' : 'Release all timeslots (this date) to examiners'}
+            disabled={isUpdatingExaminerRelease}
           >
-            {assignmentPublish.examiners ? 'Withdraw from Examiners' : 'Release to Examiners'}
+            {isUpdatingExaminerRelease ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Processing…</span>
+              </span>
+            ) : (
+              assignmentPublish.examiners ? 'Withdraw from Examiners' : 'Release to Examiners'
+            )}
           </button>
           <button
             className={`px-3 py-2 rounded-lg text-sm font-medium text-white ${assignmentPublish.students ? 'bg-orange-600 hover:bg-orange-700' : 'bg-green-600 hover:bg-green-700'}`}
             onClick={async () => {
+              if (isUpdatingStudentRelease) return;
               const next = !assignmentPublish.students;
               try {
+                setIsUpdatingStudentRelease(true);
                 const res = await courseAdminSessionService.setAssignmentPublishToStudents(assignmentId, next);
                 if (res?.success) {
                   await refreshAssignmentPublish();
@@ -555,14 +625,36 @@ const assignmentLabel = useMemo(() => {
                 }
               } catch (e) {
                 showError(next ? 'Failed to release to students' : 'Failed to withdraw student release');
+              } finally {
+                setIsUpdatingStudentRelease(false);
               }
             }}
             title={assignmentPublish.students ? 'Withdraw student release (this date)' : 'Release all timeslots (this date) to students'}
+            disabled={isUpdatingStudentRelease}
           >
-            {assignmentPublish.students ? 'Withdraw from Students' : 'Release to Students'}
+            {isUpdatingStudentRelease ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Processing…</span>
+              </span>
+            ) : (
+              assignmentPublish.students ? 'Withdraw from Students' : 'Release to Students'
+            )}
           </button>
         </div>
       </div>
+
+      {isStudentReleaseLocked && (
+        <div className="dashboard-card p-4 border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-200 flex items-start gap-3">
+          <i className="fas fa-lock mt-1" aria-hidden="true" />
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold">Student Release Active</h2>
+            <p className="text-sm">
+              Editing is disabled while this assignment is released to students. Withdraw the student release to make changes.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Assignment Info + Actions */}
       <div className="dashboard-card p-4">
@@ -578,8 +670,13 @@ const assignmentLabel = useMemo(() => {
           </div>
           <div>
             <button
-              onClick={() => setShowLimits(true)}
-              className="px-3 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() => {
+                if (isStudentReleaseLocked) return;
+                setShowLimits(true);
+              }}
+              className={`px-3 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed hover:bg-purple-600' : ''}`}
+              disabled={isStudentReleaseLocked}
+              title={isStudentReleaseLocked ? studentLockHint : 'Set examiner limits'}
             >
               <i className="fas fa-user-cog mr-2" /> Set Examiner Limits
             </button>
@@ -608,10 +705,26 @@ const assignmentLabel = useMemo(() => {
             </h2>
             {selectedDate && (
               <div className="flex items-center gap-2">
-                <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                <button
+                  onClick={() => {
+                    if (isStudentReleaseLocked) return;
+                    setShowBatchModal(true);
+                  }}
+                  className={`px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed hover:bg-blue-600' : ''}`}
+                  disabled={isStudentReleaseLocked}
+                  title={isStudentReleaseLocked ? studentLockHint : 'Batch create timeslots'}
+                >
                   <i className="fas fa-layer-group mr-1" /> Batch Create Timeslots
                 </button>
-                <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                <button
+                  onClick={() => {
+                    if (isStudentReleaseLocked) return;
+                    setShowSingleModal(true);
+                  }}
+                  className={`px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed hover:bg-indigo-600' : ''}`}
+                  disabled={isStudentReleaseLocked}
+                  title={isStudentReleaseLocked ? studentLockHint : 'Create a single timeslot'}
+                >
                   <i className="fas fa-plus mr-1" /> Create Timeslot
                 </button>
               </div>
@@ -644,10 +757,26 @@ const assignmentLabel = useMemo(() => {
               <h3 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">No Timeslots</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">There are no timeslots scheduled for this date yet.</p>
               <div className="flex items-center gap-2">
-                <button onClick={() => setShowBatchModal(true)} className="px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg">
+                <button
+                  onClick={() => {
+                    if (isStudentReleaseLocked) return;
+                    setShowBatchModal(true);
+                  }}
+                  className={`px-3 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed hover:bg-blue-600' : ''}`}
+                  disabled={isStudentReleaseLocked}
+                  title={isStudentReleaseLocked ? studentLockHint : 'Batch create timeslots'}
+                >
                   <i className="fas fa-layer-group mr-1" /> Batch Create Timeslots
                 </button>
-                <button onClick={() => setShowSingleModal(true)} className="px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg">
+                <button
+                  onClick={() => {
+                    if (isStudentReleaseLocked) return;
+                    setShowSingleModal(true);
+                  }}
+                  className={`px-3 py-1 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed hover:bg-indigo-600' : ''}`}
+                  disabled={isStudentReleaseLocked}
+                  title={isStudentReleaseLocked ? studentLockHint : 'Create a single timeslot'}
+                >
                   <i className="fas fa-plus mr-1" /> Create Timeslot
                 </button>
               </div>
@@ -670,30 +799,58 @@ const assignmentLabel = useMemo(() => {
                       <div className="text-sm text-gray-600 dark:text-gray-400 mt-0.5"><i className="fas fa-map-marker-alt mr-1.5" /> {s.venue || s.venueName || (s.venueId != null ? `Venue #${s.venueId}` : 'Venue')}</div>
                     </div>
                     <div className="flex items-center gap-2 text-right">
-                      <button className="action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleEditSession(s)} title="Edit timeslot">
+                      <button
+                        className={`action-btn text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:text-indigo-300 dark:bg-indigo-900 dark:bg-opacity-20 dark:hover:bg-opacity-30 ${isStudentReleaseLocked ? 'opacity-50 cursor-not-allowed hover:text-indigo-600 hover:bg-indigo-50' : ''}`}
+                        onClick={() => {
+                          if (isStudentReleaseLocked) return;
+                          handleEditSession(s);
+                        }}
+                        title={isStudentReleaseLocked ? studentLockHint : 'Edit timeslot'}
+                        disabled={isStudentReleaseLocked}
+                      >
                         <i className="fas fa-pen" />
                       </button>
-                      <button className="action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30" onClick={() => handleDuplicateSession(s)} title="Duplicate timeslot">
+                      <button
+                        className={`action-btn text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:text-blue-400 dark:hover:text-blue-300 dark:bg-blue-900 dark:bg-opacity-20 dark:hover:bg-opacity-30 ${isStudentReleaseLocked ? 'opacity-50 cursor-not-allowed hover:text-blue-600 hover:bg-blue-50' : ''}`}
+                        onClick={() => {
+                          if (isStudentReleaseLocked) return;
+                          handleDuplicateSession(s);
+                        }}
+                        title={isStudentReleaseLocked ? studentLockHint : 'Duplicate timeslot'}
+                        disabled={isStudentReleaseLocked}
+                      >
                         <i className="fas fa-copy" />
                       </button>
                       <button
                         className={`action-btn text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900 dark:bg-opacity-20 ${
-                          isSlotBooked
+                          isSlotBooked || isStudentReleaseLocked
                             ? 'opacity-50 cursor-not-allowed'
                             : 'hover:text-red-800 hover:bg-red-100 dark:hover:text-red-300 dark:hover:bg-opacity-30'
                         }`}
-                        onClick={() => handleDeleteTimeSlot(s.id)}
-                        disabled={isSlotBooked}
-                        title={isSlotBooked ? 'Cannot delete a booked timeslot' : 'Delete timeslot'}
+                        onClick={() => {
+                          if (isStudentReleaseLocked || isSlotBooked) return;
+                          handleDeleteTimeSlot(s.id);
+                        }}
+                        disabled={isSlotBooked || isStudentReleaseLocked}
+                        title={
+                          isStudentReleaseLocked
+                            ? studentLockHint
+                            : isSlotBooked
+                              ? 'Cannot delete a booked timeslot'
+                              : 'Delete timeslot'
+                        }
                       >
                         <i className="fas fa-trash-alt" />
                       </button>
                     </div>
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs">
-                    <button className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300"
+                    <button
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 ${isStudentReleaseLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
                       onClick={() => toggleExaminers(s.id)}
-                      title="View/edit examiners for this timeslot">
+                      disabled={isStudentReleaseLocked}
+                      title={isStudentReleaseLocked ? studentLockHint : 'View/edit examiners for this timeslot'}
+                    >
                       <i className="fas fa-user-tie" /> {(s.assignedExaminers?.length || 0)}/{s.requiredExaminers || 1} examiners
                       <i className={`fas fa-chevron-${openExaminerForSessionId === s.id ? 'up' : 'down'} text-[10px] ml-1`} />
                     </button>
@@ -721,7 +878,17 @@ const assignmentLabel = useMemo(() => {
                             s.assignedExaminers.map((ex) => (
                               <span key={ex.id || ex.examinerId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs">
                                 {ex.name || examinerLookup.get(ex.id || ex.examinerId)?.name || `#${ex.id || ex.examinerId}`}
-                                <button className="text-red-500 hover:text-red-700 ml-1" onClick={() => handleRemoveExaminer(s, ex.id || ex.examinerId)} title="Remove"><i className="fas fa-times" /></button>
+                                <button
+                                  className={`text-red-500 hover:text-red-700 ml-1 ${isStudentReleaseLocked ? 'opacity-50 cursor-not-allowed hover:text-red-500' : ''}`}
+                                  onClick={() => {
+                                    if (isStudentReleaseLocked) return;
+                                    handleRemoveExaminer(s, ex.id || ex.examinerId);
+                                  }}
+                                  title={isStudentReleaseLocked ? studentLockHint : 'Remove examiner'}
+                                  disabled={isStudentReleaseLocked}
+                                >
+                                  <i className="fas fa-times" />
+                                </button>
                               </span>
                             ))
                           ) : (
@@ -730,8 +897,20 @@ const assignmentLabel = useMemo(() => {
                         </div>
                         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
                           <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Add examiner</div>
-                          <Select onValueChange={(val) => handleAssignExaminer(s, val)}>
-                            <SelectTrigger className="w-full"><SelectValue placeholder="Select examiner" /></SelectTrigger>
+                          <Select
+                            disabled={isStudentReleaseLocked}
+                            onValueChange={(val) => {
+                              if (isStudentReleaseLocked) return;
+                              handleAssignExaminer(s, val);
+                            }}
+                          >
+                            <SelectTrigger
+                              className={`w-full ${isStudentReleaseLocked ? 'cursor-not-allowed opacity-60' : ''}`}
+                              title={isStudentReleaseLocked ? studentLockHint : undefined}
+                              disabled={isStudentReleaseLocked}
+                            >
+                              <SelectValue placeholder="Select examiner" />
+                            </SelectTrigger>
                             <SelectContent>
                               {availableExaminers.map((ex) => {
                                 const atLimit = ex.maxSessions != null && ex.currentAssignments != null && Number(ex.currentAssignments) >= Number(ex.maxSessions);

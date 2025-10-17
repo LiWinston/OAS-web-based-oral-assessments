@@ -78,15 +78,51 @@ export default function ExaminerLimitsStep({
     return (examiners || []).reduce((sum, ex) => sum + (parseInt(ex.maxSessions, 10) || 0), 0);
   }, [examiners]);
 
+  const toInt = (value, fallback = 0) => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? Math.floor(value) : fallback;
+    }
+    if (typeof value === 'string') {
+      if (!value.trim()) return fallback;
+      const parsed = Number.parseInt(value, 10);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    }
+    return fallback;
+  };
+
+  const limitViolations = useMemo(() => {
+    return (examiners || []).filter((examiner) => {
+      const assignments = toInt(examiner.assignments, 0);
+      const maxSessions = toInt(examiner.maxSessions, assignments);
+      return maxSessions < assignments;
+    });
+  }, [examiners]);
+
   const capacityValid = totalCapacity >= neededCapacity;
-  const capacityErrors = capacityValid ? [] : [
-    `Required capacity ${neededCapacity} exceeds total examiner capacity ${totalCapacity}`
-  ];
+  const capacityErrors = [];
+  if (!capacityValid) {
+    capacityErrors.push(`Required capacity ${neededCapacity} exceeds total examiner capacity ${totalCapacity}`);
+  }
+  limitViolations.forEach((examiner) => {
+    const assignments = toInt(examiner.assignments, 0);
+    capacityErrors.push(
+      `${examiner.name || 'Examiner'} has ${assignments} current assignment${assignments === 1 ? '' : 's'}; limit must be at least this value.`
+    );
+  });
   const capacityWarnings = [];
-  const canProceed = capacityValid;
+  const canProceed = capacityValid && limitViolations.length === 0;
 
   const handleExaminerLimitChange = (examinerId, newLimit) => {
-    setExaminers(prev => prev.map(ex => ex.id === examinerId ? { ...ex, maxSessions: newLimit } : ex));
+    setExaminers(prev =>
+      prev.map(ex => {
+        if (ex.id !== examinerId) return ex;
+        const assignments = toInt(ex.assignments, 0);
+        const parsed = toInt(newLimit, assignments);
+        const next = Math.max(assignments, parsed);
+        return { ...ex, maxSessions: next };
+      })
+    );
   };
 
   const handleCompleteSetup = () => {
@@ -217,29 +253,31 @@ export default function ExaminerLimitsStep({
                   </div>
                 )}
               </div>
-
               <div className="form-field">
                 <div className="number-input-container">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">Max Timeslots:</span>
                   <button
                     className="number-btn"
-                    onClick={() => handleExaminerLimitChange(examiner.id, Math.max(0, examiner.maxSessions - 1))}
+                    onClick={() => handleExaminerLimitChange(examiner.id, toInt(examiner.maxSessions, 0) - 1)}
                     title="Decrease max timeslots"
-                    disabled={isUpdating}
+                    disabled={
+                      isUpdating ||
+                      toInt(examiner.maxSessions, 0) <= toInt(examiner.assignments, 0)
+                    }
                   >
                     <i className="fas fa-minus" />
                   </button>
                   <input
                     type="number"
                     className="number-input"
-                    min="0"
+                    min={toInt(examiner.assignments, 0)}
                     value={examiner.maxSessions}
-                    onChange={(e) => handleExaminerLimitChange(examiner.id, Number(e.target.value) || 0)}
+                    onChange={(e) => handleExaminerLimitChange(examiner.id, e.target.value)}
                     disabled={isUpdating}
                   />
                   <button
                     className="number-btn"
-                    onClick={() => handleExaminerLimitChange(examiner.id, examiner.maxSessions + 1)}
+                    onClick={() => handleExaminerLimitChange(examiner.id, toInt(examiner.maxSessions, 0) + 1)}
                     title="Increase max timeslots"
                     disabled={isUpdating}
                   >
