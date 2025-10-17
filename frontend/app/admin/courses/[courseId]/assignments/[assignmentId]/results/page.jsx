@@ -59,7 +59,7 @@ export default function AdminResultsListPage() {
 
   const { data, isLoading } = useAssessmentList(subjectId, assignmentId, listParams);
 
-  const items = data?.items || [];
+  const items = useMemo(() => data?.items ?? [], [data?.items]);
   const total = data?.total || 0;
   const pageSize = data?.pageSize || 10;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));

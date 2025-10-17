@@ -92,11 +92,6 @@ export default function AdminManagementPage() {
     return filters;
   }, [debouncedSearchName, debouncedSearchEmail, statusFilter]);
 
-  // Load admin data from API
-  useEffect(() => {
-    loadAdminData();
-  }, []);
-
   // Close search dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -111,45 +106,12 @@ export default function AdminManagementPage() {
     };
   }, [isSearchDropdownOpen]);
 
-  // Load admin data when pagination changes
-  useEffect(() => {
-    loadAdminData();
-  }, [currentPage, pageSize]);
-
   // Reload data when filters change
   useEffect(() => {
     setCurrentPage(1); // Reset to first page
-    loadAdminData();
-  }, [debouncedSearchName, debouncedSearchEmail, statusFilter, pageSize]);
+  }, [debouncedSearchName, debouncedSearchEmail, statusFilter]);
 
-  // Handle page change
-  const handlePageChange = (newPage) => {
-    console.log("🔄 Changing to page:", newPage);
-    setCurrentPage(newPage);
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (newPageSize) => {
-    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
-    setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
-    
-    // Immediately trigger data reload with new page size
-    console.log("🔄 Triggering immediate data reload with new page size");
-  };
-
-  // Clear all filters
-  const clearAllFilters = () => {
-    setSearchName("");
-    setSearchEmail("");
-    setStatusFilter("all");
-    setCurrentPage(1);
-    // No need to call loadAdminData manually; useEffect will trigger
-  };
-
-
-
-  const loadAdminData = async () => {
+  const loadAdminData = useCallback(async () => {
     try {
       setIsLoading(true);
       const filters = buildFilters();
@@ -207,6 +169,36 @@ export default function AdminManagementPage() {
     } finally {
       setIsLoading(false);
     }
+  }, [buildFilters, currentPage, pageSize]);
+
+  // Load admin data when dependencies change
+  useEffect(() => {
+    loadAdminData();
+  }, [loadAdminData]);
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    console.log("🔄 Changing to page:", newPage);
+    setCurrentPage(newPage);
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newPageSize) => {
+    console.log("🔄 Changing page size from", pageSize, "to:", newPageSize);
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+    
+    // Immediately trigger data reload with new page size
+    console.log("🔄 Triggering immediate data reload with new page size");
+  };
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchName("");
+    setSearchEmail("");
+    setStatusFilter("all");
+    setCurrentPage(1);
+    // No need to call loadAdminData manually; useEffect will trigger
   };
 
   const validateEmail = (email) => {
