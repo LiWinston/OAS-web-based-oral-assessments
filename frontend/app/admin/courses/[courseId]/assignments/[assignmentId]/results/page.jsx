@@ -9,21 +9,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { courseService } from "@/services/courseService";
 import { assignmentService } from "@/services/assignmentService";
 
-const MOCK_MODE = (process.env.NEXT_PUBLIC_USE_MOCK_API ?? 'true') !== 'false';
-
-const FALLBACK_COURSE = {
-  courseCode: 'OAS101',
-  courseName: 'Oral Assessment Sandbox',
-  academicYear: '2025',
-  semester: '1',
-};
-
-const FALLBACK_ASSIGNMENTS = {
-  101: { name: 'Oral Exam 1', type: 'mixed' },
-  102: { name: 'Technical Viva', type: 'individual' },
-  103: { name: 'Team Demo', type: 'group' },
-};
-
 const fmtPct = (value) => (value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`);
 
 const ReleaseChip = ({ releaseStatus }) => {
@@ -100,28 +85,25 @@ export default function AdminResultsListPage() {
 
   useEffect(() => {
     let active = true;
-    if (MOCK_MODE) {
-      setCourse(FALLBACK_COURSE);
-      const fallback = FALLBACK_ASSIGNMENTS[Number(assignmentId)] || { name: `Assignment ${assignmentId}`, type: 'individual' };
-      setAssignment(fallback);
-      setMetaLoading(false);
-      return () => { active = false; };
-    }
     setMetaLoading(true);
     Promise.all([
       courseService.getCourse(courseId).catch(() => null),
       assignmentService.getAssignmentById(assignmentId).catch(() => null),
-    ]).then(([courseResp, assignmentResp]) => {
-      if (!active) return;
-      if (courseResp?.success) setCourse(courseResp.data);
-      else if (courseResp) setCourse(courseResp);
+    ])
+      .then(([courseResp, assignmentResp]) => {
+        if (!active) return;
+        if (courseResp?.success) setCourse(courseResp.data);
+        else setCourse(courseResp ?? null);
 
-      if (assignmentResp?.success !== undefined) setAssignment(assignmentResp?.data);
-      else setAssignment(assignmentResp);
-    }).finally(() => {
-      if (active) setMetaLoading(false);
-    });
-    return () => { active = false; };
+        if (assignmentResp?.success !== undefined) setAssignment(assignmentResp?.data);
+        else setAssignment(assignmentResp ?? null);
+      })
+      .finally(() => {
+        if (active) setMetaLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [courseId, assignmentId]);
 
   const updateQuery = useCallback((next) => {
@@ -226,8 +208,7 @@ export default function AdminResultsListPage() {
             <TableRow>
               <TableHead>Student / Group</TableHead>
               <TableHead>Session</TableHead>
-              <TableHead className="text-right">Average</TableHead>
-              <TableHead className="text-right">Final</TableHead>
+              <TableHead className="text-right">Score</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Action</TableHead>
             </TableRow>
@@ -277,7 +258,6 @@ export default function AdminResultsListPage() {
                 const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 sessionStr = `${dateLabel} ${startLabel}`;
               }
-              const manual = row.computed?.manualOverride;
               return (
                 <TableRow key={key?.submissionId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                   <TableCell>
@@ -292,14 +272,6 @@ export default function AdminResultsListPage() {
                   </TableCell>
                   <TableCell className="text-sm">{sessionStr}</TableCell>
                   <TableCell className="text-right font-medium">{fmtPct(row.computed?.averageScorePct1dp)}</TableCell>
-                  <TableCell className="text-right">
-                    <span className="font-medium">{fmtPct(row.computed?.effectiveFinalScorePct1dp)}</span>
-                    {manual && (
-                      <span className="ml-2 inline-flex items-center px-2 py-0.5 text-[11px] rounded-full bg-purple-100 text-purple-700 border border-purple-200">
-                        Overridden
-                      </span>
-                    )}
-                  </TableCell>
                   <TableCell><ReleaseChip releaseStatus={row.releaseStatus} /></TableCell>
                   <TableCell className="text-right">
                     <Link

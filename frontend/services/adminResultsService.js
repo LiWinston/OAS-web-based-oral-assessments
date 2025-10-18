@@ -33,11 +33,6 @@ export const adminResultsService = {
     return resp.data;
   },
 
-  async setFinalScore(subjectId, assignmentId, submissionId, body) {
-    const resp = await apiClient.put(`${base(subjectId, assignmentId)}/assessments/${submissionId}/final-score`, body);
-    return resp.data;
-  },
-
   async releaseAssessment(subjectId, assignmentId, submissionId, body = {}) {
     const resp = await apiClient.post(`${base(subjectId, assignmentId)}/assessments/${submissionId}/release`, body);
     return resp.data;

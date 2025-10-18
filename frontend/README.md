@@ -324,10 +324,9 @@ frontend/
 │   │       └── UpcomingAssessments.jsx      # Near-term assessment overview
 │   ├── admin/results/         # Course Admin results moderation & release UI
 │   │   ├── ResultsFilterBar.jsx      # Search and status filters for assessment list
-│   │   ├── ScoreSummaryPanel.jsx     # Average vs final score with override/release actions
+│   │   ├── ScoreSummaryPanel.jsx     # Average vs final score with release action
 │   │   ├── ExaminerPanel.jsx         # Read-only examiner cards with rubric snapshots
 │   │   ├── ReviewDialog.jsx          # Reason capture for reopening examiner markings
-│   │   ├── FinalScoreEditor.jsx      # Manual final score override dialog
 │   │   ├── ReleaseDialog.jsx         # Release confirmation with notification toggle
 │   │   ├── ResultsHubAssignmentRow.jsx # Assignment overview card used in Results Hub entry point
 │   │   └── ResultsHubCoursePicker.jsx  # Searchable course selector for the Results Hub sidebar

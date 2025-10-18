@@ -213,24 +213,7 @@ Behavior
 - If the assessment is `RELEASED`, it becomes `NOT_RELEASED` automatically.
 - Sends an email notification to the examiner with the provided reason (response `notified=true`).
 
-### 3.6 Set final score (manual override)
-PUT `/api/admin/subjects/{subjectId}/assignments/{assignmentId}/assessments/{submissionId}/final-score`
-
-Request body
-```json
-{ "finalScorePct1dp": 85.0, "reason": "Moderation panel decision" }
-```
-
-Response
-```json
-{ "success": true, "code": "OK", "data": /* AssessmentDetailDTO */ }
-```
-
-Notes
-- Can be called at any time, regardless of current statuses.
-- Replaces any existing manual override (idempotent updates by setting a new value).
-
-### 3.7 Release an assessment
+### 3.6 Release an assessment
 POST `/api/admin/subjects/{subjectId}/assignments/{assignmentId}/assessments/{submissionId}/release`
 
 Request body
@@ -265,7 +248,7 @@ Validation
         "student": { "id": 200045, "name": "Alice Tan" }
       },
       "session": { "id": 90011, "start": "2025-04-14T10:00:00+10:00", "end": "2025-04-14T10:30:00+10:00", "timezone": "Australia/Melbourne" },
-      "computed": { "averageScorePct1dp": 83.0, "effectiveFinalScorePct1dp": 83.0 },
+      "computed": { "averageScorePct1dp": 83.0 },
       "releaseStatus": "NOT_RELEASED"
     }]
   }
@@ -304,7 +287,7 @@ Validation
       "overallFeedback": "Good structuring of arguments.",
       "notes": "Time management could improve."
     }],
-    "computed": { "averageScorePct1dp": 83.0, "effectiveFinalScorePct1dp": 83.0 },
+    "computed": { "averageScorePct1dp": 83.0 },
     "releaseStatus": "NOT_RELEASED"
   }
 }
@@ -316,16 +299,10 @@ Validation
 { "reason": "Please expand justification for criterion C2." }
 ```
 
-### 4.4 Set final score — request
-`PUT /api/admin/subjects/1001/assignments/101/assessments/712345/final-score`
-```json
-{ "finalScorePct1dp": 85.0, "reason": "Moderation panel decision" }
-```
-
-### 4.5 Release — request/response
+### 4.4 Release — request/response
 `POST /api/admin/subjects/1001/assignments/101/assessments/712345/release`
 
-### 4.6 Get one examiner’s marking (detail) — example
+### 4.5 Get one examiner’s marking (detail) — example
 `GET /api/admin/subjects/1001/assignments/101/assessments/712345/examiners/44`
 ```json
 {

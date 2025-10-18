@@ -60,36 +60,6 @@ export function useReviewExaminer(subjectId, assignmentId, submissionId) {
   });
 }
 
-export function useSetFinalScore(subjectId, assignmentId, submissionId) {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (body) => {
-      const resp = await adminResultsService.setFinalScore(
-        subjectId,
-        assignmentId,
-        submissionId,
-        body
-      );
-      return resp?.data;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(
-        adminResultsKeys.detail(subjectId, assignmentId, submissionId),
-        data
-      );
-      queryClient.invalidateQueries({
-        queryKey: ['admin-results', subjectId, assignmentId],
-      });
-      showSuccess('Final score updated successfully');
-    },
-    onError: (error) => {
-      const message = error?.response?.data?.message || error?.message || 'Failed to update final score';
-      showError(message);
-    }
-  });
-}
-
 export function useReleaseAssessment(subjectId, assignmentId, submissionId) {
   const queryClient = useQueryClient();
 

@@ -330,9 +330,6 @@ const mockAssignmentService = {
 // Actual service implementation
 export const assignmentService = {
   async getAssignments(courseId) {
-    if (USE_MOCK_API) {
-      return await mockAssignmentService.getAssignments(courseId);
-    }
     try {
       const url = `/api/assignments/subject/${courseId}`;
       const response = await api.get(url);
@@ -394,9 +391,6 @@ export const assignmentService = {
   },
 
   async getAssignmentById(id) {
-    if (USE_MOCK_API) {
-      return await mockAssignmentService.getAssignmentById(id);
-    }
     const response = await api.get(`/api/assignments/${id}`);
     return response.data;
   },

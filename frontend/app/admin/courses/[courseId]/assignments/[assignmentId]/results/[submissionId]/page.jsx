@@ -6,31 +6,14 @@ import { useEffect, useState } from "react";
 import {
   useAssessmentDetail,
   useReviewExaminer,
-  useSetFinalScore,
   useReleaseAssessment
 } from "@/hooks/admin/useAdminResults.js";
 import ScoreSummaryPanel from "@/components/admin/results/ScoreSummaryPanel.jsx";
 import ExaminerPanel from "@/components/admin/results/ExaminerPanel.jsx";
 import ReviewDialog from "@/components/admin/results/ReviewDialog.jsx";
-import FinalScoreEditor from "@/components/admin/results/FinalScoreEditor.jsx";
 import ReleaseDialog from "@/components/admin/results/ReleaseDialog.jsx";
 import { courseService } from "@/services/courseService";
 import { assignmentService } from "@/services/assignmentService";
-
-const MOCK_MODE = (process.env.NEXT_PUBLIC_USE_MOCK_API ?? 'true') !== 'false';
-
-const FALLBACK_COURSE = {
-  courseCode: 'OAS101',
-  courseName: 'Oral Assessment Sandbox',
-  academicYear: '2025',
-  semester: '1',
-};
-
-const FALLBACK_ASSIGNMENTS = {
-  101: { name: 'Oral Exam 1', type: 'mixed' },
-  102: { name: 'Technical Viva', type: 'individual' },
-  103: { name: 'Team Demo', type: 'group' },
-};
 
 const numberOrNull = (value) => {
   const parsed = Number(value);
@@ -252,35 +235,29 @@ export default function AdminResultDetailPage() {
 
   const { data, isLoading } = useAssessmentDetail(subjectId, assignmentId, submissionId);
   const reviewMutation = useReviewExaminer(subjectId, assignmentId, submissionId);
-  const setFinalMutation = useSetFinalScore(subjectId, assignmentId, submissionId);
   const releaseMutation = useReleaseAssessment(subjectId, assignmentId, submissionId);
 
   const [reviewDialog, setReviewDialog] = useState(null);
-  const [finalScoreDialog, setFinalScoreDialog] = useState(false);
   const [releaseDialog, setReleaseDialog] = useState(false);
   const [course, setCourse] = useState(null);
   const [assignment, setAssignment] = useState(null);
 
   useEffect(() => {
     let active = true;
-    if (MOCK_MODE) {
-      setCourse(FALLBACK_COURSE);
-      const fallback = FALLBACK_ASSIGNMENTS[Number(assignmentId)] || { name: `Assignment ${assignmentId}`, type: 'individual' };
-      setAssignment(fallback);
-      return () => { active = false; };
-    }
     Promise.all([
       courseService.getCourse(courseId).catch(() => null),
       assignmentService.getAssignmentById(assignmentId).catch(() => null),
     ]).then(([courseResp, assignmentResp]) => {
       if (!active) return;
       if (courseResp?.success) setCourse(courseResp.data);
-      else if (courseResp) setCourse(courseResp);
+      else setCourse(courseResp ?? null);
 
       if (assignmentResp?.success !== undefined) setAssignment(assignmentResp?.data);
-      else setAssignment(assignmentResp);
+      else setAssignment(assignmentResp ?? null);
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [courseId, assignmentId]);
 
   const title = data?.assessment?.student?.name || data?.assessment?.group?.name || `Submission ${submissionId}`;
@@ -294,13 +271,6 @@ export default function AdminResultDetailPage() {
     try {
       await reviewMutation.mutateAsync({ examinerId: reviewDialog.examinerId, reason });
       setReviewDialog(null);
-    } catch (e) {}
-  };
-
-  const handleFinalScoreUpdate = async (scoreData) => {
-    try {
-      await setFinalMutation.mutateAsync(scoreData);
-      setFinalScoreDialog(false);
     } catch (e) {}
   };
 
@@ -408,10 +378,8 @@ export default function AdminResultDetailPage() {
       <ScoreSummaryPanel
         computed={computed}
         releaseStatus={data?.releaseStatus}
-        onOverrideClick={() => setFinalScoreDialog(true)}
         onReleaseClick={() => setReleaseDialog(true)}
         canRelease={hasSubmittedExaminers}
-        isOverridePending={setFinalMutation.isPending}
         isReleasePending={releaseMutation.isPending}
       />
 
@@ -448,14 +416,6 @@ export default function AdminResultDetailPage() {
         }}
         onConfirm={handleReviewRequest}
         isSubmitting={reviewMutation.isPending}
-      />
-
-      <FinalScoreEditor
-        open={finalScoreDialog}
-        onOpenChange={(open) => setFinalScoreDialog(open)}
-        initialValue={computed?.manualOverride?.valuePct1dp ?? computed?.effectiveFinalScorePct1dp}
-        onSubmit={handleFinalScoreUpdate}
-        isSubmitting={setFinalMutation.isPending}
       />
 
       <ReleaseDialog
