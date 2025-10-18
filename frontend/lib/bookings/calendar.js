@@ -13,6 +13,22 @@ const buildLocationLabel = (venue) => {
   return parts.filter(Boolean).join(" — ");
 };
 
+const resolveBookingTypeLabel = (booking) => {
+  const rawType = sanitize(
+    booking?.entity?.type ||
+      booking?.assignmentType ||
+      booking?.assessmentType ||
+      booking?.bookingType ||
+      ""
+  );
+  if (!rawType) return "";
+  const normalized = rawType.toUpperCase();
+  if (normalized === "GROUP") return "Group";
+  if (normalized === "MIXED") return "Mixed";
+  if (normalized === "INDIVIDUAL") return "Individual";
+  return rawType;
+};
+
 const formatPolicyLine = (booking) => {
   const policies = [];
   if (booking.reschedulingEnabled !== undefined) {
@@ -56,10 +72,9 @@ export const bookingToCalendarEvent = (booking, { origin } = {}) => {
   if (booking.assignmentName) {
     descriptionLines.push(`Assessment: ${booking.assignmentName}`);
   }
-  if (booking.entity?.type) {
-    descriptionLines.push(
-      `Booking type: ${booking.entity.type === "GROUP" ? "Group" : "Individual"}`
-    );
+  const bookingTypeLabel = resolveBookingTypeLabel(booking);
+  if (bookingTypeLabel) {
+    descriptionLines.push(`Booking type: ${bookingTypeLabel}`);
   }
   const policyLine = formatPolicyLine(booking);
   if (policyLine) descriptionLines.push(policyLine);
@@ -128,8 +143,9 @@ export const buildBookingEmailContent = (booking, { origin } = {}) => {
   if (session.venue) {
     lines.push(`Location: ${buildLocationLabel(session.venue)}`);
   }
-  if (booking.entity?.type) {
-    lines.push(`Booking type: ${booking.entity.type === "GROUP" ? "Group" : "Individual"}`);
+  const bookingTypeLabel = resolveBookingTypeLabel(booking);
+  if (bookingTypeLabel) {
+    lines.push(`Booking type: ${bookingTypeLabel}`);
   }
 
   const policyLine = formatPolicyLine(booking);
@@ -152,4 +168,3 @@ export const buildBookingEmailContent = (booking, { origin } = {}) => {
     body: lines.join("\n"),
   };
 };
-
