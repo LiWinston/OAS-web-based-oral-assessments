@@ -36,6 +36,7 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
     private final SysUserRoleMapper sysUserRoleMapper;
     private final SysRoleMapper sysRoleMapper;
     private final SysStudentGroupMapper sysStudentGroupMapper;
+    private final GroupMapper groupMapper;
     private final SlotSessionMapper slotSessionMapper;
     private final SessionExaminerMapper sessionExaminersMapper;
     private final ExaminerMapper examinerMapper;
@@ -102,6 +103,29 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
         Map<Long, Integer> studentBookings = countStudentBookings(assignmentId, userIds);
         Map<Long, Integer> examinerAssigned = countExaminerAssignedSessions(assignmentId, userIds);
 
+        // Prefetch student group relations and group details
+        List<Long> studentUserIds = rows.stream()
+                .filter(ap -> Objects.equals(ap.getRoleId(), UserRole.STUDENT.sort()))
+                .map(AssignmentParticipant::getUserId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Long> studentGroupIdByUser = Collections.emptyMap();
+        Map<Long, SysGroup> groupById = Collections.emptyMap();
+        if (!studentUserIds.isEmpty()) {
+            QueryWrapper<SysStudentGroup> groupWrapper = new QueryWrapper<>();
+            groupWrapper.in("user_id", studentUserIds);
+            List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(groupWrapper);
+            studentGroupIdByUser = studentGroups.stream()
+                    .collect(Collectors.toMap(SysStudentGroup::getUserId, SysStudentGroup::getGroupId, (existing, replacement) -> existing));
+            Set<Long> groupIds = studentGroupIdByUser.values().stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            if (!groupIds.isEmpty()) {
+                List<SysGroup> groups = groupMapper.selectBatchIds(groupIds);
+                groupById = groups.stream().collect(Collectors.toMap(SysGroup::getGroupId, g -> g));
+            }
+        }
+
         List<AssignmentMemberResponseDTO> data = new ArrayList<>();
         for (AssignmentParticipant ap : rows) {
             AssignmentMemberResponseDTO dto = new AssignmentMemberResponseDTO();
@@ -128,20 +152,21 @@ public class AssignmentMemberServiceImpl implements AssignmentMemberService {
             if (r == UserRole.STUDENT) {
                 dto.setBookingsCount(studentBookings.getOrDefault(ap.getUserId(), 0));
                 dto.setAssignedSlotsCount(null); // Students do not need assignedSlotsCount
-                // group id best-effort - get the first group the student belongs to
-                QueryWrapper<SysStudentGroup> groupWrapper = new QueryWrapper<>();
-                groupWrapper.eq("user_id", ap.getUserId()).last("limit 1");
-                SysStudentGroup sg = sysStudentGroupMapper.selectOne(groupWrapper);
-                dto.setGroupId(sg != null ? sg.getGroupId() : null);
+                Long groupId = studentGroupIdByUser.get(ap.getUserId());
+                dto.setGroupId(groupId);
+                SysGroup group = groupId != null ? groupById.get(groupId) : null;
+                dto.setGroupName(group != null ? group.getGroupName() : null);
             } else if (r == UserRole.EXAMINER) {
                 dto.setBookingsCount(null); // Examiners do not need bookingsCount
                 dto.setAssignedSlotsCount(examinerAssigned.getOrDefault(ap.getUserId(), 0));
                 dto.setGroupId(null); // Examiners do not need groupId
+                dto.setGroupName(null);
             } else {
                 // For other roles or failed role detection, set default values
                 dto.setBookingsCount(null);
                 dto.setAssignedSlotsCount(null);
                 dto.setGroupId(null);
+                dto.setGroupName(null);
             }
             data.add(dto);
         }

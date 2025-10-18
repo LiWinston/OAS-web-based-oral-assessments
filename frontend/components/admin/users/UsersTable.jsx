@@ -96,7 +96,12 @@ export default function UsersTable({
               <TableCell>{row.fullName || "-"}</TableCell>
               <TableCell className="text-gray-700 dark:text-gray-300">{row.email}</TableCell>
               {role === "STUDENT" ? (
-                <TableCell>{row.groupId || "-"} {typeof row.bookingsCount === "number" ? <span className="text-xs text-gray-500">(bookings: {row.bookingsCount})</span> : null}</TableCell>
+                <TableCell>
+                  {row.groupName || row.groupId || "-"}
+                  {typeof row.bookingsCount === "number" ? (
+                    <span className="text-xs text-gray-500 ml-2">(bookings: {row.bookingsCount})</span>
+                  ) : null}
+                </TableCell>
               ) : (
                 <TableCell>{row.assignedSlotsCount ?? 0}</TableCell>
               )}

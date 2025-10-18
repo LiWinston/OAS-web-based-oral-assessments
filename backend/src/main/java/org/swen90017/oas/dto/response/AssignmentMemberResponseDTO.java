@@ -29,6 +29,9 @@ public class AssignmentMemberResponseDTO {
     @Schema(description = "Group id for student (optional)")
     private Long groupId;
 
+    @Schema(description = "Group name for student (optional)")
+    private String groupName;
+
     @Schema(description = "Bookings count for student (optional)")
     private Integer bookingsCount;
 
