@@ -1,103 +1,111 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { Fragment, useMemo, useCallback, useEffect, useState } from "react";
-import { useAssessmentList } from "@/hooks/admin/useAdminResults.js";
-import ResultsFilterBar from "@/components/admin/results/ResultsFilterBar.jsx";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAssignmentSessions } from "@/hooks/admin/results/useAssignmentSessions.js";
 import { courseService } from "@/services/courseService";
 import { assignmentService } from "@/services/assignmentService";
 
-const fmtPct = (value) => (value === null || value === undefined ? '—' : `${Number(value).toFixed(1)}%`);
+const PAGE_SIZE = 10;
 
-const ReleaseChip = ({ releaseStatus }) => {
-  const released = releaseStatus === 'RELEASED';
-  const icon = released ? 'fa-paper-plane' : 'fa-clock';
-  const classes = released
-    ? 'bg-green-100 text-green-700 border-green-200'
-    : 'bg-amber-100 text-amber-700 border-amber-200';
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-medium ${classes}`}>
-      <i className={`fas ${icon}`} />
-      {released ? 'Released' : 'Not released'}
-    </span>
-  );
+const formatDateRange = (startISO, endISO, timezone) => {
+  if (!startISO) return "Schedule pending";
+
+  try {
+    const start = new Date(startISO);
+    const end = endISO ? new Date(endISO) : null;
+
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: timezone,
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    });
+
+    const dateLabel = dateFormatter.format(start);
+    const startLabel = timeFormatter.format(start);
+    const endLabel = end ? timeFormatter.format(end) : null;
+
+    if (endLabel) {
+      return `${dateLabel} · ${startLabel} – ${endLabel}`;
+    }
+
+    return `${dateLabel} · ${startLabel}`;
+  } catch (error) {
+    return "Schedule pending";
+  }
 };
 
-export default function AdminResultsListPage() {
+function SessionRow({ session, href }) {
+  const participantCount = session?.participantCount ?? session?.participants ?? 0;
+  const venueName = session?.venue?.name ?? session?.venueName;
+  const timezone = session?.timezone;
+  const scheduleLabel = formatDateRange(session?.start, session?.end, timezone);
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/40 px-4 py-4 transition-all hover:border-blue-200/80 hover:shadow-md dark:hover:border-blue-600/60">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100">
+          <i className="far fa-calendar text-blue-500" />
+          {scheduleLabel}
+        </span>
+        {venueName && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+            <i className="fas fa-map-marker-alt text-[10px]" />
+            {venueName}
+          </span>
+        )}
+        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <i className="fas fa-users text-[10px]" />
+          {participantCount} participant{participantCount === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <span className="inline-flex items-center gap-1">
+          <i className="fas fa-clock text-[10px]" />
+          {timezone ? `Timezone: ${timezone}` : "Timezone pending"}
+        </span>
+        <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-500">
+          <Link href={href}>
+            <i className="fas fa-door-open" />
+            View participants
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminAssignmentSessionsPage() {
   const params = useParams();
   const router = useRouter();
-  const search = useSearchParams();
+  const searchParams = useSearchParams();
   const { courseId, assignmentId } = params;
   const subjectId = courseId;
 
-  const pageNum = Number(search.get('page') || 1);
-  const q = search.get('q') || '';
-  const status = search.get('status') || 'all';
+  const page = Number(searchParams.get("page") || 1);
+  const q = searchParams.get("q") || "";
 
-  const listParams = useMemo(() => ({
-    pageNum,
-    pageSize: 10,
-    status,
-  }), [pageNum, status]);
-
-  const { data, isLoading } = useAssessmentList(subjectId, assignmentId, listParams);
-
-  const items = useMemo(() => data?.items ?? [], [data?.items]);
-  const total = data?.total || 0;
-  const pageSize = data?.pageSize || 10;
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
-
-  const filteredItems = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    if (!needle) return items;
-    return items.filter((row) => {
-      const name = (row.assessment?.student?.name || row.assessment?.group?.name || '').toLowerCase();
-      const sessionWindow = (() => {
-        const start = row.session?.start ? new Date(row.session.start) : null;
-        const end = row.session?.end ? new Date(row.session.end) : null;
-        if (start && end) {
-          const dateLabel = start.toLocaleDateString('en-AU', {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          });
-          const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const endLabel = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          return `${dateLabel} ${startLabel} – ${endLabel}`.toLowerCase();
-        }
-        if (start) {
-          const dateLabel = start.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
-          const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          return `${dateLabel} ${startLabel}`.toLowerCase();
-        }
-        return '';
-      })();
-      return name.includes(needle) || sessionWindow.includes(needle);
-    });
-  }, [items, q]);
-
-  const groupedBySession = useMemo(() => {
-    const groups = new Map();
-    filteredItems.forEach((row) => {
-      const sessionId = row.session?.id ?? "unknown";
-      if (!groups.has(sessionId)) {
-        groups.set(sessionId, {
-          sessionId,
-          session: row.session,
-          items: [],
-        });
-      }
-      groups.get(sessionId).items.push(row);
-    });
-    return Array.from(groups.values());
-  }, [filteredItems]);
-
+  const [searchValue, setSearchValue] = useState(q);
   const [course, setCourse] = useState(null);
   const [assignment, setAssignment] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
+
+  useEffect(() => {
+    setSearchValue(q);
+  }, [q]);
 
   useEffect(() => {
     let active = true;
@@ -117,67 +125,99 @@ export default function AdminResultsListPage() {
       .finally(() => {
         if (active) setMetaLoading(false);
       });
+
     return () => {
       active = false;
     };
   }, [courseId, assignmentId]);
 
-  const updateQuery = useCallback((next) => {
-    const sp = new URLSearchParams(search);
-    if ('q' in next) {
-      const val = next.q?.trim();
-      if (val) sp.set('q', val); else sp.delete('q');
-    }
-    if ('status' in next) {
-      const val = next.status && next.status !== 'all' ? next.status : null;
-      if (val) sp.set('status', val); else sp.delete('status');
-    }
-    sp.set('page', '1');
-    router.replace(`?${sp.toString()}`);
-  }, [search, router]);
+  const queryParams = useMemo(() => {
+    const base = {
+      pageNum: page,
+      pageSize: PAGE_SIZE,
+    };
+    if (q) base.q = q;
+    return base;
+  }, [page, q]);
 
-  const onPage = (next) => {
-    const safe = Math.min(pageCount, Math.max(1, next));
-    const sp = new URLSearchParams(search);
-    sp.set('page', String(safe));
-    router.replace(`?${sp.toString()}`);
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isError,
+    refetch,
+  } = useAssignmentSessions(subjectId, assignmentId, queryParams, { enabled: Boolean(subjectId && assignmentId) });
+
+  const sessions = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const pageSize = data?.pageSize ?? PAGE_SIZE;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+
+  const updateQuery = useCallback(
+    (next) => {
+      const sp = new URLSearchParams(searchParams);
+      if ("q" in next) {
+        const value = next.q?.trim();
+        if (value) sp.set("q", value);
+        else sp.delete("q");
+      }
+      if ("page" in next) {
+        sp.set("page", String(next.page));
+      } else {
+        sp.set("page", "1");
+      }
+      router.replace(`?${sp.toString()}`);
+    },
+    [router, searchParams]
+  );
+
+  const onSubmitSearch = (event) => {
+    event.preventDefault();
+    updateQuery({ q: searchValue, page: 1 });
+  };
+
+  const clearSearch = () => {
+    setSearchValue("");
+    updateQuery({ q: "", page: 1 });
+  };
+
+  const goToPage = (nextPage) => {
+    const safePage = Math.min(pageCount, Math.max(1, nextPage));
+    updateQuery({ page: safePage });
   };
 
   const courseLabel = metaLoading
-    ? 'Loading course…'
-    : `${course?.courseCode || ''} ${course?.courseName || ''}`.trim() || `Course ${courseId}`;
+    ? "Loading course…"
+    : `${course?.courseCode || ""} ${course?.courseName || ""}`.trim() || `Course ${courseId}`;
   const assignmentLabel = metaLoading
-    ? 'Loading assignment…'
+    ? "Loading assignment…"
     : assignment?.name || `Assignment ${assignmentId}`;
 
   return (
     <div className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm px-6 py-3">
-        <nav className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300" aria-label="Breadcrumb">
-          <Link href="/admin" className="font-semibold text-blue-600">OAS</Link>
-          <i className="fas fa-chevron-right text-xs text-gray-400" />
-          <Link href="/admin" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Dashboard</Link>
-          <i className="fas fa-chevron-right text-xs text-gray-400" />
-          <Link href="/admin/courses" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Courses</Link>
-          <i className="fas fa-chevron-right text-xs text-gray-400" />
-          <Link
-            href={`/admin/courses/${courseId}/assignments`}
-            className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-          >
-            {course?.courseName || `Course ${courseId}`}
+        <nav
+          className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-300"
+          aria-label="Breadcrumb"
+        >
+          <Link href="/admin" className="font-semibold text-blue-600">
+            OAS
           </Link>
           <i className="fas fa-chevron-right text-xs text-gray-400" />
-          <span className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{assignmentLabel}</span>
+          <Link href="/admin/results" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            Results Hub
+          </Link>
           <i className="fas fa-chevron-right text-xs text-gray-400" />
-          <span className="font-semibold text-blue-600">Results &amp; Marking</span>
+          <span className="font-semibold text-blue-600">Session list</span>
         </nav>
       </div>
 
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white shadow-xl">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold mb-2 flex items-center">
-              <i className="fas fa-clipboard-check mr-3" /> Results &amp; Marking
+            <h1 className="text-2xl font-bold mb-2 flex items-center gap-3">
+              <i className="fas fa-calendar-check" />
+              Assignment sessions
             </h1>
             <div className="flex flex-wrap items-center gap-4 text-blue-100 text-sm">
               <span className="flex items-center gap-2">
@@ -191,182 +231,139 @@ export default function AdminResultsListPage() {
               {(course?.academicYear || course?.semester) && (
                 <span className="flex items-center gap-2">
                   <i className="fas fa-calendar" />
-                  {course?.academicYear || 'Academic Year'}{course?.semester ? ` • Semester ${course.semester}` : ''}
+                  {course?.academicYear || "Academic Year"}
+                  {course?.semester ? ` • Semester ${course.semester}` : ""}
                 </span>
               )}
               <span className="flex items-center gap-2">
                 <i className="fas fa-tasks" />
                 {assignmentLabel}
               </span>
-              <span className="flex items-center gap-2">
-                <i className="fas fa-hashtag" />
-                Assignment ID: {assignmentId}
-              </span>
             </div>
           </div>
-          {assignment?.type && (
-            <span className="px-4 py-1.5 rounded-full bg-white/20 text-xs font-semibold uppercase tracking-wide">
-              {assignment.type}
-            </span>
-          )}
+          <Button asChild variant="secondary" className="bg-white/15 hover:bg-white/20 text-white">
+            <Link href={`/admin/courses/${courseId}/assignments/${assignmentId}`}>
+              <i className="fas fa-arrow-left" />
+              Back to assignment
+            </Link>
+          </Button>
         </div>
       </div>
 
-      <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-200">
-        <i className="fas fa-circle-info mr-2" /> Release is available once at least one examiner has submitted their marking.
-      </div>
+      <section className="space-y-4">
+        <form onSubmit={onSubmitSearch} className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <label htmlFor="session-search" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Search sessions
+            </label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="session-search"
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Search by date, time, or venue"
+                className="w-64"
+              />
+              <Button type="submit" size="sm" className="bg-blue-600 text-white hover:bg-blue-500">
+                <i className="fas fa-search" />
+                Apply
+              </Button>
+              {q && (
+                <Button type="button" variant="ghost" size="sm" onClick={clearSearch}>
+                  Clear
+                </Button>
+              )}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching && <i className="fas fa-spinner fa-spin mr-2" />}
+            Refresh
+          </Button>
+        </form>
 
-      <ResultsFilterBar value={{ q, status }} onChange={updateQuery} />
+        {isError && (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 dark:border-red-700 bg-red-50/80 dark:bg-red-900/30 px-4 py-4 text-sm text-red-700 dark:text-red-200">
+            <i className="fas fa-exclamation-triangle mt-1" aria-hidden="true" />
+            <div>
+              Failed to load sessions for this assignment. Please try again.
+            </div>
+          </div>
+        )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <Table>
-          <TableHeader className="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-            <TableRow>
-              <TableHead>Student / Group</TableHead>
-              <TableHead>Session</TableHead>
-              <TableHead className="text-right">Score</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <i className="fas fa-spinner fa-spin text-2xl text-gray-400" />
-                    <span className="text-sm text-gray-500">Loading assessments…</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && filteredItems.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center">
-                  <div className="flex flex-col items-center gap-3">
-                    <i className="fas fa-file-excel text-3xl text-gray-300" />
-                    <span className="text-sm text-gray-500">No assessments found</span>
-                    {(q || (status && status !== 'all')) && (
-                      <span className="text-xs text-gray-400">Try adjusting your filters</span>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-            {!isLoading && groupedBySession.map(({ sessionId, session, items: sessionItems }) => {
-              const start = session?.start ? new Date(session.start) : null;
-              const end = session?.end ? new Date(session.end) : null;
-              let sessionLabel = 'Session';
-              if (start && end) {
-                const dateLabel = start.toLocaleDateString('en-AU', {
-                  weekday: 'short',
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                });
-                const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const endLabel = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                sessionLabel = `${dateLabel} ${startLabel} – ${endLabel}`;
-              } else if (start) {
-                const dateLabel = start.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
-                const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                sessionLabel = `${dateLabel} ${startLabel}`;
+        {isLoading && !data ? (
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="h-24 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 bg-gray-100/80 dark:bg-gray-900/30 animate-pulse"
+              />
+            ))}
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 px-6 py-10 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400">
+              <i className="fas fa-calendar-plus" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">No sessions configured</h3>
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Configure sessions in Assignment Setup to continue with results review.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sessions.map((session, index) => {
+              const sessionId = session?.sessionId ?? session?.id;
+
+              let href = "#";
+              if (sessionId) {
+                const query = new URLSearchParams();
+                if (session?.start) query.set("start", session.start);
+                if (session?.end) query.set("end", session.end);
+                if (session?.timezone) query.set("timezone", session.timezone);
+                const venueName = session?.venue?.name ?? session?.venueName;
+                if (venueName) query.set("venue", venueName);
+                const participantCount = session?.participantCount ?? session?.participants;
+                if (typeof participantCount === "number") query.set("participantCount", String(participantCount));
+
+                const queryString = query.toString();
+                href = queryString
+                  ? `/admin/courses/${courseId}/assignments/${assignmentId}/results/sessions/${sessionId}?${queryString}`
+                  : `/admin/courses/${courseId}/assignments/${assignmentId}/results/sessions/${sessionId}`;
               }
 
-              const venueName = session?.venue?.name;
-
-              return (
-                <Fragment key={sessionId}>
-                  <TableRow className="bg-gray-50/70 dark:bg-gray-900/40">
-                    <TableCell colSpan={5} className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-                      <div className="flex flex-wrap gap-3 items-center">
-                        <span className="inline-flex items-center gap-2">
-                          <i className="far fa-calendar" />
-                          {sessionLabel}
-                        </span>
-                        {venueName && (
-                          <span className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                            <i className="fas fa-map-marker-alt" />
-                            {venueName}
-                          </span>
-                        )}
-                        <span className="ml-auto text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                          Session ID: {sessionId}
-                        </span>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {sessionItems.map((row) => {
-                    const key = row.assessment?.key;
-                    const display = row.assessment?.student?.name || row.assessment?.group?.name || key?.submissionId;
-                    const iconClass = row.assessment?.group ? 'fas fa-users' : 'fas fa-user';
-                    const rowSessionLabel = sessionLabel;
-                    const memberCount = row.assessment?.group?.memberCount;
-                    const isGroup = Boolean(row.assessment?.group);
-
-                    return (
-                      <TableRow key={key?.submissionId} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors">
-                        <TableCell>
-                          <div className="flex items-center gap-2 pl-4">
-                            <i className={`${iconClass} text-gray-400`} />
-                            <div className="flex flex-col">
-                              <span className="font-medium text-gray-800 dark:text-gray-100">{display}</span>
-                              {isGroup && typeof memberCount === 'number' && (
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {memberCount} member{memberCount === 1 ? '' : 's'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-gray-500 dark:text-gray-400">{rowSessionLabel}</TableCell>
-                        <TableCell className="text-right font-medium">{fmtPct(row.computed?.averageScorePct1dp)}</TableCell>
-                        <TableCell><ReleaseChip releaseStatus={row.releaseStatus} /></TableCell>
-                        <TableCell className="text-right">
-                          <Link
-                            href={`/admin/courses/${courseId}/assignments/${assignmentId}/results/${key?.submissionId}`}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow hover:shadow-lg transition-all hover:scale-105"
-                          >
-                            <i className="fas fa-eye" />
-                            View
-                          </Link>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </Fragment>
-              );
+              return <SessionRow key={sessionId ?? `session-${index}`} session={session} href={href} />;
             })}
-          </TableBody>
-        </Table>
-      </div>
-
-      {pageCount > 1 && (
-        <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
-          <button
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => onPage(pageNum - 1)}
-            disabled={pageNum <= 1}
-          >
-            <i className="fas fa-chevron-left" />
-            Previous
-          </button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              Page <span className="font-semibold text-gray-800 dark:text-gray-200">{pageNum}</span> of <span className="font-semibold text-gray-800 dark:text-gray-200">{pageCount}</span>
-            </span>
-            <span className="text-xs text-gray-500">({total} total)</span>
           </div>
-          <button
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => onPage(pageNum + 1)}
-            disabled={pageNum >= pageCount}
-          >
-            Next
-            <i className="fas fa-chevron-right" />
-          </button>
-        </div>
-      )}
+        )}
+
+        {sessions.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-2 text-sm text-gray-600 dark:text-gray-300">
+            <div>
+              Page {page} of {pageCount} · {total} session{total === 1 ? "" : "s"} total
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(page - 1)}
+                disabled={page <= 1}
+              >
+                <i className="fas fa-chevron-left" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => goToPage(page + 1)}
+                disabled={page >= pageCount}
+              >
+                Next
+                <i className="fas fa-chevron-right" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
