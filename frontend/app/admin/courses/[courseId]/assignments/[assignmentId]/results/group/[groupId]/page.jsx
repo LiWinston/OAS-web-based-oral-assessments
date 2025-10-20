@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import ScoreSummaryPanel from "@/components/admin/results/ScoreSummaryPanel.jsx";
-import ExaminerPanel from "@/components/admin/results/ExaminerPanel.jsx";
+import ExaminersRubricTabs from "@/components/admin/results/ExaminersRubricTabs.jsx";
 import { useGroupResultDetail } from "@/hooks/admin/useAdminResults.js";
 import { formatDateRangeWithTimezone } from "@/lib/datetime.js";
 import { ReleaseStatusBadge } from "@/components/admin/results/ReleaseStatusBadge.jsx";
@@ -146,18 +146,18 @@ export default function GroupResultDetailPage() {
                 <i className="fas fa-user-friends" /> Group members
               </h2>
               <div className="mt-3 flex flex-wrap gap-2 text-sm text-gray-600 dark:text-gray-300">
-                {data.participant.members.map((member) => (
-                  <span
-                    key={member.studentId ?? member.name}
-                    className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1"
-                  >
-                    <i className="fas fa-user" />
-                    {member.name || `Student ${member.studentId}`}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
+              {data.participant.members.map((member, index) => (
+                <span
+                  key={member.studentId ?? `member-${index}`}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-1"
+                >
+                  <i className="fas fa-user" />
+                  {member.name || `Student ${member.studentId}`}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
           <section className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
@@ -173,20 +173,12 @@ export default function GroupResultDetailPage() {
               </button>
             </div>
 
-            {(!data.examiners || data.examiners.length === 0) ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                No examiner submissions yet.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {data.examiners.map((examiner) => (
-                  <ExaminerPanel
-                    key={examiner.examinerId ?? examiner.examinerName}
-                    examiner={examiner}
-                  />
-                ))}
-              </div>
-            )}
+            <ExaminersRubricTabs
+              rubricSnapshot={data.rubricSnapshot}
+              examiners={data.examiners}
+              participant={data.participant}
+              weightBasis={data.rubricSnapshot?.weightBasis}
+            />
           </section>
         </div>
       )}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import ScoreSummaryPanel from "@/components/admin/results/ScoreSummaryPanel.jsx";
-import ExaminerPanel from "@/components/admin/results/ExaminerPanel.jsx";
+import ExaminersRubricTabs from "@/components/admin/results/ExaminersRubricTabs.jsx";
 import { useIndividualResultDetail } from "@/hooks/admin/useAdminResults.js";
 import { formatDateRangeWithTimezone } from "@/lib/datetime.js";
 import { ReleaseStatusBadge } from "@/components/admin/results/ReleaseStatusBadge.jsx";
@@ -170,20 +170,12 @@ export default function IndividualResultDetailPage() {
               </button>
             </div>
 
-            {(!data.examiners || data.examiners.length === 0) ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                No examiner submissions yet.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {data.examiners.map((examiner) => (
-                  <ExaminerPanel
-                    key={examiner.examinerId ?? examiner.examinerName}
-                    examiner={examiner}
-                  />
-                ))}
-              </div>
-            )}
+            <ExaminersRubricTabs
+              rubricSnapshot={data.rubricSnapshot}
+              examiners={data.examiners}
+              participant={data.participant}
+              weightBasis={data.rubricSnapshot?.weightBasis}
+            />
           </section>
         </div>
       )}
