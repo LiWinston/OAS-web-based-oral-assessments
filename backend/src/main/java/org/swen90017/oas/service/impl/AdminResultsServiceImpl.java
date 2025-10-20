@@ -17,11 +17,13 @@ import org.swen90017.oas.dto.request.ReviewExaminerRequestDTO;
 import org.swen90017.oas.dto.request.UpdateFinalScoreRequestDTO;
 import org.swen90017.oas.dto.request.SaveAssessmentDraftRequestDTO;
 import org.swen90017.oas.dto.response.*;
+import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.AssessmentSubmission;
 import org.swen90017.oas.entity.SysUser;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AdminResultsMapper;
 import org.swen90017.oas.mapper.AssessmentSubmissionMapper;
+import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.mapper.SysUserMapper;
 import org.swen90017.oas.service.AdminResultsService;
 import org.swen90017.oas.service.EmailService;
@@ -41,6 +43,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
 
     private final AdminResultsMapper adminResultsMapper;
     private final AssessmentSubmissionMapper assessmentSubmissionMapper;
+    private final AssignmentMapper assignmentMapper;
     private final SysUserMapper sysUserMapper;
     private final EmailService emailService;
     private final ObjectMapper objectMapper;
@@ -1090,6 +1093,23 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     public PageResult<AdminSessionParticipantsDTO.ParticipantItem> getParticipantsForSession(
             Long subjectId, Long assignmentId, Long sessionId, Integer pageNum, Integer pageSize,
             String type, String status, String searchQuery) {
+        
+        // If type is 'ALL', determine actual type based on assignment configuration
+        // This prevents mixing GROUP and INDIVIDUAL participants in the same result
+        if ("ALL".equals(type)) {
+            Assignment assignment = assignmentMapper.selectById(assignmentId);
+            if (assignment != null) {
+                String assignmentType = assignment.getType();
+                if ("individual".equalsIgnoreCase(assignmentType)) {
+                    type = "INDIVIDUAL";
+                    log.debug("Auto-determined type as INDIVIDUAL based on assignment type");
+                } else if ("group".equalsIgnoreCase(assignmentType) || "mixed".equalsIgnoreCase(assignmentType)) {
+                    // For both GROUP and MIXED assignments, participants are groups
+                    type = "GROUP";
+                    log.debug("Auto-determined type as GROUP based on assignment type: {}", assignmentType);
+                }
+            }
+        }
         
         // Calculate offset
         int offset = (pageNum - 1) * pageSize;
