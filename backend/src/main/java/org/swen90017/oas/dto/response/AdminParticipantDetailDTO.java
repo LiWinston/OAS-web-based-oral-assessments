@@ -20,9 +20,6 @@ public class AdminParticipantDetailDTO {
     @Schema(description = "Participant information")
     private ParticipantInfo participant;
     
-    @Schema(description = "Final score (average of all examiner scores)", example = "86.5")
-    private Double finalScore;
-    
     @Schema(description = "Rubric snapshot")
     private RubricSnapshot rubricSnapshot;
     
@@ -113,6 +110,9 @@ public class AdminParticipantDetailDTO {
             
             @Schema(description = "Student name", example = "Bob")
             private String name;
+            
+            @Schema(description = "Final score for this member (average of all examiner scores)", example = "86.5")
+            private Double finalScore;
         }
     }
     
@@ -180,6 +180,9 @@ public class AdminParticipantDetailDTO {
     @Schema(description = "Examiner submission")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ExaminerSubmission {
+        @Schema(description = "Submission ID", example = "123")
+        private Long submissionId;
+        
         @Schema(description = "Examiner ID", example = "88")
         private Long examinerId;
         

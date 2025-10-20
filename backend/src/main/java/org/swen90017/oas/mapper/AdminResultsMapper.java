@@ -75,7 +75,8 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
      */
     Integer reopenExaminerAssessment(
             @Param("submissionId") Long submissionId,
-            @Param("examinerId") Long examinerId
+            @Param("examinerId") Long examinerId,
+            @Param("reason") String reason
     );
 
     /**

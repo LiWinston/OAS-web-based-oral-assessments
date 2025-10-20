@@ -65,11 +65,35 @@ public interface AdminResultsService {
 
     /**
      * Release an assessment to students
+     * @deprecated Use releaseGroupAssessment or releaseIndividualAssessment instead
      */
+    @Deprecated
     ReleaseAssessmentResponseDTO releaseAssessment(
             Long subjectId, 
             Long assignmentId, 
             Long submissionId,
+            ReleaseAssessmentRequestDTO request,
+            Long adminUserId
+    );
+
+    /**
+     * Release group assessment for all examiners
+     */
+    ReleaseAssessmentResponseDTO releaseGroupAssessment(
+            Long subjectId,
+            Long assignmentId,
+            Long groupId,
+            ReleaseAssessmentRequestDTO request,
+            Long adminUserId
+    );
+
+    /**
+     * Release individual assessment for all examiners
+     */
+    ReleaseAssessmentResponseDTO releaseIndividualAssessment(
+            Long subjectId,
+            Long assignmentId,
+            Long studentId,
             ReleaseAssessmentRequestDTO request,
             Long adminUserId
     );

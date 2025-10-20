@@ -134,9 +134,13 @@ public class AdminResultsController {
         return Result.success(result);
     }
 
+    /**
+     * @deprecated Use releaseGroupAssessment or releaseIndividualAssessment instead
+     */
+    @Deprecated
     @PostMapping("/assessments/{submissionId}/release")
-    @Operation(summary = "Release assessment", 
-               description = "Release assessment results to students with optional email notification")
+    @Operation(summary = "Release assessment (DEPRECATED)", 
+               description = "This endpoint is deprecated. Use /group/{groupId}/release or /individual/{studentId}/release instead.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully released assessment"),
         @ApiResponse(responseCode = "400", description = "Cannot release - no submitted examiners"),
@@ -153,6 +157,52 @@ public class AdminResultsController {
 
         ReleaseAssessmentResponseDTO result = adminResultsService.releaseAssessment(
                 subjectId, assignmentId, submissionId, request, loginUser.getUserId());
+        
+        return Result.success(result);
+    }
+
+    @PostMapping("/group/{groupId}/release")
+    @Operation(summary = "Release group assessment", 
+               description = "Release assessment results for all examiners of a group with optional email notification")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully released assessment"),
+        @ApiResponse(responseCode = "400", description = "Cannot release - no submitted examiners"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Group or assignment not found")
+    })
+    public Result<ReleaseAssessmentResponseDTO> releaseGroupAssessment(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Group ID") Long groupId,
+            @Valid @RequestBody ReleaseAssessmentRequestDTO request) {
+        
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+
+        ReleaseAssessmentResponseDTO result = adminResultsService.releaseGroupAssessment(
+                subjectId, assignmentId, groupId, request, loginUser.getUserId());
+        
+        return Result.success(result);
+    }
+
+    @PostMapping("/individual/{studentId}/release")
+    @Operation(summary = "Release individual assessment", 
+               description = "Release assessment results for all examiners of a student with optional email notification")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully released assessment"),
+        @ApiResponse(responseCode = "400", description = "Cannot release - no submitted examiners"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Student or assignment not found")
+    })
+    public Result<ReleaseAssessmentResponseDTO> releaseIndividualAssessment(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Student ID") Long studentId,
+            @Valid @RequestBody ReleaseAssessmentRequestDTO request) {
+        
+        LoginUser loginUser = SecurityUtils.getLoginUser();
+
+        ReleaseAssessmentResponseDTO result = adminResultsService.releaseIndividualAssessment(
+                subjectId, assignmentId, studentId, request, loginUser.getUserId());
         
         return Result.success(result);
     }
