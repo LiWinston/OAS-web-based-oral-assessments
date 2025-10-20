@@ -44,6 +44,38 @@ export const adminResultsService = {
     const resp = await apiClient.get(`${base(subjectId, assignmentId)}/individual/${studentId}`);
     return resp.data;
   },
+
+  async releaseSubmission(subjectId, assignmentId, submissionId, payload = {}) {
+    const resp = await apiClient.post(
+      `${base(subjectId, assignmentId)}/assessments/${submissionId}/release`,
+      payload
+    );
+    return resp.data;
+  },
+
+  async releaseGroup(subjectId, assignmentId, groupId, payload = {}) {
+    const resp = await apiClient.post(
+      `${base(subjectId, assignmentId)}/group/${groupId}/release`,
+      payload
+    );
+    return resp.data;
+  },
+
+  async releaseIndividual(subjectId, assignmentId, studentId, payload = {}) {
+    const resp = await apiClient.post(
+      `${base(subjectId, assignmentId)}/individual/${studentId}/release`,
+      payload
+    );
+    return resp.data;
+  },
+
+  async reviewExaminerSubmission(subjectId, assignmentId, submissionId, examinerId, payload) {
+    const resp = await apiClient.post(
+      `${base(subjectId, assignmentId)}/assessments/${submissionId}/examiners/${examinerId}/review`,
+      payload
+    );
+    return resp.data;
+  },
 };
 
 export default adminResultsService;

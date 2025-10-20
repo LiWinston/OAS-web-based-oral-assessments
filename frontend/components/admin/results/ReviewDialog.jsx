@@ -8,6 +8,8 @@ export default function ReviewDialog({ open, examiner, onOpenChange, onConfirm, 
   const [reason, setReason] = useState('');
   const [error, setError] = useState(null);
 
+  const examinerDisplayName = examiner?.name ?? examiner?.examinerName ?? 'the examiner';
+
   useEffect(() => {
     if (open) {
       setReason('');
@@ -28,7 +30,7 @@ export default function ReviewDialog({ open, examiner, onOpenChange, onConfirm, 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Request rework from {examiner?.name}</DialogTitle>
+          <DialogTitle>Request rework from {examinerDisplayName}</DialogTitle>
           <DialogDescription>
             The examiner will receive an email with your reason and regain edit access to this assessment. The assessment will be unreleased until the examiner resubmits.
           </DialogDescription>

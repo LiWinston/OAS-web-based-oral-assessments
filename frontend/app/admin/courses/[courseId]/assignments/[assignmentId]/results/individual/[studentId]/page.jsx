@@ -2,12 +2,22 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import ScoreSummaryPanel from "@/components/admin/results/ScoreSummaryPanel.jsx";
 import ExaminersRubricTabs from "@/components/admin/results/ExaminersRubricTabs.jsx";
 import { useIndividualResultDetail } from "@/hooks/admin/useAdminResults.js";
 import { formatDateRangeWithTimezone } from "@/lib/datetime.js";
 import { ReleaseStatusBadge } from "@/components/admin/results/ReleaseStatusBadge.jsx";
+import ReleaseDialog from "@/components/admin/results/ReleaseDialog.jsx";
+import ReviewDialog from "@/components/admin/results/ReviewDialog.jsx";
+import { Button } from "@/components/ui/button";
+import useResultActions from "@/hooks/admin/results/useResultActions.js";
+
+const formatScoreValue = (value) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "—";
+  return numeric.toFixed(2);
+};
 
 export default function IndividualResultDetailPage() {
   const params = useParams();
@@ -35,6 +45,76 @@ export default function IndividualResultDetailPage() {
 
   const venueLabel = data?.session?.venue?.name ?? "Venue pending";
   const releaseStatus = data?.participant?.releaseStatus ?? "NOT_RELEASED";
+
+  const {
+    examinerSummary,
+    releaseSubmissionIds,
+    releaseDialogOpen,
+    setReleaseDialogOpen,
+    releaseMutation,
+    reviewDialog,
+    openReviewDialog,
+    closeReviewDialog,
+    reviewMutation,
+    handleReviewConfirm,
+    handleReleaseConfirm,
+  } = useResultActions({
+    subjectId: courseId,
+    assignmentId,
+    participantType: "INDIVIDUAL",
+    participantId: studentId,
+    detail: data,
+    refetch,
+  });
+
+  const canRelease = (examinerSummary?.allSubmitted ?? false) && releaseSubmissionIds.length > 0;
+  const activeReviewExaminer = reviewDialog.examiner;
+
+  const renderExaminerActions = useCallback(
+    (examiner) => {
+      if (!examiner) return null;
+      const status = (examiner.assessmentStatus || '').toUpperCase();
+      if (status !== 'SUBMITTED') {
+        if (status === 'REOPENED') {
+          return (
+            <span className="text-xs text-amber-600 dark:text-amber-300">
+              Awaiting resubmission
+            </span>
+          );
+        }
+        return null;
+      }
+
+      const isProcessing =
+        reviewMutation.isPending &&
+        activeReviewExaminer &&
+        activeReviewExaminer.submissionId === examiner.submissionId &&
+        activeReviewExaminer.examinerId === examiner.examinerId;
+
+      return (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => openReviewDialog(examiner)}
+          disabled={reviewMutation.isPending}
+        >
+          {isProcessing ? (
+            <>
+              <i className="fas fa-spinner fa-spin mr-2" />
+              Requesting…
+            </>
+          ) : (
+            <>
+              <i className="fas fa-undo mr-2" />
+              Request rework
+            </>
+          )}
+        </Button>
+      );
+    },
+    [openReviewDialog, reviewMutation.isPending, activeReviewExaminer]
+  );
 
   return (
     <div className="space-y-6">
@@ -138,7 +218,18 @@ export default function IndividualResultDetailPage() {
           <ScoreSummaryPanel
             finalScore={data?.finalScore}
             releaseStatus={releaseStatus}
+            onReleaseClick={() => setReleaseDialogOpen(true)}
+            canRelease={canRelease}
+            isReleasePending={releaseMutation.isPending}
+            actions={
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {examinerSummary.submitted ?? 0}/{examinerSummary.total ?? 0} examiners submitted
+              </div>
+            }
           />
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            The final score above reflects the combined average from all examiners; the student information panel below repeats the same student’s individual final score for quick reference.
+          </p>
 
           <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-5 py-4">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
@@ -152,6 +243,10 @@ export default function IndividualResultDetailPage() {
               <div className="flex flex-wrap gap-2">
                 <dt className="font-medium">Student number:</dt>
                 <dd>{data.participant.studentNumber ?? "—"}</dd>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <dt className="font-medium">Final score:</dt>
+                <dd>{formatScoreValue(data.participant.finalScore)}</dd>
               </div>
             </dl>
           </section>
@@ -174,11 +269,30 @@ export default function IndividualResultDetailPage() {
               rubricSnapshot={data.rubricSnapshot}
               examiners={data.examiners}
               participant={data.participant}
-              weightBasis={data.rubricSnapshot?.weightBasis}
+              students={data.students}
+              renderExaminerActions={renderExaminerActions}
             />
           </section>
         </div>
       )}
+
+      <ReleaseDialog
+        open={releaseDialogOpen}
+        onOpenChange={setReleaseDialogOpen}
+        onConfirm={handleReleaseConfirm}
+        isSubmitting={releaseMutation.isPending}
+        hasSubmittedExaminers={examinerSummary.hasSubmitted}
+      />
+
+      <ReviewDialog
+        open={reviewDialog.open}
+        examiner={reviewDialog.examiner}
+        onOpenChange={(next) => {
+          if (!next) closeReviewDialog();
+        }}
+        onConfirm={handleReviewConfirm}
+        isSubmitting={reviewMutation.isPending}
+      />
     </div>
   );
 }

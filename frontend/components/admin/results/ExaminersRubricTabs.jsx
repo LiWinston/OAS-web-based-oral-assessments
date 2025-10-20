@@ -2,7 +2,44 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import RubricTable from "@/components/examiner/assessment/RubricTable.jsx";
+
+const STATUS_META = {
+  SUBMITTED: {
+    label: "Submitted",
+    className:
+      "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/60",
+    icon: "fa-circle-check",
+  },
+  REOPENED: {
+    label: "Reopened",
+    className:
+      "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-700/60",
+    icon: "fa-rotate-left",
+  },
+  DRAFT: {
+    label: "Draft",
+    className:
+      "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-900/30 dark:text-slate-300 dark:border-slate-700/60",
+    icon: "fa-pencil",
+  },
+  UNKNOWN: {
+    label: "Unknown",
+    className:
+      "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700/60",
+    icon: "fa-question-circle",
+  },
+};
+
+const safeArray = (value) => (Array.isArray(value) ? value : []);
+
+const coerceNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
 
 const normalize = (value) => (value ?? "").toString().trim().toLowerCase();
 
@@ -14,9 +51,9 @@ const createCriteriaMeta = (rubricList = [], type) => {
   rubricList.forEach((criterion, index) => {
     const baseId = normalize(criterion?.description) || `${type}-criterion-${index}`;
     const criterionId = `${type}-${baseId}-${index}`;
-    const levels = (criterion?.performanceLevels || []).map((level, levelIdx) => {
-      const min = Number(level?.minPoints ?? 0);
-      const max = Number(level?.maxPoints ?? min);
+    const levels = safeArray(criterion?.performanceLevels).map((level, levelIdx) => {
+      const min = coerceNumber(level?.minPoints ?? level?.levelRange?.min ?? 0) ?? 0;
+      const max = coerceNumber(level?.maxPoints ?? level?.levelRange?.max ?? min) ?? min;
       const levelId = `${criterionId}-L${levelIdx + 1}`;
       return {
         levelId,
@@ -31,9 +68,12 @@ const createCriteriaMeta = (rubricList = [], type) => {
     const mapped = {
       criterionId,
       description: criterion?.description || `Criterion ${index + 1}`,
-      weight: Number(criterion?.weight ?? 0),
+      weight: coerceNumber(criterion?.weight) ?? 0,
       appliesTo: type,
-      scaleType: (criterion?.scaleType || "descriptive").toLowerCase() === "points" ? "points" : "descriptive",
+      scaleType:
+        (criterion?.scaleType || "descriptive").toLowerCase() === "points"
+          ? "points"
+          : "descriptive",
       levels,
     };
 
@@ -54,10 +94,10 @@ const ensureRatings = (criteria, selectedMap) => {
     if (!result[criterion.criterionId]) {
       const defaultLevel = criterion.levels?.[0];
       const min = defaultLevel?.levelRange?.min ?? 0;
-      const max = defaultLevel?.levelRange?.max ?? defaultLevel?.maxPoints ?? min;
+      const max = defaultLevel?.levelRange?.max ?? min;
       result[criterion.criterionId] = {
         levelId: defaultLevel?.levelId ?? null,
-        points: 0,
+        points: null,
         minPoints: min,
         maxPoints: max ?? min ?? 0,
       };
@@ -76,9 +116,9 @@ const buildSelectedRatings = (scores = [], meta) => {
 
     const levelMap = meta.levelLookup.get(criterion.criterionId) || new Map();
     const matchedLevel = levelMap.get(normalize(entry?.selectedLevel));
-    const points = Number(entry?.pointsAwarded ?? 0);
+    const points = coerceNumber(entry?.pointsAwarded);
     const min = matchedLevel?.levelRange?.min ?? 0;
-    const max = matchedLevel?.levelRange?.max ?? matchedLevel?.maxPoints ?? min ?? points;
+    const max = matchedLevel?.levelRange?.max ?? matchedLevel?.maxPoints ?? min ?? points ?? 0;
 
     selected[criterion.criterionId] = {
       levelId: matchedLevel?.levelId ?? null,
@@ -99,16 +139,11 @@ const buildComments = (scores = [], meta) => {
     const criterion = meta.byDescription.get(normalizedDesc);
     if (!criterion) return;
 
-    const list = Array.isArray(entry?.comments)
-      ? entry.comments
-      : entry?.comments && typeof entry.comments === "object"
-        ? Object.values(entry.comments)
-        : [];
+    const list = safeArray(entry?.comments).map((item) =>
+      typeof item === "string" ? item : item && typeof item.text === "string" ? item.text : null
+    );
 
-    const texts = list
-      .map((item) => (typeof item === "string" ? item : item?.text))
-      .filter(Boolean);
-
+    const texts = list.filter(Boolean);
     if (texts.length) {
       comments[criterion.criterionId] = texts.join("\n");
     }
@@ -120,108 +155,57 @@ const buildComments = (scores = [], meta) => {
 const collectStudents = (examiners = [], participant) => {
   const map = new Map();
 
-  if (participant?.members) {
-    participant.members.forEach((member) => {
-      if (member?.studentId == null) return;
-      map.set(Number(member.studentId), {
-        studentId: Number(member.studentId),
-        name: member.name || `Student ${member.studentId}`,
-      });
+  safeArray(participant?.members).forEach((member) => {
+    if (member?.studentId == null) return;
+    const key = Number(member.studentId);
+    map.set(key, {
+      studentId: key,
+      name: member?.name || `Student ${key}`,
+      finalScore: coerceNumber(member?.finalScore),
     });
-  }
+  });
 
-  examiners.forEach((examiner) => {
-    (examiner?.rubricScores?.individual || []).forEach((score) => {
-      if (score?.studentId == null) return;
-      const id = Number(score.studentId);
-      if (!map.has(id)) {
-        map.set(id, {
-          studentId: id,
-          name: score.studentName || `Student ${score.studentId}`,
-        });
-      }
+  safeArray(examiners).forEach((examiner) => {
+    safeArray(examiner?.rubricScores?.individual).forEach((studentEntry) => {
+      if (studentEntry?.studentId == null) return;
+      const key = Number(studentEntry.studentId);
+      const existing = map.get(key);
+      map.set(key, {
+        studentId: key,
+        name: studentEntry?.studentName || existing?.name || `Student ${key}`,
+        finalScore: existing?.finalScore ?? coerceNumber(studentEntry?.finalScore),
+      });
     });
   });
 
   return Array.from(map.values()).sort((a, b) => a.studentId - b.studentId);
 };
 
-const ExaminerCard = ({ examiner, criteriaMeta, assessmentType, scoreUnit, selectedStudentId }) => {
-  const scores = useMemo(() => {
-    if (assessmentType === "GROUP") {
-      return examiner?.rubricScores?.group || [];
-    }
-    return (examiner?.rubricScores?.individual || []).filter((entry) => {
-      if (selectedStudentId == null) return true;
-      return Number(entry?.studentId) === Number(selectedStudentId);
-    });
-  }, [assessmentType, examiner?.rubricScores, selectedStudentId]);
+const formatDateTime = (value) => {
+  if (!value) return null;
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString();
+  } catch (error) {
+    return value;
+  }
+};
 
-  const selectedRatings = useMemo(
-    () => buildSelectedRatings(scores, criteriaMeta),
-    [scores, criteriaMeta]
-  );
+const formatScore = (value, scoreUnit) => {
+  const numeric = coerceNumber(value);
+  if (numeric === null) return "—";
+  return `${numeric.toFixed(2)}${scoreUnit || ""}`.trim();
+};
 
-  const comments = useMemo(() => buildComments(scores, criteriaMeta), [scores, criteriaMeta]);
-
-  const hasScores = scores && scores.length > 0;
-
+const ExaminerStatusBadge = ({ status }) => {
+  const normalized = (status || "UNKNOWN").toString().toUpperCase();
+  const meta = STATUS_META[normalized] ?? STATUS_META.UNKNOWN;
   return (
-    <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-5 py-5 space-y-4">
-      <header className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-        <div className="space-y-1">
-          <div className="text-sm font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
-            <i className="fas fa-user-tie text-blue-500" />
-            {examiner?.examinerName || `Examiner ${examiner?.examinerId ?? ""}`}
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide">
-              {examiner?.assessmentStatus || "UNKNOWN"}
-            </span>
-            {examiner?.submittedAt && (
-              <span className="inline-flex items-center gap-1">
-                <i className="far fa-clock" /> Submitted: {new Date(examiner.submittedAt).toLocaleString()}
-              </span>
-            )}
-            {examiner?.reopenedAt && (
-              <span className="inline-flex items-center gap-1">
-                <i className="fas fa-undo" /> Reopened: {new Date(examiner.reopenedAt).toLocaleString()}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="text-sm text-gray-600 dark:text-gray-300">
-          <span className="font-semibold text-gray-900 dark:text-gray-50">Total score:</span> {examiner?.totalScore ?? "—"}
-        </div>
-      </header>
-
-      {hasScores ? (
-        <RubricTable
-          criteria={criteriaMeta.criteria}
-          selectedRatings={selectedRatings}
-          comments={comments}
-          onRatingChange={() => {}}
-          onCommentChange={() => {}}
-          disabled
-          assessmentType={assessmentType}
-          showTotals={false}
-          scoreUnit={scoreUnit}
-        />
-      ) : (
-        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">
-          No rubric scores recorded for this {assessmentType === "GROUP" ? "group" : "student"}.
-        </div>
-      )}
-
-      {examiner?.overallFeedback && (
-        <section className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-          <h4 className="font-semibold text-gray-800 dark:text-gray-100 mb-1 flex items-center gap-2">
-            <i className="fas fa-comment-dots" /> Overall feedback
-          </h4>
-          <p className="whitespace-pre-wrap leading-relaxed">{examiner.overallFeedback}</p>
-        </section>
-      )}
-    </div>
+    <span className={cn("inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold", meta.className)}>
+      <i className={`fas ${meta.icon} text-[10px]`} />
+      {meta.label}
+    </span>
   );
 };
 
@@ -232,45 +216,40 @@ const StudentSelector = ({ students, selectedStudentId, onChange }) => {
     const only = students[0];
     return (
       <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-4 py-3 text-sm text-gray-700 dark:text-gray-300">
-        Viewing individual rubric for {only.name} (ID: {only.studentId})
+        Viewing individual rubric for {only.name}
+        {only.finalScore != null && (
+          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+            Final score: {only.finalScore.toFixed(2)}
+          </span>
+        )}
       </div>
     );
   }
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-4 py-4 space-y-3">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-3">
-        <label className="text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="admin-individual-student-select">
-          Select student
-        </label>
-        <select
-          id="admin-individual-student-select"
-          value={selectedStudentId ?? ""}
-          onChange={(event) => onChange(Number(event.target.value))}
-          className="w-full md:w-64 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-200"
-        >
-          {students.map((student) => (
-            <option key={student.studentId} value={student.studentId}>
-              {student.name} (ID: {student.studentId})
-            </option>
-          ))}
-        </select>
-      </div>
+      <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Select student</div>
       <div className="flex flex-wrap gap-2">
         {students.map((student) => {
           const isActive = Number(student.studentId) === Number(selectedStudentId);
           return (
             <button
-              key={`pill-${student.studentId}`}
+              key={student.studentId}
               type="button"
               onClick={() => onChange(student.studentId)}
-              className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+              className={cn(
+                "text-xs px-3 py-1 rounded-full border transition-colors",
                 isActive
                   ? "border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-300 bg-blue-50 dark:bg-blue-500/10"
                   : "border-gray-300 text-gray-600 dark:border-gray-600 dark:text-gray-300 bg-white dark:bg-gray-900"
-              }`}
+              )}
             >
-              {student.name}
+              <span>{student.name}</span>
+              {student.finalScore != null && (
+                <span className="ml-1 text-[10px] text-gray-500 dark:text-gray-400">
+                  {student.finalScore.toFixed(2)}
+                </span>
+              )}
             </button>
           );
         })}
@@ -279,103 +258,325 @@ const StudentSelector = ({ students, selectedStudentId, onChange }) => {
   );
 };
 
-export default function ExaminersRubricTabs({ rubricSnapshot, examiners = [], participant, weightBasis = "points" }) {
-  const groupMeta = useMemo(
-    () => createCriteriaMeta(rubricSnapshot?.groupRubrics || [], "GROUP"),
-    [rubricSnapshot?.groupRubrics]
-  );
-  const individualMeta = useMemo(
-    () => createCriteriaMeta(rubricSnapshot?.individualRubrics || [], "INDIVIDUAL"),
-    [rubricSnapshot?.individualRubrics]
-  );
+const ExaminerDetail = ({
+  examiner,
+  groupMeta,
+  individualMeta,
+  hasGroupRubric,
+  hasIndividualRubric,
+  students,
+  scoreUnit,
+  renderExaminerActions,
+}) => {
+  const groupScores = safeArray(examiner?.rubricScores?.group);
+  const individualEntries = safeArray(examiner?.rubricScores?.individual);
 
-  const scoreUnit = (weightBasis || "").toLowerCase() === "percentage" ? "%" : "pts";
+  const studentOptions = useMemo(() => {
+    if (!students || students.length === 0) {
+      return individualEntries.map((entry) => ({
+        studentId: entry?.studentId ?? null,
+        name: entry?.studentName || (entry?.studentId != null ? `Student ${entry.studentId}` : "Student"),
+        finalScore: coerceNumber(entry?.finalScore),
+        entry,
+      }));
+    }
 
-  const hasGroupTab = groupMeta.criteria.length > 0 && examiners.some((ex) => (ex?.rubricScores?.group || []).length > 0);
-  const hasIndividualTab = individualMeta.criteria.length > 0 && examiners.some((ex) => (ex?.rubricScores?.individual || []).length > 0);
+    const enriched = students.map((student) => {
+      const match = individualEntries.find((entry) => Number(entry?.studentId) === Number(student.studentId));
+      return {
+        ...student,
+        entry: match || null,
+      };
+    });
 
-  const initialTab = hasGroupTab ? "group" : "individual";
-  const [activeTab, setActiveTab] = useState(initialTab);
+    const additional = individualEntries.filter((entry) => {
+      if (entry?.studentId == null) return false;
+      return !enriched.some((student) => Number(student.studentId) === Number(entry.studentId));
+    });
+
+    return enriched.concat(
+      additional.map((entry) => ({
+        studentId: entry?.studentId,
+        name: entry?.studentName || `Student ${entry.studentId}`,
+        finalScore: coerceNumber(entry?.finalScore),
+        entry,
+      }))
+    );
+  }, [students, individualEntries]);
+
+  const [activeRubricTab, setActiveRubricTab] = useState(() => (hasGroupRubric ? "group" : "individual"));
 
   useEffect(() => {
-    if (activeTab === "group" && !hasGroupTab && hasIndividualTab) {
-      setActiveTab("individual");
+    if (activeRubricTab === "group" && !hasGroupRubric && hasIndividualRubric) {
+      setActiveRubricTab("individual");
     }
-    if (activeTab === "individual" && !hasIndividualTab && hasGroupTab) {
-      setActiveTab("group");
+    if (activeRubricTab === "individual" && !hasIndividualRubric && hasGroupRubric) {
+      setActiveRubricTab("group");
     }
-  }, [activeTab, hasGroupTab, hasIndividualTab]);
+  }, [activeRubricTab, hasGroupRubric, hasIndividualRubric]);
 
-  const students = useMemo(() => collectStudents(examiners, participant), [examiners, participant]);
-  const [selectedStudentId, setSelectedStudentId] = useState(() => students[0]?.studentId ?? null);
+  const [selectedStudentId, setSelectedStudentId] = useState(() => studentOptions[0]?.studentId ?? null);
 
   useEffect(() => {
-    if (students.length === 0) {
+    if (!studentOptions || studentOptions.length === 0) {
       setSelectedStudentId(null);
       return;
     }
-    if (!students.some((student) => Number(student.studentId) === Number(selectedStudentId))) {
-      setSelectedStudentId(students[0].studentId);
+    if (!studentOptions.some((student) => Number(student.studentId) === Number(selectedStudentId))) {
+      setSelectedStudentId(studentOptions[0]?.studentId ?? null);
     }
-  }, [students, selectedStudentId]);
+  }, [studentOptions, selectedStudentId]);
 
-  if (!hasGroupTab && !hasIndividualTab) {
+  const selectedStudent = selectedStudentId == null
+    ? null
+    : studentOptions.find((student) => Number(student.studentId) === Number(selectedStudentId));
+
+  const groupRatings = useMemo(
+    () => buildSelectedRatings(groupScores, groupMeta),
+    [groupScores, groupMeta]
+  );
+
+  const groupComments = useMemo(
+    () => buildComments(groupScores, groupMeta),
+    [groupScores, groupMeta]
+  );
+
+  const individualScores = useMemo(
+    () => safeArray(selectedStudent?.entry?.scores),
+    [selectedStudent]
+  );
+
+  const individualRatings = useMemo(
+    () => buildSelectedRatings(individualScores, individualMeta),
+    [individualScores, individualMeta]
+  );
+
+  const individualComments = useMemo(
+    () => buildComments(individualScores, individualMeta),
+    [individualScores, individualMeta]
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 px-5 py-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-50 flex items-center gap-2">
+              <i className="fas fa-user-tie text-blue-500" />
+              {examiner?.examinerName || `Examiner ${examiner?.examinerId ?? ""}`}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600 dark:text-gray-400">
+              <ExaminerStatusBadge status={examiner?.assessmentStatus} />
+              {examiner?.submittedAt && (
+                <span className="inline-flex items-center gap-1">
+                  <i className="far fa-clock" /> Submitted: {formatDateTime(examiner.submittedAt)}
+                </span>
+              )}
+              {examiner?.reopenedAt && (
+                <span className="inline-flex items-center gap-1">
+                  <i className="fas fa-undo" /> Reopened: {formatDateTime(examiner.reopenedAt)}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col items-start gap-2 lg:items-end">
+            <div className="text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-gray-50">Total score: </span>
+              {formatScore(examiner?.totalScore, scoreUnit)}
+            </div>
+            {renderExaminerActions && (
+              <div className="flex flex-wrap gap-2">{renderExaminerActions(examiner)}</div>
+            )}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <Badge variant="outline" className="border-blue-200 text-blue-600 dark:border-blue-700 dark:text-blue-300">
+            Submission ID: {examiner?.submissionId ?? "—"}
+          </Badge>
+          <Badge variant="outline" className="border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300">
+            Examiner ID: {examiner?.examinerId ?? "—"}
+          </Badge>
+        </div>
+      </div>
+
+      {(hasGroupRubric || hasIndividualRubric) ? (
+        <Tabs value={activeRubricTab} onValueChange={setActiveRubricTab} className="space-y-4">
+          <TabsList className="flex w-fit bg-blue-50/60 dark:bg-blue-900/20 p-1 rounded-lg">
+            {hasGroupRubric && (
+              <TabsTrigger value="group" className="px-4 py-2 text-sm">
+                Group rubric
+              </TabsTrigger>
+            )}
+            {hasIndividualRubric && (
+              <TabsTrigger value="individual" className="px-4 py-2 text-sm">
+                Individual rubric
+              </TabsTrigger>
+            )}
+          </TabsList>
+
+          {hasGroupRubric && (
+            <TabsContent value="group" className="space-y-4">
+              {groupScores.length > 0 ? (
+                <RubricTable
+                  criteria={groupMeta.criteria}
+                  selectedRatings={groupRatings}
+                  comments={groupComments}
+                  onRatingChange={() => {}}
+                  onCommentChange={() => {}}
+                  disabled
+                  assessmentType="GROUP"
+                  showTotals={false}
+                  scoreUnit={scoreUnit}
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  No group rubric scores recorded by this examiner.
+                </div>
+              )}
+            </TabsContent>
+          )}
+
+          {hasIndividualRubric && (
+            <TabsContent value="individual" className="space-y-4">
+              <StudentSelector
+                students={studentOptions}
+                selectedStudentId={selectedStudentId}
+                onChange={setSelectedStudentId}
+              />
+
+              {individualScores.length > 0 ? (
+                <RubricTable
+                  criteria={individualMeta.criteria}
+                  selectedRatings={individualRatings}
+                  comments={individualComments}
+                  onRatingChange={() => {}}
+                  onCommentChange={() => {}}
+                  disabled
+                  assessmentType="INDIVIDUAL"
+                  showTotals={false}
+                  scoreUnit={scoreUnit}
+                />
+              ) : (
+                <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+                  {selectedStudent
+                    ? `No individual rubric scores recorded for ${selectedStudent.name}.`
+                    : "Select a student to view individual rubric scores."}
+                </div>
+              )}
+            </TabsContent>
+          )}
+        </Tabs>
+      ) : (
+        <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+          No rubric configuration available for this assignment.
+        </div>
+      )}
+
+      {examiner?.overallFeedback && (
+        <section className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/40 px-4 py-4 text-sm text-gray-700 dark:text-gray-300">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-2 flex items-center gap-2">
+            <i className="fas fa-comment-dots" /> Overall feedback
+          </h3>
+          <p className="whitespace-pre-wrap leading-relaxed">{examiner.overallFeedback}</p>
+        </section>
+      )}
+    </div>
+  );
+};
+
+export default function ExaminersRubricTabs({
+  examiners = [],
+  rubricSnapshot,
+  participant,
+  students = [],
+  renderExaminerActions,
+}) {
+  const hasExaminers = Array.isArray(examiners) && examiners.length > 0;
+
+  const groupMeta = useMemo(
+    () => createCriteriaMeta(safeArray(rubricSnapshot?.groupRubrics), "GROUP"),
+    [rubricSnapshot?.groupRubrics]
+  );
+  const individualMeta = useMemo(
+    () => createCriteriaMeta(safeArray(rubricSnapshot?.individualRubrics), "INDIVIDUAL"),
+    [rubricSnapshot?.individualRubrics]
+  );
+
+  const hasGroupRubric = groupMeta.criteria.length > 0;
+  const hasIndividualRubric = individualMeta.criteria.length > 0;
+
+  const combinedStudents = useMemo(() => {
+    if (students && students.length > 0) return students;
+    return collectStudents(examiners, participant);
+  }, [students, examiners, participant]);
+
+  const scoreUnit = useMemo(() => {
+    const basis = (rubricSnapshot?.weightBasis || "").toString().toLowerCase();
+    return basis === "percentage" ? "%" : "pts";
+  }, [rubricSnapshot?.weightBasis]);
+
+  const initialValue = useMemo(() => {
+    const first = examiners[0];
+    return (first?.submissionId ?? first?.examinerId ?? "examiner-0").toString();
+  }, [examiners]);
+
+  const [activeExaminerId, setActiveExaminerId] = useState(initialValue);
+
+  useEffect(() => {
+    const exists = examiners.some((examiner) => {
+      const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
+      return key === activeExaminerId;
+    });
+    if (!exists) {
+      setActiveExaminerId(initialValue);
+    }
+  }, [examiners, activeExaminerId, initialValue]);
+
+  if (!hasExaminers) {
     return (
       <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-700 px-6 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-        No rubric data available for this participant.
+        No examiner submissions yet.
       </div>
     );
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-      <TabsList className="flex w-fit bg-blue-50/60 dark:bg-blue-900/20 p-1 rounded-lg">
-        {hasGroupTab && (
-          <TabsTrigger value="group" className="px-4 py-2 text-sm">
-            Group rubric
-          </TabsTrigger>
-        )}
-        {hasIndividualTab && (
-          <TabsTrigger value="individual" className="px-4 py-2 text-sm">
-            Individual rubric
-          </TabsTrigger>
-        )}
+    <Tabs value={activeExaminerId} onValueChange={setActiveExaminerId} className="space-y-6">
+      <TabsList className="flex w-full flex-wrap gap-2 bg-gray-50 dark:bg-gray-900/40 p-2 rounded-xl">
+        {examiners.map((examiner) => {
+          const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
+          return (
+            <TabsTrigger
+              key={key}
+              value={key}
+              className="px-4 py-2 text-sm data-[state=active]:bg-white data-[state=active]:text-blue-600 data-[state=active]:shadow data-[state=active]:border data-[state=active]:border-blue-200 rounded-lg"
+            >
+              <span className="flex items-center gap-2">
+                <i className="fas fa-user" />
+                {examiner?.examinerName || `Examiner ${examiner?.examinerId ?? ""}`}
+              </span>
+            </TabsTrigger>
+          );
+        })}
       </TabsList>
 
-      {hasGroupTab && (
-        <TabsContent value="group" className="space-y-4">
-          {examiners.map((examiner, index) => (
-            <ExaminerCard
-              key={examiner?.examinerId ?? `group-examiner-${index}`}
+      {examiners.map((examiner) => {
+        const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
+        return (
+          <TabsContent key={key} value={key} className="space-y-6">
+            <ExaminerDetail
               examiner={examiner}
-              criteriaMeta={groupMeta}
-              assessmentType="GROUP"
+              groupMeta={groupMeta}
+              individualMeta={individualMeta}
+              hasGroupRubric={hasGroupRubric}
+              hasIndividualRubric={hasIndividualRubric}
+              students={combinedStudents}
               scoreUnit={scoreUnit}
+              renderExaminerActions={renderExaminerActions}
             />
-          ))}
-        </TabsContent>
-      )}
-
-      {hasIndividualTab && (
-        <TabsContent value="individual" className="space-y-4">
-          <StudentSelector
-            students={students}
-            selectedStudentId={selectedStudentId}
-            onChange={setSelectedStudentId}
-          />
-
-          {examiners.map((examiner, index) => (
-            <ExaminerCard
-              key={examiner?.examinerId ?? `individual-examiner-${index}`}
-              examiner={examiner}
-              criteriaMeta={individualMeta}
-              assessmentType="INDIVIDUAL"
-              scoreUnit={scoreUnit}
-              selectedStudentId={selectedStudentId}
-            />
-          ))}
-        </TabsContent>
-      )}
+          </TabsContent>
+        );
+      })}
     </Tabs>
   );
 }
