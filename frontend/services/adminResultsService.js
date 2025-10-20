@@ -9,6 +9,17 @@ const mapReleaseFilter = (status) => {
 };
 
 export const adminResultsService = {
+  async listAssignmentSessions(subjectId, assignmentId, { pageNum = 1, pageSize = 10, q } = {}) {
+    const params = {
+      pageNum,
+      pageSize,
+      q,
+    };
+
+    const resp = await apiClient.get(`${base(subjectId, assignmentId)}/sessions`, { params });
+    return resp.data;
+  },
+
   async listAssessments(subjectId, assignmentId, { pageNum = 1, pageSize = 20, q, sessionId, status } = {}) {
     const isReleased = mapReleaseFilter(status);
     const params = {

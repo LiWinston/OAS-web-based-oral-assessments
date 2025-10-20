@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useCallback, useEffect, useState } from "react";
+import { Fragment, useMemo, useCallback, useEffect, useState } from "react";
 import { useAssessmentList } from "@/hooks/admin/useAdminResults.js";
 import ResultsFilterBar from "@/components/admin/results/ResultsFilterBar.jsx";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -78,6 +78,22 @@ export default function AdminResultsListPage() {
       return name.includes(needle) || sessionWindow.includes(needle);
     });
   }, [items, q]);
+
+  const groupedBySession = useMemo(() => {
+    const groups = new Map();
+    filteredItems.forEach((row) => {
+      const sessionId = row.session?.id ?? "unknown";
+      if (!groups.has(sessionId)) {
+        groups.set(sessionId, {
+          sessionId,
+          session: row.session,
+          items: [],
+        });
+      }
+      groups.get(sessionId).items.push(row);
+    });
+    return Array.from(groups.values());
+  }, [filteredItems]);
 
   const [course, setCourse] = useState(null);
   const [assignment, setAssignment] = useState(null);
@@ -237,12 +253,10 @@ export default function AdminResultsListPage() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && filteredItems.map((row) => {
-              const key = row.assessment?.key;
-              const display = row.assessment?.student?.name || row.assessment?.group?.name || key?.submissionId;
-              const start = row.session?.start ? new Date(row.session.start) : null;
-              const end = row.session?.end ? new Date(row.session.end) : null;
-              let sessionStr = '—';
+            {!isLoading && groupedBySession.map(({ sessionId, session, items: sessionItems }) => {
+              const start = session?.start ? new Date(session.start) : null;
+              const end = session?.end ? new Date(session.end) : null;
+              let sessionLabel = 'Session';
               if (start && end) {
                 const dateLabel = start.toLocaleDateString('en-AU', {
                   weekday: 'short',
@@ -252,37 +266,75 @@ export default function AdminResultsListPage() {
                 });
                 const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const endLabel = end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                sessionStr = `${dateLabel} ${startLabel} – ${endLabel}`;
+                sessionLabel = `${dateLabel} ${startLabel} – ${endLabel}`;
               } else if (start) {
                 const dateLabel = start.toLocaleDateString('en-AU', { year: 'numeric', month: 'short', day: 'numeric' });
                 const startLabel = start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                sessionStr = `${dateLabel} ${startLabel}`;
+                sessionLabel = `${dateLabel} ${startLabel}`;
               }
+
+              const venueName = session?.venue?.name;
+
               return (
-                <TableRow key={key?.submissionId} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {row.assessment?.group ? (
-                        <i className="fas fa-users text-gray-400" />
-                      ) : (
-                        <i className="fas fa-user text-gray-400" />
-                      )}
-                      <span className="font-medium">{display}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-sm">{sessionStr}</TableCell>
-                  <TableCell className="text-right font-medium">{fmtPct(row.computed?.averageScorePct1dp)}</TableCell>
-                  <TableCell><ReleaseChip releaseStatus={row.releaseStatus} /></TableCell>
-                  <TableCell className="text-right">
-                    <Link
-                      href={`/admin/courses/${courseId}/assignments/${assignmentId}/results/${key?.submissionId}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow hover:shadow-lg transition-all hover:scale-105"
-                    >
-                      <i className="fas fa-eye" />
-                      View
-                    </Link>
-                  </TableCell>
-                </TableRow>
+                <Fragment key={sessionId}>
+                  <TableRow className="bg-gray-50/70 dark:bg-gray-900/40">
+                    <TableCell colSpan={5} className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+                      <div className="flex flex-wrap gap-3 items-center">
+                        <span className="inline-flex items-center gap-2">
+                          <i className="far fa-calendar" />
+                          {sessionLabel}
+                        </span>
+                        {venueName && (
+                          <span className="inline-flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                            <i className="fas fa-map-marker-alt" />
+                            {venueName}
+                          </span>
+                        )}
+                        <span className="ml-auto text-xs uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                          Session ID: {sessionId}
+                        </span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                  {sessionItems.map((row) => {
+                    const key = row.assessment?.key;
+                    const display = row.assessment?.student?.name || row.assessment?.group?.name || key?.submissionId;
+                    const iconClass = row.assessment?.group ? 'fas fa-users' : 'fas fa-user';
+                    const rowSessionLabel = sessionLabel;
+                    const memberCount = row.assessment?.group?.memberCount;
+                    const isGroup = Boolean(row.assessment?.group);
+
+                    return (
+                      <TableRow key={key?.submissionId} className="hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors">
+                        <TableCell>
+                          <div className="flex items-center gap-2 pl-4">
+                            <i className={`${iconClass} text-gray-400`} />
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-800 dark:text-gray-100">{display}</span>
+                              {isGroup && typeof memberCount === 'number' && (
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {memberCount} member{memberCount === 1 ? '' : 's'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500 dark:text-gray-400">{rowSessionLabel}</TableCell>
+                        <TableCell className="text-right font-medium">{fmtPct(row.computed?.averageScorePct1dp)}</TableCell>
+                        <TableCell><ReleaseChip releaseStatus={row.releaseStatus} /></TableCell>
+                        <TableCell className="text-right">
+                          <Link
+                            href={`/admin/courses/${courseId}/assignments/${assignmentId}/results/${key?.submissionId}`}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow hover:shadow-lg transition-all hover:scale-105"
+                          >
+                            <i className="fas fa-eye" />
+                            View
+                          </Link>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </Fragment>
               );
             })}
           </TableBody>

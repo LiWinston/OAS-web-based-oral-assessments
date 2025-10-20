@@ -91,23 +91,6 @@ export default function AdminResultsHubPage() {
     [assignments, selectedCourseKey]
   );
 
-  const courseStats = useMemo(() => {
-    const assignmentTotal = visibleAssignments.length;
-    const released = visibleAssignments.filter(
-      (item) =>
-        item?.resultsReleased ||
-        item?.results?.released ||
-        item?.resultStatus === "RELEASED"
-    ).length;
-    const pending = assignmentTotal - released;
-
-    return {
-      assignmentTotal,
-      released,
-      pending,
-    };
-  }, [visibleAssignments]);
-
   const warningMessage = useMemo(() => {
     if (!warnings || warnings.length === 0) return "";
     return `Could not load assignments for: ${warnings.join(", ")}`;
@@ -130,33 +113,30 @@ export default function AdminResultsHubPage() {
       </div>
 
       <section className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-2xl p-7 text-white shadow-xl">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3 max-w-2xl">
-            <div className="text-xs uppercase tracking-[0.3em] text-blue-100/90">Results Consolidation</div>
-            <h1 className="text-3xl font-bold">Monitor marking progress & release results confidently</h1>
+            <div className="text-xs uppercase tracking-[0.3em] text-blue-100/90">Session-First Workflow</div>
+            <h1 className="text-3xl font-bold">Review sessions before releasing assessment results</h1>
             <p className="text-sm text-blue-100/80 leading-relaxed">
-              Switch between your courses, review assessment readiness at a glance, and jump straight into
-              consolidation workflows when pending submissions need attention.
+              Pick a course, explore assignment sessions, and drill down into participants and examiner submissions
+              before releasing results to students.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-3 min-w-[240px]">
-            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3 text-center">
-              <div className="text-xs uppercase tracking-wide text-blue-100/80">Assignments</div>
-              <div className="text-2xl font-bold">
-                {courseStats.assignmentTotal ?? 0}
-              </div>
+          <div className="grid gap-3 min-w-[260px]">
+            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-blue-100/70">Step 1</div>
+              <div className="text-sm font-semibold">Assignment sessions overview</div>
+              <p className="mt-1 text-xs text-blue-100/70">Understand timing, venues, and participant readiness per session.</p>
             </div>
-            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3 text-center">
-              <div className="text-xs uppercase tracking-wide text-blue-100/80">Released</div>
-              <div className="text-2xl font-bold text-emerald-200">
-                {courseStats.released ?? 0}
-              </div>
+            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-blue-100/70">Step 2</div>
+              <div className="text-sm font-semibold">Session participants (coming next)</div>
+              <p className="mt-1 text-xs text-blue-100/70">Open a session to see group and individual progress.</p>
             </div>
-            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3 text-center">
-              <div className="text-xs uppercase tracking-wide text-blue-100/80">Pending</div>
-              <div className="text-2xl font-bold text-amber-100">
-                {courseStats.pending ?? 0}
-              </div>
+            <div className="rounded-xl bg-white/10 backdrop-blur px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-blue-100/70">Step 3</div>
+              <div className="text-sm font-semibold">Release & notify</div>
+              <p className="mt-1 text-xs text-blue-100/70">Confirm examiner submissions, then release to students.</p>
             </div>
           </div>
         </div>
@@ -205,7 +185,7 @@ export default function AdminResultsHubPage() {
                 {selectedCourse?.courseName || "Select a course"}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Track examiner submissions, consolidate marks, and release feedback.
+                Browse assignments to review their sessions and coordinate examiner follow-up.
               </p>
             </div>
             {selectedCourse && (

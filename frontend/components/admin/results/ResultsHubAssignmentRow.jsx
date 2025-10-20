@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useAssignmentResultsSummary } from "@/hooks/admin/useAssignmentResultsSummary.js";
+import { useAssignmentSessions } from "@/hooks/admin/results/useAssignmentSessions.js";
 
 const readinessStyles = {
   active: "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800/40",
   idle: "bg-gray-100 text-gray-500 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700/60",
 };
 
-const readinessIcon = (done) => (done ? "fa-check" : "fa-circle" );
+const readinessIcon = (done) => (done ? "fa-check" : "fa-circle");
 
 function ReadinessChip({ label, active }) {
   return (
@@ -24,14 +24,157 @@ function ReadinessChip({ label, active }) {
   );
 }
 
-function MetricPanel({ label, value, accent }) {
-  const tone = accent ?? "text-blue-600 dark:text-blue-300";
+const formatDateRange = (startISO, endISO, timezone) => {
+  if (!startISO) return "Schedule pending";
+
+  try {
+    const start = new Date(startISO);
+    const end = endISO ? new Date(endISO) : null;
+
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      timeZone: timezone,
+    });
+
+    const timeFormatter = new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    });
+
+    const dateLabel = dateFormatter.format(start);
+    const startLabel = timeFormatter.format(start);
+    const endLabel = end ? timeFormatter.format(end) : null;
+
+    if (endLabel) {
+      return `${dateLabel} · ${startLabel} – ${endLabel}`;
+    }
+
+    return `${dateLabel} · ${startLabel}`;
+  } catch (error) {
+    return "Schedule pending";
+  }
+};
+
+function SessionSkeletonRow() {
   return (
-    <div className="rounded-xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/50 px-4 py-3 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        {label}
+    <div className="flex items-center justify-between rounded-2xl border border-gray-200/60 dark:border-gray-800/70 bg-gray-100/80 dark:bg-gray-900/30 px-4 py-4 animate-pulse">
+      <div className="space-y-2">
+        <div className="h-4 w-40 rounded bg-gray-300/70 dark:bg-gray-700/70" />
+        <div className="h-3 w-32 rounded bg-gray-300/60 dark:bg-gray-700/60" />
       </div>
-      <div className={`mt-2 text-3xl font-bold leading-none ${tone}`}>{value}</div>
+      <div className="h-9 w-28 rounded-lg bg-gray-300/70 dark:bg-gray-700/70" />
+    </div>
+  );
+}
+
+function SessionRow({ session, courseId, assignmentId }) {
+  const sessionId = session?.sessionId ?? session?.id;
+  const participantCount = session?.participantCount ?? session?.participants ?? 0;
+  const venueName = session?.venue?.name ?? session?.venueName;
+  const timezone = session?.timezone;
+  const scheduleLabel = formatDateRange(session?.start, session?.end, timezone);
+  const href =
+    sessionId !== undefined && sessionId !== null
+      ? `/admin/courses/${courseId}/assignments/${assignmentId}/results/sessions/${sessionId}`
+      : null;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/40 px-4 py-4 transition-all hover:border-blue-200/80 hover:shadow-md dark:hover:border-blue-600/60">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-100">
+          <i className="far fa-calendar text-blue-500" />
+          {scheduleLabel}
+        </span>
+        {venueName && (
+          <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-gray-700 px-2 py-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+            <i className="fas fa-map-marker-alt text-[10px]" />
+            {venueName}
+          </span>
+        )}
+        <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-blue-50 dark:bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-700 dark:text-blue-300">
+          <i className="fas fa-users text-[10px]" />
+          {participantCount} participant{participantCount === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
+        <span className="inline-flex items-center gap-1">
+          <i className="fas fa-clock text-[10px]" />
+          {timezone ? `Timezone: ${timezone}` : "Timezone pending"}
+        </span>
+        {href ? (
+          <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-500">
+            <Link href={href}>
+              <i className="fas fa-door-open" />
+              Open session
+            </Link>
+          </Button>
+        ) : (
+          <Button size="sm" variant="outline" disabled>
+            <i className="fas fa-lock" />
+            Awaiting session ID
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SessionsSection({ loading, error, sessions, courseId, assignmentId, onRetry, isFetching }) {
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <SessionSkeletonRow key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-start gap-3 rounded-2xl border border-red-200 dark:border-red-700 bg-red-50/80 dark:bg-red-900/30 px-4 py-4 text-sm text-red-700 dark:text-red-200">
+        <i className="fas fa-exclamation-triangle mt-1" aria-hidden="true" />
+        <div className="space-y-2">
+          <p>Failed to load sessions for this assignment.</p>
+          <Button size="sm" onClick={onRetry} disabled={isFetching}>
+            {isFetching && <i className="fas fa-spinner fa-spin mr-2" />}
+            Retry
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessions || sessions.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 px-6 py-6 text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-400">
+          <i className="fas fa-calendar-plus" />
+        </div>
+        <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">No sessions configured yet</h4>
+        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          Set up sessions in Assignment Configuration to start consolidating assessment results.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {sessions.map((session) => (
+        <SessionRow
+          key={session?.sessionId ?? session?.id}
+          session={session}
+          courseId={courseId}
+          assignmentId={assignmentId}
+        />
+      ))}
     </div>
   );
 }
@@ -40,13 +183,13 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
   const subjectId = courseId;
   const assignmentId = assignment?.id ?? assignment?.assignmentId;
 
-  const { data: summary, isLoading, isError } = useAssignmentResultsSummary(subjectId, assignmentId, {
-    enabled: Boolean(subjectId && assignmentId),
-  });
-
-  const resultsHref = assignmentId
-    ? `/admin/courses/${subjectId}/assignments/${assignmentId}/results`
-    : undefined;
+  const {
+    data: sessionData,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = useAssignmentSessions(subjectId, assignmentId, {}, { enabled: Boolean(subjectId && assignmentId) });
 
   const rubricReady = Boolean(
     assignment?.hasRubric ||
@@ -67,31 +210,8 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
       assignment?.resultStatus === "RELEASED"
   );
 
-  const total = summary?.total ?? 0;
-  const released = summary?.released ?? 0;
-  const pending = summary?.pending ?? Math.max(total - released, 0);
-  const avgScore = summary?.averageScore;
-
-  const displayCount = (value) => {
-    if (isLoading) return "…";
-    if (typeof value === "number") return value;
-    return "—";
-  };
-
-  const displayAverage = () => {
-    if (isLoading) return "…";
-    if (typeof avgScore === "number") {
-      return `${avgScore.toFixed(1)}%`;
-    }
-    return "—";
-  };
-
-  const metrics = [
-    { label: "Assessments", value: displayCount(total) },
-    { label: "Released", value: displayCount(released), accent: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Pending", value: displayCount(pending), accent: "text-blue-600 dark:text-blue-400" },
-    { label: "Average", value: displayAverage() },
-  ];
+  const sessions = sessionData?.items ?? [];
+  const totalSessions = sessionData?.total ?? sessions.length ?? 0;
 
   return (
     <div className="group relative overflow-hidden rounded-3xl border border-gray-200/70 dark:border-gray-700/60 bg-white dark:bg-gray-900/40 shadow-sm transition-all duration-200 hover:shadow-xl">
@@ -114,12 +234,18 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
                 )}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                {assignment?.description || "Track examiner submissions, consolidate marks, and release student feedback."}
+                {assignment?.description || "Monitor sessions, coordinate examiner submissions, and plan result releases."}
               </p>
               <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
-                <span className="flex items-center gap-1"><i className="fas fa-id-badge" />Assignment ID: {assignmentId || '—'}</span>
+                <span className="flex items-center gap-1">
+                  <i className="fas fa-id-badge" />
+                  Assignment ID: {assignmentId || "—"}
+                </span>
                 {assignment?.courseCode && (
-                  <span className="flex items-center gap-1"><i className="fas fa-book" />{assignment.courseCode}</span>
+                  <span className="flex items-center gap-1">
+                    <i className="fas fa-book" />
+                    {assignment.courseCode}
+                  </span>
                 )}
               </div>
             </div>
@@ -132,47 +258,29 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
-          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4 gap-4">
-            {metrics.map((metric) => (
-              <MetricPanel key={metric.label} label={metric.label} value={metric.value} accent={metric.accent} />
-            ))}
-          </div>
-
-          <div className="flex flex-col justify-between gap-3">
-            {isError ? (
-              <div className="rounded-xl border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/30 px-4 py-3 text-sm text-red-600 dark:text-red-300">
-                Failed to load summary.
-              </div>
-            ) : isLoading ? (
-              <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/40 px-4 py-3 text-sm text-gray-500 dark:text-gray-400 animate-pulse text-center">
-                Fetching metrics…
-              </div>
-            ) : (
-              <div className="rounded-xl border border-sky-200/80 dark:border-sky-700/60 bg-sky-50/70 dark:bg-sky-900/20 px-4 py-3 text-xs text-sky-900 dark:text-sky-100">
-                <span className="font-semibold">Tip:</span> Review pending assessments before releasing results to students.
-              </div>
-            )}
-
-            <Button
-              asChild={Boolean(resultsHref)}
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-md"
-              disabled={!resultsHref}
-            >
-              {resultsHref ? (
-                <Link href={resultsHref}>
-                  <i className="fas fa-arrow-right" />
-                  Open Results
-                </Link>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <i className="fas fa-lock" />
-                  Awaiting setup
-                </span>
-              )}
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-50">Sessions</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {totalSessions} session{totalSessions === 1 ? "" : "s"} configured for this assignment.
+              </p>
+            </div>
+            <Button variant="outline" size="sm" onClick={refetch} disabled={isFetching}>
+              {isFetching && <i className="fas fa-spinner fa-spin mr-2" />}
+              Refresh
             </Button>
           </div>
+
+          <SessionsSection
+            loading={isLoading && !sessionData}
+            error={isError}
+            sessions={sessions}
+            courseId={subjectId}
+            assignmentId={assignmentId}
+            onRetry={refetch}
+            isFetching={isFetching}
+          />
         </div>
       </div>
     </div>

@@ -371,7 +371,8 @@ frontend/
 │   ├── useTimeslotAssignment.js # Timeslot assignment logic with conflict detection
 │   ├── admin/useAdminAssignments.js # Shared Course Admin assignment fetch/cache hook
 │   ├── admin/useAdminResults.js # Results list/detail queries + review/override/release mutations
-│   └── admin/useAssignmentResultsSummary.js # Aggregates assessment counts for the Results Hub metrics
+│   └── admin/results/          # Results Hub (session-first) hooks
+│       └── useAssignmentSessions.js # Step 1 - fetch assignment sessions
 │
 ├── lib/                         # Utilities and providers
 │   ├── providers.jsx            # React Query provider
