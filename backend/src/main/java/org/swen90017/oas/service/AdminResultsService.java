@@ -91,4 +91,47 @@ public interface AdminResultsService {
             Long assignmentId,
             Long groupId
     );
+
+    /**
+     * Get sessions for an assignment (Step 1)
+     */
+    PageResult<AdminSessionResultsDTO.SessionItem> getSessionsForAssignment(
+            Long subjectId,
+            Long assignmentId,
+            Integer pageNum,
+            Integer pageSize,
+            String searchQuery
+    );
+
+    /**
+     * Get participants for a session (Step 2)
+     */
+    PageResult<AdminSessionParticipantsDTO.ParticipantItem> getParticipantsForSession(
+            Long subjectId,
+            Long assignmentId,
+            Long sessionId,
+            Integer pageNum,
+            Integer pageSize,
+            String type,
+            String status,
+            String searchQuery
+    );
+
+    /**
+     * Get group detail with complete information (Step 3 - Enhanced)
+     */
+    AdminParticipantDetailDTO getGroupDetailWithExaminers(
+            Long subjectId,
+            Long assignmentId,
+            Long groupId
+    );
+
+    /**
+     * Get individual detail with complete information (Step 3 - Enhanced)
+     */
+    AdminParticipantDetailDTO getIndividualDetailWithExaminers(
+            Long subjectId,
+            Long assignmentId,
+            Long studentId
+    );
 }

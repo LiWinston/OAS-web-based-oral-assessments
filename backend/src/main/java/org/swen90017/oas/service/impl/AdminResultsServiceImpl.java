@@ -1063,4 +1063,478 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         return summary;
     }
+
+    @Override
+    public PageResult<AdminSessionResultsDTO.SessionItem> getSessionsForAssignment(
+            Long subjectId, Long assignmentId, Integer pageNum, Integer pageSize, String searchQuery) {
+        
+        // Calculate offset
+        int offset = (pageNum - 1) * pageSize;
+        
+        // Get total count
+        Integer total = adminResultsMapper.countSessionsForAssignment(assignmentId, searchQuery);
+        
+        // Get session data
+        List<Map<String, Object>> rawData = adminResultsMapper.getSessionsForAssignment(
+                assignmentId, searchQuery, offset, pageSize);
+        
+        // Map to DTOs
+        List<AdminSessionResultsDTO.SessionItem> sessions = rawData.stream()
+                .map(this::mapToSessionItem)
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(pageNum, pageSize, total, sessions);
+    }
+
+    @Override
+    public PageResult<AdminSessionParticipantsDTO.ParticipantItem> getParticipantsForSession(
+            Long subjectId, Long assignmentId, Long sessionId, Integer pageNum, Integer pageSize,
+            String type, String status, String searchQuery) {
+        
+        // Calculate offset
+        int offset = (pageNum - 1) * pageSize;
+        
+        // Get total count
+        Integer total = adminResultsMapper.countParticipantsForSession(
+                assignmentId, sessionId, type, status, searchQuery);
+        
+        // Get participant data
+        List<Map<String, Object>> rawData = adminResultsMapper.getParticipantsForSession(
+                assignmentId, sessionId, type, status, searchQuery, offset, pageSize);
+        
+        // Map to DTOs
+        List<AdminSessionParticipantsDTO.ParticipantItem> participants = rawData.stream()
+                .map(this::mapToParticipantItem)
+                .collect(Collectors.toList());
+        
+        return new PageResult<>(pageNum, pageSize, total, participants);
+    }
+
+    @Override
+    public AdminParticipantDetailDTO getGroupDetailWithExaminers(
+            Long subjectId, Long assignmentId, Long groupId) {
+        
+        // Get group detail data
+        Map<String, Object> detailData = adminResultsMapper.getGroupDetailWithExaminers(assignmentId, groupId);
+        if (detailData == null || detailData.isEmpty()) {
+            throw new BusinessException(CommonError.NOT_FOUND);
+        }
+        
+        // Get all examiner markings for this group
+        List<Map<String, Object>> examinerData = adminResultsMapper.getGroupExaminerMarkings(assignmentId, groupId);
+        
+        // Build complete response
+        return buildParticipantDetailDTO(detailData, examinerData, "GROUP");
+    }
+
+    @Override
+    public AdminParticipantDetailDTO getIndividualDetailWithExaminers(
+            Long subjectId, Long assignmentId, Long studentId) {
+        
+        // Get individual detail data
+        Map<String, Object> detailData = adminResultsMapper.getIndividualDetailWithExaminers(assignmentId, studentId);
+        if (detailData == null || detailData.isEmpty()) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+        
+        // Get all examiner markings for this individual
+        List<Map<String, Object>> examinerData = adminResultsMapper.getIndividualExaminerMarkings(assignmentId, studentId);
+        
+        // Build complete response
+        return buildParticipantDetailDTO(detailData, examinerData, "INDIVIDUAL");
+    }
+
+    // Helper methods for new endpoints
+
+    private AdminSessionResultsDTO.SessionItem mapToSessionItem(Map<String, Object> data) {
+        AdminSessionResultsDTO.SessionItem item = new AdminSessionResultsDTO.SessionItem();
+        
+        item.setSessionId((Long) data.get("session_id"));
+        item.setTimezone("Australia/Melbourne");
+        
+        LocalDateTime startAt = (LocalDateTime) data.get("start_at");
+        LocalDateTime endAt = (LocalDateTime) data.get("end_at");
+        if (startAt != null) {
+            item.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            item.setEnd(formatDateTime(endAt));
+        }
+        
+        Long venueId = (Long) data.get("venue_id");
+        String venueName = (String) data.get("venue_name");
+        if (venueId != null) {
+            AdminSessionResultsDTO.SessionItem.VenueInfo venue = 
+                    new AdminSessionResultsDTO.SessionItem.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            item.setVenue(venue);
+        }
+
+        Long participantCount = (Long) data.get("participant_count");
+        item.setParticipantCount(participantCount != null ? participantCount : 0);
+        
+        return item;
+    }
+
+    private AdminSessionParticipantsDTO.ParticipantItem mapToParticipantItem(Map<String, Object> data) {
+        AdminSessionParticipantsDTO.ParticipantItem item = 
+                new AdminSessionParticipantsDTO.ParticipantItem();
+        
+        String subjectType = (String) data.get("subject_type");
+        
+        if ("GROUP".equals(subjectType)) {
+            item.setGroupId((Long) data.get("group_id"));
+            item.setGroupName((String) data.get("group_name"));
+
+            Long memberCount = (Long) data.get("member_count");
+            item.setMemberCount(memberCount);
+            
+            // Parse members JSON if available
+            String membersJson = (String) data.get("members_json");
+            if (membersJson != null && !membersJson.trim().isEmpty()) {
+                try {
+                    List<Map<String, Object>> membersList = objectMapper.readValue(
+                            membersJson, new TypeReference<List<Map<String, Object>>>() {});
+                    List<AdminSessionParticipantsDTO.ParticipantItem.MemberInfo> members = 
+                            membersList.stream().map(m -> {
+                                AdminSessionParticipantsDTO.ParticipantItem.MemberInfo member = 
+                                        new AdminSessionParticipantsDTO.ParticipantItem.MemberInfo();
+                                member.setStudentId(((Number) m.get("studentId")).longValue());
+                                member.setName((String) m.get("name"));
+                                return member;
+                            }).collect(Collectors.toList());
+                    item.setMembers(members);
+                } catch (Exception e) {
+                    log.warn("Failed to parse members JSON: {}", e.getMessage());
+                }
+            }
+        } else if ("INDIVIDUAL".equals(subjectType)) {
+            item.setStudentId((Long) data.get("student_id"));
+            item.setName((String) data.get("student_name"));
+            item.setStudentNumber((String) data.get("student_number"));
+        }
+        
+        item.setReleaseStatus((String) data.getOrDefault("release_status", "NOT_RELEASED"));
+        
+        return item;
+    }
+
+    private AdminParticipantDetailDTO buildParticipantDetailDTO(
+            Map<String, Object> detailData, List<Map<String, Object>> examinerData, String participantType) {
+        
+        AdminParticipantDetailDTO dto = new AdminParticipantDetailDTO();
+        
+        // Set assignment info
+        AdminParticipantDetailDTO.AssignmentInfo assignment = 
+                new AdminParticipantDetailDTO.AssignmentInfo();
+        assignment.setId((Long) detailData.get("assignment_id"));
+        assignment.setName((String) detailData.get("assignment_name"));
+        assignment.setType((String) detailData.get("assignment_type"));
+        dto.setAssignment(assignment);
+        
+        // Set session info
+        AdminParticipantDetailDTO.SessionInfo session = 
+                new AdminParticipantDetailDTO.SessionInfo();
+        session.setId((Long) detailData.get("session_id"));
+        session.setTimezone("Australia/Melbourne");
+        
+        LocalDateTime startAt = (LocalDateTime) detailData.get("session_start_at");
+        LocalDateTime endAt = (LocalDateTime) detailData.get("session_end_at");
+        if (startAt != null) {
+            session.setStart(formatDateTime(startAt));
+        }
+        if (endAt != null) {
+            session.setEnd(formatDateTime(endAt));
+        }
+        
+        Long venueId = (Long) detailData.get("venue_id");
+        String venueName = (String) detailData.get("venue_name");
+        if (venueId != null) {
+            AdminParticipantDetailDTO.SessionInfo.VenueInfo venue = 
+                    new AdminParticipantDetailDTO.SessionInfo.VenueInfo();
+            venue.setVenueId(venueId);
+            venue.setName(venueName);
+            session.setVenue(venue);
+        }
+        dto.setSession(session);
+        
+        // Set participant info
+        AdminParticipantDetailDTO.ParticipantInfo participant = 
+                new AdminParticipantDetailDTO.ParticipantInfo();
+        participant.setType(participantType);
+        
+        if ("GROUP".equals(participantType)) {
+            participant.setGroupId((Long) detailData.get("group_id"));
+            participant.setGroupName((String) detailData.get("group_name"));
+            participant.setMemberCount(((Number) detailData.get("member_count")).intValue());
+            
+            // Parse members JSON
+            String membersJson = (String) detailData.get("members_json");
+            if (membersJson != null && !membersJson.trim().isEmpty()) {
+                try {
+                    List<Map<String, Object>> membersList = objectMapper.readValue(
+                            membersJson, new TypeReference<List<Map<String, Object>>>() {});
+                    List<AdminParticipantDetailDTO.ParticipantInfo.MemberInfo> members = 
+                            membersList.stream().map(m -> {
+                                AdminParticipantDetailDTO.ParticipantInfo.MemberInfo member = 
+                                        new AdminParticipantDetailDTO.ParticipantInfo.MemberInfo();
+                                member.setStudentId(((Number) m.get("studentId")).longValue());
+                                member.setName((String) m.get("name"));
+                                return member;
+                            }).collect(Collectors.toList());
+                    participant.setMembers(members);
+                } catch (Exception e) {
+                    log.warn("Failed to parse members JSON: {}", e.getMessage());
+                }
+            }
+        } else {
+            participant.setStudentId((Long) detailData.get("student_id"));
+            participant.setName((String) detailData.get("student_name"));
+            participant.setStudentNumber((String) detailData.get("student_number"));
+        }
+        
+        participant.setReleaseStatus((String) detailData.getOrDefault("release_status", "NOT_RELEASED"));
+        dto.setParticipant(participant);
+        
+        // Parse rubric snapshot
+        AdminParticipantDetailDTO.RubricSnapshot rubricSnapshot = parseRubricSnapshot(detailData);
+        dto.setRubricSnapshot(rubricSnapshot);
+        
+        // Map examiner submissions
+        List<AdminParticipantDetailDTO.ExaminerSubmission> examiners = examinerData.stream()
+                .map(ed -> mapToExaminerSubmission(ed, participantType))
+                .collect(Collectors.toList());
+        dto.setExaminers(examiners);
+        
+        // Calculate final score (average of submitted examiners)
+        List<Double> submittedScores = examiners.stream()
+                .filter(e -> "SUBMITTED".equals(e.getAssessmentStatus()))
+                .map(AdminParticipantDetailDTO.ExaminerSubmission::getTotalScore)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        
+        if (!submittedScores.isEmpty()) {
+            double avgScore = submittedScores.stream()
+                    .mapToDouble(Double::doubleValue).average().orElse(0.0);
+            dto.setFinalScore(avgScore);
+        }
+        
+        return dto;
+    }
+
+    private AdminParticipantDetailDTO.RubricSnapshot parseRubricSnapshot(Map<String, Object> detailData) {
+        AdminParticipantDetailDTO.RubricSnapshot snapshot = 
+                new AdminParticipantDetailDTO.RubricSnapshot();
+        
+        try {
+            String rubricMetaJson = (String) detailData.get("rubric_meta_snapshot");
+            if (rubricMetaJson != null) {
+                RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaJson, RubricMetaInfo.class);
+                snapshot.setName(metaInfo.getName());
+                snapshot.setDescription(metaInfo.getDescription());
+                snapshot.setTotalPoints(metaInfo.getTotalPoints());
+                snapshot.setWeightBasis(metaInfo.getWeightBasis());
+                snapshot.setGroupWeight(metaInfo.getGroupWeight());
+                snapshot.setIndividualWeight(metaInfo.getIndividualWeight());
+                
+                // Parse group rubrics
+                if (metaInfo.getGroupRubrics() != null) {
+                    List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> groupRubrics = 
+                            metaInfo.getGroupRubrics().stream()
+                                    .map(this::mapToRubricSnapshotCriterion)
+                                    .collect(Collectors.toList());
+                    snapshot.setGroupRubrics(groupRubrics);
+                }
+                
+                // Parse individual rubrics
+                if (metaInfo.getIndividualRubrics() != null) {
+                    List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> individualRubrics = 
+                            metaInfo.getIndividualRubrics().stream()
+                                    .map(this::mapToRubricSnapshotCriterion)
+                                    .collect(Collectors.toList());
+                    snapshot.setIndividualRubrics(individualRubrics);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error parsing rubric snapshot", e);
+        }
+        
+        return snapshot;
+    }
+
+    private AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion mapToRubricSnapshotCriterion(
+            RubricsInfoDto rubricInfo) {
+        AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion criterion = 
+                new AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion();
+        
+        criterion.setDescription(rubricInfo.getDescription());
+        criterion.setWeight(rubricInfo.getWeight());
+        criterion.setScaleType(rubricInfo.getScaleType() != null ? rubricInfo.getScaleType() : "points");
+        
+        if (rubricInfo.getPerformanceLevel() != null) {
+            List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion.PerformanceLevel> levels = 
+                    rubricInfo.getPerformanceLevel().stream().map(perf -> {
+                        AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion.PerformanceLevel level = 
+                                new AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion.PerformanceLevel();
+                        level.setLabel(perf.getDescription());
+                        level.setMinPoints(perf.getStartPoint());
+                        level.setMaxPoints(perf.getEndPoint());
+                        // PredefinedComments might not exist in PerformanceDto, use empty list
+                        level.setPredefinedComments(new ArrayList<>());
+                        return level;
+                    }).collect(Collectors.toList());
+            criterion.setPerformanceLevels(levels);
+        }
+        
+        return criterion;
+    }
+
+    private AdminParticipantDetailDTO.ExaminerSubmission mapToExaminerSubmission(
+            Map<String, Object> examinerData, String participantType) {
+        
+        AdminParticipantDetailDTO.ExaminerSubmission submission = 
+                new AdminParticipantDetailDTO.ExaminerSubmission();
+        
+        submission.setExaminerId((Long) examinerData.get("examiner_id"));
+        submission.setExaminerName((String) examinerData.get("examiner_name"));
+        submission.setAssessmentStatus((String) examinerData.get("assessment_status"));
+        submission.setSubmittedAt(formatDateTime((LocalDateTime) examinerData.get("submitted_at")));
+        submission.setReopenedAt(formatDateTime((LocalDateTime) examinerData.get("reopened_at")));
+        submission.setOverallFeedback((String) examinerData.get("overall_feedback"));
+        submission.setTotalScore(convertToDouble(examinerData.get("total_score")));
+        
+        // Parse rubric scores
+        AdminParticipantDetailDTO.ExaminerSubmission.RubricScores rubricScores = 
+                parseRubricScores(examinerData, participantType);
+        submission.setRubricScores(rubricScores);
+        
+        return submission;
+    }
+
+    private AdminParticipantDetailDTO.ExaminerSubmission.RubricScores parseRubricScores(
+            Map<String, Object> examinerData, String participantType) {
+        
+        AdminParticipantDetailDTO.ExaminerSubmission.RubricScores rubricScores = 
+                new AdminParticipantDetailDTO.ExaminerSubmission.RubricScores();
+        
+        try {
+            String scoresJson = (String) examinerData.get("scores_json");
+            String rubricMetaJson = (String) examinerData.get("rubric_meta_snapshot");
+            
+            if (scoresJson == null || scoresJson.trim().isEmpty()) {
+                log.debug("scores_json is null or empty for examiner {}", examinerData.get("examiner_id"));
+                rubricScores.setGroup(new ArrayList<>());
+                rubricScores.setIndividual(new ArrayList<>());
+                return rubricScores;
+            }
+            
+            if (rubricMetaJson == null) {
+                log.debug("rubric_meta_snapshot is null for examiner {}", examinerData.get("examiner_id"));
+                rubricScores.setGroup(new ArrayList<>());
+                rubricScores.setIndividual(new ArrayList<>());
+                return rubricScores;
+            }
+            
+            List<SaveAssessmentDraftRequestDTO.ScoreItem> scoreItems = objectMapper.readValue(
+                    scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {});
+            
+            RubricMetaInfo metaInfo = objectMapper.readValue(rubricMetaJson, RubricMetaInfo.class);
+            
+            log.debug("Parsing rubric scores: participantType={}, scoreItems.size={}, groupRubrics={}, individualRubrics={}", 
+                    participantType, scoreItems.size(), 
+                    metaInfo.getGroupRubrics() != null ? metaInfo.getGroupRubrics().size() : 0,
+                    metaInfo.getIndividualRubrics() != null ? metaInfo.getIndividualRubrics().size() : 0);
+            
+            // Separate group and individual scores
+            List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore> groupScores = 
+                    new ArrayList<>();
+            List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore> individualScores = 
+                    new ArrayList<>();
+            
+            // Process each score item based on its type field
+            for (SaveAssessmentDraftRequestDTO.ScoreItem scoreItem : scoreItems) {
+                String scoreType = scoreItem.getType();
+                
+                // If type is not specified, infer from context
+                if (scoreType == null || scoreType.isEmpty()) {
+                    // For non-MIXED assignments, check if it has studentId to determine type
+                    if (scoreItem.getStudentId() != null) {
+                        scoreType = "INDIVIDUAL";
+                    } else {
+                        scoreType = "GROUP";
+                    }
+                }
+                
+                if ("GROUP".equals(scoreType)) {
+                    // Process as group score
+                    AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore groupScore = 
+                            new AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore();
+                    groupScore.setCriterionDescription(scoreItem.getDescription());
+                    if (scoreItem.getSelectedLevel() != null) {
+                        groupScore.setSelectedLevel(scoreItem.getSelectedLevel().getDescription());
+                    }
+                    groupScore.setPointsAwarded(scoreItem.getInputPoints());
+                    
+                    List<String> comments = new ArrayList<>();
+                    if (scoreItem.getComment() != null && !scoreItem.getComment().trim().isEmpty()) {
+                        comments.add(scoreItem.getComment());
+                    }
+                    groupScore.setComments(comments);
+                    
+                    groupScores.add(groupScore);
+                    log.debug("Added group score: {}", scoreItem.getDescription());
+                    
+                } else if ("INDIVIDUAL".equals(scoreType)) {
+                    // Process as individual score
+                    AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore individualScore = 
+                            new AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore();
+                    individualScore.setStudentId(scoreItem.getStudentId());
+                    
+                    // Look up student name from user table
+                    if (scoreItem.getStudentId() != null) {
+                        try {
+                            SysUser student = sysUserMapper.selectById(scoreItem.getStudentId());
+                            if (student != null) {
+                                individualScore.setStudentName(student.getUserName());
+                            }
+                        } catch (Exception e) {
+                            log.warn("Failed to look up student name for student ID {}: {}", 
+                                    scoreItem.getStudentId(), e.getMessage());
+                        }
+                    }
+                    
+                    individualScore.setCriterionDescription(scoreItem.getDescription());
+                    if (scoreItem.getSelectedLevel() != null) {
+                        individualScore.setSelectedLevel(scoreItem.getSelectedLevel().getDescription());
+                    }
+                    individualScore.setPointsAwarded(scoreItem.getInputPoints());
+                    
+                    List<String> comments = new ArrayList<>();
+                    if (scoreItem.getComment() != null && !scoreItem.getComment().trim().isEmpty()) {
+                        comments.add(scoreItem.getComment());
+                    }
+                    individualScore.setComments(comments);
+                    
+                    individualScores.add(individualScore);
+                    log.debug("Added individual score: {} for student {}", 
+                            scoreItem.getDescription(), scoreItem.getStudentId());
+                }
+            }
+            
+            rubricScores.setGroup(groupScores);
+            rubricScores.setIndividual(individualScores);
+            
+            log.debug("Final rubric scores: groupScores.size={}, individualScores.size={}", 
+                    groupScores.size(), individualScores.size());
+            
+        } catch (Exception e) {
+            log.error("Error parsing rubric scores for examiner {}: {}", 
+                    examinerData.get("examiner_id"), e.getMessage(), e);
+            rubricScores.setGroup(new ArrayList<>());
+            rubricScores.setIndividual(new ArrayList<>());
+        }
+        
+        return rubricScores;
+    }
 }
