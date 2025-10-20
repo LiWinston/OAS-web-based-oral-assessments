@@ -157,25 +157,88 @@ public class AdminResultsController {
         return Result.success(result);
     }
 
-    @GetMapping("/individual/{studentId}")
-    @Operation(summary = "Get examiner scoring for individual student", 
-               description = "Get all examiner scoring information for a specific student in an assignment")
+    @GetMapping("/sessions")
+    @Operation(summary = "Get sessions for assignment (Step 1)", 
+               description = "Get paginated list of sessions for an assignment with participant count")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner scoring"),
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved sessions"),
         @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
-        @ApiResponse(responseCode = "404", description = "Student or assignment not found")
+        @ApiResponse(responseCode = "404", description = "Assignment not found")
     })
-    public Result<ExaminerScoringDTO> getIndividualExaminerScoring(
+    public Result<PageResult<AdminSessionResultsDTO.SessionItem>> getSessionsForAssignment(
             @PathVariable @Parameter(description = "Subject ID") Long subjectId,
             @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
-            @PathVariable @Parameter(description = "Student ID") Long studentId) {
-        ExaminerScoringDTO result = adminResultsService.getIndividualExaminerScoring(subjectId, assignmentId, studentId);
+            @RequestParam(defaultValue = "1") @Parameter(description = "Page number") Integer pageNum,
+            @RequestParam(defaultValue = "10") @Parameter(description = "Page size") Integer pageSize,
+            @RequestParam(required = false) @Parameter(description = "Search query (session date, time, venue)") String q) {
+        
+        PageResult<AdminSessionResultsDTO.SessionItem> result = adminResultsService.getSessionsForAssignment(
+                subjectId, assignmentId, pageNum, pageSize, q);
+        return Result.success(result);
+    }
+
+    @GetMapping("/sessions/{sessionId}/participants")
+    @Operation(summary = "Get participants for session (Step 2)", 
+               description = "Get paginated list of participants (groups or individuals) for a specific session")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved participants"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Session not found")
+    })
+    public Result<PageResult<AdminSessionParticipantsDTO.ParticipantItem>> getParticipantsForSession(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Session ID") Long sessionId,
+            @RequestParam(defaultValue = "1") @Parameter(description = "Page number") Integer pageNum,
+            @RequestParam(defaultValue = "20") @Parameter(description = "Page size") Integer pageSize,
+            @RequestParam(required = false, defaultValue = "ALL") @Parameter(description = "Filter by type (ALL, GROUP, INDIVIDUAL)") String type,
+            @RequestParam(required = false, defaultValue = "all") @Parameter(description = "Filter by release status (all, released, not_released)") String status,
+            @RequestParam(required = false) @Parameter(description = "Search query (group/student name or number)") String q) {
+        
+        PageResult<AdminSessionParticipantsDTO.ParticipantItem> result = adminResultsService.getParticipantsForSession(
+                subjectId, assignmentId, sessionId, pageNum, pageSize, type, status, q);
         return Result.success(result);
     }
 
     @GetMapping("/group/{groupId}")
-    @Operation(summary = "Get examiner scoring for group", 
-               description = "Get all examiner scoring information for a specific group in an assignment")
+    @Operation(summary = "Get complete group detail with examiners (Step 3 - Enhanced)", 
+               description = "Get complete group information including assignment, session, rubric snapshot, and all examiner submissions")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved group detail"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Group or assignment not found")
+    })
+    public Result<AdminParticipantDetailDTO> getGroupDetailWithExaminers(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Group ID") Long groupId) {
+        AdminParticipantDetailDTO result = adminResultsService.getGroupDetailWithExaminers(subjectId, assignmentId, groupId);
+        return Result.success(result);
+    }
+
+    @GetMapping("/individual/{studentId}")
+    @Operation(summary = "Get complete individual detail with examiners (Step 3 - Enhanced)", 
+               description = "Get complete individual information including assignment, session, rubric snapshot, and all examiner submissions")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved individual detail"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Student or assignment not found")
+    })
+    public Result<AdminParticipantDetailDTO> getIndividualDetailWithExaminers(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Student ID") Long studentId) {
+        AdminParticipantDetailDTO result = adminResultsService.getIndividualDetailWithExaminers(subjectId, assignmentId, studentId);
+        return Result.success(result);
+    }
+
+    /**
+     * @deprecated Use getGroupDetailWithExaminers instead
+     */
+    @Deprecated
+    @GetMapping("/group/{groupId}/legacy")
+    @Operation(summary = "Get examiner scoring for group (DEPRECATED)", 
+               description = "This endpoint is deprecated. Use /group/{groupId} for enhanced response.")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner scoring"),
         @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
@@ -186,6 +249,26 @@ public class AdminResultsController {
             @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
             @PathVariable @Parameter(description = "Group ID") Long groupId) {
         ExaminerScoringDTO result = adminResultsService.getGroupExaminerScoring(subjectId, assignmentId, groupId);
+        return Result.success(result);
+    }
+
+    /**
+     * @deprecated Use getIndividualDetailWithExaminers instead
+     */
+    @Deprecated
+    @GetMapping("/individual/{studentId}/legacy")
+    @Operation(summary = "Get examiner scoring for individual student (DEPRECATED)", 
+               description = "This endpoint is deprecated. Use /individual/{studentId} for enhanced response.")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved examiner scoring"),
+        @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+        @ApiResponse(responseCode = "404", description = "Student or assignment not found")
+    })
+    public Result<ExaminerScoringDTO> getIndividualExaminerScoringLegacy(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @PathVariable @Parameter(description = "Student ID") Long studentId) {
+        ExaminerScoringDTO result = adminResultsService.getIndividualExaminerScoring(subjectId, assignmentId, studentId);
         return Result.success(result);
     }
 }

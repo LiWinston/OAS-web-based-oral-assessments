@@ -182,4 +182,62 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("assignmentId") Long assignmentId,
             @Param("groupId") Long groupId
     );
+
+    /**
+     * Get sessions for an assignment with participant count (Step 1)
+     */
+    List<Map<String, Object>> getSessionsForAssignment(
+            @Param("assignmentId") Long assignmentId,
+            @Param("searchQuery") String searchQuery,
+            @Param("offset") Integer offset,
+            @Param("limit") Integer limit
+    );
+
+    /**
+     * Count total sessions for an assignment (Step 1)
+     */
+    Integer countSessionsForAssignment(
+            @Param("assignmentId") Long assignmentId,
+            @Param("searchQuery") String searchQuery
+    );
+
+    /**
+     * Get participants for a session (Step 2)
+     */
+    List<Map<String, Object>> getParticipantsForSession(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("type") String type,
+            @Param("status") String status,
+            @Param("searchQuery") String searchQuery,
+            @Param("offset") Integer offset,
+            @Param("limit") Integer limit
+    );
+
+    /**
+     * Count total participants for a session (Step 2)
+     */
+    Integer countParticipantsForSession(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("type") String type,
+            @Param("status") String status,
+            @Param("searchQuery") String searchQuery
+    );
+
+    /**
+     * Get group detail with complete information (Step 3)
+     */
+    Map<String, Object> getGroupDetailWithExaminers(
+            @Param("assignmentId") Long assignmentId,
+            @Param("groupId") Long groupId
+    );
+
+    /**
+     * Get individual detail with complete information (Step 3)
+     */
+    Map<String, Object> getIndividualDetailWithExaminers(
+            @Param("assignmentId") Long assignmentId,
+            @Param("studentId") Long studentId
+    );
 }

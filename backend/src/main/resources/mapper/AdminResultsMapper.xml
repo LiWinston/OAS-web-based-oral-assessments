@@ -530,4 +530,286 @@
         ORDER BY asub.session_id, asub.examiner_id
     </select>
 
+    <!-- Step 1: Get sessions for an assignment with participant count -->
+    <select id="getSessionsForAssignment" resultType="java.util.Map">
+        SELECT 
+            ss.session_id,
+            ss.start_at,
+            ss.end_at,
+            ss.venue_id,
+            v.room_name as venue_name,
+            COUNT(DISTINCT CONCAT(asub.subject_type, '_', asub.subject_id)) as participant_count
+        FROM slot_sessions ss
+        JOIN assessment_submission asub ON ss.session_id = asub.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        WHERE asub.assignment_id = #{assignmentId}
+        
+        <if test="searchQuery != null and searchQuery != ''">
+            AND (
+                DATE_FORMAT(ss.start_at, '%Y-%m-%d') LIKE CONCAT('%', #{searchQuery}, '%') OR
+                DATE_FORMAT(ss.start_at, '%H:%i') LIKE CONCAT('%', #{searchQuery}, '%') OR
+                v.room_name LIKE CONCAT('%', #{searchQuery}, '%')
+            )
+        </if>
+        
+        GROUP BY ss.session_id, ss.start_at, ss.end_at, ss.venue_id, v.room_name
+        ORDER BY ss.start_at
+        
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+        <if test="offset != null">
+            OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- Step 1: Count total sessions for an assignment -->
+    <select id="countSessionsForAssignment" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT ss.session_id)
+        FROM slot_sessions ss
+        JOIN assessment_submission asub ON ss.session_id = asub.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        WHERE asub.assignment_id = #{assignmentId}
+        
+        <if test="searchQuery != null and searchQuery != ''">
+            AND (
+                DATE_FORMAT(ss.start_at, '%Y-%m-%d') LIKE CONCAT('%', #{searchQuery}, '%') OR
+                DATE_FORMAT(ss.start_at, '%H:%i') LIKE CONCAT('%', #{searchQuery}, '%') OR
+                v.room_name LIKE CONCAT('%', #{searchQuery}, '%')
+            )
+        </if>
+    </select>
+
+    <!-- Step 2: Get participants for a session -->
+    <select id="getParticipantsForSession" resultType="java.util.Map">
+        SELECT
+            asub.subject_type,
+            asub.subject_id,
+            
+            -- Group fields
+            CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN asub.subject_id ELSE NULL END as group_id,
+            CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.group_name ELSE NULL END as group_name,
+            CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN (
+                SELECT COUNT(*) FROM sys_student_group sgm 
+                WHERE sgm.group_id = asub.subject_id
+            ) ELSE NULL END as member_count,
+            CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'studentId', sgm.user_id,
+                        'name', su_member.user_name
+                    )
+                )
+                FROM sys_student_group sgm
+                JOIN sys_user su_member ON sgm.user_id = su_member.user_id
+                WHERE sgm.group_id = asub.subject_id
+            ) ELSE NULL END as members_json,
+            
+            -- Individual fields
+            CASE WHEN asub.subject_type = 'INDIVIDUAL' THEN asub.subject_id ELSE NULL END as student_id,
+            CASE WHEN asub.subject_type = 'INDIVIDUAL' THEN su.user_name ELSE NULL END as student_name,
+            CASE WHEN asub.subject_type = 'INDIVIDUAL' THEN ss.student_number ELSE NULL END as student_number,
+            
+            -- Release status (check if any submission for this entity is released)
+            CASE 
+                WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                ELSE 'NOT_RELEASED' 
+            END as release_status
+            
+        FROM assessment_submission asub
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_student ss ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = ss.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
+        
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.session_id = #{sessionId}
+        
+        <if test="type != null and type != 'ALL'">
+            <choose>
+                <when test="type == 'GROUP'">
+                    AND asub.subject_type IN ('GROUP', 'MIX')
+                </when>
+                <when test="type == 'INDIVIDUAL'">
+                    AND asub.subject_type = 'INDIVIDUAL'
+                </when>
+            </choose>
+        </if>
+        
+        <if test="searchQuery != null and searchQuery != ''">
+            AND (
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    ss.student_number LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type IN ('GROUP', 'MIX') AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
+            )
+        </if>
+        
+        GROUP BY asub.subject_type, asub.subject_id, sg.group_name, su.user_name, ss.student_number
+        
+        <if test="status != null and status != 'all'">
+            HAVING 
+            <choose>
+                <when test="status == 'released'">
+                    release_status = 'RELEASED'
+                </when>
+                <when test="status == 'not_released'">
+                    release_status = 'NOT_RELEASED'
+                </when>
+            </choose>
+        </if>
+        
+        ORDER BY 
+            CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.group_name ELSE su.user_name END
+        
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+        <if test="offset != null">
+            OFFSET #{offset}
+        </if>
+    </select>
+
+    <!-- Step 2: Count total participants for a session -->
+    <select id="countParticipantsForSession" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT CONCAT(asub.subject_type, '_', asub.subject_id))
+        FROM assessment_submission asub
+        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+        LEFT JOIN sys_student ss ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = ss.user_id
+        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
+        
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.session_id = #{sessionId}
+        
+        <if test="type != null and type != 'ALL'">
+            <choose>
+                <when test="type == 'GROUP'">
+                    AND asub.subject_type IN ('GROUP', 'MIX')
+                </when>
+                <when test="type == 'INDIVIDUAL'">
+                    AND asub.subject_type = 'INDIVIDUAL'
+                </when>
+            </choose>
+        </if>
+        
+        <if test="searchQuery != null and searchQuery != ''">
+            AND (
+                (asub.subject_type = 'INDIVIDUAL' AND (
+                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                    ss.student_number LIKE CONCAT('%', #{searchQuery}, '%')
+                )) OR
+                (asub.subject_type IN ('GROUP', 'MIX') AND (
+                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%')
+                ))
+            )
+        </if>
+    </select>
+
+    <!-- Step 3: Get group detail with complete information -->
+    <select id="getGroupDetailWithExaminers" resultType="java.util.Map">
+        SELECT 
+            a.id as assignment_id,
+            a.name as assignment_name,
+            a.type as assignment_type,
+            
+            -- Take session info from first submission
+            asub.session_id,
+            ss.start_at as session_start_at,
+            ss.end_at as session_end_at,
+            ss.venue_id,
+            v.room_name as venue_name,
+            
+            -- Group info
+            sg.group_id,
+            sg.group_name,
+            (SELECT COUNT(*) FROM sys_student_group sgm WHERE sgm.group_id = sg.group_id) as member_count,
+            (
+                SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        'studentId', sgm.user_id,
+                        'name', su_member.user_name
+                    )
+                )
+                FROM sys_student_group sgm
+                JOIN sys_user su_member ON sgm.user_id = su_member.user_id
+                WHERE sgm.group_id = sg.group_id
+            ) as members_json,
+            
+            -- Release status
+            CASE 
+                WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                ELSE 'NOT_RELEASED' 
+            END as release_status,
+            
+            -- Rubric snapshot (from first submission)
+            asub.rubric_meta_snapshot
+            
+        FROM assignment a
+        JOIN assessment_submission asub ON a.id = asub.assignment_id
+        JOIN sys_group sg ON sg.group_id = #{groupId}
+        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
+        LEFT JOIN venue v ON ss.venue_id = v.id
+        
+        WHERE a.id = #{assignmentId}
+        AND (
+            (asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = #{groupId})
+            OR
+            (asub.subject_type = 'INDIVIDUAL' AND asub.subject_id IN (
+                SELECT sgm.user_id 
+                FROM sys_student_group sgm 
+                WHERE sgm.group_id = #{groupId}
+            ))
+        )
+        
+        GROUP BY a.id, a.name, a.type, asub.session_id, ss.start_at, ss.end_at, 
+                 ss.venue_id, v.room_name, sg.group_id, sg.group_name, asub.rubric_meta_snapshot
+        LIMIT 1
+    </select>
+
+    <!-- Step 3: Get individual detail with complete information -->
+    <select id="getIndividualDetailWithExaminers" resultType="java.util.Map">
+        SELECT 
+            a.id as assignment_id,
+            a.name as assignment_name,
+            a.type as assignment_type,
+            
+            -- Take session info from first submission
+            asub.session_id,
+            ss_slot.start_at as session_start_at,
+            ss_slot.end_at as session_end_at,
+            ss_slot.venue_id,
+            v.room_name as venue_name,
+            
+            -- Individual info
+            su.user_id as student_id,
+            su.user_name as student_name,
+            stud.student_number,
+            
+            -- Release status
+            CASE 
+                WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
+                ELSE 'NOT_RELEASED' 
+            END as release_status,
+            
+            -- Rubric snapshot (from first submission)
+            asub.rubric_meta_snapshot
+            
+        FROM assignment a
+        JOIN assessment_submission asub ON a.id = asub.assignment_id
+        JOIN sys_user su ON su.user_id = #{studentId}
+        LEFT JOIN sys_student stud ON stud.user_id = #{studentId}
+        LEFT JOIN slot_sessions ss_slot ON asub.session_id = ss_slot.session_id
+        LEFT JOIN venue v ON ss_slot.venue_id = v.id
+        
+        WHERE a.id = #{assignmentId}
+        AND asub.subject_type = 'INDIVIDUAL'
+        AND asub.subject_id = #{studentId}
+        
+        GROUP BY a.id, a.name, a.type, asub.session_id, ss_slot.start_at, ss_slot.end_at, 
+                 ss_slot.venue_id, v.room_name, su.user_id, su.user_name, stud.student_number, asub.rubric_meta_snapshot
+        LIMIT 1
+    </select>
+
 </mapper>
