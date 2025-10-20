@@ -583,10 +583,14 @@
     <!-- Step 2: Get participants for a session -->
     <select id="getParticipantsForSession" resultType="java.util.Map">
         SELECT
-            asub.subject_type,
+            -- Normalize MIX type to GROUP for consistent handling
+            CASE 
+                WHEN asub.subject_type = 'MIX' THEN 'GROUP'
+                ELSE asub.subject_type
+            END as subject_type,
             asub.subject_id,
             
-            -- Group fields
+            -- Group fields (MIX is treated as GROUP)
             CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN asub.subject_id ELSE NULL END as group_id,
             CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN sg.group_name ELSE NULL END as group_name,
             CASE WHEN asub.subject_type IN ('GROUP', 'MIX') THEN (
@@ -623,6 +627,21 @@
         
         WHERE asub.assignment_id = #{assignmentId}
         AND asub.session_id = #{sessionId}
+        -- For MIXED assignments, only show GROUP/MIX records to avoid duplicates
+        -- (INDIVIDUAL records for group members are excluded as they're in members_json)
+        AND (
+            asub.subject_type IN ('GROUP', 'MIX')
+            OR (
+                asub.subject_type = 'INDIVIDUAL'
+                AND NOT EXISTS (
+                    SELECT 1 FROM assessment_submission asub2
+                    WHERE asub2.assignment_id = asub.assignment_id
+                    AND asub2.session_id = asub.session_id
+                    AND asub2.subject_type IN ('GROUP', 'MIX')
+                    AND asub2.examiner_id = asub.examiner_id
+                )
+            )
+        )
         
         <if test="type != null and type != 'ALL'">
             <choose>
@@ -682,6 +701,21 @@
         
         WHERE asub.assignment_id = #{assignmentId}
         AND asub.session_id = #{sessionId}
+        -- For MIXED assignments, only show GROUP/MIX records to avoid duplicates
+        -- (INDIVIDUAL records for group members are excluded as they're in members_json)
+        AND (
+            asub.subject_type IN ('GROUP', 'MIX')
+            OR (
+                asub.subject_type = 'INDIVIDUAL'
+                AND NOT EXISTS (
+                    SELECT 1 FROM assessment_submission asub2
+                    WHERE asub2.assignment_id = asub.assignment_id
+                    AND asub2.session_id = asub.session_id
+                    AND asub2.subject_type IN ('GROUP', 'MIX')
+                    AND asub2.examiner_id = asub.examiner_id
+                )
+            )
+        )
         
         <if test="type != null and type != 'ALL'">
             <choose>
