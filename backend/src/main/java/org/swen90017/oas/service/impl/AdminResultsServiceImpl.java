@@ -130,8 +130,8 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.ALREADY_REOPENED);
         }
         
-        // Reopen the examiner's assessment
-        int updated = adminResultsMapper.reopenExaminerAssessment(submissionId, examinerId);
+        // Reopen the examiner's assessment with admin note
+        int updated = adminResultsMapper.reopenExaminerAssessment(submissionId, examinerId, request.getReason());
         if (updated == 0) {
             throw new BusinessException(BusinessError.EXAMINER_NOT_ASSIGNED_TO_SUBMISSION);
         }
@@ -209,6 +209,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     }
 
     @Override
+    @Deprecated
     @Transactional
     public ReleaseAssessmentResponseDTO releaseAssessment(Long subjectId, Long assignmentId, 
                                                          Long submissionId, ReleaseAssessmentRequestDTO request, 
@@ -267,6 +268,148 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 // This would send notifications to the specific students affected
                 log.info("Would send release notification to {} students for assignment {}", 
                         notifiedStudents, assignmentId);
+            } catch (Exception e) {
+                log.warn("Failed to send release notification: {}", e.getMessage());
+            }
+        }
+        
+        ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
+        response.setReleased(released);
+        response.setNotifiedStudents(notifiedStudents);
+        
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ReleaseAssessmentResponseDTO releaseGroupAssessment(Long subjectId, Long assignmentId,
+                                                              Long groupId, ReleaseAssessmentRequestDTO request,
+                                                              Long adminUserId) {
+        // Get group detail to retrieve session information
+        Map<String, Object> detailData = adminResultsMapper.getGroupDetailWithExaminers(assignmentId, groupId);
+        if (detailData == null || detailData.isEmpty()) {
+            throw new BusinessException(CommonError.NOT_FOUND);
+        }
+        
+        Long sessionId = (Long) detailData.get("session_id");
+        if (sessionId == null) {
+            throw new BusinessException("404", "No session found for this group in the assignment");
+        }
+        
+        // Check if at least one examiner has submitted
+        List<Map<String, Object>> examinerMarkings = adminResultsMapper.getExaminerMarkings(
+                assignmentId, sessionId, "GROUP", groupId);
+        
+        // Check for REOPENED status - should not allow release if any examiner has REOPENED status
+        boolean hasReopenedExaminers = examinerMarkings.stream()
+                .anyMatch(marking -> "REOPENED".equals(marking.get("assessment_status")));
+        
+        if (hasReopenedExaminers) {
+            throw new BusinessException("409", "Cannot release results while some assessments are reopened. Examiners must resubmit before release.");
+        }
+        
+        boolean hasSubmittedExaminers = examinerMarkings.stream()
+                .anyMatch(marking -> "SUBMITTED".equals(marking.get("assessment_status")));
+        
+        if (!hasSubmittedExaminers) {
+            throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
+        }
+        
+        // Update assessment_submission release_status to RELEASED for all examiners
+        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
+                assignmentId, sessionId, "GROUP", groupId, "RELEASED");
+        
+        // Count distinct students affected by the status update
+        int notifiedStudents = 0;
+        if (updatedSubmissions > 0) {
+            notifiedStudents = adminResultsMapper.countDistinctStudentsForAssessment(
+                    assignmentId, sessionId, "GROUP", groupId);
+        }
+        adminResultsMapper.updateAssignmentReleaseStatus(assignmentId, true);
+
+        // Only update assignment release status if we actually updated some submissions
+        boolean released = false;
+        if (notifiedStudents > 0) {
+            released = true;
+        }
+        
+        // Send notification to students if requested and we have students to notify
+        if (request.getNotify() != null && request.getNotify() && notifiedStudents > 0) {
+            try {
+                // TODO: Implement student notification logic
+                log.info("Would send release notification to {} students for group {} in assignment {}", 
+                        notifiedStudents, groupId, assignmentId);
+            } catch (Exception e) {
+                log.warn("Failed to send release notification: {}", e.getMessage());
+            }
+        }
+        
+        ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
+        response.setReleased(released);
+        response.setNotifiedStudents(notifiedStudents);
+        
+        return response;
+    }
+
+    @Override
+    @Transactional
+    public ReleaseAssessmentResponseDTO releaseIndividualAssessment(Long subjectId, Long assignmentId,
+                                                                   Long studentId, ReleaseAssessmentRequestDTO request,
+                                                                   Long adminUserId) {
+        // Get individual detail to retrieve session information
+        Map<String, Object> detailData = adminResultsMapper.getIndividualDetailWithExaminers(assignmentId, studentId);
+        if (detailData == null || detailData.isEmpty()) {
+            throw new BusinessException(BusinessError.USER_NOT_FOUND);
+        }
+        
+        Long sessionId = (Long) detailData.get("session_id");
+        if (sessionId == null) {
+            throw new BusinessException("404", "No session found for this student in the assignment");
+        }
+        
+        // Check if at least one examiner has submitted
+        List<Map<String, Object>> examinerMarkings = adminResultsMapper.getExaminerMarkings(
+                assignmentId, sessionId, "INDIVIDUAL", studentId);
+        
+        // Check for REOPENED status - should not allow release if any examiner has REOPENED status
+        boolean hasReopenedExaminers = examinerMarkings.stream()
+                .anyMatch(marking -> "REOPENED".equals(marking.get("assessment_status")));
+        
+        if (hasReopenedExaminers) {
+            throw new BusinessException("409", "Cannot release results while some assessments are reopened. Examiners must resubmit before release.");
+        }
+        
+        boolean hasSubmittedExaminers = examinerMarkings.stream()
+                .anyMatch(marking -> "SUBMITTED".equals(marking.get("assessment_status")));
+        
+        if (!hasSubmittedExaminers) {
+            throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
+        }
+        
+        // Update assessment_submission release_status to RELEASED for all examiners
+        int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
+                assignmentId, sessionId, "INDIVIDUAL", studentId, "RELEASED");
+        
+        // Count distinct students affected by the status update
+        int notifiedStudents = 0;
+        if (updatedSubmissions > 0) {
+            notifiedStudents = adminResultsMapper.countDistinctStudentsForAssessment(
+                    assignmentId, sessionId, "INDIVIDUAL", studentId);
+        }
+        adminResultsMapper.updateAssignmentReleaseStatus(assignmentId, true);
+
+        // Only update assignment release status if we actually updated some submissions
+        boolean released = false;
+        if (notifiedStudents > 0) {
+            released = true;
+        }
+        
+        // Send notification to students if requested and we have students to notify
+        if (request.getNotify() != null && request.getNotify() && notifiedStudents > 0) {
+            try {
+                // TODO: Implement student notification logic
+                log.info("Would send release notification to student {} in assignment {}", 
+                        studentId, assignmentId);
             } catch (Exception e) {
                 log.warn("Failed to send release notification: {}", e.getMessage());
             }
@@ -1321,26 +1464,258 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AdminParticipantDetailDTO.RubricSnapshot rubricSnapshot = parseRubricSnapshot(detailData);
         dto.setRubricSnapshot(rubricSnapshot);
         
-        // Map examiner submissions
-        List<AdminParticipantDetailDTO.ExaminerSubmission> examiners = examinerData.stream()
-                .map(ed -> mapToExaminerSubmission(ed, participantType))
-                .collect(Collectors.toList());
+        // Map examiner submissions and aggregate by examiner_id
+        // For MIXED assignments, an examiner may have multiple submissions (group + individual per student)
+        // We need to aggregate these into a single ExaminerSubmission per examiner
+        Map<Long, List<Map<String, Object>>> examinerDataByExaminer = examinerData.stream()
+                .collect(Collectors.groupingBy(ed -> (Long) ed.get("examiner_id"), 
+                        LinkedHashMap::new, Collectors.toList()));
+        
+        List<AdminParticipantDetailDTO.ExaminerSubmission> examiners = new ArrayList<>();
+        for (Map.Entry<Long, List<Map<String, Object>>> entry : examinerDataByExaminer.entrySet()) {
+            List<Map<String, Object>> examinerSubmissions = entry.getValue();
+            
+            // For aggregation, prioritize GROUP/MIX submissions for main data, 
+            // but collect all rubric scores from all submissions
+            Map<String, Object> primarySubmission = examinerSubmissions.stream()
+                    .filter(ed -> "GROUP".equals(ed.get("subject_type")) || "MIX".equals(ed.get("subject_type")))
+                    .findFirst()
+                    .orElse(examinerSubmissions.get(0));
+            
+            AdminParticipantDetailDTO.ExaminerSubmission aggregatedSubmission = 
+                    mapToExaminerSubmission(primarySubmission, participantType);
+            
+            // If there are multiple submissions for this examiner, merge the rubric scores
+            if (examinerSubmissions.size() > 1) {
+                AdminParticipantDetailDTO.ExaminerSubmission.RubricScores mergedScores = 
+                        mergeRubricScoresFromMultipleSubmissions(examinerSubmissions, participantType);
+                aggregatedSubmission.setRubricScores(mergedScores);
+            }
+            
+            examiners.add(aggregatedSubmission);
+        }
         dto.setExaminers(examiners);
         
-        // Calculate final score (average of submitted examiners)
-        List<Double> submittedScores = examiners.stream()
-                .filter(e -> "SUBMITTED".equals(e.getAssessmentStatus()))
-                .map(AdminParticipantDetailDTO.ExaminerSubmission::getTotalScore)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-        
-        if (!submittedScores.isEmpty()) {
-            double avgScore = submittedScores.stream()
-                    .mapToDouble(Double::doubleValue).average().orElse(0.0);
-            dto.setFinalScore(avgScore);
+        // Calculate final scores for each member (for GROUP type)
+        if ("GROUP".equals(participantType) && participant.getMembers() != null) {
+            // Check if this is a MIXED assignment
+            boolean isMixed = rubricSnapshot != null && 
+                    rubricSnapshot.getGroupWeight() != null && rubricSnapshot.getGroupWeight() > 0 &&
+                    rubricSnapshot.getIndividualWeight() != null && rubricSnapshot.getIndividualWeight() > 0;
+            
+            if (isMixed) {
+                // For MIXED assignments: calculate group average and individual average separately, then combine
+                
+                // First, calculate average group score across all examiners
+                Double avgGroupScore = calculateAverageGroupScore(examiners, rubricSnapshot.getGroupRubrics());
+                
+                // Then, for each member, calculate their average individual score and final score
+                for (AdminParticipantDetailDTO.ParticipantInfo.MemberInfo member : participant.getMembers()) {
+                    Double avgIndividualScore = calculateAverageIndividualScore(
+                            member.getStudentId(), examiners, rubricSnapshot.getIndividualRubrics());
+                    
+                    // Calculate final score using weights
+                    if (avgGroupScore != null || avgIndividualScore != null) {
+                        double finalScore = 0.0;
+                        if (avgGroupScore != null && rubricSnapshot.getGroupWeight() != null) {
+                            finalScore += (avgGroupScore * rubricSnapshot.getGroupWeight()) / 100.0;
+                        }
+                        if (avgIndividualScore != null && rubricSnapshot.getIndividualWeight() != null) {
+                            finalScore += (avgIndividualScore * rubricSnapshot.getIndividualWeight()) / 100.0;
+                        }
+                        member.setFinalScore(finalScore);
+                    }
+                }
+            } else {
+                // For non-MIXED assignments, just use the examiner's total score for each member
+                // (all members should have the same score for GROUP-only assignments)
+                List<Double> totalScores = examiners.stream()
+                        .filter(e -> "SUBMITTED".equals(e.getAssessmentStatus()))
+                        .map(AdminParticipantDetailDTO.ExaminerSubmission::getTotalScore)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+                
+                if (!totalScores.isEmpty()) {
+                    double avgScore = totalScores.stream()
+                            .mapToDouble(Double::doubleValue).average().orElse(0.0);
+                    
+                    // All members get the same score for GROUP-only assignments
+                    for (AdminParticipantDetailDTO.ParticipantInfo.MemberInfo member : participant.getMembers()) {
+                        member.setFinalScore(avgScore);
+                    }
+                }
+            }
         }
         
         return dto;
+    }
+
+    /**
+     * Calculate average group score across all submitted examiners.
+     * Each examiner's group score is calculated with proper weighting, then averaged.
+     */
+    private Double calculateAverageGroupScore(
+            List<AdminParticipantDetailDTO.ExaminerSubmission> examiners,
+            List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> groupRubrics) {
+        
+        if (groupRubrics == null || groupRubrics.isEmpty()) {
+            return null;
+        }
+        
+        List<Double> examinerGroupScores = new ArrayList<>();
+        
+        for (AdminParticipantDetailDTO.ExaminerSubmission examiner : examiners) {
+            if (!"SUBMITTED".equals(examiner.getAssessmentStatus())) {
+                continue;
+            }
+            
+            if (examiner.getRubricScores() == null || examiner.getRubricScores().getGroup() == null) {
+                continue;
+            }
+            
+            // Calculate this examiner's group score
+            Double groupScore = calculateGroupScoreFromCriteria(
+                    examiner.getRubricScores().getGroup(), groupRubrics);
+            
+            if (groupScore != null) {
+                examinerGroupScores.add(groupScore);
+            }
+        }
+        
+        // Return average across all examiners
+        if (examinerGroupScores.isEmpty()) {
+            return null;
+        }
+        
+        return examinerGroupScores.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+    }
+    
+    /**
+     * Calculate average individual score for a specific student across all submitted examiners.
+     * Each examiner's individual score for this student is calculated with proper weighting, then averaged.
+     */
+    private Double calculateAverageIndividualScore(
+            Long studentId,
+            List<AdminParticipantDetailDTO.ExaminerSubmission> examiners,
+            List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> individualRubrics) {
+        
+        if (individualRubrics == null || individualRubrics.isEmpty()) {
+            return null;
+        }
+        
+        List<Double> examinerIndividualScores = new ArrayList<>();
+        
+        for (AdminParticipantDetailDTO.ExaminerSubmission examiner : examiners) {
+            if (!"SUBMITTED".equals(examiner.getAssessmentStatus())) {
+                continue;
+            }
+            
+            if (examiner.getRubricScores() == null || examiner.getRubricScores().getIndividual() == null) {
+                continue;
+            }
+            
+            // Calculate this examiner's individual score for this student
+            Double individualScore = calculateIndividualScoreFromCriteria(
+                    studentId, examiner.getRubricScores().getIndividual(), individualRubrics);
+            
+            if (individualScore != null) {
+                examinerIndividualScores.add(individualScore);
+            }
+        }
+        
+        // Return average across all examiners
+        if (examinerIndividualScores.isEmpty()) {
+            return null;
+        }
+        
+        return examinerIndividualScores.stream()
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
+    }
+    
+    /**
+     * Calculate group score from group rubric scores with proper weighting
+     */
+    private Double calculateGroupScoreFromCriteria(
+            List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore> groupScores,
+            List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> groupRubrics) {
+        
+        if (groupScores == null || groupScores.isEmpty()) {
+            return null;
+        }
+        
+        double totalPoints = 0.0;
+        double totalWeight = 0.0;
+        
+        for (AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion rubric : groupRubrics) {
+            Double weight = rubric.getWeight();
+            if (weight == null) continue;
+            
+            // Find matching score
+            AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore matchingScore = 
+                    groupScores.stream()
+                            .filter(gs -> rubric.getDescription() != null && 
+                                    rubric.getDescription().equals(gs.getCriterionDescription()))
+                            .findFirst().orElse(null);
+            
+            if (matchingScore != null && matchingScore.getPointsAwarded() != null) {
+                totalWeight += weight;
+                // Points are already normalized to 0-100 scale
+                totalPoints += (matchingScore.getPointsAwarded() * weight) / 100.0;
+            }
+        }
+        
+        return totalWeight > 0 ? (totalPoints / totalWeight) * 100.0 : null;
+    }
+    
+    /**
+     * Calculate individual score for a specific student from individual rubric scores with proper weighting
+     */
+    private Double calculateIndividualScoreFromCriteria(
+            Long studentId,
+            List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore> individualScores,
+            List<AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion> individualRubrics) {
+        
+        if (individualScores == null || individualScores.isEmpty()) {
+            return null;
+        }
+        
+        // Filter scores for this specific student
+        List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore> studentScores = 
+                individualScores.stream()
+                        .filter(is -> studentId.equals(is.getStudentId()))
+                        .collect(Collectors.toList());
+        
+        if (studentScores.isEmpty()) {
+            return null;
+        }
+        
+        double totalPoints = 0.0;
+        double totalWeight = 0.0;
+        
+        for (AdminParticipantDetailDTO.RubricSnapshot.RubricCriterion rubric : individualRubrics) {
+            Double weight = rubric.getWeight();
+            if (weight == null) continue;
+            
+            // Find matching score for this student
+            AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore matchingScore = 
+                    studentScores.stream()
+                            .filter(is -> rubric.getDescription() != null && 
+                                    rubric.getDescription().equals(is.getCriterionDescription()))
+                            .findFirst().orElse(null);
+            
+            if (matchingScore != null && matchingScore.getPointsAwarded() != null) {
+                totalWeight += weight;
+                // Points are already normalized to 0-100 scale
+                totalPoints += (matchingScore.getPointsAwarded() * weight) / 100.0;
+            }
+        }
+        
+        return totalWeight > 0 ? (totalPoints / totalWeight) * 100.0 : null;
     }
 
     private AdminParticipantDetailDTO.RubricSnapshot parseRubricSnapshot(Map<String, Object> detailData) {
@@ -1416,6 +1791,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AdminParticipantDetailDTO.ExaminerSubmission submission = 
                 new AdminParticipantDetailDTO.ExaminerSubmission();
         
+        submission.setSubmissionId((Long) examinerData.get("submission_id"));
         submission.setExaminerId((Long) examinerData.get("examiner_id"));
         submission.setExaminerName((String) examinerData.get("examiner_name"));
         submission.setAssessmentStatus((String) examinerData.get("assessment_status"));
@@ -1430,6 +1806,36 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         submission.setRubricScores(rubricScores);
         
         return submission;
+    }
+
+    private AdminParticipantDetailDTO.ExaminerSubmission.RubricScores mergeRubricScoresFromMultipleSubmissions(
+            List<Map<String, Object>> examinerSubmissions, String participantType) {
+        
+        AdminParticipantDetailDTO.ExaminerSubmission.RubricScores mergedScores = 
+                new AdminParticipantDetailDTO.ExaminerSubmission.RubricScores();
+        
+        List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.GroupScore> allGroupScores = 
+                new ArrayList<>();
+        List<AdminParticipantDetailDTO.ExaminerSubmission.RubricScores.IndividualScore> allIndividualScores = 
+                new ArrayList<>();
+        
+        // Parse and merge scores from all submissions
+        for (Map<String, Object> submission : examinerSubmissions) {
+            AdminParticipantDetailDTO.ExaminerSubmission.RubricScores scores = 
+                    parseRubricScores(submission, participantType);
+            
+            if (scores.getGroup() != null) {
+                allGroupScores.addAll(scores.getGroup());
+            }
+            if (scores.getIndividual() != null) {
+                allIndividualScores.addAll(scores.getIndividual());
+            }
+        }
+        
+        mergedScores.setGroup(allGroupScores);
+        mergedScores.setIndividual(allIndividualScores);
+        
+        return mergedScores;
     }
 
     private AdminParticipantDetailDTO.ExaminerSubmission.RubricScores parseRubricScores(

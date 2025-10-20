@@ -275,6 +275,7 @@
     <update id="reopenExaminerAssessment">
         UPDATE assessment_submission 
         SET status = 'REOPENED',
+            admin_note = #{reason},
             updated_at = NOW()
         WHERE id = #{submissionId}
         AND examiner_id = #{examinerId}
