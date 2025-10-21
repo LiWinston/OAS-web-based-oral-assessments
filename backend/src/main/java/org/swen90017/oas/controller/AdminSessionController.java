@@ -50,8 +50,9 @@ public class AdminSessionController {
     @Log(module = "Session Calendar", businessType = BusinessType.QUERY)
     public Result<CalendarResponseDTO> getSessionCalendar(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @Parameter(description = "Target month YYYY-MM") @RequestParam String month) {
-        return Result.success(sessionService.getSessionCalendar(assignmentId, month));
+            @Parameter(description = "Target month YYYY-MM") @RequestParam String month,
+            @Parameter(description = "Venue ID (optional)") @RequestParam(value = "venueId", required = false) Long venueId) {
+        return Result.success(sessionService.getSessionCalendar(assignmentId, month, venueId));
     }
 
     @Operation(summary = "List examiners assigned to a session")

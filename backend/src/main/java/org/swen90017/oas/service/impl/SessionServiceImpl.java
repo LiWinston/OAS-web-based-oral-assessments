@@ -915,13 +915,17 @@ public class SessionServiceImpl implements SessionService {
     }
 
     @Override
-    public CalendarResponseDTO getSessionCalendar(Long assignmentId, String month) {
+    public CalendarResponseDTO getSessionCalendar(Long assignmentId, String month, Long venueId) {
         YearMonth ym = YearMonth.parse(month);
         LocalDateTime from = ym.atDay(1).atStartOfDay();
         LocalDateTime to = ym.atEndOfMonth().atTime(23,59,59);
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
         Map<String, CalendarResponseDTO.DateInfoDTO> map = new LinkedHashMap<>();
         for (SlotSession s : sessions) {
+            // Filter by venueId if specified
+            if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) {
+                continue;
+            }
             String key = s.getStartAt().toLocalDate().toString();
             CalendarResponseDTO.DateInfoDTO di = map.computeIfAbsent(key, k -> new CalendarResponseDTO.DateInfoDTO());
             di.setSessions((di.getSessions() == null ? 0 : di.getSessions()) + 1);
