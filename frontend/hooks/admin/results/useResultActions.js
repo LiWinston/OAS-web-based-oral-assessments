@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminResultsService } from '@/services/adminResultsService.js';
 import { adminResultsKeys } from '../useAdminResults.js';
@@ -9,38 +9,6 @@ const normaliseId = (value) => {
   if (value === null || value === undefined || value === '') return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
-};
-
-const deriveReleaseSubmissionIds = (detail) => {
-  if (!detail) return [];
-
-  const ids = new Set();
-  safeArray(detail?.raw?.submissionIds).forEach((id) => {
-    const numeric = normaliseId(id);
-    if (numeric != null) {
-      ids.add(numeric);
-    }
-  });
-  (detail?.examiners || []).forEach((examiner) => {
-    if (!examiner) return;
-    const status = (examiner.assessmentStatus || '').toUpperCase();
-    if (status === 'SUBMITTED') {
-      safeArray(examiner.submissionIds).forEach((id) => {
-        const numeric = normaliseId(id);
-        if (numeric != null) {
-          ids.add(numeric);
-        }
-      });
-      if (examiner.submissionId != null) {
-        const numeric = normaliseId(examiner.submissionId);
-        if (numeric != null) {
-          ids.add(numeric);
-        }
-      }
-    }
-  });
-
-  return Array.from(ids);
 };
 
 export function useResultActions({
@@ -67,8 +35,6 @@ export function useResultActions({
     allSubmitted: false,
   };
 
-  const releaseSubmissionIds = useMemo(() => deriveReleaseSubmissionIds(detail), [detail]);
-
   const invalidateDetail = useCallback(() => {
     if (!subjectId || !assignmentId || !participantType || !participantId) return;
     queryClient.invalidateQueries(
@@ -78,20 +44,7 @@ export function useResultActions({
 
   const releaseMutation = useMutation({
     mutationFn: async ({ notify }) => {
-      const ids = deriveReleaseSubmissionIds(detail);
-      if (!ids.length) {
-        throw new Error('No submissions available to release.');
-      }
-
       const notifyFlag = Boolean(notify);
-
-      await Promise.all(
-        ids.map((submissionId) =>
-          adminResultsService.releaseSubmission(subjectId, assignmentId, submissionId, {
-            notify: notifyFlag,
-          })
-        )
-      );
 
       if (participantType === 'GROUP') {
         await adminResultsService.releaseGroup(subjectId, assignmentId, participantId, {
@@ -101,9 +54,11 @@ export function useResultActions({
         await adminResultsService.releaseIndividual(subjectId, assignmentId, participantId, {
           notify: notifyFlag,
         });
+      } else {
+        throw new Error('Unsupported participant type for release.');
       }
 
-      return { submissionIds: ids };
+      return {};
     },
     onSuccess: () => {
       showNotification('success', 'Results released to students.');
@@ -186,7 +141,6 @@ export function useResultActions({
 
   return {
     examinerSummary,
-    releaseSubmissionIds,
     releaseDialogOpen,
     setReleaseDialogOpen,
     releaseMutation,

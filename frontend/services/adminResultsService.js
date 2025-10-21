@@ -79,14 +79,6 @@ export const adminResultsService = {
     return resp.data;
   },
 
-  async releaseSubmission(subjectId, assignmentId, submissionId, payload = {}) {
-    const resp = await apiClient.post(
-      `${base(subjectId, assignmentId)}/assessments/${submissionId}/release`,
-      payload
-    );
-    return resp.data;
-  },
-
   async releaseGroup(subjectId, assignmentId, groupId, payload = {}) {
     const resp = await apiClient.post(
       `${base(subjectId, assignmentId)}/group/${groupId}/release`,

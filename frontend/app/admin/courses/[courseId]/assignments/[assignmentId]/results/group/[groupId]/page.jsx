@@ -48,7 +48,6 @@ export default function GroupResultDetailPage() {
 
   const {
     examinerSummary,
-    releaseSubmissionIds,
     releaseDialogOpen,
     setReleaseDialogOpen,
     releaseMutation,
@@ -67,7 +66,7 @@ export default function GroupResultDetailPage() {
     refetch,
   });
 
-  const canRelease = (examinerSummary?.allSubmitted ?? false) && releaseSubmissionIds.length > 0;
+  const canRelease = Boolean(examinerSummary?.allSubmitted);
   const activeReviewExaminer = reviewDialog.examiner;
 
   const renderExaminerActions = useCallback(
