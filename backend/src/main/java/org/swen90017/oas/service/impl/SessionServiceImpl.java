@@ -35,7 +35,6 @@ import org.swen90017.oas.dto.response.SessionDetailDTO;
 import org.swen90017.oas.dto.request.SessionRequestDTO;
 import org.swen90017.oas.dto.request.UpdateSessionsExaminersRequestDTO;
 import org.swen90017.oas.enums.UserRole;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -295,7 +294,7 @@ public class SessionServiceImpl implements SessionService {
         int fully = 0, partial = 0, un = 0,totalExaminers=0;
         for (SlotSession s : sessions) {
             if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
-            if (status != null && !status.isEmpty() && !s.getStatus().name().equalsIgnoreCase(status)) continue;
+            
             AdminSessionsListResponseDTO.Item it = new AdminSessionsListResponseDTO.Item();
             it.setId(s.getSessionId());
             it.setDate(s.getStartAt().toLocalDate());
@@ -322,6 +321,23 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             it.setAssignedExaminers(assigned);
+            
+            // Calculate staffing status based on examiner assignment
+            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+            int cur = examinerIds == null ? 0 : examinerIds.size();
+            String staffingStatus;
+            if (cur == 0) {
+                staffingStatus = "none";
+            } else if (cur >= req && req > 0) {
+                staffingStatus = "fully";
+            } else {
+                staffingStatus = "partial";
+            }
+            
+            // Apply status filter based on staffing status
+            if (status != null && !status.isEmpty() && !staffingStatus.equalsIgnoreCase(status)) {
+                continue;
+            }
             
             // Fetch enrolled students and groups
             List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
@@ -365,7 +381,10 @@ public class SessionServiceImpl implements SessionService {
             it.setBookedCount(booked);
             int cap = s.getCapacityGroups() == null ? 1 : s.getCapacityGroups();
             it.setRemainingCapacity(Math.max(0, cap - booked));
-            it.setStatus(s.getStatus().name().toLowerCase());
+            
+            // Set status based on staffing status (calculated earlier)
+            it.setStatus(staffingStatus);
+            
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
             // Derive publish flags based on assignment.status
@@ -382,9 +401,7 @@ public class SessionServiceImpl implements SessionService {
             }
             
             items.add(it);
-            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
             totalExaminers+=req;
-            int cur = examinerIds == null ? 0 : examinerIds.size();
             if (cur == 0) un++; else if (cur >= req && req > 0) fully++; else partial++;
         }
         resp.setSessions(items);
@@ -505,7 +522,6 @@ public class SessionServiceImpl implements SessionService {
             // Apply filters
             if (target != null && !s.getStartAt().toLocalDate().equals(target)) continue;
             if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
-            if (status != null && !status.isEmpty() && !s.getStatus().name().equalsIgnoreCase(status)) continue;
             
             AdminSessionsListResponseDTO.Item it = new AdminSessionsListResponseDTO.Item();
             it.setId(s.getSessionId());
@@ -536,6 +552,23 @@ public class SessionServiceImpl implements SessionService {
                 }
             }
             it.setAssignedExaminers(assigned);
+            
+            // Calculate staffing status based on examiner assignment
+            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
+            int cur = examinerIds == null ? 0 : examinerIds.size();
+            String staffingStatus;
+            if (cur == 0) {
+                staffingStatus = "none";
+            } else if (cur >= req && req > 0) {
+                staffingStatus = "fully";
+            } else {
+                staffingStatus = "partial";
+            }
+            
+            // Apply status filter based on staffing status
+            if (status != null && !status.isEmpty() && !staffingStatus.equalsIgnoreCase(status)) {
+                continue;
+            }
             
             // Fetch enrolled students and groups
             List<SessionStudent> enrollments = sessionStudentMapper.listBySession(s.getSessionId());
@@ -579,7 +612,10 @@ public class SessionServiceImpl implements SessionService {
             it.setBookedCount(booked);
             int cap = s.getCapacityGroups() == null ? 0 : s.getCapacityGroups();
             it.setRemainingCapacity(Math.max(0, cap - booked));
-            it.setStatus(s.getStatus().name().toLowerCase());
+            
+            // Set status based on staffing status (calculated earlier)
+            it.setStatus(staffingStatus);
+            
             it.setCreatedAt(s.getCreatedAt());
             it.setLastModified(s.getUpdatedAt());
             
@@ -593,8 +629,6 @@ public class SessionServiceImpl implements SessionService {
             items.add(it);
             
             // Compute statistics
-            int req = s.getRequiredExaminers() == null ? 0 : s.getRequiredExaminers();
-            int cur = examinerIds == null ? 0 : examinerIds.size();
             if (cur == 0) un++; 
             else if (cur >= req && req > 0) fully++; 
             else partial++;
