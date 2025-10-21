@@ -180,8 +180,8 @@ public class AdminParticipantDetailDTO {
     @Schema(description = "Examiner submission")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class ExaminerSubmission {
-        @Schema(description = "Submission ID", example = "123")
-        private Long submissionId;
+        @Schema(description = "List of submission IDs (for MIXED type, includes both group and individual submissions)", example = "[123, 124, 125]")
+        private List<Long> submissionIds;
         
         @Schema(description = "Examiner ID", example = "88")
         private Long examinerId;
