@@ -268,6 +268,9 @@ public class SessionServiceImpl implements SessionService {
             sum.setPartiallyStaffed(0);
             sum.setUnstaffed(0);
             sum.setTotalRequiredExaminers(0);
+            sum.setTotalAssignedExaminers(0);
+            sum.setTotalCapacity(0);
+            sum.setTotalBooked(0);
             resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
             resp.setMessage("Selected date is outside of assignment window.");
@@ -284,6 +287,9 @@ public class SessionServiceImpl implements SessionService {
             sum.setPartiallyStaffed(0);
             sum.setUnstaffed(0);
             sum.setTotalRequiredExaminers(0);
+            sum.setTotalAssignedExaminers(0);
+            sum.setTotalCapacity(0);
+            sum.setTotalBooked(0);
             resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
             resp.setMessage("Selected date is outside of assignment window.");
@@ -296,7 +302,12 @@ public class SessionServiceImpl implements SessionService {
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
         AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
         List<AdminSessionsListResponseDTO.Item> items = new ArrayList<>();
-        int fully = 0, partial = 0, un = 0,totalExaminers=0;
+        // Statistics: fully/partially/unstaffed session counts
+        int fully = 0, partial = 0, un = 0;
+        // Examiner statistics: required vs assigned examiners
+        int totalExaminers = 0, totalAssigned = 0;
+        // Student booking statistics: capacity vs booked
+        int totalCap = 0, totalBook = 0;
         for (SlotSession s : sessions) {
             if (venueId != null && (s.getVenueId() == null || !venueId.equals(s.getVenueId()))) continue;
             
@@ -406,16 +417,24 @@ public class SessionServiceImpl implements SessionService {
             }
             
             items.add(it);
-            totalExaminers+=req;
+            // Accumulate statistics
+            totalExaminers += req;   // Total required examiners
+            totalAssigned += cur;    // Total assigned examiners
+            totalCap += cap;         // Total student capacity
+            totalBook += booked;     // Total booked students/groups
             if (cur == 0) un++; else if (cur >= req && req > 0) fully++; else partial++;
         }
         resp.setSessions(items);
+        // Build summary with aggregated statistics
         AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
         sum.setTotalSessions(items.size());
-        sum.setFullyStaffed(fully);
-        sum.setPartiallyStaffed(partial);
-        sum.setUnstaffed(un);
-        sum.setTotalRequiredExaminers(totalExaminers);
+        sum.setFullyStaffed(fully);              // Sessions with all required examiners assigned
+        sum.setPartiallyStaffed(partial);        // Sessions with some but not all examiners
+        sum.setUnstaffed(un);                    // Sessions with no examiners assigned
+        sum.setTotalRequiredExaminers(totalExaminers);  // Total examiners needed across all sessions
+        sum.setTotalAssignedExaminers(totalAssigned);   // Total examiners currently assigned
+        sum.setTotalCapacity(totalCap);                 // Total student/group capacity
+        sum.setTotalBooked(totalBook);                  // Total students/groups booked
         resp.setSummary(sum);
         resp.setOutsideAssignmentRange(false);
         return resp;
@@ -498,6 +517,10 @@ public class SessionServiceImpl implements SessionService {
                 sum.setFullyStaffed(0);
                 sum.setPartiallyStaffed(0);
                 sum.setUnstaffed(0);
+                sum.setTotalRequiredExaminers(0);
+                sum.setTotalAssignedExaminers(0);
+                sum.setTotalCapacity(0);
+                sum.setTotalBooked(0);
                 resp.setSummary(sum);
                 return resp;
             }
@@ -512,6 +535,10 @@ public class SessionServiceImpl implements SessionService {
                 sum.setFullyStaffed(0);
                 sum.setPartiallyStaffed(0);
                 sum.setUnstaffed(0);
+                sum.setTotalRequiredExaminers(0);
+                sum.setTotalAssignedExaminers(0);
+                sum.setTotalCapacity(0);
+                sum.setTotalBooked(0);
                 resp.setSummary(sum);
                 return resp;
             }
@@ -522,7 +549,12 @@ public class SessionServiceImpl implements SessionService {
         
         AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
         List<AdminSessionsListResponseDTO.Item> items = new ArrayList<>();
+        // Statistics: fully/partially/unstaffed session counts
         int fully = 0, partial = 0, un = 0;
+        // Examiner statistics: required vs assigned examiners
+        int totalExaminers = 0, totalAssigned = 0;
+        // Student booking statistics: capacity vs booked
+        int totalCap = 0, totalBook = 0;
         
         for (SlotSession s : examinerSessions) {
             // Apply filters
@@ -634,18 +666,27 @@ public class SessionServiceImpl implements SessionService {
             
             items.add(it);
             
-            // Compute statistics
+            // Accumulate statistics
+            totalExaminers += req;   // Total required examiners
+            totalAssigned += cur;    // Total assigned examiners
+            totalCap += cap;         // Total student capacity
+            totalBook += booked;     // Total booked students/groups
             if (cur == 0) un++; 
             else if (cur >= req && req > 0) fully++; 
             else partial++;
         }
         
         resp.setSessions(items);
+        // Build summary with aggregated statistics
         AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
         sum.setTotalSessions(items.size());
-        sum.setFullyStaffed(fully);
-        sum.setPartiallyStaffed(partial);
-        sum.setUnstaffed(un);
+        sum.setFullyStaffed(fully);              // Sessions with all required examiners assigned
+        sum.setPartiallyStaffed(partial);        // Sessions with some but not all examiners
+        sum.setUnstaffed(un);                    // Sessions with no examiners assigned
+        sum.setTotalRequiredExaminers(totalExaminers);  // Total examiners needed across all sessions
+        sum.setTotalAssignedExaminers(totalAssigned);   // Total examiners currently assigned
+        sum.setTotalCapacity(totalCap);                 // Total student/group capacity
+        sum.setTotalBooked(totalBook);                  // Total students/groups booked
         resp.setSummary(sum);
         resp.setOutsideAssignmentRange(false);
         

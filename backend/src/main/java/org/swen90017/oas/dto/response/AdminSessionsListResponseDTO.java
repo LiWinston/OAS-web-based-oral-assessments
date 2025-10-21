@@ -59,11 +59,19 @@ public class AdminSessionsListResponseDTO {
 
     @Data
     public static class Summary {
-        private Integer totalSessions;
-        private Integer fullyStaffed;
-        private Integer partiallyStaffed;
-        private Integer unstaffed;
-        private Integer totalRequiredExaminers;
+        // Session counts
+        private Integer totalSessions;           // Total number of sessions
+        
+        // Examiner staffing statistics
+        private Integer fullyStaffed;            // Sessions with all required examiners assigned
+        private Integer partiallyStaffed;        // Sessions with some but not all examiners
+        private Integer unstaffed;               // Sessions with no examiners assigned
+        private Integer totalRequiredExaminers;  // Total examiners needed across all sessions
+        private Integer totalAssignedExaminers;  // Total examiners currently assigned
+        
+        // Student booking statistics
+        private Integer totalCapacity;           // Total student/group capacity across all sessions
+        private Integer totalBooked;             // Total students/groups booked across all sessions
     }
 }
 
