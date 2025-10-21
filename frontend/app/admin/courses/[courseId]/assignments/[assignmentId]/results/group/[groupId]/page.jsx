@@ -88,7 +88,6 @@ export default function GroupResultDetailPage() {
       const isProcessing =
         reviewMutation.isPending &&
         activeReviewExaminer &&
-        activeReviewExaminer.submissionId === examiner.submissionId &&
         activeReviewExaminer.examinerId === examiner.examinerId;
 
       return (

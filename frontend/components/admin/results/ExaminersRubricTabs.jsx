@@ -198,6 +198,24 @@ const formatScore = (value, scoreUnit) => {
   return `${numeric.toFixed(2)}${scoreUnit || ""}`.trim();
 };
 
+const toExaminerKey = (examiner, index = 0) => {
+  if (examiner?.examinerId != null) {
+    return `examiner-${examiner.examinerId}`;
+  }
+
+  const submissionIds = Array.isArray(examiner?.submissionIds) ? examiner.submissionIds : [];
+  const firstSubmissionId = submissionIds.find((id) => id != null);
+  if (firstSubmissionId != null) {
+    return `examiner-submission-${firstSubmissionId}`;
+  }
+
+  if (examiner?.submissionId != null) {
+    return `examiner-submission-${examiner.submissionId}`;
+  }
+
+  return `examiner-${index}`;
+};
+
 const ExaminerStatusBadge = ({ status }) => {
   const normalized = (status || "UNKNOWN").toString().toUpperCase();
   const meta = STATUS_META[normalized] ?? STATUS_META.UNKNOWN;
@@ -390,9 +408,6 @@ const ExaminerDetail = ({
           </div>
         </div>
         <div className="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-          <Badge variant="outline" className="border-blue-200 text-blue-600 dark:border-blue-700 dark:text-blue-300">
-            Submission ID: {examiner?.submissionId ?? "—"}
-          </Badge>
           <Badge variant="outline" className="border-gray-200 text-gray-600 dark:border-gray-700 dark:text-gray-300">
             Examiner ID: {examiner?.examinerId ?? "—"}
           </Badge>
@@ -516,17 +531,14 @@ export default function ExaminersRubricTabs({
   }, [rubricSnapshot?.weightBasis]);
 
   const initialValue = useMemo(() => {
-    const first = examiners[0];
-    return (first?.submissionId ?? first?.examinerId ?? "examiner-0").toString();
+    if (!examiners || examiners.length === 0) return "examiner-0";
+    return toExaminerKey(examiners[0], 0);
   }, [examiners]);
 
   const [activeExaminerId, setActiveExaminerId] = useState(initialValue);
 
   useEffect(() => {
-    const exists = examiners.some((examiner) => {
-      const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
-      return key === activeExaminerId;
-    });
+    const exists = examiners.some((examiner, index) => toExaminerKey(examiner, index) === activeExaminerId);
     if (!exists) {
       setActiveExaminerId(initialValue);
     }
@@ -543,8 +555,8 @@ export default function ExaminersRubricTabs({
   return (
     <Tabs value={activeExaminerId} onValueChange={setActiveExaminerId} className="space-y-6">
       <TabsList className="flex w-full flex-wrap gap-2 bg-gray-50 dark:bg-gray-900/40 p-2 rounded-xl">
-        {examiners.map((examiner) => {
-          const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
+        {examiners.map((examiner, index) => {
+          const key = toExaminerKey(examiner, index);
           return (
             <TabsTrigger
               key={key}
@@ -560,8 +572,8 @@ export default function ExaminersRubricTabs({
         })}
       </TabsList>
 
-      {examiners.map((examiner) => {
-        const key = (examiner?.submissionId ?? examiner?.examinerId ?? "").toString();
+      {examiners.map((examiner, index) => {
+        const key = toExaminerKey(examiner, index);
         return (
           <TabsContent key={key} value={key} className="space-y-6">
             <ExaminerDetail

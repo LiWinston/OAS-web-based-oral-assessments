@@ -11,6 +11,20 @@ const coerceNumber = (value) => {
   return Number.isFinite(numeric) ? numeric : null;
 };
 
+const normaliseSubmissionIds = (value) => {
+  const list = Array.isArray(value) ? value : value != null ? [value] : [];
+  const ids = [];
+
+  list.forEach((entry) => {
+    const numeric = coerceNumber(entry);
+    if (numeric != null) {
+      ids.push(numeric);
+    }
+  });
+
+  return ids;
+};
+
 const normaliseComments = (comments) => {
   if (!comments) return [];
   if (Array.isArray(comments)) {
@@ -77,12 +91,22 @@ const normaliseExaminer = (examinerRaw) => {
     return null;
   }
 
+  const submissionIdsSet = new Set();
+  normaliseSubmissionIds(examinerRaw?.submissionIds).forEach((id) => submissionIdsSet.add(id));
+  const legacySubmissionId = coerceNumber(examinerRaw?.submissionId);
+  if (legacySubmissionId != null) {
+    submissionIdsSet.add(legacySubmissionId);
+  }
+  const submissionIds = Array.from(submissionIdsSet);
+  const primarySubmissionId = submissionIds.length > 0 ? submissionIds[0] : null;
+
   const groupScores = safeArray(examinerRaw?.rubricScores?.group).map(normaliseScoreEntry);
   const individualScores = normaliseIndividualScores(examinerRaw?.rubricScores?.individual);
   const status = (examinerRaw?.assessmentStatus || STATUS_UNKNOWN).toString().toUpperCase();
 
   return {
-    submissionId: examinerRaw?.submissionId ?? null,
+    submissionId: primarySubmissionId,
+    submissionIds,
     examinerId: examinerRaw?.examinerId ?? null,
     examinerName: examinerRaw?.examinerName ?? '',
     assessmentStatus: status,

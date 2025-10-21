@@ -4,20 +4,39 @@ import { adminResultsService } from '@/services/adminResultsService.js';
 import { adminResultsKeys } from '../useAdminResults.js';
 import { useNotification } from '@/hooks/useNotification.js';
 
+const safeArray = (value) => (Array.isArray(value) ? value : []);
+const normaliseId = (value) => {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 const deriveReleaseSubmissionIds = (detail) => {
   if (!detail) return [];
 
-  const explicit = detail?.raw?.submissionId;
-  if (explicit) {
-    return [explicit];
-  }
-
   const ids = new Set();
+  safeArray(detail?.raw?.submissionIds).forEach((id) => {
+    const numeric = normaliseId(id);
+    if (numeric != null) {
+      ids.add(numeric);
+    }
+  });
   (detail?.examiners || []).forEach((examiner) => {
     if (!examiner) return;
     const status = (examiner.assessmentStatus || '').toUpperCase();
-    if (status === 'SUBMITTED' && examiner.submissionId) {
-      ids.add(examiner.submissionId);
+    if (status === 'SUBMITTED') {
+      safeArray(examiner.submissionIds).forEach((id) => {
+        const numeric = normaliseId(id);
+        if (numeric != null) {
+          ids.add(numeric);
+        }
+      });
+      if (examiner.submissionId != null) {
+        const numeric = normaliseId(examiner.submissionId);
+        if (numeric != null) {
+          ids.add(numeric);
+        }
+      }
     }
   });
 
@@ -100,16 +119,34 @@ export function useResultActions({
 
   const reviewMutation = useMutation({
     mutationFn: async ({ reason, examiner }) => {
-      if (!examiner?.submissionId || !examiner?.examinerId) {
+      if (!examiner?.examinerId) {
         throw new Error('Missing submission information for examiner review.');
       }
 
-      return adminResultsService.reviewExaminerSubmission(
-        subjectId,
-        assignmentId,
-        examiner.submissionId,
-        examiner.examinerId,
-        { reason }
+      const collectedSubmissionIds = safeArray(examiner?.submissionIds)
+        .map((id) => normaliseId(id))
+        .filter((id) => id != null);
+      if (collectedSubmissionIds.length === 0 && examiner?.submissionId != null) {
+        const numeric = normaliseId(examiner.submissionId);
+        if (numeric != null) {
+          collectedSubmissionIds.push(numeric);
+        }
+      }
+
+      if (collectedSubmissionIds.length === 0) {
+        throw new Error('Missing submission information for examiner review.');
+      }
+
+      await Promise.all(
+        collectedSubmissionIds.map((submissionId) =>
+          adminResultsService.reviewExaminerSubmission(
+            subjectId,
+            assignmentId,
+            submissionId,
+            examiner.examinerId,
+            { reason }
+          )
+        )
       );
     },
     onSuccess: () => {
