@@ -262,9 +262,13 @@ public class SessionServiceImpl implements SessionService {
             // Return empty response with indication that date is outside assignment range
             AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
             resp.setSessions(new ArrayList<>());
-            resp.setFullyStaffed(0);
-            resp.setPartiallyStaffed(0);
-            resp.setUnstaffed(0);
+            AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
+            sum.setTotalSessions(0);
+            sum.setFullyStaffed(0);
+            sum.setPartiallyStaffed(0);
+            sum.setUnstaffed(0);
+            sum.setTotalRequiredExaminers(0);
+            resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
             resp.setMessage("Requested date is before assignment start date");
             return resp;
@@ -274,9 +278,13 @@ public class SessionServiceImpl implements SessionService {
             // Return empty response with indication that date is outside assignment range
             AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
             resp.setSessions(new ArrayList<>());
-            resp.setFullyStaffed(0);
-            resp.setPartiallyStaffed(0);
-            resp.setUnstaffed(0);
+            AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
+            sum.setTotalSessions(0);
+            sum.setFullyStaffed(0);
+            sum.setPartiallyStaffed(0);
+            sum.setUnstaffed(0);
+            sum.setTotalRequiredExaminers(0);
+            resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
             resp.setMessage("Requested date is after assignment end date");
             return resp;

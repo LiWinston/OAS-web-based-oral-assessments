@@ -14,11 +14,6 @@ public class AdminSessionsListResponseDTO {
     // New fields for assignment time range validation
     private Boolean outsideAssignmentRange;
     private String message;
-    
-    // Legacy fields for backward compatibility
-    private Integer fullyStaffed;
-    private Integer partiallyStaffed;
-    private Integer unstaffed;
 
     @Data
     public static class Item {
