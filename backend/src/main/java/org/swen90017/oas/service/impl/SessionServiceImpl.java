@@ -270,7 +270,7 @@ public class SessionServiceImpl implements SessionService {
             sum.setTotalRequiredExaminers(0);
             resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
-            resp.setMessage("Requested date is before assignment start date");
+            resp.setMessage("Selected date is outside of assignment window.");
             return resp;
         }
         
@@ -286,7 +286,7 @@ public class SessionServiceImpl implements SessionService {
             sum.setTotalRequiredExaminers(0);
             resp.setSummary(sum);
             resp.setOutsideAssignmentRange(true);
-            resp.setMessage("Requested date is after assignment end date");
+            resp.setMessage("Selected date is outside of assignment window.");
             return resp;
         }
         
@@ -417,6 +417,7 @@ public class SessionServiceImpl implements SessionService {
         sum.setUnstaffed(un);
         sum.setTotalRequiredExaminers(totalExaminers);
         resp.setSummary(sum);
+        resp.setOutsideAssignmentRange(false);
         return resp;
     }
 
@@ -491,7 +492,7 @@ public class SessionServiceImpl implements SessionService {
                 AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
                 resp.setSessions(new ArrayList<>());
                 resp.setOutsideAssignmentRange(true);
-                resp.setMessage("Requested date is before assignment start date");
+                resp.setMessage("Selected date is outside of assignment window.");
                 AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
                 sum.setTotalSessions(0);
                 sum.setFullyStaffed(0);
@@ -505,7 +506,7 @@ public class SessionServiceImpl implements SessionService {
                 AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
                 resp.setSessions(new ArrayList<>());
                 resp.setOutsideAssignmentRange(true);
-                resp.setMessage("Requested date is after assignment end date");
+                resp.setMessage("Selected date is outside of assignment window.");
                 AdminSessionsListResponseDTO.Summary sum = new AdminSessionsListResponseDTO.Summary();
                 sum.setTotalSessions(0);
                 sum.setFullyStaffed(0);
@@ -646,6 +647,7 @@ public class SessionServiceImpl implements SessionService {
         sum.setPartiallyStaffed(partial);
         sum.setUnstaffed(un);
         resp.setSummary(sum);
+        resp.setOutsideAssignmentRange(false);
         
         return resp;
     }
