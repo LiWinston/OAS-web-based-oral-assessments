@@ -292,7 +292,10 @@ public class AssessmentServiceImpl implements AssessmentService {
                     examinerId
                 );
                 
-                if (individualSubmission != null && "DRAFT".equalsIgnoreCase(individualSubmission.getStatus())) {
+                // Process individual submissions in DRAFT or REOPENED status
+                if (individualSubmission != null && 
+                    ("DRAFT".equalsIgnoreCase(individualSubmission.getStatus()) || 
+                     "REOPENED".equalsIgnoreCase(individualSubmission.getStatus()))) {
                     // Validate and submit individual submission
                     try {
                         ensureAllCriteriaCompleted(individualSubmission.getRubricsInfoSnapshot(), individualSubmission.getScoresJson());
