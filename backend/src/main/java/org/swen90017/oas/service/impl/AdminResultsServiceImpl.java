@@ -981,9 +981,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         snapshot.setStatus(status);
 
         LocalDateTime submittedAt = (LocalDateTime) marking.get("submitted_at");
-        LocalDateTime reopenedAt = (LocalDateTime) marking.get("reopened_at");
         snapshot.setSubmittedAt(formatDateTime(submittedAt));
-        snapshot.setReopenedAt(formatDateTime(reopenedAt));
 
         Double score;
         if ("mixed".equalsIgnoreCase(assignmentType)) {
@@ -1978,7 +1976,6 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         submission.setExaminerName((String) examinerData.get("examiner_name"));
         submission.setAssessmentStatus((String) examinerData.get("assessment_status"));
         submission.setSubmittedAt(formatDateTime((LocalDateTime) examinerData.get("submitted_at")));
-        submission.setReopenedAt(formatDateTime((LocalDateTime) examinerData.get("reopened_at")));
         submission.setOverallFeedback((String) examinerData.get("overall_feedback"));
         submission.setTotalScore(convertToDouble(examinerData.get("total_score")));
         
