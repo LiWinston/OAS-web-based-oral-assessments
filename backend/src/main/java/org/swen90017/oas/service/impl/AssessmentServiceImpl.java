@@ -1218,6 +1218,11 @@ public class AssessmentServiceImpl implements AssessmentService {
                         log.info("Created INDIVIDUAL assessment submission for student {} in MIX type assessment", studentId);
                     } else {
                         // Update existing individual submission
+                        // IMPORTANT: Preserve existing data when scores are not provided
+                        String existingScoresJson = existingIndividual.getScoresJson();
+                        Double existingTotalScore = existingIndividual.getTotalScore();
+                        String existingFeedback = existingIndividual.getOverallFeedback();
+                        
                         existingIndividual.setUpdatedAt(LocalDateTime.now());
                         
                         // Update enrollment_id if missing (for old records)
@@ -1244,6 +1249,15 @@ public class AssessmentServiceImpl implements AssessmentService {
                             existingIndividual.setTotalScore(total);
                             
                             if (studentFeedback != null) {
+                                existingIndividual.setOverallFeedback(studentFeedback);
+                            }
+                        } else {
+                            // Preserve existing scores and feedback when not provided
+                            existingIndividual.setScoresJson(existingScoresJson);
+                            existingIndividual.setTotalScore(existingTotalScore);
+                            if (studentFeedback == null) {
+                                existingIndividual.setOverallFeedback(existingFeedback);
+                            } else {
                                 existingIndividual.setOverallFeedback(studentFeedback);
                             }
                         }
@@ -1306,6 +1320,12 @@ public class AssessmentServiceImpl implements AssessmentService {
                     // Update existing group submission
                     groupSubmission = existingGroup;
                     
+                    // IMPORTANT: Preserve existing data when scores are not provided
+                    String existingScoresJson = existingGroup.getScoresJson();
+                    Double existingTotalScore = existingGroup.getTotalScore();
+                    String existingFeedback = existingGroup.getOverallFeedback();
+                    String existingAdminNote = existingGroup.getAdminNote();
+                    
                     // Update enrollment_id if missing (for old records)
                     if (existingGroup.getEnrollmentId() == null && enrollmentId != null) {
                         existingGroup.setEnrollmentId(enrollmentId);
@@ -1324,14 +1344,24 @@ public class AssessmentServiceImpl implements AssessmentService {
                         groupSubmission.setScoresJson(normalizedScoresJson);
                         Double total = computeTotalScore(assignment.getRubricMetaInfo(), groupRubricsJson, normalizedScoresJson, "GROUP");
                         groupSubmission.setTotalScore(total);
+                    } else {
+                        // Preserve existing scores when not provided
+                        groupSubmission.setScoresJson(existingScoresJson);
+                        groupSubmission.setTotalScore(existingTotalScore);
                     }
                     
                     // Update feedback and notes
                     if (request.getOverallFeedback() != null) {
                         groupSubmission.setOverallFeedback(request.getOverallFeedback());
+                    } else {
+                        // Preserve existing feedback
+                        groupSubmission.setOverallFeedback(existingFeedback);
                     }
                     if (request.getAdminNote() != null) {
                         groupSubmission.setAdminNote(request.getAdminNote());
+                    } else {
+                        // Preserve existing admin note
+                        groupSubmission.setAdminNote(existingAdminNote);
                     }
                     
                     groupSubmission.setUpdatedAt(LocalDateTime.now());
