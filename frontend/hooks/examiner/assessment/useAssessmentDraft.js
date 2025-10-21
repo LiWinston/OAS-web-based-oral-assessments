@@ -131,6 +131,132 @@ export function useAssessmentDraft(sessionContext) {
     }
   }, [sessionContext]);
 
+  useEffect(() => {
+    const criteria = sessionContext?.assignment?.rubric?.criteria || [];
+    if (!criteria.length) return;
+
+    const individuals = sessionContext?.entity?.individuals || [];
+    if (!individuals.length) return;
+
+    const hasExistingIndividualEntities = sessionContext?.existingAssessment?.entities?.some(
+      (entity) => (entity?.kind || "").toUpperCase() === "INDIVIDUAL"
+    );
+    if (hasExistingIndividualEntities) return;
+
+    const hasLoadedIndividualRatings = individuals.every((student) => {
+      const ratings = individualRatings?.[student.studentId];
+      return ratings && Object.keys(ratings).length > 0;
+    });
+    if (hasLoadedIndividualRatings) return;
+
+    const criteriaByDescription = new Map(
+      criteria.map((criterion) => [
+        (criterion.description || "").trim().toLowerCase(),
+        criterion,
+      ])
+    );
+
+    const ratingsUpdates = {};
+    const commentsUpdates = {};
+    let foundAnyRatings = false;
+
+    individuals.forEach((student) => {
+      const status = student?.assessmentStatus;
+      if (!status?.scoresJson) return;
+
+      let parsedScores;
+      try {
+        parsedScores = JSON.parse(status.scoresJson);
+      } catch (error) {
+        console.warn("Failed to parse individual scoresJson", {
+          studentId: student?.studentId,
+          error,
+        });
+        return;
+      }
+
+      if (!Array.isArray(parsedScores) || !parsedScores.length) return;
+
+      parsedScores.forEach((score) => {
+        const scoreType = (score?.type || "").toUpperCase();
+        if (scoreType && scoreType !== "INDIVIDUAL") return;
+
+        const key = (score?.description || "").trim().toLowerCase();
+        const criterion = criteriaByDescription.get(key);
+        if (!criterion) return;
+
+        const numericPoints = Number(score?.inputPoints ?? score?.points);
+        const levelId = resolveLevelIdFromScore(criterion, score);
+        const range = levelId
+          ? getRatingRange(sessionContext, criterion.criterionId, levelId)
+          : {};
+
+        const fallbackMin =
+          range?.minPoints ??
+          Number(
+            score?.selectedLevel?.startPoint ??
+              score?.selectedLevel?.minPoints ??
+              0
+          );
+        const fallbackMax =
+          range?.maxPoints ??
+          Number(
+            score?.selectedLevel?.endPoint ??
+              score?.selectedLevel?.maxPoints ??
+              fallbackMin
+          );
+
+        if (!ratingsUpdates[student.studentId]) {
+          ratingsUpdates[student.studentId] = {};
+        }
+
+        ratingsUpdates[student.studentId][criterion.criterionId] = {
+          levelId: levelId || null,
+          points: Number.isFinite(numericPoints)
+            ? numericPoints
+            : fallbackMax,
+          minPoints: Number.isFinite(range?.minPoints)
+            ? range.minPoints
+            : fallbackMin,
+          maxPoints: Number.isFinite(range?.maxPoints)
+            ? range.maxPoints
+            : fallbackMax,
+        };
+        foundAnyRatings = true;
+
+        const commentText =
+          typeof score?.comment === "string" ? score.comment.trim() : "";
+        if (commentText) {
+          if (!commentsUpdates[student.studentId]) {
+            commentsUpdates[student.studentId] = {};
+          }
+          commentsUpdates[student.studentId][criterion.criterionId] =
+            commentText;
+        }
+      });
+    });
+
+    if (!foundAnyRatings) return;
+
+    setIndividualRatings((prev) => {
+      const merged = { ...prev };
+      Object.entries(ratingsUpdates).forEach(([studentId, ratings]) => {
+        merged[studentId] = { ...(merged[studentId] || {}), ...ratings };
+      });
+      return merged;
+    });
+
+    if (Object.keys(commentsUpdates).length) {
+      setIndividualComments((prev) => {
+        const merged = { ...prev };
+        Object.entries(commentsUpdates).forEach(([studentId, comments]) => {
+          merged[studentId] = { ...(merged[studentId] || {}), ...comments };
+        });
+        return merged;
+      });
+    }
+  }, [sessionContext, individualRatings]);
+
   const handleRatingChange = useCallback(
     (criterionId, rating) => {
       if (assessmentType === "GROUP") {
@@ -210,6 +336,73 @@ export function useAssessmentDraft(sessionContext) {
     // autosave deps
     draftFingerprint,
   };
+}
+
+function resolveLevelIdFromScore(criterion, score) {
+  if (!criterion || !score) return null;
+
+  const normalizeLevels = (levels) =>
+    (Array.isArray(levels) ? levels : []).map((level) => ({
+      levelId: level?.levelId,
+      min: Number(
+        level?.startPoint ??
+          level?.minPoints ??
+          level?.levelRange?.min ??
+          0
+      ),
+      max: Number(
+        level?.endPoint ??
+          level?.maxPoints ??
+          level?.levelRange?.max ??
+          (level?.startPoint ?? level?.minPoints ?? 0)
+      ),
+      description: (level?.description || "").trim().toLowerCase(),
+    }));
+
+  const candidateLevels = normalizeLevels(
+    criterion?.performanceLevel?.length
+      ? criterion.performanceLevel
+      : criterion?.levels
+  );
+  if (!candidateLevels.length) return null;
+
+  const levelIdFromScore = score?.levelId;
+  if (levelIdFromScore) {
+    const direct = candidateLevels.find((lvl) => lvl.levelId === levelIdFromScore);
+    if (direct) return direct.levelId;
+  }
+
+  const selected = score?.selectedLevel;
+  if (selected) {
+    const selectedDesc = (selected.description || "").trim().toLowerCase();
+    if (selectedDesc) {
+      const matchByDesc = candidateLevels.find(
+        (lvl) => lvl.description === selectedDesc
+      );
+      if (matchByDesc) return matchByDesc.levelId;
+    }
+
+    const selectedStart = Number(
+      selected.startPoint ?? selected.minPoints ?? 0
+    );
+    const selectedEnd = Number(
+      selected.endPoint ?? selected.maxPoints ?? selectedStart
+    );
+    const matchByRange = candidateLevels.find(
+      (lvl) => lvl.min === selectedStart && lvl.max === selectedEnd
+    );
+    if (matchByRange) return matchByRange.levelId;
+  }
+
+  const numericPoints = Number(score?.inputPoints ?? score?.points);
+  if (Number.isFinite(numericPoints)) {
+    const matchByPoints = candidateLevels.find(
+      (lvl) => numericPoints >= lvl.min && numericPoints <= lvl.max
+    );
+    if (matchByPoints) return matchByPoints.levelId;
+  }
+
+  return candidateLevels[0].levelId || null;
 }
 
 function getRatingRange(sessionContext, criterionId, levelId) {

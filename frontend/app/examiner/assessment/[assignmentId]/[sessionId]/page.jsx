@@ -67,6 +67,42 @@ export default function SessionAssessmentsList() {
             groups: sessionData.groups || [],
           });
 
+          // Helper to derive score metadata from scoresJson payload
+          const extractScoreMeta = (scoresJson, targetType, targetStudentId = null) => {
+            if (!scoresJson) return { totalWeight: null };
+            try {
+              const parsed = JSON.parse(scoresJson);
+              if (!Array.isArray(parsed)) return { totalWeight: null };
+              const normalizedType = (targetType || "").toUpperCase();
+              const weightSum = parsed.reduce((sum, item) => {
+                const itemType = (item?.type || "").toUpperCase();
+                if (itemType !== normalizedType) return sum;
+                if (normalizedType === "INDIVIDUAL") {
+                  const studentId = Number(item?.studentId ?? targetStudentId);
+                  if (
+                    Number.isFinite(targetStudentId) &&
+                    studentId !== Number(targetStudentId)
+                  ) {
+                    return sum;
+                  }
+                }
+                const weight = Number(item?.weight);
+                return Number.isFinite(weight) ? sum + weight : sum;
+              }, 0);
+              return {
+                totalWeight: Number.isFinite(weightSum) && weightSum > 0 ? weightSum : null,
+              };
+            } catch (error) {
+              console.warn("Failed to parse scoresJson for assessment card", error);
+              return { totalWeight: null };
+            }
+          };
+
+          const normalizeScore = (value) => {
+            const num = Number(value);
+            return Number.isFinite(num) ? num : null;
+          };
+
           // Combine students and groups into assessments list
           const assessmentsList = [];
 
@@ -75,6 +111,11 @@ export default function SessionAssessmentsList() {
             sessionData.students.forEach((student) => {
               // Extract assessment status if available
               const assessmentStatus = student.assessmentStatus || {};
+              const scoreMeta = extractScoreMeta(
+                assessmentStatus.scoresJson,
+                "INDIVIDUAL",
+                Number(student.userId)
+              );
 
               assessmentsList.push({
                 type: "individual",
@@ -84,7 +125,8 @@ export default function SessionAssessmentsList() {
                 email: student.email,
                 submissionId: assessmentStatus.submissionId || null,
                 status: assessmentStatus.status?.toLowerCase() || "unmarked",
-                totalScore: assessmentStatus.totalScore,
+                totalScore: normalizeScore(assessmentStatus.totalScore),
+                maxScore: scoreMeta.totalWeight,
                 overallFeedback: assessmentStatus.overallFeedback,
                 submittedAt: assessmentStatus.submittedAt,
                 updatedAt: assessmentStatus.updatedAt,
@@ -100,6 +142,10 @@ export default function SessionAssessmentsList() {
             sessionData.groups.forEach((group) => {
               // Extract assessment status if available
               const assessmentStatus = group.assessmentStatus || {};
+              const scoreMeta = extractScoreMeta(
+                assessmentStatus.scoresJson,
+                "GROUP"
+              );
 
               const assessment = {
                 type: "group",
@@ -109,7 +155,8 @@ export default function SessionAssessmentsList() {
                 members: group.members || [],
                 submissionId: assessmentStatus.submissionId || null,
                 status: assessmentStatus.status?.toLowerCase() || "unmarked",
-                totalScore: assessmentStatus.totalScore,
+                totalScore: normalizeScore(assessmentStatus.totalScore),
+                maxScore: scoreMeta.totalWeight,
                 overallFeedback: assessmentStatus.overallFeedback,
                 submittedAt: assessmentStatus.submittedAt,
                 updatedAt: assessmentStatus.updatedAt,
@@ -323,14 +370,6 @@ export default function SessionAssessmentsList() {
                             {assessment.email}
                           </div>
                         )}
-                        {assessment.totalScore !== undefined &&
-                          assessment.totalScore !== null && (
-                            <div className="flex items-center">
-                              <i className="fas fa-star text-yellow-500 mr-2"></i>
-                              Score: {assessment.totalScore}/
-                              {assessment.maxScore || 100}
-                            </div>
-                          )}
                         {assessment.submittedAt && (
                           <div className="flex items-center">
                             <i className="fas fa-calendar text-purple-600 mr-2"></i>
