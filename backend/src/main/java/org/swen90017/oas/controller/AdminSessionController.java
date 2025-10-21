@@ -38,7 +38,7 @@ public class AdminSessionController {
         @Log(module = "Session Management", businessType = BusinessType.QUERY)
     public Result<AdminSessionsListResponseDTO> listSessions(
             @Parameter(description = "Assignment ID") @PathVariable Long assignmentId,
-            @RequestParam(value = "date", required = false) String date,
+            @RequestParam(value = "date") String date,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "venueId", required = false) Long venueId,
             @RequestParam(value = "q", required = false) String q) {
