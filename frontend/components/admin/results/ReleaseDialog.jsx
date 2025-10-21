@@ -1,20 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-export default function ReleaseDialog({ open, onOpenChange, onConfirm, isSubmitting, hasSubmittedExaminers }) {
+const RELEASE_MODE_OPTIONS = [
+  {
+    value: 'FULL',
+    title: 'Full release',
+    description: 'Share rubric comments, per-criterion feedback, scores, and overall feedback.'
+  },
+  {
+    value: 'SCORES_ONLY',
+    title: 'Scores only',
+    description: 'Share scores and overall feedback now; keep rubric comments hidden.'
+  }
+];
+
+export default function ReleaseDialog({
+  open,
+  onOpenChange,
+  onConfirm,
+  isSubmitting,
+  hasSubmittedExaminers,
+  releaseMode,
+  onReleaseModeChange,
+}) {
   const [notify, setNotify] = useState(true);
+  const selectedMode = (releaseMode || '').toString().toUpperCase();
+  const safeMode = selectedMode === 'SCORES_ONLY' ? 'SCORES_ONLY' : 'FULL';
+
+  const options = useMemo(() => RELEASE_MODE_OPTIONS, []);
 
   useEffect(() => {
     if (open) {
       setNotify(true);
+      if (typeof onReleaseModeChange === 'function' && !releaseMode) {
+        onReleaseModeChange('FULL');
+      }
     }
-  }, [open]);
+  }, [open, onReleaseModeChange, releaseMode]);
 
   const handleConfirm = () => {
-    onConfirm?.({ notify });
+    onConfirm?.({ notify, releaseMode: safeMode });
   };
 
   return (
@@ -34,6 +62,38 @@ export default function ReleaseDialog({ open, onOpenChange, onConfirm, isSubmitt
               At least one examiner must submit their marking before you can release results.
             </div>
           )}
+          <div className="space-y-2">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Release content</span>
+            <div className="space-y-2">
+              {options.map((option) => (
+                <label
+                  key={option.value}
+                  className={`flex items-start gap-3 rounded-lg border p-3 text-sm transition-colors ${
+                    safeMode === option.value
+                      ? 'border-blue-500 bg-blue-50/60 dark:border-blue-400 dark:bg-blue-900/30'
+                      : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="release-mode"
+                    value={option.value}
+                    checked={safeMode === option.value}
+                    onChange={(event) => {
+                      if (event.target.checked) {
+                        onReleaseModeChange?.(option.value);
+                      }
+                    }}
+                    className="mt-1"
+                  />
+                  <span className="flex flex-col">
+                    <span className="font-semibold text-gray-800 dark:text-gray-100">{option.title}</span>
+                    <span className="text-gray-600 dark:text-gray-300 text-xs leading-relaxed">{option.description}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
           <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
             <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
             Email the student/team that their results are available

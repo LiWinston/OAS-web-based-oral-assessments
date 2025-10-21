@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminResultsService } from '@/services/adminResultsService.js';
 import { adminResultsKeys } from '../useAdminResults.js';
@@ -9,6 +9,10 @@ const normaliseId = (value) => {
   if (value === null || value === undefined || value === '') return null;
   const numeric = Number(value);
   return Number.isFinite(numeric) ? numeric : null;
+};
+const normaliseReleaseMode = (value) => {
+  const mode = (value || '').toString().toUpperCase();
+  return mode === 'SCORES_ONLY' ? 'SCORES_ONLY' : 'FULL';
 };
 
 export function useResultActions({
@@ -24,6 +28,8 @@ export function useResultActions({
 
   const [releaseDialogOpen, setReleaseDialogOpen] = useState(false);
   const [reviewDialog, setReviewDialog] = useState({ open: false, examiner: null });
+  const detailReleaseMode = detail?.releaseMode ?? detail?.participant?.releaseMode;
+  const [releaseMode, setReleaseMode] = useState(() => normaliseReleaseMode(detailReleaseMode));
 
   const examinerSummary = detail?.examinerSummary ?? {
     total: 0,
@@ -35,6 +41,14 @@ export function useResultActions({
     allSubmitted: false,
   };
 
+  useEffect(() => {
+    if (releaseDialogOpen) return;
+    setReleaseMode((current) => {
+      const next = normaliseReleaseMode(detailReleaseMode);
+      return current === next ? current : next;
+    });
+  }, [detailReleaseMode, releaseDialogOpen]);
+
   const invalidateDetail = useCallback(() => {
     if (!subjectId || !assignmentId || !participantType || !participantId) return;
     queryClient.invalidateQueries(
@@ -43,26 +57,30 @@ export function useResultActions({
   }, [queryClient, subjectId, assignmentId, participantType, participantId]);
 
   const releaseMutation = useMutation({
-    mutationFn: async ({ notify }) => {
+    mutationFn: async ({ notify, releaseMode: mode }) => {
       const notifyFlag = Boolean(notify);
+      const modePayload = normaliseReleaseMode(mode);
+      const payload = {
+        notify: notifyFlag,
+        releaseMode: modePayload,
+      };
 
       if (participantType === 'GROUP') {
-        await adminResultsService.releaseGroup(subjectId, assignmentId, participantId, {
-          notify: notifyFlag,
-        });
+        await adminResultsService.releaseGroup(subjectId, assignmentId, participantId, payload);
       } else if (participantType === 'INDIVIDUAL') {
-        await adminResultsService.releaseIndividual(subjectId, assignmentId, participantId, {
-          notify: notifyFlag,
-        });
+        await adminResultsService.releaseIndividual(subjectId, assignmentId, participantId, payload);
       } else {
         throw new Error('Unsupported participant type for release.');
       }
 
-      return {};
+      return { releaseMode: modePayload };
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       showNotification('success', 'Results released to students.');
       setReleaseDialogOpen(false);
+      if (variables?.releaseMode) {
+        setReleaseMode(normaliseReleaseMode(variables.releaseMode));
+      }
       invalidateDetail();
       refetch?.();
     },
@@ -133,14 +151,18 @@ export function useResultActions({
   );
 
   const handleReleaseConfirm = useCallback(
-    ({ notify }) => {
-      releaseMutation.mutate({ notify });
+    ({ notify, releaseMode: mode }) => {
+      const nextMode = normaliseReleaseMode(mode ?? releaseMode);
+      setReleaseMode(nextMode);
+      releaseMutation.mutate({ notify, releaseMode: nextMode });
     },
-    [releaseMutation]
+    [releaseMutation, releaseMode]
   );
 
   return {
     examinerSummary,
+    releaseMode,
+    setReleaseMode,
     releaseDialogOpen,
     setReleaseDialogOpen,
     releaseMutation,

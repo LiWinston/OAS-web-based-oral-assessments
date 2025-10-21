@@ -89,12 +89,14 @@ const buildCommentsMap = (section) => {
   }, {});
 };
 
-export default function ReadOnlyRubricSection({ section, definition, weightBasis }) {
+export default function ReadOnlyRubricSection({ section, definition, weightBasis, releaseMode = 'FULL' }) {
   if (!section) return null;
 
   const transformedCriteria = mapCriteriaForRubricTable(section, definition);
   const selectedRatings = buildSelectedRatings(section, transformedCriteria, weightBasis);
-  const comments = buildCommentsMap(section);
+  const normalisedMode = (releaseMode || '').toString().toUpperCase();
+  const showComments = normalisedMode !== 'SCORES_ONLY';
+  const comments = showComments ? buildCommentsMap(section) : {};
   const scoreUnit = (weightBasis || '').toLowerCase() === 'percentage' ? '%' : 'pts';
 
   return (
@@ -108,6 +110,7 @@ export default function ReadOnlyRubricSection({ section, definition, weightBasis
       assessmentType={section.sectionType === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'GROUP'}
       showTotals={false}
       scoreUnit={scoreUnit}
+      enableComments={showComments}
     />
   );
 }

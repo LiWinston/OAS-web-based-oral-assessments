@@ -48,6 +48,8 @@ export default function GroupResultDetailPage() {
 
   const {
     examinerSummary,
+    releaseMode,
+    setReleaseMode,
     releaseDialogOpen,
     setReleaseDialogOpen,
     releaseMutation,
@@ -216,6 +218,7 @@ export default function GroupResultDetailPage() {
           <ScoreSummaryPanel
             finalScore={data?.finalScore}
             releaseStatus={releaseStatus}
+            releaseMode={data?.releaseMode ?? releaseMode}
             onReleaseClick={() => setReleaseDialogOpen(true)}
             canRelease={canRelease}
             isReleasePending={releaseMutation.isPending}
@@ -284,6 +287,8 @@ export default function GroupResultDetailPage() {
         onConfirm={handleReleaseConfirm}
         isSubmitting={releaseMutation.isPending}
         hasSubmittedExaminers={examinerSummary.hasSubmitted}
+        releaseMode={releaseMode}
+        onReleaseModeChange={setReleaseMode}
       />
 
       <ReviewDialog

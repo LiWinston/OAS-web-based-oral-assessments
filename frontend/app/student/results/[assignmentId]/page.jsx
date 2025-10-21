@@ -41,6 +41,10 @@ const resolveWeightBasis = (rubric) => {
 };
 
 const sectionKey = (section) => (section?.sectionType || '').toLowerCase();
+const normaliseReleaseMode = (value) => {
+  const mode = (value || '').toString().toUpperCase();
+  return mode === 'SCORES_ONLY' ? 'SCORES_ONLY' : 'FULL';
+};
 
 export default function StudentResultDetailPage() {
   const router = useRouter();
@@ -98,6 +102,7 @@ export default function StudentResultDetailPage() {
   const session = detail?.session;
   const rubric = detail?.rubric;
   const feedback = detail?.feedback;
+  const releaseMode = normaliseReleaseMode(detail?.releaseMode ?? release?.releaseMode ?? detail?.participant?.releaseMode);
   const weightBasis = resolveWeightBasis(rubric);
 
   const sections = useMemo(() => (
@@ -279,18 +284,37 @@ export default function StudentResultDetailPage() {
                 {hasGroup && (
                   <TabsContent value="group" className="mt-0 space-y-4">
                     {renderSectionSummary(groupSection)}
-                    <ReadOnlyRubricSection section={groupSection} definition={rubric.definition} weightBasis={weightBasis} />
+                    <ReadOnlyRubricSection
+                      section={groupSection}
+                      definition={rubric.definition}
+                      weightBasis={weightBasis}
+                      releaseMode={releaseMode}
+                    />
                   </TabsContent>
                 )}
 
                 {hasIndividual && (
                   <TabsContent value="individual" className="mt-0 space-y-4">
                     {renderSectionSummary(individualSection)}
-                    <ReadOnlyRubricSection section={individualSection} definition={rubric.definition} weightBasis={weightBasis} />
+                    <ReadOnlyRubricSection
+                      section={individualSection}
+                      definition={rubric.definition}
+                      weightBasis={weightBasis}
+                      releaseMode={releaseMode}
+                    />
                   </TabsContent>
                 )}
               </div>
             </Tabs>
+          </Card>
+        )}
+
+        {releaseMode === 'SCORES_ONLY' && (
+          <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/30">
+            <CardContent className="p-4 text-sm text-amber-800 dark:text-amber-100">
+              <i className="fas fa-info-circle mr-2" />
+              Detailed rubric comments will appear once your instructors opt for a full release. Scores and overall feedback are already available.
+            </CardContent>
           </Card>
         )}
 

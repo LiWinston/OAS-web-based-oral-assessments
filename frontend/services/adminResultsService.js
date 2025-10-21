@@ -1,6 +1,18 @@
 import apiClient from '@/services/apiClient.js';
 
 const base = (subjectId, assignmentId) => `/api/admin/subjects/${subjectId}/assignments/${assignmentId}`;
+const normaliseReleaseMode = (value) => {
+  const mode = (value || '').toString().toUpperCase();
+  return mode === 'SCORES_ONLY' ? 'SCORES_ONLY' : 'FULL';
+};
+
+const buildReleasePayload = (payload = {}) => {
+  const { releaseMode, ...rest } = payload || {};
+  return {
+    ...rest,
+    releaseMode: normaliseReleaseMode(releaseMode),
+  };
+};
 
 export const adminResultsService = {
   async listAssignmentSessions(subjectId, assignmentId, { pageNum = 1, pageSize = 10, q } = {}) {
@@ -82,7 +94,7 @@ export const adminResultsService = {
   async releaseGroup(subjectId, assignmentId, groupId, payload = {}) {
     const resp = await apiClient.post(
       `${base(subjectId, assignmentId)}/group/${groupId}/release`,
-      payload
+      buildReleasePayload(payload)
     );
     return resp.data;
   },
@@ -90,7 +102,7 @@ export const adminResultsService = {
   async releaseIndividual(subjectId, assignmentId, studentId, payload = {}) {
     const resp = await apiClient.post(
       `${base(subjectId, assignmentId)}/individual/${studentId}/release`,
-      payload
+      buildReleasePayload(payload)
     );
     return resp.data;
   },

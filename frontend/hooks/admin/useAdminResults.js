@@ -40,6 +40,11 @@ const normaliseComments = (comments) => {
   return [];
 };
 
+const normaliseReleaseMode = (value) => {
+  const mode = (value || '').toString().toUpperCase();
+  return mode === 'SCORES_ONLY' ? 'SCORES_ONLY' : 'FULL';
+};
+
 const normaliseScoreEntry = (entry) => ({
   criterionDescription: entry?.criterionDescription ?? '',
   selectedLevel: entry?.selectedLevel ?? null,
@@ -194,6 +199,13 @@ const normaliseParticipantResult = (raw) => {
     .map(normaliseExaminer)
     .filter(Boolean);
 
+  const rawReleaseMode = participant?.releaseMode ?? raw?.releaseMode ?? raw?.release?.releaseMode ?? null;
+  const releaseMode = normaliseReleaseMode(rawReleaseMode);
+  const participantDetail = {
+    ...participant,
+    releaseMode,
+  };
+
   const rubricSnapshot = raw?.rubricSnapshot ?? null;
   const groupRubrics = safeArray(rubricSnapshot?.groupRubrics);
   const individualRubrics = safeArray(rubricSnapshot?.individualRubrics);
@@ -221,11 +233,12 @@ const normaliseParticipantResult = (raw) => {
   return {
     assignment: raw?.assignment ?? null,
     session: raw?.session ?? null,
-    participant,
+    participant: participantDetail,
     participantType,
     // finalScore represents the entity-level average across examiners; member-level scores stay on participant.members.
     finalScore,
     rubricSnapshot,
+    releaseMode,
     hasGroupRubric: groupRubrics.length > 0,
     hasIndividualRubric: individualRubrics.length > 0,
     examiners,

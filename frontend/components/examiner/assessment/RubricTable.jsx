@@ -22,7 +22,8 @@ export default function RubricTable({
   assessmentType = 'GROUP',
   showTotals = true,
   assignmentId = null,
-  scoreUnit = 'pts'
+  scoreUnit = 'pts',
+  enableComments = true,
 }) {
   const [expandedComments, setExpandedComments] = useState({});
   const [localComments, setLocalComments] = useState(comments);
@@ -32,6 +33,12 @@ export default function RubricTable({
   useEffect(() => {
     setLocalComments(comments);
   }, [comments]);
+
+  useEffect(() => {
+    if (!enableComments) {
+      setExpandedComments({});
+    }
+  }, [enableComments]);
 
   // Function to fetch latest assignment data from API
   const fetchAssignmentData = async () => {
@@ -234,18 +241,20 @@ export default function RubricTable({
                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Weight: {criterion.weight}%
                 </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-2"
-                  onClick={() => toggleCommentSection(criterion.criterionId)}
-                >
-                  <i className={cn(
-                    "fas mr-1",
-                    expandedComments[criterion.criterionId] ? "fa-chevron-up" : "fa-chevron-down"
-                  )}></i>
-                  Comments
-                </Button>
+                {enableComments && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2"
+                    onClick={() => toggleCommentSection(criterion.criterionId)}
+                  >
+                    <i className={cn(
+                      "fas mr-1",
+                      expandedComments[criterion.criterionId] ? "fa-chevron-up" : "fa-chevron-down"
+                    )}></i>
+                    Comments
+                  </Button>
+                )}
               </td>
               <td className="p-3">
                 {/* Show level selection for all scale types */}
@@ -289,7 +298,7 @@ export default function RubricTable({
                 </div>
                 
                 {/* Comments Section */}
-                {expandedComments[criterion.criterionId] && (
+                {enableComments && expandedComments[criterion.criterionId] && (
                   <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Criterion-specific comment

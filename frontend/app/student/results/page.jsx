@@ -13,6 +13,10 @@ import { studentResultsService } from '../../../services/studentResultsService';
 import { useAuthStore } from '../../../store/authStore';
 
 const RESULT_PAGE_SIZE = 50;
+const normaliseReleaseMode = (value) => {
+  const mode = (value || '').toString().toUpperCase();
+  return mode === 'SCORES_ONLY' ? 'SCORES_ONLY' : mode === 'FULL' ? 'FULL' : null;
+};
 
 export default function StudentResultsPage() {
   const router = useRouter();
@@ -117,6 +121,7 @@ export default function StudentResultsPage() {
           const releasedAt = result.releasedAt
             ? format(new Date(result.releasedAt), 'MMMM dd, yyyy')
             : null;
+          const releaseMode = normaliseReleaseMode(result.releaseMode ?? result?.release?.releaseMode);
 
           return (
             <button
@@ -150,6 +155,11 @@ export default function StudentResultsPage() {
                         : '--'}
                     </span>
                     {releasedAt && <span>Released on {releasedAt}</span>}
+                    {releaseMode === 'SCORES_ONLY' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-xs font-medium dark:bg-amber-900/30 dark:text-amber-200">
+                        <i className="fas fa-eye-slash text-[10px]" /> Scores only
+                      </span>
+                    )}
                   </div>
                 </CardContent>
               </Card>
