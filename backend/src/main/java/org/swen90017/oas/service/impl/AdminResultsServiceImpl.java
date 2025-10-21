@@ -1485,6 +1485,14 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             AdminParticipantDetailDTO.ExaminerSubmission aggregatedSubmission = 
                     mapToExaminerSubmission(primarySubmission, participantType);
             
+            // Collect all submission IDs for this examiner
+            List<Long> submissionIds = examinerSubmissions.stream()
+                    .map(ed -> (Long) ed.get("submission_id"))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .collect(Collectors.toList());
+            aggregatedSubmission.setSubmissionIds(submissionIds);
+            
             // If there are multiple submissions for this examiner, merge the rubric scores
             if (examinerSubmissions.size() > 1) {
                 AdminParticipantDetailDTO.ExaminerSubmission.RubricScores mergedScores = 
@@ -1791,7 +1799,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         AdminParticipantDetailDTO.ExaminerSubmission submission = 
                 new AdminParticipantDetailDTO.ExaminerSubmission();
         
-        submission.setSubmissionId((Long) examinerData.get("submission_id"));
+        // Note: submissionIds will be set in buildParticipantDetailDTO to include all related submissions
         submission.setExaminerId((Long) examinerData.get("examiner_id"));
         submission.setExaminerName((String) examinerData.get("examiner_name"));
         submission.setAssessmentStatus((String) examinerData.get("assessment_status"));
