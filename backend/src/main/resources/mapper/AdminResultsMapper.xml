@@ -176,7 +176,7 @@
             GROUP BY asub.subject_type, asub.subject_id
 
             HAVING 1 = 1
-            <if test="examinerStatus != null && examinerStatus != '' && examinerStatus != 'all'">
+            <if test="examinerStatus != null and examinerStatus != '' and examinerStatus != 'all'">
                 <choose>
                     <when test="examinerStatus == 'ready'">
                         AND submitted_examiner_count = total_examiner_count
