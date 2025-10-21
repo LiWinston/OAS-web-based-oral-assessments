@@ -21,7 +21,8 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("searchQuery") String searchQuery,
             @Param("offset") Integer offset,
             @Param("limit") Integer limit,
-            @Param("isReleased") Boolean isReleased
+            @Param("isReleased") Boolean isReleased,
+            @Param("examinerStatus") String examinerStatus
     );
 
     /**
@@ -31,7 +32,9 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("subjectId") Long subjectId,
             @Param("assignmentId") Long assignmentId,
             @Param("sessionId") Long sessionId,
-            @Param("searchQuery") String searchQuery
+            @Param("searchQuery") String searchQuery,
+            @Param("isReleased") Boolean isReleased,
+            @Param("examinerStatus") String examinerStatus
     );
 
     /**

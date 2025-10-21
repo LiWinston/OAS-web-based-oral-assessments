@@ -41,6 +41,14 @@
                 WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
             END as release_status,
+
+            -- Examiner progress aggregates
+            COUNT(DISTINCT asub.examiner_id) as total_examiner_count,
+            SUM(CASE WHEN asub.status = 'SUBMITTED' THEN 1 ELSE 0 END) as submitted_examiner_count,
+            SUM(CASE WHEN asub.status = 'DRAFT' THEN 1 ELSE 0 END) as draft_examiner_count,
+            SUM(CASE WHEN asub.status = 'REOPENED' THEN 1 ELSE 0 END) as reopened_examiner_count,
+            MAX(asub.submitted_at) as last_submitted_at,
+            MAX(asub.updated_at) as last_updated_at,
             
             -- Final score override info
             asub.final_score_override as final_score_override_pct,
@@ -89,6 +97,27 @@
                  asub.final_score_override, asub.override_reason, 
                  asub.override_at, asub.override_by_user_id, ss.start_at, ss.end_at, 
                  ss.venue_id, v.room_name
+
+        HAVING 1 = 1
+        <if test="examinerStatus != null and examinerStatus != '' and examinerStatus != 'all'">
+            <choose>
+                <when test="examinerStatus == 'ready'">
+                    AND submitted_examiner_count = total_examiner_count
+                    AND total_examiner_count &gt; 0
+                    AND reopened_examiner_count = 0
+                </when>
+                <when test="examinerStatus == 'attention'">
+                    AND reopened_examiner_count &gt; 0
+                </when>
+                <when test="examinerStatus == 'incomplete'">
+                    AND (
+                        total_examiner_count = 0
+                        OR (submitted_examiner_count &lt; total_examiner_count AND reopened_examiner_count = 0)
+                    )
+                </when>
+            </choose>
+        </if>
+
         ORDER BY entity_name
         <if test="limit != null">
             LIMIT #{limit}
@@ -100,33 +129,72 @@
 
     <!-- Count total assessments for pagination -->
     <select id="countAssessmentSummaries" resultType="java.lang.Integer">
-        SELECT COUNT(DISTINCT CONCAT(a.id, '_', asub.session_id, '_', 
-                                   asub.subject_type, '_', asub.subject_id))
-        FROM assignment a
-        JOIN assessment_submission asub ON a.id = asub.assignment_id
-        LEFT JOIN slot_sessions ss ON asub.session_id = ss.session_id
-        LEFT JOIN venue v ON ss.venue_id = v.id
-        LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
-        LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
-        
-        WHERE a.id = #{assignmentId}
+        SELECT COUNT(*)
+        FROM (
+            SELECT 
+                asub.subject_type,
+                asub.subject_id,
+                COUNT(DISTINCT asub.examiner_id) as total_examiner_count,
+                SUM(CASE WHEN asub.status = 'SUBMITTED' THEN 1 ELSE 0 END) as submitted_examiner_count,
+                SUM(CASE WHEN asub.status = 'DRAFT' THEN 1 ELSE 0 END) as draft_examiner_count,
+                SUM(CASE WHEN asub.status = 'REOPENED' THEN 1 ELSE 0 END) as reopened_examiner_count
+            FROM assignment a
+            JOIN assessment_submission asub ON a.id = asub.assignment_id
+            LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
+            LEFT JOIN sys_group sg ON asub.subject_type IN ('GROUP', 'MIX') AND asub.subject_id = sg.group_id
 
-        <if test="sessionId != null">
-            AND asub.session_id = #{sessionId}
-        </if>
-        
-        <if test="searchQuery != null and searchQuery != ''">
-            AND (
-                (asub.subject_type = 'INDIVIDUAL' AND (
-                    su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
-                )) OR
-                (asub.subject_type IN ('GROUP', 'MIX') AND (
-                    sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
-                    asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
-                ))
-            )
-        </if>
+            WHERE a.id = #{assignmentId}
+
+            <if test="sessionId != null">
+                AND asub.session_id = #{sessionId}
+            </if>
+
+            <if test="isReleased != null">
+                <choose>
+                    <when test="isReleased == true">
+                        AND asub.release_status = 'RELEASED'
+                    </when>
+                    <otherwise>
+                        AND (asub.release_status != 'RELEASED' OR asub.release_status IS NULL)
+                    </otherwise>
+                </choose>
+            </if>
+
+            <if test="searchQuery != null and searchQuery != ''">
+                AND (
+                    (asub.subject_type = 'INDIVIDUAL' AND (
+                        su.user_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                        asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                    )) OR
+                    (asub.subject_type IN ('GROUP', 'MIX') AND (
+                        sg.group_name LIKE CONCAT('%', #{searchQuery}, '%') OR
+                        asub.subject_id LIKE CONCAT('%', #{searchQuery}, '%')
+                    ))
+                )
+            </if>
+
+            GROUP BY asub.subject_type, asub.subject_id
+
+            HAVING 1 = 1
+            <if test="examinerStatus != null && examinerStatus != '' && examinerStatus != 'all'">
+                <choose>
+                    <when test="examinerStatus == 'ready'">
+                        AND submitted_examiner_count = total_examiner_count
+                        AND total_examiner_count &gt; 0
+                        AND reopened_examiner_count = 0
+                    </when>
+                    <when test="examinerStatus == 'attention'">
+                        AND reopened_examiner_count &gt; 0
+                    </when>
+                    <when test="examinerStatus == 'incomplete'">
+                        AND (
+                            total_examiner_count = 0
+                            OR (submitted_examiner_count &lt; total_examiner_count AND reopened_examiner_count = 0)
+                        )
+                    </when>
+                </choose>
+            </if>
+        ) AS assessment_counts
     </select>
 
     <!-- Get detailed assessment information - Simplified to focus on assessment data -->
@@ -215,6 +283,7 @@
             asub.examiner_id,
             asub.status as assessment_status,
             asub.submitted_at,
+            asub.reopened_at,
             asub.total_score,
             asub.overall_feedback,
             asub.admin_note as notes,
@@ -243,6 +312,7 @@
             asub.examiner_id,
             asub.status as assessment_status,
             asub.submitted_at,
+            asub.reopened_at,
             asub.total_score,
             asub.overall_feedback,
             asub.admin_note as notes,
