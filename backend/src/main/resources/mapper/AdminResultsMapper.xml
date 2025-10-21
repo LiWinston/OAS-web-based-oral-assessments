@@ -41,6 +41,7 @@
                 WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
             END as release_status,
+            COALESCE(MAX(CASE WHEN asub.release_mode IS NOT NULL THEN asub.release_mode END), 'FULL') as release_mode,
 
             -- Examiner progress aggregates
             COUNT(DISTINCT asub.examiner_id) as total_examiner_count,
@@ -425,6 +426,7 @@
     <update id="updateAssessmentSubmissionReleaseStatus">
         UPDATE assessment_submission 
         SET release_status = #{releaseStatus},
+            release_mode = #{releaseMode},
             updated_at = NOW()
         WHERE assignment_id = #{assignmentId}
         AND session_id = #{sessionId}
@@ -687,7 +689,8 @@
             CASE 
                 WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
-            END as release_status
+            END as release_status,
+            COALESCE(MAX(CASE WHEN asub.release_mode IS NOT NULL THEN asub.release_mode END), 'FULL') as release_mode
             
         FROM assessment_submission asub
         LEFT JOIN sys_user su ON asub.subject_type = 'INDIVIDUAL' AND asub.subject_id = su.user_id
@@ -845,6 +848,7 @@
                 WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
             END as release_status,
+            COALESCE(MAX(CASE WHEN asub.release_mode IS NOT NULL THEN asub.release_mode END), 'FULL') as release_mode,
             
             -- Rubric snapshot (from first submission)
             asub.rubric_meta_snapshot
@@ -895,6 +899,7 @@
                 WHEN SUM(CASE WHEN asub.release_status = 'RELEASED' THEN 1 ELSE 0 END) > 0 THEN 'RELEASED' 
                 ELSE 'NOT_RELEASED' 
             END as release_status,
+            COALESCE(MAX(CASE WHEN asub.release_mode IS NOT NULL THEN asub.release_mode END), 'FULL') as release_mode,
             
             -- Rubric snapshot (from first submission)
             asub.rubric_meta_snapshot

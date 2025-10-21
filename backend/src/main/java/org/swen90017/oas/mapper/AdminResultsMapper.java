@@ -131,7 +131,8 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("sessionId") Long sessionId,
             @Param("subjectType") String subjectType,
             @Param("subjectId") Long subjectId,
-            @Param("releaseStatus") String releaseStatus
+            @Param("releaseStatus") String releaseStatus,
+            @Param("releaseMode") String releaseMode
     );
 
     /**

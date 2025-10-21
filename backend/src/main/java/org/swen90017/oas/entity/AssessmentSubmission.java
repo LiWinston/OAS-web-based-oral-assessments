@@ -49,6 +49,13 @@ public class AssessmentSubmission implements Serializable {
     @Schema(description = "Release status for student visibility", example = "NOT_RELEASED", allowableValues = {"NOT_RELEASED", "RELEASED"})
     private String releaseStatus;
 
+    /**
+     * Release mode controls which parts of the marking are visible to students once released.
+     * FULL (default) exposes rubric comments; SCORES_ONLY hides per-criterion comments.
+     */
+    @Schema(description = "Release mode controlling student visibility", example = "FULL", allowableValues = {"FULL", "SCORES_ONLY"})
+    private String releaseMode;
+
     private String overallFeedback; // Visible to student/group
     private String adminNote;       // Visible to admin only
 
@@ -101,5 +108,4 @@ public class AssessmentSubmission implements Serializable {
 
     private Integer version;
 }
-
 

@@ -29,6 +29,7 @@ public class StudentResultOverviewDTO implements Serializable {
         private String releasedAt;
         private String assessedOn;
         private FinalScore finalScore;
+        private String releaseMode;
     }
 
     @Data
@@ -40,5 +41,4 @@ public class StudentResultOverviewDTO implements Serializable {
         private Double maxPoints;
     }
 }
-
 

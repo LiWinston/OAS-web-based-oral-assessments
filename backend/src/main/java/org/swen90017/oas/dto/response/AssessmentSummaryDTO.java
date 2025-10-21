@@ -22,6 +22,9 @@ public class AssessmentSummaryDTO {
     @Schema(description = "Release status", example = "NOT_RELEASED", allowableValues = {"NOT_RELEASED", "RELEASED"})
     private String releaseStatus;
 
+    @Schema(description = "Release mode", example = "FULL", allowableValues = {"FULL", "SCORES_ONLY"})
+    private String releaseMode;
+
     @Schema(description = "Examiner progress summary for this assessment")
     private ExaminerSummary examinerSummary;
 

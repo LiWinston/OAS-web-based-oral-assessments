@@ -9,4 +9,7 @@ public class ReleaseAssessmentRequestDTO {
     
     @Schema(description = "Whether to notify students via email", example = "true")
     private Boolean notify = true;
+
+    @Schema(description = "Release mode controlling what students can see", example = "FULL", allowableValues = {"FULL", "SCORES_ONLY"})
+    private String releaseMode = "FULL";
 }

@@ -26,6 +26,7 @@ create table assessment_submission
     override_by_user_id   bigint                                null comment 'User ID who made the override',
     override_at           datetime                              null comment 'Timestamp when override was made',
     release_status        varchar(20) default 'NOT_RELEASED'    not null comment 'Release status for student visibility: NOT_RELEASED, RELEASED',
+    release_mode          varchar(20) default 'FULL'            not null comment 'Release mode controlling student visibility: FULL, SCORES_ONLY',
     constraint uk_target
         unique (assignment_id, session_id, subject_type, subject_id, examiner_id)
 );
@@ -512,4 +513,3 @@ create table venue
     room_name     varchar(255) not null,
     assignment_id bigint       null
 );
-

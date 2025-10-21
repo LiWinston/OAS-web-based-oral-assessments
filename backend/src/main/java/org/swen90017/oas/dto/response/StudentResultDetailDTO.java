@@ -38,6 +38,7 @@ public class StudentResultDetailDTO implements Serializable {
         private String releasedAt;
         private Long finalisedBy;
         private String finalisedByName;
+        private String releaseMode;
     }
 
     @Data
@@ -162,4 +163,3 @@ public class StudentResultDetailDTO implements Serializable {
         private String comment;
     }
 }
-

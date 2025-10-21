@@ -12,4 +12,7 @@ public class ReleaseAssessmentResponseDTO {
     
     @Schema(description = "Number of students notified", example = "1")
     private Integer notifiedStudents;
+
+    @Schema(description = "Release mode applied to the assessment", example = "FULL", allowableValues = {"FULL", "SCORES_ONLY"})
+    private String releaseMode;
 }

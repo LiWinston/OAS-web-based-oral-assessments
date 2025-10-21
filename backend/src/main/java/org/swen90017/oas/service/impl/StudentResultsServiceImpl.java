@@ -64,6 +64,8 @@ public class StudentResultsServiceImpl implements StudentResultsService {
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
     private static final TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>> SCORE_ITEM_LIST =
             new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>() {};
+    private static final String RELEASE_MODE_FULL = "FULL";
+    private static final String RELEASE_MODE_SCORES_ONLY = "SCORES_ONLY";
 
     private final SysUserMapper sysUserMapper;
     private final AssignmentMapper assignmentMapper;
@@ -166,6 +168,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
             finalScore.setTotalPoints(roundOneDecimal(payload.getTotalPoints()));
             finalScore.setMaxPoints(roundOneDecimal(payload.getMaxPoints()));
             item.setFinalScore(finalScore);
+            item.setReleaseMode(payload.getReleaseMode());
 
             items.add(item);
         }
@@ -259,6 +262,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         releaseInfo.setNotifiedStudents(null);
         releaseInfo.setFinalisedBy(null);
         releaseInfo.setFinalisedByName(null);
+        releaseInfo.setReleaseMode(payload.getReleaseMode());
         response.setRelease(releaseInfo);
 
         StudentResultDetailDTO.FinalScore finalScore = new StudentResultDetailDTO.FinalScore();
@@ -299,6 +303,8 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         feedback.setStrengthsCombined(null);
         feedback.setImprovementsCombined(null);
         response.setFeedback(feedback);
+
+        applyReleaseModeToRubric(response, releaseInfo.getReleaseMode());
 
         if (payload.getPrimarySessionId() != null) {
             SlotSession session = slotSessionMapper.selectById(payload.getPrimarySessionId());
@@ -442,6 +448,8 @@ public class StudentResultsServiceImpl implements StudentResultsService {
             return null;
         }
 
+        String releaseMode = determineReleaseMode(submissions);
+
         RubricMetaInfo metaInfo = parseRubricMeta(assignment);
         String weightBasis = metaInfo != null && StringUtils.hasText(metaInfo.getWeightBasis())
                 ? metaInfo.getWeightBasis()
@@ -549,7 +557,54 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         payload.setLatestSubmissionTime(latestSubmission);
         payload.setOverallExaminerComments(overallComments);
         payload.setPrimarySessionId(primarySessionId);
+        payload.setReleaseMode(releaseMode);
         return payload;
+    }
+
+    private String determineReleaseMode(List<AssessmentSubmission> submissions) {
+        if (CollectionUtils.isEmpty(submissions)) {
+            return RELEASE_MODE_FULL;
+        }
+        for (AssessmentSubmission submission : submissions) {
+            String normalized = normalizeReleaseMode(submission != null ? submission.getReleaseMode() : null);
+            if (RELEASE_MODE_SCORES_ONLY.equals(normalized)) {
+                return RELEASE_MODE_SCORES_ONLY;
+            }
+        }
+        return RELEASE_MODE_FULL;
+    }
+
+    private String normalizeReleaseMode(String releaseMode) {
+        if (!StringUtils.hasText(releaseMode)) {
+            return RELEASE_MODE_FULL;
+        }
+        String value = releaseMode.trim().toUpperCase(Locale.ROOT);
+        if (RELEASE_MODE_SCORES_ONLY.equals(value)) {
+            return RELEASE_MODE_SCORES_ONLY;
+        }
+        return RELEASE_MODE_FULL;
+    }
+
+    private void applyReleaseModeToRubric(StudentResultDetailDTO response, String releaseMode) {
+        if (!RELEASE_MODE_SCORES_ONLY.equals(releaseMode)) {
+            return;
+        }
+        if (response == null || response.getRubric() == null
+                || CollectionUtils.isEmpty(response.getRubric().getSections())) {
+            return;
+        }
+        for (StudentResultDetailDTO.RubricSection section : response.getRubric().getSections()) {
+            if (section == null || CollectionUtils.isEmpty(section.getCriteria())) {
+                continue;
+            }
+            for (StudentResultDetailDTO.RubricCriterion criterion : section.getCriteria()) {
+                if (criterion == null) {
+                    continue;
+                }
+                criterion.setCommentsByExaminer(null);
+                criterion.setCommentsCombined(null);
+            }
+        }
     }
 
     private CriterionComputation computeCriterion(RubricsInfoDto criterion,
@@ -1249,6 +1304,7 @@ public class StudentResultsServiceImpl implements StudentResultsService {
         private ZonedDateTime latestSubmissionTime;
         private List<ExaminerComment> overallExaminerComments;
         private Long primarySessionId;
+        private String releaseMode;
 
         public RubricMetaInfo getMetaInfo() {
             return metaInfo;
@@ -1320,6 +1376,14 @@ public class StudentResultsServiceImpl implements StudentResultsService {
 
         public void setPrimarySessionId(Long primarySessionId) {
             this.primarySessionId = primarySessionId;
+        }
+
+        public String getReleaseMode() {
+            return releaseMode;
+        }
+
+        public void setReleaseMode(String releaseMode) {
+            this.releaseMode = releaseMode;
         }
     }
 }

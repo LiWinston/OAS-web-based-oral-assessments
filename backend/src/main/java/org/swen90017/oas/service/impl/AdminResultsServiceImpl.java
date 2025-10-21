@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import org.swen90017.oas.common.BusinessError;
 import org.swen90017.oas.common.CommonError;
@@ -50,6 +51,10 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     private final ObjectMapper objectMapper;
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+    private static final String RELEASE_MODE_FULL = "FULL";
+    private static final String RELEASE_MODE_SCORES_ONLY = "SCORES_ONLY";
+    private static final Set<String> SUPPORTED_RELEASE_MODES =
+            Collections.unmodifiableSet(new HashSet<>(Arrays.asList(RELEASE_MODE_FULL, RELEASE_MODE_SCORES_ONLY)));
 
     @Override
     public PageResult<AssessmentSummaryDTO> listAssessments(Long subjectId, Long assignmentId,
@@ -155,8 +160,8 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         // If assessment was released, set release_status back to NOT_RELEASED
         // Use existing submission info to update the corresponding assessment_submission record
         adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
-                assignmentId, submission.getSessionId(), 
-                submission.getSubjectType(), submission.getSubjectId(), "NOT_RELEASED");
+                assignmentId, submission.getSessionId(),
+                submission.getSubjectType(), submission.getSubjectId(), "NOT_RELEASED", RELEASE_MODE_FULL);
         String newReleaseStatus = "NOT_RELEASED";
         
         // Send email notification to examiner
@@ -256,10 +261,12 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
+        String releaseMode = resolveReleaseMode(request.getReleaseMode());
+
         // Update assessment_submission release_status to RELEASED (without changing status)
         int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
                 assignmentId, submission.getSessionId(), 
-                submission.getSubjectType(), submission.getSubjectId(), "RELEASED");
+                submission.getSubjectType(), submission.getSubjectId(), "RELEASED", releaseMode);
         
         // Count distinct students affected by the status update
         int notifiedStudents = 0;
@@ -292,6 +299,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
         response.setReleased(released);
         response.setNotifiedStudents(notifiedStudents);
+        response.setReleaseMode(releaseMode);
         
         return response;
     }
@@ -331,9 +339,11 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
+        String releaseMode = resolveReleaseMode(request.getReleaseMode());
+
         // Update assessment_submission release_status to RELEASED for all examiners
         int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
-                assignmentId, sessionId, "GROUP", groupId, "RELEASED");
+                assignmentId, sessionId, "GROUP", groupId, "RELEASED", releaseMode);
         
         // Count distinct students affected by the status update
         int notifiedStudents = 0;
@@ -363,6 +373,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
         response.setReleased(released);
         response.setNotifiedStudents(notifiedStudents);
+        response.setReleaseMode(releaseMode);
         
         return response;
     }
@@ -402,9 +413,11 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             throw new BusinessException(BusinessError.NO_SUBMITTED_EXAMINERS);
         }
         
+        String releaseMode = resolveReleaseMode(request.getReleaseMode());
+
         // Update assessment_submission release_status to RELEASED for all examiners
         int updatedSubmissions = adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
-                assignmentId, sessionId, "INDIVIDUAL", studentId, "RELEASED");
+                assignmentId, sessionId, "INDIVIDUAL", studentId, "RELEASED", releaseMode);
         
         // Count distinct students affected by the status update
         int notifiedStudents = 0;
@@ -434,6 +447,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         ReleaseAssessmentResponseDTO response = new ReleaseAssessmentResponseDTO();
         response.setReleased(released);
         response.setNotifiedStudents(notifiedStudents);
+        response.setReleaseMode(releaseMode);
         
         return response;
     }
@@ -462,6 +476,25 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             default:
                 return "all";
         }
+    }
+
+    private String resolveReleaseMode(String requestedMode) {
+        if (!StringUtils.hasText(requestedMode)) {
+            return RELEASE_MODE_FULL;
+        }
+        String value = requestedMode.trim().toUpperCase(Locale.ROOT);
+        if (!SUPPORTED_RELEASE_MODES.contains(value)) {
+            throw new BusinessException("400", "Unsupported release mode: " + requestedMode);
+        }
+        return value;
+    }
+
+    private String normalizeReleaseModeValue(String value) {
+        if (!StringUtils.hasText(value)) {
+            return RELEASE_MODE_FULL;
+        }
+        String normalized = value.trim().toUpperCase(Locale.ROOT);
+        return SUPPORTED_RELEASE_MODES.contains(normalized) ? normalized : RELEASE_MODE_FULL;
     }
 
     // Helper methods for mapping and computation
@@ -570,6 +603,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Release status
         dto.setReleaseStatus((String) data.getOrDefault("release_status", "NOT_RELEASED"));
+        dto.setReleaseMode(normalizeReleaseModeValue((String) data.get("release_mode")));
         
         // Examiner aggregates derived from query
         AssessmentSummaryDTO.ExaminerSummary examinerSummary = buildExaminerSummaryFromRow(data);
@@ -1549,9 +1583,10 @@ public class AdminResultsServiceImpl implements AdminResultsService {
             item.setName((String) data.get("student_name"));
             item.setStudentNumber((String) data.get("student_number"));
         }
-        
+
         item.setReleaseStatus((String) data.getOrDefault("release_status", "NOT_RELEASED"));
-        
+        item.setReleaseMode(normalizeReleaseModeValue((String) data.get("release_mode")));
+
         return item;
     }
 
@@ -1630,6 +1665,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         }
         
         participant.setReleaseStatus((String) detailData.getOrDefault("release_status", "NOT_RELEASED"));
+        participant.setReleaseMode(normalizeReleaseModeValue((String) detailData.get("release_mode")));
         dto.setParticipant(participant);
         
         // Parse rubric snapshot

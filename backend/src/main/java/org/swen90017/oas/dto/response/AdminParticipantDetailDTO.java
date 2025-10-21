@@ -101,6 +101,9 @@ public class AdminParticipantDetailDTO {
         // Common fields
         @Schema(description = "Release status", example = "RELEASED", allowableValues = {"NOT_RELEASED", "RELEASED"})
         private String releaseStatus;
+
+        @Schema(description = "Release mode", example = "FULL", allowableValues = {"FULL", "SCORES_ONLY"})
+        private String releaseMode;
         
         @Data
         @Schema(description = "Group member information")
@@ -256,4 +259,3 @@ public class AdminParticipantDetailDTO {
         }
     }
 }
-
