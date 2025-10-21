@@ -19,4 +19,7 @@ public class AssessmentKeyDTO {
     
     @Schema(description = "Entity ID (groupId or studentId)", example = "200045")
     private Long entityId;
+
+    @Schema(description = "All submission IDs associated with this assessment (per examiner)")
+    private List<Long> submissionIds;
 }

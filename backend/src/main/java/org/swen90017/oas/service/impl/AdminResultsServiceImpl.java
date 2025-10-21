@@ -30,6 +30,7 @@ import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.utils.RubricParser;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -51,29 +52,44 @@ public class AdminResultsServiceImpl implements AdminResultsService {
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
     @Override
-    public PageResult<AssessmentSummaryDTO> listAssessments(Long subjectId, Long assignmentId, 
+    public PageResult<AssessmentSummaryDTO> listAssessments(Long subjectId, Long assignmentId,
                                                            Integer pageNum, Integer pageSize,
-                                                           String searchQuery, Long sessionId, Boolean isReleased) {
-        // Calculate offset
-        int offset = (pageNum - 1) * pageSize;
-        
-        // Get total count
-        Integer total = adminResultsMapper.countAssessmentSummaries(subjectId, assignmentId, sessionId, searchQuery);
-        
-        // Get assessment summaries
+                                                           String searchQuery, Long sessionId,
+                                                           Boolean isReleased, String examinerStatus,
+                                                           Boolean includeAll) {
+        int safePageNum = (pageNum == null || pageNum < 1) ? 1 : pageNum;
+        int safePageSize = (pageSize == null || pageSize < 1) ? 20 : pageSize;
+        boolean fetchAll = Boolean.TRUE.equals(includeAll);
+        String progressFilter = normaliseExaminerStatus(examinerStatus);
+
+        Integer offset = fetchAll ? null : (safePageNum - 1) * safePageSize;
+        Integer limit = fetchAll ? null : safePageSize;
+
+        Integer total = fetchAll
+                ? null
+                : adminResultsMapper.countAssessmentSummaries(
+                        subjectId, assignmentId, sessionId, searchQuery, isReleased, progressFilter);
+
         List<Map<String, Object>> rawData = adminResultsMapper.listAssessmentSummaries(
-                subjectId, assignmentId, sessionId, searchQuery, offset, pageSize, isReleased);
-        
-        // Convert to DTOs and compute scores
-        List<AssessmentSummaryDTO> assessments = rawData.stream()
+                subjectId, assignmentId, sessionId, searchQuery, offset, limit, isReleased, progressFilter);
+
+        if (fetchAll) {
+            total = rawData != null ? rawData.size() : 0;
+            safePageNum = 1;
+            safePageSize = total;
+        } else if (total == null) {
+            total = 0;
+        }
+
+        List<AssessmentSummaryDTO> assessments = (rawData == null ? Collections.<Map<String, Object>>emptyList() : rawData).stream()
                 .map(rawDataMap -> {
                     AssessmentSummaryDTO assessment = mapToAssessmentSummary(rawDataMap);
                     computeAssessmentScores(assessment, rawDataMap);
                     return assessment;
                 })
                 .collect(Collectors.toList());
-        
-        return new PageResult<>(pageNum, pageSize, total, assessments);
+
+        return new PageResult<>(safePageNum, safePageSize, total, assessments);
     }
 
     @Override
@@ -422,6 +438,32 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         return response;
     }
 
+    private String normaliseExaminerStatus(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return "all";
+        }
+        String value = status.trim().toLowerCase(Locale.ROOT);
+        switch (value) {
+            case "ready":
+            case "complete":
+            case "submitted":
+            case "all_submitted":
+                return "ready";
+            case "attention":
+            case "needs_attention":
+            case "reopened":
+            case "reopen":
+                return "attention";
+            case "incomplete":
+            case "draft":
+            case "in_progress":
+            case "partial":
+                return "incomplete";
+            default:
+                return "all";
+        }
+    }
+
     // Helper methods for mapping and computation
 
     private AssessmentSummaryDTO mapToAssessmentSummary(Map<String, Object> data) {
@@ -435,14 +477,17 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Parse submission_ids from GROUP_CONCAT result
         String submissionIdsStr = (String) data.get("submission_ids");
+        List<Long> submissionIds = Collections.emptyList();
         if (submissionIdsStr != null && !submissionIdsStr.isEmpty()) {
-            List<Long> submissionIds = Arrays.stream(submissionIdsStr.split(","))
+            submissionIds = Arrays.stream(submissionIdsStr.split(","))
                     .map(String::trim)
+                    .filter(segment -> !segment.isEmpty())
                     .map(Long::parseLong)
                     .collect(Collectors.toList());
             // Set the first submission ID for backward compatibility
             key.setSubmissionId(submissionIds.isEmpty() ? null : submissionIds.get(0));
         }
+        key.setSubmissionIds(submissionIds);
         
         key.setEntityId((Long) data.get("subject_id"));
         assessmentInfo.setKey(key);
@@ -526,7 +571,34 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         // Release status
         dto.setReleaseStatus((String) data.getOrDefault("release_status", "NOT_RELEASED"));
         
+        // Examiner aggregates derived from query
+        AssessmentSummaryDTO.ExaminerSummary examinerSummary = buildExaminerSummaryFromRow(data);
+        dto.setExaminerSummary(examinerSummary);
+        dto.setLastSubmittedAt(formatDateTime((LocalDateTime) data.get("last_submitted_at")));
+        dto.setLastUpdatedAt(formatDateTime((LocalDateTime) data.get("last_updated_at")));
+        
         return dto;
+    }
+
+    private AssessmentSummaryDTO.ExaminerSummary buildExaminerSummaryFromRow(Map<String, Object> data) {
+        AssessmentSummaryDTO.ExaminerSummary summary = new AssessmentSummaryDTO.ExaminerSummary();
+
+        int total = convertToInteger(data.get("total_examiner_count"));
+        int submitted = convertToInteger(data.get("submitted_examiner_count"));
+        int draft = convertToInteger(data.get("draft_examiner_count"));
+        int reopened = convertToInteger(data.get("reopened_examiner_count"));
+
+        summary.setTotal(total);
+        summary.setSubmitted(submitted);
+        summary.setDraft(draft);
+        summary.setReopened(reopened);
+        summary.setPending(Math.max(total - submitted, 0));
+        summary.setSubmittedRatio(total > 0 ? (double) submitted / total : 0.0);
+        summary.setAllSubmitted(total > 0 && submitted == total && reopened == 0);
+        summary.setAnyDraft(draft > 0);
+        summary.setAnyReopened(reopened > 0);
+
+        return summary;
     }
 
     private AssessmentDetailDTO mapToAssessmentDetail(Map<String, Object> assessmentData, 
@@ -793,6 +865,22 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         
         // Check assignment type from rawData
         String assignmentType = (String) rawData.get("assignment_type");
+
+        List<AssessmentSummaryDTO.ExaminerSnapshot> examinerSnapshots = examinerMarkings.stream()
+                .map(marking -> mapToExaminerSnapshot(marking, assignmentType, subjectId))
+                .collect(Collectors.toList());
+        assessment.setExaminers(examinerSnapshots);
+
+        AssessmentSummaryDTO.ExaminerSummary summary = summariseExaminerSnapshots(
+                examinerSnapshots, assessment.getExaminerSummary());
+        assessment.setExaminerSummary(summary);
+
+        if (assessment.getLastSubmittedAt() == null) {
+            assessment.setLastSubmittedAt(latestNonNullTimestamp(
+                    examinerSnapshots.stream()
+                            .map(AssessmentSummaryDTO.ExaminerSnapshot::getSubmittedAt)
+                            .collect(Collectors.toList())));
+        }
         
         List<Double> submittedScores;
         if ("mixed".equalsIgnoreCase(assignmentType)) {
@@ -878,6 +966,75 @@ public class AdminResultsServiceImpl implements AdminResultsService {
                 finalGrade.setGradeLetter(convertPercentageToLetterGrade(effectiveScore));
             }
         }
+    }
+
+    private AssessmentSummaryDTO.ExaminerSnapshot mapToExaminerSnapshot(
+            Map<String, Object> marking,
+            String assignmentType,
+            Long subjectId) {
+        AssessmentSummaryDTO.ExaminerSnapshot snapshot = new AssessmentSummaryDTO.ExaminerSnapshot();
+        snapshot.setSubmissionId((Long) marking.get("submission_id"));
+        snapshot.setExaminerId((Long) marking.get("examiner_id"));
+        snapshot.setExaminerName((String) marking.get("examiner_name"));
+
+        String status = (String) marking.get("assessment_status");
+        snapshot.setStatus(status);
+
+        LocalDateTime submittedAt = (LocalDateTime) marking.get("submitted_at");
+        snapshot.setSubmittedAt(formatDateTime(submittedAt));
+
+        Double score;
+        if ("mixed".equalsIgnoreCase(assignmentType)) {
+            score = calculateMixRubricFinalScore(marking, subjectId);
+        } else {
+            score = convertToDouble(marking.get("total_score"));
+        }
+        snapshot.setScorePct1dp(score);
+
+        return snapshot;
+    }
+
+    private AssessmentSummaryDTO.ExaminerSummary summariseExaminerSnapshots(
+            List<AssessmentSummaryDTO.ExaminerSnapshot> examiners,
+            AssessmentSummaryDTO.ExaminerSummary existingSummary) {
+        AssessmentSummaryDTO.ExaminerSummary summary =
+                existingSummary != null ? existingSummary : new AssessmentSummaryDTO.ExaminerSummary();
+
+        int total = examiners.size();
+        int submitted = (int) examiners.stream()
+                .filter(snapshot -> "SUBMITTED".equalsIgnoreCase(snapshot.getStatus()))
+                .count();
+        int reopened = (int) examiners.stream()
+                .filter(snapshot -> "REOPENED".equalsIgnoreCase(snapshot.getStatus()))
+                .count();
+        int draft = (int) examiners.stream()
+                .filter(snapshot -> "DRAFT".equalsIgnoreCase(snapshot.getStatus()))
+                .count();
+
+        summary.setTotal(total);
+        summary.setSubmitted(submitted);
+        summary.setReopened(reopened);
+        summary.setDraft(draft);
+        summary.setPending(Math.max(total - submitted, 0));
+        summary.setSubmittedRatio(total > 0 ? (double) submitted / total : 0.0);
+        summary.setAllSubmitted(total > 0 && submitted == total && reopened == 0);
+        summary.setAnyDraft(draft > 0);
+        summary.setAnyReopened(reopened > 0);
+
+        return summary;
+    }
+
+    private String latestNonNullTimestamp(List<String> timestamps) {
+        if (timestamps == null || timestamps.isEmpty()) {
+            return null;
+        }
+
+        return timestamps.stream()
+                .filter(Objects::nonNull)
+                .map(OffsetDateTime::parse)
+                .max(Comparator.naturalOrder())
+                .map(OffsetDateTime::toString)
+                .orElse(null);
     }
 
     /**
@@ -1053,6 +1210,21 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         if (percentage >= 60) return "C";   // Credit
         if (percentage >= 50) return "P";   // Pass
         return "F";                         // Fail
+    }
+
+    private Integer convertToInteger(Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException ex) {
+            log.warn("Unable to convert value [{}] to Integer", value);
+            return 0;
+        }
     }
 
     /**
@@ -1804,7 +1976,6 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         submission.setExaminerName((String) examinerData.get("examiner_name"));
         submission.setAssessmentStatus((String) examinerData.get("assessment_status"));
         submission.setSubmittedAt(formatDateTime((LocalDateTime) examinerData.get("submitted_at")));
-        submission.setReopenedAt(formatDateTime((LocalDateTime) examinerData.get("reopened_at")));
         submission.setOverallFeedback((String) examinerData.get("overall_feedback"));
         submission.setTotalScore(convertToDouble(examinerData.get("total_score")));
         

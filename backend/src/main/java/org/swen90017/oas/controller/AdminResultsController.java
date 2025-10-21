@@ -42,10 +42,16 @@ public class AdminResultsController {
             @RequestParam(defaultValue = "20") @Parameter(description = "Page size") Integer pageSize,
             @RequestParam(required = false) @Parameter(description = "Search query (student/group name or ID)") String q,
             @RequestParam(required = false) @Parameter(description = "Filter by session ID") Long sessionId,
-            @RequestParam(required = false) @Parameter(description = "Filter by is released") Boolean isReleased) {
+            @RequestParam(required = false) @Parameter(description = "Filter by is released") Boolean isReleased,
+            @RequestParam(required = false, defaultValue = "all") @Parameter(description = "Filter by release status (all|released|not_released)") String releaseStatus,
+            @RequestParam(required = false, defaultValue = "all") @Parameter(description = "Filter by examiner progress (all|ready|attention|incomplete)") String progress,
+            @RequestParam(required = false, defaultValue = "false") @Parameter(description = "Fetch all rows ignoring pagination") Boolean includeAll) {
+        
+        Boolean releaseFilter = resolveReleaseFilter(isReleased, releaseStatus);
+        String progressFilter = progress != null ? progress : "all";
         
         PageResult<AssessmentSummaryDTO> result = adminResultsService.listAssessments(
-                subjectId, assignmentId, pageNum, pageSize, q, sessionId, isReleased);
+                subjectId, assignmentId, pageNum, pageSize, q, sessionId, releaseFilter, progressFilter, includeAll);
         return Result.success(result);
     }
 
@@ -320,5 +326,28 @@ public class AdminResultsController {
             @PathVariable @Parameter(description = "Student ID") Long studentId) {
         ExaminerScoringDTO result = adminResultsService.getIndividualExaminerScoring(subjectId, assignmentId, studentId);
         return Result.success(result);
+    }
+
+    private Boolean resolveReleaseFilter(Boolean isReleased, String releaseStatus) {
+        if (releaseStatus != null && !releaseStatus.trim().isEmpty()) {
+            String value = releaseStatus.trim().toLowerCase();
+            switch (value) {
+                case "released":
+                case "true":
+                case "yes":
+                    return true;
+                case "not_released":
+                case "notreleased":
+                case "unreleased":
+                case "false":
+                case "no":
+                    return false;
+                case "all":
+                    return null;
+                default:
+                    break;
+            }
+        }
+        return isReleased;
     }
 }

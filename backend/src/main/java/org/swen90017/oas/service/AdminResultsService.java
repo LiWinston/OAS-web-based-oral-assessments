@@ -18,7 +18,9 @@ public interface AdminResultsService {
             Integer pageSize,
             String searchQuery,
             Long sessionId,
-            Boolean isReleased
+            Boolean isReleased,
+            String examinerStatus,
+            Boolean includeAll
     );
 
     /**

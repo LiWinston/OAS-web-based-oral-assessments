@@ -13,10 +13,10 @@ const REPORT_CARDS = [
   {
     title: "Mark Consolidation",
     description: "Aggregate examiner marks, resolve discrepancies, and prepare releases.",
-    href: "/admin/results",
+    href: "/admin/reports/mark-consolidation",
     icon: "fa-chart-column",
     tone: "from-emerald-500 to-teal-600",
-    disabled: true,
+    disabled: false,
   },
   {
     title: "Examiner Trends",

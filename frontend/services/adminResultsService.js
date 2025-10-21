@@ -14,6 +14,40 @@ export const adminResultsService = {
     return resp.data;
   },
 
+  async listAssessments(
+    subjectId,
+    assignmentId,
+    {
+      pageNum = 1,
+      pageSize = 50,
+      releaseStatus,
+      progress,
+      sessionId,
+      q,
+      includeAll = false,
+    } = {}
+  ) {
+    const params = {
+      pageNum,
+      pageSize,
+      releaseStatus,
+      progress,
+      sessionId,
+      q,
+      includeAll,
+    };
+
+    Object.keys(params).forEach((key) => {
+      const value = params[key];
+      if (value === undefined || value === null || value === '') {
+        delete params[key];
+      }
+    });
+
+    const resp = await apiClient.get(`${base(subjectId, assignmentId)}/assessments`, { params });
+    return resp.data;
+  },
+
   async listSessionParticipants(
     subjectId,
     assignmentId,
