@@ -2,6 +2,9 @@ package org.swen90017.oas.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.swen90017.oas.common.BusinessError;
@@ -10,13 +13,21 @@ import org.swen90017.oas.dto.request.CSVImportDTO;
 import org.swen90017.oas.dto.request.ExaminerCSVRequestDTO;
 import org.swen90017.oas.dto.request.GroupCSVRequestDTO;
 import org.swen90017.oas.dto.request.StudentCSVRequestDTO;
+import org.swen90017.oas.dto.response.GroupGradeExportDTO;
 import org.swen90017.oas.dto.response.GroupPreviewCSVResponseDTO;
+import org.swen90017.oas.dto.response.IndividualGradeExportDTO;
 import org.swen90017.oas.dto.response.PreviewCSVResponseDTO;
+import org.swen90017.oas.dto.response.TeacherScoringDetailExportDTO;
+import org.swen90017.oas.entity.Assignment;
 import org.swen90017.oas.entity.SysExaminer;
 import org.swen90017.oas.entity.SysStudent;
+import org.swen90017.oas.handler.csv.CsvHandler;
+import org.swen90017.oas.handler.csv.CsvHandlerFactory;
+import org.swen90017.oas.mapper.AssignmentMapper;
 import org.swen90017.oas.service.CsvService;
 import org.swen90017.oas.service.CsvHistoryService;
 import org.swen90017.oas.service.EmailService;
+import org.swen90017.oas.service.GradesExportService;
 import org.swen90017.oas.service.GroupService;
 import org.swen90017.oas.service.ExaminerService;
 import org.swen90017.oas.service.StudentService;
@@ -26,8 +37,14 @@ import org.swen90017.oas.entity.CsvImportHistory;
 import org.swen90017.oas.entity.LoginUser;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @RestController
 @RequestMapping("/api/csv")
@@ -44,6 +61,10 @@ public class CsvController {
     private GroupService groupService;
     @Autowired
     private ExaminerService examinerService;
+    @Autowired
+    private GradesExportService gradesExportService;
+    @Autowired
+    private AssignmentMapper assignmentMapper;
 
     @Operation(summary = "Preview CSV", description = "Preview CSV content for student/group before importing")
     @PostMapping("/preview")
@@ -183,6 +204,131 @@ public class CsvController {
         return Result.success(examiners);
     }
 
-    
-    
+    @Operation(summary = "Export Grades CSV", description = "Export grades in CSV format for an assignment. For mixed assignments, returns a ZIP file with both individual and group grades.")
+    @GetMapping("/export/grades")
+    public ResponseEntity<?> exportGrades(
+            @RequestParam("assignmentId") Long assignmentId,
+            @RequestParam(value = "type", required = false) String type) {
+        
+        try {
+            Assignment assignment = assignmentMapper.selectById(assignmentId);
+            if (assignment == null) {
+                return ResponseEntity.badRequest().body(Result.error(BusinessError.ASSIGNMENT_NOT_FOUND));
+            }
+
+            String assignmentType = assignment.getType();
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String baseFilename = "grades_assignment_" + assignmentId + "_" + timestamp;
+
+            // For mixed assignments, export both individual and group grades as ZIP
+            if ("mixed".equalsIgnoreCase(assignmentType) && (type == null || type.isEmpty())) {
+                return exportMixedGradesAsZip(assignmentId, baseFilename);
+            }
+
+            // For non-mixed or specific type requested
+            if ("individual".equalsIgnoreCase(assignmentType) || "individual".equalsIgnoreCase(type)) {
+                return exportIndividualGradesCsv(assignmentId, baseFilename + "_individual.csv");
+            } else if ("group".equalsIgnoreCase(assignmentType) || "group".equalsIgnoreCase(type)) {
+                return exportGroupGradesCsv(assignmentId, baseFilename + "_group.csv");
+            }
+
+            return ResponseEntity.badRequest().body(Result.error(String.valueOf(org.swen90017.oas.constant.HttpStatus.BAD_REQUEST), "Invalid assignment type or export type"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Result.error(String.valueOf(org.swen90017.oas.constant.HttpStatus.ERROR), "Failed to export grades: " + e.getMessage()));
+        }
+    }
+
+    @Operation(summary = "Export Teacher Scoring Details CSV", description = "Export detailed teacher scoring information for an assignment")
+    @GetMapping("/export/teacher-scoring-details")
+    public ResponseEntity<?> exportTeacherScoringDetails(@RequestParam("assignmentId") Long assignmentId) {
+        try {
+            Assignment assignment = assignmentMapper.selectById(assignmentId);
+            if (assignment == null) {
+                return ResponseEntity.badRequest().body(Result.error(BusinessError.ASSIGNMENT_NOT_FOUND));
+            }
+
+            List<TeacherScoringDetailExportDTO> data = gradesExportService.exportTeacherScoringDetails(assignmentId);
+            
+            CsvHandler<Void, TeacherScoringDetailExportDTO> handler = CsvHandlerFactory.getHandler("teacher-scoring-detail");
+            String csvContent = handler.export(data);
+
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String filename = "teacher_scoring_details_assignment_" + assignmentId + "_" + timestamp + ".csv";
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                    .contentType(MediaType.parseMediaType("text/csv"))
+                    .body(csvContent.getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Result.error(String.valueOf(org.swen90017.oas.constant.HttpStatus.ERROR), "Failed to export teacher scoring details: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Export individual grades as CSV
+     */
+    private ResponseEntity<?> exportIndividualGradesCsv(Long assignmentId, String filename) {
+        List<IndividualGradeExportDTO> data = gradesExportService.exportIndividualGrades(assignmentId);
+        
+        CsvHandler<Void, IndividualGradeExportDTO> handler = CsvHandlerFactory.getHandler("individual-grade");
+        String csvContent = handler.export(data);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csvContent.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Export group grades as CSV
+     */
+    private ResponseEntity<?> exportGroupGradesCsv(Long assignmentId, String filename) {
+        List<GroupGradeExportDTO> data = gradesExportService.exportGroupGrades(assignmentId);
+        
+        CsvHandler<Void, GroupGradeExportDTO> handler = CsvHandlerFactory.getHandler("group-grade");
+        String csvContent = handler.export(data);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.parseMediaType("text/csv"))
+                .body(csvContent.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Export both individual and group grades as a ZIP file for mixed assignments
+     */
+    private ResponseEntity<?> exportMixedGradesAsZip(Long assignmentId, String baseFilename) {
+        try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+             ZipOutputStream zos = new ZipOutputStream(baos)) {
+
+            // Export individual grades
+            List<IndividualGradeExportDTO> individualData = gradesExportService.exportIndividualGrades(assignmentId);
+            CsvHandler<Void, IndividualGradeExportDTO> individualHandler = CsvHandlerFactory.getHandler("individual-grade");
+            String individualCsv = individualHandler.export(individualData);
+            
+            ZipEntry individualEntry = new ZipEntry(baseFilename + "_individual.csv");
+            zos.putNextEntry(individualEntry);
+            zos.write(individualCsv.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            // Export group grades
+            List<GroupGradeExportDTO> groupData = gradesExportService.exportGroupGrades(assignmentId);
+            CsvHandler<Void, GroupGradeExportDTO> groupHandler = CsvHandlerFactory.getHandler("group-grade");
+            String groupCsv = groupHandler.export(groupData);
+            
+            ZipEntry groupEntry = new ZipEntry(baseFilename + "_group.csv");
+            zos.putNextEntry(groupEntry);
+            zos.write(groupCsv.getBytes(StandardCharsets.UTF_8));
+            zos.closeEntry();
+
+            zos.finish();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + baseFilename + ".zip\"")
+                    .contentType(MediaType.parseMediaType("application/zip"))
+                    .body(baos.toByteArray());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Result.error(String.valueOf(org.swen90017.oas.constant.HttpStatus.ERROR), "Failed to export mixed grades: " + e.getMessage()));
+        }
+    }
 }
