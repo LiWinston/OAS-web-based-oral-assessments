@@ -393,6 +393,171 @@ cd OAS-web-based-oral-assessments
 
 2. Install dependencies
 
+```bash
+# Install frontend dependencies
+cd frontend
+npm install
+
+# (Optional) Preload backend dependencies for faster builds
+cd ../backend
+./mvnw dependency:go-offline
+```
+
+3. Configure environment variables
+
+   - **Frontend (`frontend/.env.local`)**
+     - `NEXT_PUBLIC_API_BASE_URL` – Spring Boot base URL (defaults to `http://localhost:8081`)
+     - `NEXT_PUBLIC_USE_MOCK_API` / `NEXT_PUBLIC_USE_STUDENT_RESULTS_MOCK` – toggle mock layers during UI development
+     - `NEXT_PUBLIC_BYPASS_AUTH` – bypass auth middleware for prototyping (must remain `false` in shared environments)
+     - `NEXT_PUBLIC_ENABLE_GLOBAL_SEARCH` – enable or disable the command palette
+   - **Backend (values consumed in `backend/src/main/resources/application.yml`)**
+     - `DB_USERNAME` / `DB_PASSWORD` – MySQL credentials (local or remote)
+     - `MAIL_USERNAME` / `MAIL_PASSWORD` – SMTP account for password reset emails
+     - `JWT_SECRET` – signing key for access and refresh tokens
+     - `EMAIL_DOMAIN_VALIDATION_ENABLED`, `CSV_STORAGE_PATH`, `CSV_IMPORT_USE_EMAIL_COLUMN` – feature switches for admin tooling
+     - `CORS_ALLOWED_ORIGINS`, `CORS_ALLOWED_METHODS`, `CORS_ALLOWED_HEADERS` – override defaults when deploying to new domains
+     - `REDIS_URL` – managed Redis instance (Render by default) for token caches
+
+4. Provision backing services
+
+   - **MySQL 8.0** – run locally (Docker/Homebrew) or connect to the shared university instance  
+     - Use `backend/scripts/start-db-tunnel.sh` to open an SSH tunnel when campus-only database access is required (`localhost:3307 → oas12025.eng.unimelb.edu.au:3306`)
+     - Update the JDBC URL in a profile override if you host MySQL locally
+   - **Redis** – optional for local work; the application falls back to the managed Redis URL when unset
+   - **SMTP** – configure credentials when exercising password reset flows; Gmail SMTP with app passwords is supported out of the box
+
+5. Start the backend service (port `8081`)
+
+```bash
+cd backend
+./mvnw spring-boot:run
+# or mvn spring-boot:run if Maven is installed globally
+```
+
+6. Start the frontend application (port `3000`)
+
+```bash
+cd frontend
+npm run dev         # development with hot reload
+npm run build       # production build
+npm run start       # serve production build
+npm run lint        # ESLint checks (Next.js config)
+```
+
+7. Verify the stack
+
+   - Frontend: http://localhost:3000 (role-based dashboards)
+   - Backend: http://localhost:8081 (Swagger UI at `/swagger-ui/index.html`)
+   - Seeded accounts (mirrors `frontend/README.md`):
+
+     | Role         | Email                        | Password | Username |
+     | ------------ | ---------------------------- | -------- | -------- |
+     | Course Admin | alice@student.unimelb.edu.au | password1| alice    |
+     | Student      | bob@student.unimelb.edu.au   | password2| bob      |
+     | Examiner     | eve@student.unimelb.edu.au   | password5| eve      |
+     | Super Admin  | yunchen6@unimelb.edu.au      | 123456   | Yun Chen |
+
+## System Architecture
+
+### Frontend (Next.js 15)
+
+- React 19 with App Router, Tailwind CSS, and Shadcn UI component primitives
+- State management split between Zustand (UI/auth) and TanStack Query (server cache)
+- Feature-specific routes for Course Admin, Student, Examiner, and Super Admin portals under `frontend/app/`
+- Global search palette, onboarding wizards, and shared layout providers housed in `frontend/components`
+- Axios service layer in `frontend/services/` centralises API calls, with mock adapters kept for offline UI development
+
+### Backend (Spring Boot 2.7)
+
+- Spring Boot with MyBatis-Plus, Spring Security, and JWT authentication (`org.swen90017.oas.security`)
+- REST controllers under `org.swen90017.oas.controller` cover scheduling, assessment, onboarding, and results
+- Redis-backed token/session caches plus SMTP integration for password reset flows and SendGrid/Microsoft Graph integrations for calendar/email automation
+- Service and mapper layers encapsulate business logic and database access, with DTOs for request/response segregation
+
+### Data & Infrastructure
+
+- MySQL 8.0 schema (15+ tables) managed by MyBatis mappers; reference `Docs/Architecture/Database Diagram.svg`
+- Redis (Render-hosted by default) handles token blacklisting and transient verifications
+- Structured logging to console and `./logs/oas-application.log` with trace IDs for cross-service debugging
+- Environment-driven toggles for CORS, CSV import/export, and email domain validation to support multiple deployments
+
+## Feature Highlights
+
+- **Role-based portals** for students, examiners, course administrators, and super administrators with tailored dashboards
+- **Scheduling suite** covering booking, self-assignment, staffing trends, and session exports (`frontend/components/admin/reports`, `frontend/components/examiner/schedule`)
+- **Assessment workflow** including rubric-driven marking, autosave drafts, moderation, and release pipelines aligned with Admin Results documentation
+- **Unified onboarding & authentication** leveraging JWT access/refresh tokens, secure logout, and guided activation flows
+- **Documentation-first delivery** with matching API contracts (`Docs/API`) and UX specs (`Docs/Design`) for every major feature
+
+## Directory Overview
+
+```
+OAS-web-based-oral-assessments/
+├── frontend/   # Next.js 15 application (App Router, Tailwind, Zustand, React Query)
+├── backend/    # Spring Boot service (MyBatis-Plus, JWT auth, Redis, SMTP integrations)
+├── Docs/       # Product, design, API, testing, and process documentation
+├── app/        # Legacy prototype (retained for historical reference)
+├── CODE_OF_CONDUCT.md
+├── CONTRIBUTING.md
+└── README.md
+```
+
+Consult `frontend/README.md` for granular UI folder guidance and the backend source packages for Java-specific architecture notes.
+
+## Documentation Map (`Docs/`)
+
+- **API Contracts** (`Docs/API/…`) – endpoint definitions for scheduling, results, onboarding, and feedback flows
+- **Design Specs** (`Docs/Design/…`) – user journeys, UI systems, and component guidelines
+- **Architecture** (`Docs/Architecture/…`) – system diagrams, deployment views, and database schema
+- **Sprints & Meetings** (`Docs/Sprints/`, `Docs/Meetings/`) – agile ceremonies, retrospectives, and stakeholder minutes
+- **Reports & Weekly Updates** (`Docs/Reports/`, `Docs/Weekly Reports/`) – progress tracking and Endeavour artefacts
+- **Testing** (`Docs/Test/…`) – API testing documentation and integration issue logs
+
+When adding new capabilities, pair implementation work with matching design and API updates inside `Docs/`.
+
+## Environment Variables Reference
+
+| Scope     | Key                                | Description                                                               |
+|-----------|------------------------------------|---------------------------------------------------------------------------|
+| Frontend  | `NEXT_PUBLIC_API_BASE_URL`         | Base URL for Spring Boot API calls                                        |
+| Frontend  | `NEXT_PUBLIC_USE_MOCK_API`         | Toggle mock service layer (true) vs real backend (false)                  |
+| Frontend  | `NEXT_PUBLIC_BYPASS_AUTH`          | Skip auth middleware during local prototyping                             |
+| Frontend  | `NEXT_PUBLIC_ENABLE_GLOBAL_SEARCH` | Enable or disable the global command palette                              |
+| Backend   | `DB_USERNAME` / `DB_PASSWORD`      | Credentials for the MySQL instance                                        |
+| Backend   | `JWT_SECRET`                       | Symmetric signing key for access and refresh tokens                       |
+| Backend   | `MAIL_USERNAME` / `MAIL_PASSWORD`  | SMTP credentials for transactional email (password reset, notifications)  |
+| Backend   | `EMAIL_DOMAIN_VALIDATION_ENABLED`  | Enforces institutional email suffix validation when set to `true`        |
+| Backend   | `CSV_STORAGE_PATH`                 | Directory path for CSV uploads/exports                                    |
+| Backend   | `REDIS_URL`                        | Connection string for Redis cache (token/session storage)                 |
+| Backend   | `CORS_ALLOWED_ORIGINS`             | Comma-separated list of allowed frontend origins                          |
+
+Keep sensitive values out of version control by using `.env.local`, shell profiles, or deployment secret stores.
+
+## Testing & Quality Assurance
+
+- **Frontend**
+  - `npm run lint` – Next.js/ESLint rules aligned with the shared config
+  - Component- and feature-level manual QA scenarios are documented alongside design specs in `Docs/Design/…` and validation checklists in `Docs/Test/…`
+- **Backend**
+  - `./mvnw test` – run unit and integration tests (requires configured datasource if tests touch the database)
+  - Verify API behaviour through Swagger (`/swagger-ui/index.html`) or the scripted Postman flows referenced in `Docs/Test/API Test Documentation.md`
+- **End-to-End**
+  - Follow the role-based test plans captured in `Docs/Test` and sprint QA reports under `Docs/Sprints/…/Agile Ceremonies/`
+
+## Deployment & Operations
+
+- **Backend**
+  - Build artifact: `backend/target/OAS-0.0.1-SNAPSHOT.jar` (generated via `./mvnw package`)
+  - Containerisation: `backend/Dockerfile` (OpenJDK 8 base, exposes port 8081)
+  - Environment: deployed to university-managed infrastructure (`oas12025.eng.unimelb.edu.au`) with remote MySQL and Redis instances; use `backend/scripts/start-db-tunnel.sh` for secure campus access
+- **Frontend**
+  - Local container option via `frontend/docker-compose.yml` (builds Next.js production image; defaults to mock API unless `.env` overrides are supplied)
+  - Production builds generated with `npm run build` and served using `npm run start` or the container image
+- **Monitoring & Logs**
+  - Backend logs stream to console and `backend/logs/oas-application.log` with trace IDs for request correlation
+  - Frontend uses browser devtools and the `api-status` indicator component (toggle via feature flags) during manual QA
+
+
 <!-- ## Project Timeline
 
 - Project Start: March 2025
