@@ -3,8 +3,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { adminExaminerTrendReportService } from "@/services/adminExaminerTrendReportService.js";
 
-const DEFAULT_BUILDERS = adminExaminerTrendReportService.buildDefaults(null, null);
-
 const normaliseParamsObject = (value) => {
   if (Array.isArray(value)) {
     return value.map((item) => normaliseParamsObject(item));
@@ -31,19 +29,10 @@ const serializeParams = (params = {}) => {
   return JSON.stringify(normalised);
 };
 
-const buildOverviewFallback = (assignmentId, component) =>
-  adminExaminerTrendReportService.buildDefaults(assignmentId, component).overview;
+const buildSummaryFallback = (assignmentId) =>
+  adminExaminerTrendReportService.buildSummaryDefault(assignmentId);
 
-const buildTimeseriesFallback = (assignmentId, component) =>
-  adminExaminerTrendReportService.buildDefaults(assignmentId, component).timeseries;
-
-const buildDistributionFallback = (assignmentId, component) =>
-  adminExaminerTrendReportService.buildDefaults(assignmentId, component).distribution;
-
-const buildOutliersFallback = (assignmentId, component) =>
-  adminExaminerTrendReportService.buildDefaults(assignmentId, component).outliers;
-
-export function useExaminerTrendOverview(assignmentId, params = {}, options = {}) {
+export function useExaminerTrendSummary(assignmentId, params = {}, options = {}) {
   const {
     enabled: enabledOption,
     staleTime = 5 * 60 * 1000,
@@ -56,124 +45,16 @@ export function useExaminerTrendOverview(assignmentId, params = {}, options = {}
   const enabled = Boolean(assignmentId) && (enabledOption ?? true);
 
   return useQuery({
-    queryKey: ["reports", "examiner-trends", "overview", assignmentId, paramsKey],
+    queryKey: ["reports", "examiner-trends", "summary", assignmentId, paramsKey],
     queryFn: async () => {
-      const response = await adminExaminerTrendReportService.getOverview(
+      const response = await adminExaminerTrendReportService.getSummary(
         assignmentId,
         params
       );
       if (!response || response.success === false) {
-        return buildOverviewFallback(assignmentId, params?.component);
+        return buildSummaryFallback(assignmentId);
       }
-      return (
-        response.data ??
-        buildOverviewFallback(assignmentId, params?.component)
-      );
-    },
-    enabled,
-    staleTime,
-    refetchOnWindowFocus,
-    ...(cacheTime !== undefined ? { cacheTime } : {}),
-    ...restOptions,
-  });
-}
-
-export function useExaminerTrendTimeseries(assignmentId, params = {}, options = {}) {
-  const {
-    enabled: enabledOption,
-    staleTime = 60 * 1000,
-    refetchOnWindowFocus = false,
-    cacheTime,
-    ...restOptions
-  } = options;
-
-  const paramsKey = serializeParams(params);
-  const enabled = Boolean(assignmentId) && (enabledOption ?? true);
-
-  return useQuery({
-    queryKey: ["reports", "examiner-trends", "timeseries", assignmentId, paramsKey],
-    queryFn: async () => {
-      const response = await adminExaminerTrendReportService.getTimeseries(
-        assignmentId,
-        params
-      );
-      if (!response || response.success === false) {
-        return buildTimeseriesFallback(assignmentId, params?.component);
-      }
-      return (
-        response.data ??
-        buildTimeseriesFallback(assignmentId, params?.component)
-      );
-    },
-    enabled,
-    staleTime,
-    refetchOnWindowFocus,
-    ...(cacheTime !== undefined ? { cacheTime } : {}),
-    ...restOptions,
-  });
-}
-
-export function useExaminerTrendDistribution(assignmentId, params = {}, options = {}) {
-  const {
-    enabled: enabledOption,
-    staleTime = 5 * 60 * 1000,
-    refetchOnWindowFocus = false,
-    cacheTime,
-    ...restOptions
-  } = options;
-
-  const paramsKey = serializeParams(params);
-  const enabled = Boolean(assignmentId) && (enabledOption ?? true);
-
-  return useQuery({
-    queryKey: ["reports", "examiner-trends", "distribution", assignmentId, paramsKey],
-    queryFn: async () => {
-      const response = await adminExaminerTrendReportService.getDistribution(
-        assignmentId,
-        params
-      );
-      if (!response || response.success === false) {
-        return buildDistributionFallback(assignmentId, params?.component);
-      }
-      return (
-        response.data ??
-        buildDistributionFallback(assignmentId, params?.component)
-      );
-    },
-    enabled,
-    staleTime,
-    refetchOnWindowFocus,
-    ...(cacheTime !== undefined ? { cacheTime } : {}),
-    ...restOptions,
-  });
-}
-
-export function useExaminerTrendOutliers(assignmentId, params = {}, options = {}) {
-  const {
-    enabled: enabledOption,
-    staleTime = 5 * 60 * 1000,
-    refetchOnWindowFocus = false,
-    cacheTime,
-    ...restOptions
-  } = options;
-
-  const paramsKey = serializeParams(params);
-  const enabled = Boolean(assignmentId) && (enabledOption ?? true);
-
-  return useQuery({
-    queryKey: ["reports", "examiner-trends", "outliers", assignmentId, paramsKey],
-    queryFn: async () => {
-      const response = await adminExaminerTrendReportService.getOutlierSessions(
-        assignmentId,
-        params
-      );
-      if (!response || response.success === false) {
-        return buildOutliersFallback(assignmentId, params?.component);
-      }
-      return (
-        response.data ??
-        buildOutliersFallback(assignmentId, params?.component)
-      );
+      return response.data ?? buildSummaryFallback(assignmentId);
     },
     enabled,
     staleTime,
@@ -184,8 +65,5 @@ export function useExaminerTrendOutliers(assignmentId, params = {}, options = {}
 }
 
 export const examinerTrendDefaults = {
-  overview: DEFAULT_BUILDERS.overview,
-  timeseries: DEFAULT_BUILDERS.timeseries,
-  distribution: DEFAULT_BUILDERS.distribution,
-  outliers: DEFAULT_BUILDERS.outliers,
+  summary: buildSummaryFallback(null),
 };

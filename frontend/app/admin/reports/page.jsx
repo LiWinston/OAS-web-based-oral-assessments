@@ -21,10 +21,10 @@ const REPORT_CARDS = [
   {
     title: "Examiner Trends",
     description: "Monitor examiner scoring patterns and workload health.",
-    href: "#",
+    href: "/admin/reports/examiner-trends",
     icon: "fa-user-tie",
     tone: "from-purple-500 to-fuchsia-600",
-    disabled: true,
+    disabled: false,
   },
 ];
 
@@ -86,4 +86,3 @@ function ReportCard({ title, description, href, icon, tone, disabled }) {
     </Link>
   );
 }
-

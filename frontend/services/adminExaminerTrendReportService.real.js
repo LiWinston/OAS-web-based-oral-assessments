@@ -1,6 +1,6 @@
 import apiClient from "@/services/apiClient.js";
 
-const DEFAULT_COMPONENT = "GROUP";
+const DEFAULT_STATUS = "SUBMITTED";
 
 const extract = (resp) => {
   if (!resp) return null;
@@ -17,292 +17,117 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(numeric) ? numeric : fallback;
 };
 
-const clampRatio = (value) => {
-  const numeric = toNumber(value, 0);
-  if (numeric < 0) return 0;
-  if (numeric > 1) return 1;
-  return numeric;
+const normaliseStatus = (status) => {
+  if (!status || typeof status !== "string") return DEFAULT_STATUS;
+  return status.toUpperCase();
 };
 
-const normaliseComponent = (component) => {
-  if (!component || typeof component !== "string") return DEFAULT_COMPONENT;
-  return component.toUpperCase();
-};
-
-const buildOverviewDefault = (assignmentId, component) => ({
+const buildSummaryDefault = (assignmentId) => ({
   assignmentId: assignmentId ?? null,
-  component: normaliseComponent(component),
-  timeWindow: {
-    start: null,
-    end: null,
-  },
+  status: DEFAULT_STATUS,
   cohort: {
-    avgScore: 0,
-    medianScore: 0,
-    stdDev: 0,
-    highScoreRate: 0,
-    lowScoreRate: 0,
+    examinerCount: 0,
+    submissionCount: 0,
+    averageScore: 0,
+  },
+  extremes: {
+    highest: null,
+    lowest: null,
   },
   examiners: [],
-  outliers: {
-    highScoreExaminerIds: [],
-    lowScoreExaminerIds: [],
-    highVarianceExaminerIds: [],
-  },
+  subjectTypes: [],
+  hasMixedSubjects: false,
 });
 
-const buildTimeseriesDefault = (interval = "DAY") => ({
-  interval,
-  series: [],
-  baseline: [],
-});
-
-const buildDistributionDefault = () => ({
-  points: [],
-});
-
-const buildOutlierListDefault = () => [];
-
-const normaliseTimeWindow = (payloadWindow) => {
-  if (!payloadWindow || typeof payloadWindow !== "object") {
-    return { start: null, end: null };
-  }
+const normaliseExtremesEntry = (entry) => {
+  if (!entry || typeof entry !== "object") return null;
   return {
-    start:
-      payloadWindow.start ??
-      payloadWindow.from ??
-      payloadWindow.begin ??
-      payloadWindow.windowStart ??
-      null,
-    end:
-      payloadWindow.end ??
-      payloadWindow.to ??
-      payloadWindow.finish ??
-      payloadWindow.windowEnd ??
-      null,
+    examinerId: entry.examinerId ?? entry.id ?? null,
+    examinerName: entry.examinerName ?? entry.name ?? "",
+    averageScore: toNumber(entry.averageScore ?? entry.avgScore, 0),
   };
 };
 
-const normaliseCohort = (cohort) => ({
-  avgScore: toNumber(cohort?.avgScore, 0),
-  medianScore: toNumber(cohort?.medianScore, 0),
-  stdDev: toNumber(cohort?.stdDev ?? cohort?.standardDeviation, 0),
-  highScoreRate: clampRatio(cohort?.highScoreRate),
-  lowScoreRate: clampRatio(cohort?.lowScoreRate),
-});
-
-const normaliseExaminerOverview = (entry) => ({
+const normaliseExaminer = (entry, cohortAverage) => ({
   examinerId: entry?.examinerId ?? entry?.id ?? null,
   examinerName: entry?.examinerName ?? entry?.name ?? "",
-  submissionCount: toNumber(entry?.submissionCount ?? entry?.samples, 0),
-  avgScore: toNumber(entry?.avgScore ?? entry?.averageScore, 0),
-  medianScore: toNumber(entry?.medianScore, 0),
-  stdDev: toNumber(entry?.stdDev ?? entry?.variance ?? entry?.standardDeviation, 0),
-  relativeDelta: toNumber(entry?.relativeDelta ?? entry?.deltaFromCohort, 0),
-  highScoreRate: clampRatio(entry?.highScoreRate),
-  lowScoreRate: clampRatio(entry?.lowScoreRate),
-  reopenedCount: toNumber(entry?.reopenedCount, 0),
-  draftCount: toNumber(entry?.draftCount, 0),
-  commentCount: toNumber(entry?.commentCount, 0),
-  lastSubmissionAt:
-    entry?.lastSubmissionAt ?? entry?.lastMarkedAt ?? entry?.lastUpdatedAt ?? null,
+  examinerEmail: entry?.examinerEmail ?? entry?.email ?? null,
+  submissionCount: toNumber(entry?.submissionCount ?? entry?.sessions ?? entry?.samples, 0),
+  averageScore: toNumber(entry?.averageScore ?? entry?.avgScore, 0),
+  delta: toNumber(entry?.delta ?? (entry?.averageScore ?? 0) - (cohortAverage ?? 0), 0),
+  cohortAverage: toNumber(cohortAverage, 0),
 });
 
-const normaliseOverviewOutliers = (outliers) => ({
-  highScoreExaminerIds: Array.isArray(outliers?.highScoreExaminerIds)
-    ? outliers.highScoreExaminerIds
-    : [],
-  lowScoreExaminerIds: Array.isArray(outliers?.lowScoreExaminerIds)
-    ? outliers.lowScoreExaminerIds
-    : [],
-  highVarianceExaminerIds: Array.isArray(outliers?.highVarianceExaminerIds)
-    ? outliers.highVarianceExaminerIds
-    : [],
-});
+const normaliseSummary = (payload, assignmentId) => {
+  if (!payload || typeof payload !== "object") {
+    return buildSummaryDefault(assignmentId);
+  }
 
-const normaliseTimeseriesPoint = (point) => ({
-  bucketStart:
-    point?.bucketStart ??
-    point?.start ??
-    point?.from ??
-    point?.date ??
-    point?.timestamp ??
-    null,
-  bucketEnd:
-    point?.bucketEnd ??
-    point?.end ??
-    point?.to ??
-    point?.date ??
-    point?.timestamp ??
-    null,
-  submissionCount: toNumber(point?.submissionCount ?? point?.samples, 0),
-  avgScore: toNumber(point?.avgScore ?? point?.averageScore, 0),
-  medianScore: toNumber(point?.medianScore, 0),
-  highScoreRate: clampRatio(point?.highScoreRate),
-  lowScoreRate: clampRatio(point?.lowScoreRate),
-});
+  const cohortAverage = toNumber(payload?.cohort?.averageScore, 0);
+  const examiners = Array.isArray(payload?.examiners)
+    ? payload.examiners.map((examiner) => normaliseExaminer(examiner, cohortAverage))
+    : [];
 
-const normaliseTimeseriesSeries = (series) => ({
-  examinerId: series?.examinerId ?? series?.id ?? null,
-  examinerName: series?.examinerName ?? series?.name ?? "",
-  points: Array.isArray(series?.points)
-    ? series.points.map(normaliseTimeseriesPoint)
-    : [],
-});
+  const subjectTypesRaw = Array.isArray(payload?.subjectTypes)
+    ? payload.subjectTypes
+    : payload?.subjectType
+      ? [payload.subjectType]
+      : [];
 
-const normaliseBaselinePoint = (point) => ({
-  bucketStart:
-    point?.bucketStart ??
-    point?.start ??
-    point?.from ??
-    point?.date ??
-    point?.timestamp ??
-    null,
-  bucketEnd:
-    point?.bucketEnd ?? point?.end ?? point?.to ?? point?.date ?? point?.timestamp ?? null,
-  avgScore: toNumber(point?.avgScore ?? point?.averageScore, 0),
-});
+  const subjectTypes = subjectTypesRaw
+    .map((type) => (typeof type === "string" ? type.toUpperCase() : null))
+    .filter((type, index, list) => type && list.indexOf(type) === index);
 
-const normaliseDistributionPoint = (point) => ({
-  examinerId: point?.examinerId ?? point?.id ?? null,
-  examinerName: point?.examinerName ?? point?.name ?? "",
-  avgScore: toNumber(point?.avgScore ?? point?.averageScore, 0),
-  stdDev: toNumber(point?.stdDev ?? point?.standardDeviation ?? point?.variance, 0),
-  submissionCount: toNumber(point?.submissionCount ?? point?.samples, 0),
-  highScoreRate: clampRatio(point?.highScoreRate),
-  lowScoreRate: clampRatio(point?.lowScoreRate),
-  reopenedCount: toNumber(point?.reopenedCount, 0),
-  draftCount: toNumber(point?.draftCount, 0),
-  commentCount: toNumber(point?.commentCount, 0),
-});
+  const hasMixedSubjects = Boolean(
+    payload?.hasMixedSubjects ||
+      subjectTypes.includes("MIX") ||
+      subjectTypes.length > 1
+  );
 
-const normaliseOutlierEntry = (entry) => ({
-  sessionId: entry?.sessionId ?? null,
-  participantType: entry?.participantType ?? entry?.type ?? null,
-  participantId:
-    entry?.participantId ?? entry?.groupId ?? entry?.studentId ?? entry?.entityId ?? null,
-  participantName:
-    entry?.participantName ??
-    entry?.groupName ??
-    entry?.studentName ??
-    entry?.entityName ??
-    "",
-  score: toNumber(entry?.score ?? entry?.totalScore, 0),
-  cohortDelta: toNumber(entry?.cohortDelta ?? entry?.deltaFromCohort, 0),
-  category: entry?.category ?? entry?.outlierType ?? "UNKNOWN",
-  examinerId: entry?.examinerId ?? null,
-  examinerName: entry?.examinerName ?? "",
-  markedAt: entry?.markedAt ?? entry?.submittedAt ?? null,
-});
+  return {
+    assignmentId: payload.assignmentId ?? assignmentId ?? null,
+    status: normaliseStatus(payload.status),
+    cohort: {
+      examinerCount: toNumber(payload?.cohort?.examinerCount, examiners.length),
+      submissionCount: toNumber(payload?.cohort?.submissionCount, 0),
+      averageScore: cohortAverage,
+    },
+    extremes: {
+      highest: normaliseExtremesEntry(payload?.extremes?.highest),
+      lowest: normaliseExtremesEntry(payload?.extremes?.lowest),
+    },
+    examiners,
+    subjectTypes,
+    hasMixedSubjects,
+  };
+};
 
 const adminExaminerTrendReportServiceReal = {
-  async getOverview(assignmentId, params = {}) {
+  async getSummary(assignmentId, params = {}) {
+    if (!assignmentId) {
+      return { success: false, data: buildSummaryDefault(null) };
+    }
+
     const response = await apiClient.get(
-      `/api/admin/reports/examiners/${assignmentId}/overview`,
+      `/api/admin/reports/examiners/${assignmentId}/summary`,
       { params }
     );
+
     const payload = extract(response);
     if (!payload || typeof payload !== "object") {
       return {
         success: false,
-        data: buildOverviewDefault(assignmentId, params.component),
+        data: buildSummaryDefault(assignmentId),
       };
     }
-    const component = normaliseComponent(payload.component ?? params.component);
+
     return {
       success: Boolean(response?.data?.success ?? true),
-      data: {
-        assignmentId: payload.assignmentId ?? assignmentId ?? null,
-        component,
-        timeWindow: normaliseTimeWindow(payload.timeWindow),
-        cohort: normaliseCohort(payload.cohort ?? {}),
-        examiners: Array.isArray(payload.examiners)
-          ? payload.examiners.map(normaliseExaminerOverview)
-          : [],
-        outliers: normaliseOverviewOutliers(payload.outliers ?? {}),
-      },
+      data: normaliseSummary(payload, assignmentId),
     };
   },
 
-  async getTimeseries(assignmentId, params = {}) {
-    const response = await apiClient.get(
-      `/api/admin/reports/examiners/${assignmentId}/timeseries`,
-      { params }
-    );
-    const payload = extract(response);
-    if (!payload || typeof payload !== "object") {
-      return {
-        success: false,
-        data: buildTimeseriesDefault(params.interval),
-      };
-    }
-    const interval = (payload.interval || params.interval || "DAY").toString().toUpperCase();
-    return {
-      success: Boolean(response?.data?.success ?? true),
-      data: {
-        interval,
-        series: Array.isArray(payload.series)
-          ? payload.series.map(normaliseTimeseriesSeries)
-          : [],
-        baseline: Array.isArray(payload.baseline)
-          ? payload.baseline.map(normaliseBaselinePoint)
-          : [],
-      },
-    };
-  },
-
-  async getDistribution(assignmentId, params = {}) {
-    const response = await apiClient.get(
-      `/api/admin/reports/examiners/${assignmentId}/distribution`,
-      { params }
-    );
-    const payload = extract(response);
-    if (!payload || typeof payload !== "object") {
-      return {
-        success: false,
-        data: buildDistributionDefault(),
-      };
-    }
-    const pointsSource = payload.points ?? payload.examiners ?? [];
-    return {
-      success: Boolean(response?.data?.success ?? true),
-      data: {
-        assignmentId: payload.assignmentId ?? assignmentId ?? null,
-        component: normaliseComponent(payload.component ?? params.component),
-        points: Array.isArray(pointsSource)
-          ? pointsSource.map(normaliseDistributionPoint)
-          : [],
-      },
-    };
-  },
-
-  async getOutlierSessions(assignmentId, params = {}) {
-    const response = await apiClient.get(
-      `/api/admin/reports/examiners/${assignmentId}/outlier-sessions`,
-      { params }
-    );
-    const payload = extract(response);
-    if (!payload) {
-      return {
-        success: false,
-        data: buildOutlierListDefault(),
-      };
-    }
-    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
-    return {
-      success: Boolean(response?.data?.success ?? true),
-      data: list.map(normaliseOutlierEntry),
-    };
-  },
-
-  buildDefaults(assignmentId, component) {
-    return {
-      overview: buildOverviewDefault(assignmentId, component),
-      timeseries: buildTimeseriesDefault(),
-      distribution: buildDistributionDefault(),
-      outliers: buildOutlierListDefault(),
-    };
-  },
+  buildSummaryDefault,
 };
 
 export default adminExaminerTrendReportServiceReal;

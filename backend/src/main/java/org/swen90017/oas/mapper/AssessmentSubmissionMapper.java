@@ -3,6 +3,7 @@ package org.swen90017.oas.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.swen90017.oas.entity.AssessmentSubmission;
 
 import java.time.LocalDateTime;
@@ -85,6 +86,8 @@ public interface AssessmentSubmissionMapper extends BaseMapper<AssessmentSubmiss
      */
     Long countSubmittedAssessmentsBySessionAndExaminer(@Param("sessionId") Long sessionId, 
                                                        @Param("examinerId") Long examinerId);
-}
 
+    @Select("SELECT DISTINCT subject_type FROM assessment_submission WHERE assignment_id = #{assignmentId}")
+    List<String> findDistinctSubjectTypesByAssignment(@Param("assignmentId") Long assignmentId);
+}
 

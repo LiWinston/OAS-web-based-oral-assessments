@@ -119,7 +119,9 @@ public enum BusinessError implements Error {
     RUBRIC_GROUP_RUBRICS_REQUIRED("9024", "Group rubrics are required when group weight > 0"),
     RUBRIC_INDIVIDUAL_WEIGHT_MISMATCH("9025", "Sum of individual rubric weights does not match individual weight"),
     RUBRIC_GROUP_WEIGHT_MISMATCH("9026", "Sum of group rubric weights does not match group weight"),
-    MIX_RUBRIC_MANUAL_OVERRIDE_FORBIDDEN("9027", "Final Score cannot be manually modified for mix rubric assignments. Scores are automatically calculated based on individual and group weights.");
+    MIX_RUBRIC_MANUAL_OVERRIDE_FORBIDDEN("9027", "Final Score cannot be manually modified for mix rubric assignments. Scores are automatically calculated based on individual and group weights."),
+
+    REPORT_INVALID_STATUS("400-INVALID_STATUS", "Invalid status parameter");
     // 9013 reserved: total capacity not sufficient
     // TOTAL_EXAMINER_CAPACITY_INSUFFICIENT("9013", "Total examiner capacity is insufficient")
     // add more below as needed

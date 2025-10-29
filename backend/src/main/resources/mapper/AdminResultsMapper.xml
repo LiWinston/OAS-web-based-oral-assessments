@@ -128,6 +128,31 @@
         </if>
     </select>
 
+    <select id="listExaminerSummary" resultType="java.util.Map">
+        SELECT 
+            asub.examiner_id AS examiner_id,
+            u.user_name AS examiner_name,
+            u.email AS examiner_email,
+            COUNT(*) AS submission_count,
+            SUM(CASE WHEN asub.status = 'SUBMITTED' THEN 1 ELSE 0 END) AS submitted_count,
+            SUM(CASE WHEN asub.status = 'SUBMITTED' AND asub.total_score IS NOT NULL THEN asub.total_score ELSE 0 END) AS submitted_score_sum,
+            SUM(CASE WHEN asub.status = 'SUBMITTED' AND asub.total_score IS NOT NULL THEN 1 ELSE 0 END) AS submitted_score_count
+        FROM assessment_submission AS asub
+        LEFT JOIN sys_user u ON asub.examiner_id = u.user_id
+        WHERE asub.assignment_id = #{assignmentId}
+        <if test="statuses != null and statuses.size() &gt; 0">
+            AND asub.status IN 
+            <foreach collection="statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
+        GROUP BY asub.examiner_id, u.user_name, u.email
+        <if test="minSessions != null and minSessions &gt; 0">
+            HAVING COUNT(*) &gt;= #{minSessions}
+        </if>
+        ORDER BY u.user_name ASC
+    </select>
+
     <!-- Count total assessments for pagination -->
     <select id="countAssessmentSummaries" resultType="java.lang.Integer">
         SELECT COUNT(*)

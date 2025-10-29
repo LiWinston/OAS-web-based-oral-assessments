@@ -188,6 +188,12 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("groupId") Long groupId
     );
 
+    List<Map<String, Object>> listExaminerSummary(
+            @Param("assignmentId") Long assignmentId,
+            @Param("statuses") List<String> statuses,
+            @Param("minSessions") Integer minSessions
+    );
+
     /**
      * Get sessions for an assignment with participant count (Step 1)
      */
