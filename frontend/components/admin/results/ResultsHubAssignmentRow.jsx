@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAssignmentSessions } from "@/hooks/admin/results/useAssignmentSessions.js";
+import { useGradeExport } from "@/hooks/admin/results/useGradeExport.js";
 
 const readinessStyles = {
   active:
@@ -29,6 +30,8 @@ function ReadinessChip({ label, active }) {
 export function ResultsHubAssignmentRow({ courseId, assignment }) {
   const subjectId = courseId;
   const assignmentId = assignment?.id ?? assignment?.assignmentId;
+
+  const { exportGrades, isExportingGrades, gradeExportType } = useGradeExport(assignmentId);
 
   const {
     data: sessionData,
@@ -58,6 +61,30 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
   );
 
   const totalSessions = sessionData?.total ?? sessionData?.items?.length ?? 0;
+  const normalizedAssignmentType = (assignment?.type || "").toString().toLowerCase();
+  const isMixedAssignment = normalizedAssignmentType === "mixed" || normalizedAssignmentType === "mix";
+  const isGroupOnlyAssignment = normalizedAssignmentType === "group";
+  const gradeSpinnerKey = isMixedAssignment
+    ? "mixed"
+    : isGroupOnlyAssignment
+    ? "group"
+    : "individual";
+  const gradeApiType = isMixedAssignment ? undefined : isGroupOnlyAssignment ? "group" : "individual";
+  const gradeButtonLabel = isMixedAssignment
+    ? "Export ZIP"
+    : isGroupOnlyAssignment
+    ? "Export group CSV"
+    : "Export individual CSV";
+  const gradeNotificationLabel = isMixedAssignment
+    ? "Combined grades"
+    : isGroupOnlyAssignment
+    ? "Group grades"
+    : "Individual grades";
+  const gradeButtonIcon = isMixedAssignment
+    ? "fa-file-zipper"
+    : isGroupOnlyAssignment
+    ? "fa-users"
+    : "fa-user-graduate";
 
   const sessionStatusMessage = (() => {
     if (isLoading && !sessionData) return "Loading session data…";
@@ -122,6 +149,35 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
               <p className="text-sm text-gray-500 dark:text-gray-400">{sessionStatusMessage}</p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  exportGrades({
+                    assignmentId,
+                    type: gradeApiType,
+                    label: gradeNotificationLabel,
+                  })
+                }
+                disabled={isExportingGrades}
+                title={
+                  isMixedAssignment
+                    ? "Downloads a ZIP containing both individual and group CSV exports."
+                    : undefined
+                }
+              >
+                <i
+                  className={`fas ${
+                    isExportingGrades && gradeExportType === gradeSpinnerKey
+                      ? "fa-spinner fa-spin"
+                      : gradeButtonIcon
+                  } mr-2`}
+                />
+                {isExportingGrades && gradeExportType === gradeSpinnerKey
+                  ? "Exporting..."
+                  : gradeButtonLabel}
+              </Button>
               <Button variant="outline" size="sm" onClick={refetch} disabled={isFetching}>
                 {isFetching && <i className="fas fa-spinner fa-spin mr-2" />}
                 Refresh
@@ -152,3 +208,4 @@ export function ResultsHubAssignmentRow({ courseId, assignment }) {
 }
 
 export default ResultsHubAssignmentRow;
+

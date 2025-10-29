@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAssignmentSessions } from "@/hooks/admin/results/useAssignmentSessions.js";
+import { useGradeExport } from "@/hooks/admin/results/useGradeExport.js";
 import { courseService } from "@/services/courseService";
 import { assignmentService } from "@/services/assignmentService";
 
@@ -103,6 +104,14 @@ export default function AdminAssignmentSessionsPage() {
   const [assignment, setAssignment] = useState(null);
   const [metaLoading, setMetaLoading] = useState(true);
 
+  const {
+    exportGrades,
+    exportTeacherDetails,
+    isExportingGrades,
+    gradeExportType,
+    isExportingTeacherDetails,
+  } = useGradeExport(assignmentId);
+
   useEffect(() => {
     setSearchValue(q);
   }, [q]);
@@ -185,6 +194,30 @@ export default function AdminAssignmentSessionsPage() {
     const safePage = Math.min(pageCount, Math.max(1, nextPage));
     updateQuery({ page: safePage });
   };
+  const normalizedAssignmentType = (assignment?.type || "").toString().toLowerCase();
+  const isMixedAssignment = normalizedAssignmentType === "mixed" || normalizedAssignmentType === "mix";
+  const isGroupOnlyAssignment = normalizedAssignmentType === "group";
+  const primaryGradeSpinnerKey = isMixedAssignment
+    ? "mixed"
+    : isGroupOnlyAssignment
+    ? "group"
+    : "individual";
+  const primaryGradeApiType = isMixedAssignment ? undefined : isGroupOnlyAssignment ? "group" : "individual";
+  const primaryGradeButtonLabel = isMixedAssignment
+    ? "Export combined ZIP"
+    : isGroupOnlyAssignment
+    ? "Export group grades"
+    : "Export individual grades";
+  const primaryGradeNotificationLabel = isMixedAssignment
+    ? "Combined grades"
+    : isGroupOnlyAssignment
+    ? "Group grades"
+    : "Individual grades";
+  const primaryGradeIcon = isMixedAssignment
+    ? "fa-file-zipper"
+    : isGroupOnlyAssignment
+    ? "fa-users"
+    : "fa-user-graduate";
 
   const courseLabel = metaLoading
     ? "Loading course…"
@@ -241,12 +274,125 @@ export default function AdminAssignmentSessionsPage() {
               </span>
             </div>
           </div>
-          <Button asChild variant="secondary" className="bg-white/15 hover:bg-white/20 text-white">
-            <Link href={`/admin/courses/${courseId}/assignments/${assignmentId}`}>
-              <i className="fas fa-arrow-left" />
-              Back to assignment
-            </Link>
-          </Button>
+          <div className="flex flex-col items-stretch gap-2 lg:items-end">
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  exportGrades({
+                    assignmentId,
+                    type: primaryGradeApiType,
+                    label: primaryGradeNotificationLabel,
+                  })
+                }
+                disabled={isExportingGrades}
+                className="bg-white/15 hover:bg-white/20 text-white border border-white/20"
+                title={
+                  isMixedAssignment
+                    ? "Downloads a ZIP containing both individual and group CSV exports."
+                    : undefined
+                }
+              >
+                <i
+                  className={`fas ${
+                    isExportingGrades && gradeExportType === primaryGradeSpinnerKey
+                      ? "fa-spinner fa-spin"
+                      : primaryGradeIcon
+                  } mr-2`}
+                />
+                {isExportingGrades && gradeExportType === primaryGradeSpinnerKey
+                  ? "Exporting..."
+                  : primaryGradeButtonLabel}
+              </Button>
+
+              {isMixedAssignment && (
+                <>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      exportGrades({
+                        assignmentId,
+                        type: "individual",
+                        label: "Individual grades",
+                      })
+                    }
+                    disabled={isExportingGrades}
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  >
+                    <i
+                      className={`fas ${
+                        isExportingGrades && gradeExportType === "individual"
+                          ? "fa-spinner fa-spin"
+                          : "fa-user-graduate"
+                      } mr-2`}
+                    />
+                    {isExportingGrades && gradeExportType === "individual"
+                      ? "Exporting..."
+                      : "Individual CSV"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() =>
+                      exportGrades({
+                        assignmentId,
+                        type: "group",
+                        label: "Group grades",
+                      })
+                    }
+                    disabled={isExportingGrades}
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                  >
+                    <i
+                      className={`fas ${
+                        isExportingGrades && gradeExportType === "group"
+                          ? "fa-spinner fa-spin"
+                          : "fa-users"
+                      } mr-2`}
+                    />
+                    {isExportingGrades && gradeExportType === "group"
+                      ? "Exporting..."
+                      : "Group CSV"}
+                  </Button>
+                </>
+              )}
+
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() =>
+                  exportTeacherDetails({
+                    assignmentId,
+                    label: "Teacher scoring details",
+                  })
+                }
+                disabled={isExportingTeacherDetails}
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/20"
+                title="Includes examiner names, time slots, venues, and rubric scores."
+              >
+                <i
+                  className={`fas ${
+                    isExportingTeacherDetails ? "fa-spinner fa-spin" : "fa-chalkboard-teacher"
+                  } mr-2`}
+                />
+                {isExportingTeacherDetails ? "Exporting..." : "Teacher scoring CSV"}
+              </Button>
+            </div>
+
+            <Button
+              asChild
+              variant="secondary"
+              className="bg-white/15 hover:bg-white/20 text-white border border-white/20"
+            >
+              <Link href={`/admin/courses/${courseId}/assignments/${assignmentId}`}>
+                <i className="fas fa-arrow-left" />
+                Back to assignment
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -367,3 +513,4 @@ export default function AdminAssignmentSessionsPage() {
     </div>
   );
 }
+

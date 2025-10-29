@@ -67,6 +67,63 @@ const extractFilenameFromHeaders = (headers) => {
   }
 };
 
+const parseBlobResponse = async (response, defaultMessage) => {
+  const blob = response?.data;
+  const headerContentType = response?.headers?.["content-type"];
+  const normalizedContentType = (blob?.type || headerContentType || "").toLowerCase();
+
+  if (normalizedContentType.includes("application/json")) {
+    try {
+      const text = await blob.text();
+      const payload = JSON.parse(text);
+      const message =
+        payload?.message ||
+        (typeof payload?.data === "string" ? payload.data : null) ||
+        defaultMessage;
+      return buildErrorResult(
+        message,
+        payload?.code || "DOWNLOAD_ERROR",
+        payload?.data ?? null
+      );
+    } catch (parseError) {
+      return buildErrorResult(
+        parseError?.message || defaultMessage,
+        "DOWNLOAD_ERROR",
+        null
+      );
+    }
+  }
+
+  if (!normalizedContentType || normalizedContentType.includes("text/plain")) {
+    try {
+      const text = await blob.text();
+      const trimmed = text.trim();
+      if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+        const payload = JSON.parse(trimmed);
+        const message =
+          payload?.message ||
+          (typeof payload?.data === "string" ? payload.data : null) ||
+          defaultMessage;
+        return buildErrorResult(
+          message,
+          payload?.code || "DOWNLOAD_ERROR",
+          payload?.data ?? null
+        );
+      }
+    } catch (_ignored) {
+      // Ignore and assume blob contains the expected binary payload
+    }
+  }
+
+  return {
+    success: true,
+    data: {
+      blob,
+      filename: extractFilenameFromHeaders(response?.headers),
+    },
+  };
+};
+
 // Utility function to convert date strings to datetime format for Java backend
 const formatDateForBackend = (dateString) => {
   if (!dateString) return dateString;
@@ -722,62 +779,72 @@ export const assignmentService = {
         responseType: "blob",
       });
 
-      const blob = response.data;
-      const headerContentType = response.headers?.["content-type"];
-      const normalizedContentType = (blob?.type || headerContentType || "").toLowerCase();
+      const parsed = await parseBlobResponse(response, "Failed to download CSV");
+      return parsed;
+    } catch (error) {
+      return normalizeAxiosError(error, "Failed to download CSV");
+    }
+  },
 
-      if (normalizedContentType.includes("application/json")) {
-        try {
-          const text = await blob.text();
-          const payload = JSON.parse(text);
-          const message =
-            payload?.message ||
-            (typeof payload?.data === "string" ? payload.data : null) ||
-            "Failed to download CSV";
-          return buildErrorResult(
-            message,
-            payload?.code || "DOWNLOAD_ERROR",
-            payload?.data ?? null
-          );
-        } catch (parseError) {
-          return buildErrorResult(
-            parseError?.message || "Failed to download CSV",
-            "DOWNLOAD_ERROR",
-            null
-          );
-        }
-      }
-
-      if (!normalizedContentType || normalizedContentType.includes("text/plain")) {
-        try {
-          const text = await blob.text();
-          const trimmed = text.trim();
-          if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            const payload = JSON.parse(trimmed);
-            const message =
-              payload?.message ||
-              (typeof payload?.data === "string" ? payload.data : null) ||
-              "Failed to download CSV";
-            return buildErrorResult(
-              message,
-              payload?.code || "DOWNLOAD_ERROR",
-              payload?.data ?? null
-            );
-          }
-        } catch (_ignored) {
-          // fall through assuming it's actual CSV
-        }
-      }
-
+  async exportAssignmentGrades(assignmentId, type) {
+    if (USE_MOCK_API) {
+      const extension = !type ? "zip" : "csv";
+      const mockContent =
+        extension === "zip"
+          ? "Mixed grades archive placeholder"
+          : "Student,Score\nSample Student,85";
+      const blob = new Blob([mockContent], {
+        type: extension === "zip" ? "application/zip" : "text/csv",
+      });
       return {
         success: true,
         data: {
           blob,
-          filename: extractFilenameFromHeaders(response.headers),
+          filename: `assignment-${assignmentId}-${type || "mixed"}.${extension}`,
         },
       };
+    }
+
+    try {
+      const response = await api.get("/api/csv/export/grades", {
+        params: {
+          assignmentId,
+          ...(type ? { type } : {}),
+        },
+        responseType: "blob",
+      });
+
+      const parsed = await parseBlobResponse(response, "Failed to export grades");
+      return parsed;
     } catch (error) {
-      return normalizeAxiosError(error, "Failed to download CSV");
+      return normalizeAxiosError(error, "Failed to export grades");
+    }
+  },
+
+  async exportTeacherScoringDetails(assignmentId) {
+    if (USE_MOCK_API) {
+      const blob = new Blob(["Teacher,Student,Score\nJane Doe,Student A,88"], {
+        type: "text/csv",
+      });
+      return {
+        success: true,
+        data: {
+          blob,
+          filename: `teacher-scoring-${assignmentId}.csv`,
+        },
+      };
+    }
+
+    try {
+      const response = await api.get("/api/csv/export/teacher-scoring-details", {
+        params: { assignmentId },
+        responseType: "blob",
+      });
+
+      const parsed = await parseBlobResponse(response, "Failed to export teacher scoring details");
+      return parsed;
+    } catch (error) {
+      return normalizeAxiosError(error, "Failed to export teacher scoring details");
     }
   },
 };
