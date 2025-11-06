@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 openjdk:8-jre
+FROM --platform=linux/amd64 adoptopenjdk/openjdk8
 
 LABEL maintainer="dongqiaoh1@student.unimelb.edu.au"
 
