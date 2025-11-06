@@ -195,7 +195,8 @@ function MarkConsolidationContent() {
     }
   }, [assessmentsQuery.dataUpdatedAt, assessmentsQuery.data, touchRefreshed]);
 
-  const assessments = assessmentsQuery.data?.items ?? [];
+  const assessmentItems = assessmentsQuery.data?.items;
+  const assessments = useMemo(() => assessmentItems ?? [], [assessmentItems]);
 
   const searchLower = searchTerm?.trim().toLowerCase() ?? "";
 
