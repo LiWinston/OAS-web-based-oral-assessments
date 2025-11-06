@@ -8,7 +8,7 @@ export default function ReportsLayout({ breadcrumb, hero, controlBar, sideRail, 
       {breadcrumb}
       {hero}
       {hasSideRail ? (
-        <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[330px_1fr]">
           <aside className="order-last space-y-4 xl:order-first">
             {sideRail}
           </aside>

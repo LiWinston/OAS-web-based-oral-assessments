@@ -20,6 +20,7 @@ const STATUS_CONFIG = {
   partial: { label: "Partially staffed", color: "#fbbf24", active: "#d97706" },
   none: { label: "Unstaffed", color: "#fb7185", active: "#e11d48" },
 };
+const STATUS_KEYS = Object.keys(STATUS_CONFIG);
 
 const formatLabel = (value) => {
   if (!value) return "";
@@ -67,7 +68,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function SchedulingStaffingTrendChart({ data, activeDate, onSelectDate, isLoading }) {
   const hasData = Array.isArray(data) && data.length > 0;
-  const [visibleKeys, setVisibleKeys] = useState(() => Object.keys(STATUS_CONFIG));
+  const [visibleKeys, setVisibleKeys] = useState(() => [...STATUS_KEYS]);
 
   const chartData = useMemo(() => {
     if (!hasData) return [];
@@ -89,8 +90,7 @@ export default function SchedulingStaffingTrendChart({ data, activeDate, onSelec
     });
   }, [data, hasData]);
 
-  const handleLegendClick = useCallback((entry) => {
-    const key = entry?.dataKey;
+  const toggleKey = useCallback((key) => {
     if (!key) return;
     setVisibleKeys((prev) => {
       if (prev.includes(key)) {
@@ -101,18 +101,17 @@ export default function SchedulingStaffingTrendChart({ data, activeDate, onSelec
     });
   }, []);
 
-  const renderLegend = useCallback((props) => {
-    const { payload } = props;
+  const renderLegend = useCallback(() => {
     return (
       <div className="mt-2 flex flex-wrap gap-3 text-xs">
-        {payload?.map((entry) => {
-          const isActive = visibleKeys.includes(entry.dataKey);
-          const config = STATUS_CONFIG[entry.dataKey] || {};
+        {STATUS_KEYS.map((key) => {
+          const config = STATUS_CONFIG[key] || {};
+          const isActive = visibleKeys.includes(key);
           return (
             <button
-              key={entry.dataKey}
+              key={key}
               type="button"
-              onClick={() => handleLegendClick(entry)}
+              onClick={() => toggleKey(key)}
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 transition ${
                 isActive
                   ? "border-transparent bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900"
@@ -121,15 +120,15 @@ export default function SchedulingStaffingTrendChart({ data, activeDate, onSelec
             >
               <span
                 className="inline-block h-2 w-2 rounded-full"
-                style={{ backgroundColor: config.color || entry.color }}
+                style={{ backgroundColor: config.color }}
               />
-              {config.label || entry.value}
+              {config.label}
             </button>
           );
         })}
       </div>
     );
-  }, [handleLegendClick, visibleKeys]);
+  }, [toggleKey, visibleKeys]);
 
   return (
     <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -166,12 +165,15 @@ export default function SchedulingStaffingTrendChart({ data, activeDate, onSelec
               }}
             >
               <defs>
-                {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                {STATUS_KEYS.map((key) => {
+                  const config = STATUS_CONFIG[key];
+                  return (
                   <linearGradient key={key} id={`staffing-${key}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor={config.color} stopOpacity={0.9} />
                     <stop offset="95%" stopColor={config.color} stopOpacity={0.6} />
                   </linearGradient>
-                ))}
+                  );
+                })}
               </defs>
               <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200 dark:stroke-gray-700" />
               <XAxis
@@ -184,36 +186,26 @@ export default function SchedulingStaffingTrendChart({ data, activeDate, onSelec
               <Tooltip content={<CustomTooltip />} />
               <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="4 4" label={{ value: "80%", position: "left", fill: "#3b82f6", fontSize: 11 }} />
               <Legend content={renderLegend} />
-              {visibleKeys.includes("fully") && (
-                <Bar dataKey="fully" stackId="staffing" fill="url(#staffing-fully)" radius={[6, 6, 0, 0]}>
-                  {chartData.map((entry) => (
-                    <Cell
-                      key={entry.date}
-                      fill={entry.date === activeDate ? STATUS_CONFIG.fully.active : STATUS_CONFIG.fully.color}
-                    />
-                  ))}
-                </Bar>
-              )}
-              {visibleKeys.includes("partial") && (
-                <Bar dataKey="partial" stackId="staffing" fill="url(#staffing-partial)" radius={[6, 6, 0, 0]}>
-                  {chartData.map((entry) => (
-                    <Cell
-                      key={entry.date}
-                      fill={entry.date === activeDate ? STATUS_CONFIG.partial.active : STATUS_CONFIG.partial.color}
-                    />
-                  ))}
-                </Bar>
-              )}
-              {visibleKeys.includes("none") && (
-                <Bar dataKey="none" stackId="staffing" fill="url(#staffing-none)" radius={[6, 6, 0, 0]}>
-                  {chartData.map((entry) => (
-                    <Cell
-                      key={entry.date}
-                      fill={entry.date === activeDate ? STATUS_CONFIG.none.active : STATUS_CONFIG.none.color}
-                    />
-                  ))}
-                </Bar>
-              )}
+              {STATUS_KEYS.map((key) => {
+                const config = STATUS_CONFIG[key];
+                return (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    stackId="staffing"
+                    fill={`url(#staffing-${key})`}
+                    radius={[6, 6, 0, 0]}
+                    hide={!visibleKeys.includes(key)}
+                  >
+                    {chartData.map((entry) => (
+                      <Cell
+                        key={`${key}-${entry.date}`}
+                        fill={entry.date === activeDate ? config.active : config.color}
+                      />
+                    ))}
+                  </Bar>
+                );
+              })}
               <Brush height={22} travellerWidth={12} stroke="#6366f1" dataKey="date" tickFormatter={formatLabel} />
             </BarChart>
           </ResponsiveContainer>

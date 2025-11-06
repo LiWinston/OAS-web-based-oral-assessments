@@ -29,6 +29,24 @@ export default function SchedulingInsightRail({
 }) {
   const assignmentOptions = assignments || fallbackAssignments;
   const hasAssignments = assignmentOptions.length > 0;
+  const stringifiedSelectedId = selectedAssignmentId ? String(selectedAssignmentId) : '';
+
+  const selectedAssignment = useMemo(() => {
+    if (!stringifiedSelectedId) return null;
+    return assignmentOptions.find((assignment) => String(assignment.id ?? '') === stringifiedSelectedId) ?? null;
+  }, [assignmentOptions, stringifiedSelectedId]);
+
+  const selectedAssignmentName = selectedAssignment
+    ? selectedAssignment.name || selectedAssignment.assignmentName || ''
+    : '';
+  const selectedCourseLabel = selectedAssignment
+    ? [
+        (selectedAssignment.courseCode || selectedAssignment.course?.code || '').toUpperCase(),
+        selectedAssignment.courseName || selectedAssignment.course?.name || '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
 
   const windowRange = useMemo(() => {
     if (!meta?.windowStart && !meta?.windowEnd) return '';
@@ -59,16 +77,45 @@ export default function SchedulingInsightRail({
         <div className="text-xs font-semibold uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500">Assignment</div>
         {hasAssignments ? (
           <div className="mt-3">
-            <Select value={selectedAssignmentId ? String(selectedAssignmentId) : ''} onValueChange={onSelectAssignment}>
-              <SelectTrigger className="w-full justify-between">
-                <SelectValue placeholder="Select assignment" />
+            <Select value={stringifiedSelectedId} onValueChange={onSelectAssignment}>
+              <SelectTrigger className="w-full justify-between min-h-[64px] px-4 py-3 text-sm leading-snug">
+                <SelectValue placeholder="Select assignment" asChild>
+                  {selectedAssignmentName ? (
+                    <div className="flex flex-1 flex-col text-left">
+                      <span
+                        className="font-medium leading-5 text-gray-900 line-clamp-3 dark:text-gray-100"
+                        title={selectedAssignmentName}
+                      >
+                        {selectedAssignmentName}
+                      </span>
+                      {selectedCourseLabel && (
+                        <span
+                          className="mt-1 text-xs text-gray-500 line-clamp-1 dark:text-gray-400"
+                          title={selectedCourseLabel}
+                        >
+                          {selectedCourseLabel}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Select assignment</span>
+                  )}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent className="min-w-[220px]">
+              <SelectContent className="min-w-[280px]">
                 {assignmentOptions.map((assignment) => (
                   <SelectItem key={assignment.id} value={String(assignment.id)}>
                     <div className="flex flex-col text-left">
-                      <span className="font-medium">{assignment.name || assignment.assignmentName}</span>
-                      <span className="text-xs text-gray-500">
+                      <span
+                        className="font-medium leading-5 text-gray-900 line-clamp-3 dark:text-gray-100"
+                        title={assignment.name || assignment.assignmentName}
+                      >
+                        {assignment.name || assignment.assignmentName}
+                      </span>
+                      <span
+                        className="text-xs text-gray-500"
+                        title={`${assignment.courseCode || assignment.course?.code} · ${assignment.courseName || assignment.course?.name}`}
+                      >
                         {assignment.courseCode || assignment.course?.code} · {assignment.courseName || assignment.course?.name}
                       </span>
                     </div>
@@ -164,4 +211,3 @@ function InsightMetric({ icon, label, value, tone }) {
     </div>
   );
 }
-

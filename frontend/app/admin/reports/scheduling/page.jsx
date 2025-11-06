@@ -471,21 +471,9 @@ function SchedulingOverviewContent() {
   }, [filteredSessions]);
 
   const pressureInsight = useMemo(() => {
-    if (!filteredSessions || filteredSessions.length === 0) return null;
-    let top = null;
-    filteredSessions.forEach((session) => {
-      const capacity = session.capacity || 0;
-      if (capacity === 0) return;
-      const ratio = (session.bookedCount || 0) / capacity;
-      if (!top || ratio > top.ratio) {
-        top = {
-          session,
-          ratio,
-        };
-      }
-    });
-    return top;
-  }, [filteredSessions]);
+    if (!bookingPressureData.length) return null;
+    return bookingPressureData[0];
+  }, [bookingPressureData]);
 
   const insights = useMemo(() => {
     const list = [];
@@ -494,9 +482,19 @@ function SchedulingOverviewContent() {
     } else if (summary?.fullyStaffed > 0) {
       list.push('✅ All sessions fully staffed for the selected date.');
     }
-    if (pressureInsight && pressureInsight.ratio >= 0.75) {
-      const { session, ratio } = pressureInsight;
-      list.push(`🔥 ${session.venueName} is ${Math.round(ratio * 100)}% booked. Consider opening overflow.`);
+    if (pressureInsight && pressureInsight.capacity > 0 && pressureInsight.ratio >= 0.75) {
+      const { venue, ratio, booked, capacity, sessions: sessionCount } = pressureInsight;
+      const fullyBooked = booked >= capacity;
+      const rawPercentage = Math.round(ratio * 100);
+      const percentage = fullyBooked ? 100 : Math.min(rawPercentage, 99);
+      const count = sessionCount || 1;
+      const sessionLabel = `${count} session${count === 1 ? "" : "s"}`;
+      const capacityLabel = ` (${booked}/${capacity} seats across ${sessionLabel})`;
+      if (fullyBooked) {
+        list.push(`🔥 ${venue} is fully booked${capacityLabel}. Consider opening overflow.`);
+      } else {
+        list.push(`🔥 ${venue} is ${percentage}% booked${capacityLabel}. Consider opening overflow.`);
+      }
     }
     if (filteredSessions.some((session) => session.publishedToExaminer && !session.publishedToStudent)) {
       list.push('👀 Examiners can see the schedule while students are still waiting.');
