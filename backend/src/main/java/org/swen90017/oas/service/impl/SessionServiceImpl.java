@@ -253,12 +253,13 @@ public class SessionServiceImpl implements SessionService {
             throw new BusinessException(BusinessError.ASSIGNMENT_NOT_FOUND);
         }
         
-        // Check if the requested date is within assignment time range
-        LocalDate target = LocalDate.parse(date);
+        // Parse date if provided, otherwise query all sessions in the assignment
+        LocalDate target = (date != null && !date.trim().isEmpty()) ? LocalDate.parse(date) : null;
         LocalDate assignmentStartDate = assignment.getStartDate() != null ? assignment.getStartDate().toLocalDate() : null;
         LocalDate assignmentEndDate = assignment.getEndDate() != null ? assignment.getEndDate().toLocalDate() : null;
         
-        if (assignmentStartDate != null && target.isBefore(assignmentStartDate)) {
+        // Check if the requested date is within assignment time range (only if date is provided)
+        if (target != null && assignmentStartDate != null && target.isBefore(assignmentStartDate)) {
             // Return empty response with indication that date is outside assignment range
             AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
             resp.setSessions(new ArrayList<>());
@@ -277,7 +278,7 @@ public class SessionServiceImpl implements SessionService {
             return resp;
         }
         
-        if (assignmentEndDate != null && target.isAfter(assignmentEndDate)) {
+        if (target != null && assignmentEndDate != null && target.isAfter(assignmentEndDate)) {
             // Return empty response with indication that date is outside assignment range
             AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
             resp.setSessions(new ArrayList<>());
@@ -297,8 +298,17 @@ public class SessionServiceImpl implements SessionService {
         }
         
         // Simplification: query by date range and filter status/venue in memory
-        LocalDateTime from = target.atStartOfDay();
-        LocalDateTime to = target.atTime(23,59,59);
+        LocalDateTime from;
+        LocalDateTime to;
+        if (target != null) {
+            // Query specific date
+            from = target.atStartOfDay();
+            to = target.atTime(23,59,59);
+        } else {
+            // Query entire assignment range if no date specified
+            from = assignmentStartDate != null ? assignmentStartDate.atStartOfDay() : LocalDateTime.of(2000, 1, 1, 0, 0);
+            to = assignmentEndDate != null ? assignmentEndDate.atTime(23,59,59) : LocalDateTime.of(2100, 12, 31, 23, 59, 59);
+        }
         List<SlotSession> sessions = slotSessionMapper.listSessionsByAssignmentAndRange(assignmentId, from, to);
         AdminSessionsListResponseDTO resp = new AdminSessionsListResponseDTO();
         List<AdminSessionsListResponseDTO.Item> items = new ArrayList<>();
