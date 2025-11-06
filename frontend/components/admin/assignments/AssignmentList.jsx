@@ -521,9 +521,6 @@ export function AssignmentList({
               const typeStyles = getTypeStyles(assignment.type);
               const statusStyles = getStatusStyles(assignment.status);
               const progress = getProgressPercentage(assignment);
-              const studentCount =
-                assignment.students ?? assignment.studentCount ?? 0;
-              const groupCount = assignment.groups ?? assignment.groupCount ?? 0;
               const {
                 rubricConfigured,
                 timeSlotsConfigured,
@@ -600,19 +597,6 @@ export function AssignmentList({
                         </div>
                         <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
                           {assignment.weight}% of final grade
-                        </span>
-                      </div>
-
-                      <div className="flex items-center text-sm group/item">
-                        <div className="w-5 flex justify-center mr-2">
-                          <i
-                            className="fas fa-users text-gray-400 group-hover/item:text-purple-500 transition-colors duration-300 group-hover:animate-wiggle"
-                            style={{ animationDelay: "0.2s" }}
-                          ></i>
-                        </div>
-                        <span className="text-gray-700 dark:text-gray-300 group-hover/item:text-gray-900 dark:group-hover/item:text-white transition-colors">
-                          {studentCount} students
-                          {groupCount > 0 && `, ${groupCount} groups`}
                         </span>
                       </div>
 

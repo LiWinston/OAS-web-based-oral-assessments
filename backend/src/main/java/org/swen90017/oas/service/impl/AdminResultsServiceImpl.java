@@ -162,6 +162,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         adminResultsMapper.updateAssessmentSubmissionReleaseStatus(
                 assignmentId, submission.getSessionId(),
                 submission.getSubjectType(), submission.getSubjectId(), "NOT_RELEASED", RELEASE_MODE_FULL);
+        adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "NOT_RELEASED");
         String newReleaseStatus = "NOT_RELEASED";
         
         // Send email notification to examiner
@@ -282,6 +283,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         if (notifiedStudents > 0) {
             // Also update the assignment's is_released field to true
             released = true;
+            adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
         }
         
         // Send notification to students if requested and we have students to notify
@@ -357,6 +359,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         boolean released = false;
         if (notifiedStudents > 0) {
             released = true;
+            adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
         }
         
         // Send notification to students if requested and we have students to notify
@@ -431,6 +434,7 @@ public class AdminResultsServiceImpl implements AdminResultsService {
         boolean released = false;
         if (notifiedStudents > 0) {
             released = true;
+            adminResultsMapper.updateAssessmentReleaseStatus(assignmentId, "RELEASED");
         }
         
         // Send notification to students if requested and we have students to notify
