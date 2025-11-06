@@ -18,6 +18,7 @@ export default function ExaminerTrendSummaryBanner({ summary, loading, deviation
   const cohortAverage = summary?.cohort?.averageScore ?? 0;
   const examinerCount = summary?.cohort?.examinerCount ?? 0;
   const submissionCount = summary?.cohort?.submissionCount ?? 0;
+  const sessionCount = summary?.cohort?.sessionCount ?? null;
   const hasMixedSubjects = Boolean(summary?.hasMixedSubjects);
 
   if (loading) {
@@ -59,8 +60,10 @@ export default function ExaminerTrendSummaryBanner({ summary, loading, deviation
           <p className="text-xs uppercase tracking-[0.4em] text-blue-100/70">Examiner Trends</p>
           <h1 className="text-3xl font-semibold">Spot outliers in examiner marking in seconds</h1>
           <p className="max-w-2xl text-sm text-blue-100/80">
-            There are <strong>{examinerCount}</strong> examiner{examinerCount === 1 ? "" : "s"} contributing <strong>{submissionCount}</strong> submission{submissionCount === 1 ? "" : "s"}. Cohort average
-            is <strong>{formatScore(cohortAverage)}</strong>. {distributionContent} {statusMessage}
+            There are <strong>{examinerCount}</strong> examiner{examinerCount === 1 ? "" : "s"} covering <strong>{sessionCount ?? submissionCount}</strong> session{(sessionCount ?? submissionCount) === 1 ? "" : "s"}
+            {submissionCount && sessionCount && submissionCount !== sessionCount ? (
+              <> across <strong>{submissionCount}</strong> submission{submissionCount === 1 ? "" : "s"}</>
+            ) : null}. Cohort average is <strong>{formatScore(cohortAverage)}</strong>. {distributionContent} {statusMessage}
           </p>
           {hasMixedSubjects && (
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-amber-200/90">

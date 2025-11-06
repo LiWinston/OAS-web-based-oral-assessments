@@ -60,6 +60,7 @@ public class AdminReportServiceImpl implements AdminReportService {
         double totalScoreSum = 0.0;
         long totalScoreCount = 0L;
         long totalSubmissionCount = 0L;
+        long totalSessionCount = 0L;
 
         for (Map<String, Object> row : aggregates) {
             ExaminerMarkingTrendSummaryResponseDTO.ExaminerRow dtoRow = new ExaminerMarkingTrendSummaryResponseDTO.ExaminerRow();
@@ -68,10 +69,12 @@ public class AdminReportServiceImpl implements AdminReportService {
             dtoRow.setExaminerName((String) row.get("examiner_name"));
             dtoRow.setExaminerEmail((String) row.get("examiner_email"));
 
+            long sessionCount = toLong(row.get("session_count"));
             long submissionCount = toLong(row.get("submission_count"));
             double submittedScoreSum = toDouble(row.get("submitted_score_sum"));
             long submittedScoreCount = toLong(row.get("submitted_score_count"));
 
+            dtoRow.setSessionCount((int) sessionCount);
             dtoRow.setSubmissionCount((int) submissionCount);
 
             Double average = submittedScoreCount > 0 ? submittedScoreSum / submittedScoreCount : null;
@@ -82,6 +85,7 @@ public class AdminReportServiceImpl implements AdminReportService {
             totalScoreSum += submittedScoreSum;
             totalScoreCount += submittedScoreCount;
             totalSubmissionCount += submissionCount;
+            totalSessionCount += sessionCount;
         }
 
         Double cohortAverage = totalScoreCount > 0 ? totalScoreSum / totalScoreCount : null;
@@ -99,6 +103,8 @@ public class AdminReportServiceImpl implements AdminReportService {
         ExaminerMarkingTrendSummaryResponseDTO.CohortStats cohort = new ExaminerMarkingTrendSummaryResponseDTO.CohortStats();
         cohort.setExaminerCount(examinerRows.size());
         cohort.setSubmissionCount((int) totalSubmissionCount);
+        Integer distinctSessionCount = adminResultsMapper.countDistinctSessionsForAssignment(assignmentId, statusesForCount);
+        cohort.setSessionCount(distinctSessionCount != null ? distinctSessionCount : (int) totalSessionCount);
         cohort.setAverageScore(cohortAverage);
 
         ExaminerMarkingTrendSummaryResponseDTO response = new ExaminerMarkingTrendSummaryResponseDTO();

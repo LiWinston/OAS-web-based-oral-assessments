@@ -21,6 +21,7 @@ public class ExaminerMarkingTrendSummaryResponseDTO {
     public static class CohortStats {
         private Integer examinerCount;
         private Integer submissionCount;
+        private Integer sessionCount;
         private Double averageScore;
     }
 
@@ -43,6 +44,7 @@ public class ExaminerMarkingTrendSummaryResponseDTO {
         private String examinerName;
         private String examinerEmail;
         private Integer submissionCount;
+        private Integer sessionCount;
         private Double averageScore;
         private Double delta;
     }

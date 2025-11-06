@@ -28,6 +28,7 @@ const buildSummaryDefault = (assignmentId) => ({
   cohort: {
     examinerCount: 0,
     submissionCount: 0,
+    sessionCount: 0,
     averageScore: 0,
   },
   extremes: {
@@ -52,6 +53,7 @@ const normaliseExaminer = (entry, cohortAverage) => ({
   examinerId: entry?.examinerId ?? entry?.id ?? null,
   examinerName: entry?.examinerName ?? entry?.name ?? "",
   examinerEmail: entry?.examinerEmail ?? entry?.email ?? null,
+  sessionCount: toNumber(entry?.sessionCount ?? entry?.sessions ?? entry?.session_count, 0),
   submissionCount: toNumber(entry?.submissionCount ?? entry?.sessions ?? entry?.samples, 0),
   averageScore: toNumber(entry?.averageScore ?? entry?.avgScore, 0),
   delta: toNumber(entry?.delta ?? (entry?.averageScore ?? 0) - (cohortAverage ?? 0), 0),
@@ -90,6 +92,7 @@ const normaliseSummary = (payload, assignmentId) => {
     cohort: {
       examinerCount: toNumber(payload?.cohort?.examinerCount, examiners.length),
       submissionCount: toNumber(payload?.cohort?.submissionCount, 0),
+      sessionCount: toNumber(payload?.cohort?.sessionCount, 0),
       averageScore: cohortAverage,
     },
     extremes: {

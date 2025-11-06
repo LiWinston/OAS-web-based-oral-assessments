@@ -5,13 +5,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge.jsx";
 import clsx from "clsx";
 
-const HIGH_SCORE_THRESHOLD = 80;
-const LOW_SCORE_THRESHOLD = 50;
 const DELTA_THRESHOLD = 5;
 
 const columns = [
   { id: "examinerName", label: "Examiner", width: "40%" },
-  { id: "submissionCount", label: "Sessions", align: "right", width: "15%" },
+  { id: "sessionCount", label: "Sessions", align: "right", width: "15%" },
   { id: "averageScore", label: "Average score", align: "right", width: "20%" },
   { id: "delta", label: "Δ vs overall", align: "right", width: "25%" },
 ];
@@ -40,24 +38,24 @@ export default function ExaminerTrendTable({
   hasMixedSubjects,
   cohortAverage,
 }) {
-const sortedRows = useMemo(() => {
-  if (!Array.isArray(rows)) return [];
-  const next = [...rows];
-  next.sort((a, b) => {
-    const aValue = a?.[sortBy] ?? 0;
-    const bValue = b?.[sortBy] ?? 0;
-    const aIsNullish = a?.[sortBy] === null || a?.[sortBy] === undefined;
-    const bIsNullish = b?.[sortBy] === null || b?.[sortBy] === undefined;
+  const sortedRows = useMemo(() => {
+    if (!Array.isArray(rows)) return [];
+    const next = [...rows];
+    next.sort((a, b) => {
+      const aValue = a?.[sortBy] ?? 0;
+      const bValue = b?.[sortBy] ?? 0;
+      const aIsNullish = a?.[sortBy] === null || a?.[sortBy] === undefined;
+      const bIsNullish = b?.[sortBy] === null || b?.[sortBy] === undefined;
 
-    if (aIsNullish && bIsNullish) return 0;
-    if (aIsNullish) return 1;
-    if (bIsNullish) return -1;
+      if (aIsNullish && bIsNullish) return 0;
+      if (aIsNullish) return 1;
+      if (bIsNullish) return -1;
 
-    if (aValue === bValue) return 0;
-    if (sortDirection === "asc") {
-      return aValue > bValue ? 1 : -1;
-    }
-    return aValue > bValue ? -1 : 1;
+      if (aValue === bValue) return 0;
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      }
+      return aValue > bValue ? -1 : 1;
     });
     return next;
   }, [rows, sortBy, sortDirection]);
@@ -141,10 +139,11 @@ const sortedRows = useMemo(() => {
         </TableHeader>
         <TableBody>
           {sortedRows.map((row) => {
-            const isHigh = row.averageScore >= HIGH_SCORE_THRESHOLD;
-            const isLow = row.averageScore > 0 && row.averageScore < LOW_SCORE_THRESHOLD;
-            const delta = row.delta ?? 0;
-            const showDeltaHighlight = Math.abs(delta) >= DELTA_THRESHOLD;
+            const delta = typeof row.delta === "number" ? row.delta : null;
+            const isHigh = delta !== null && delta >= DELTA_THRESHOLD;
+            const isLow = delta !== null && delta <= -DELTA_THRESHOLD;
+            const showDeltaHighlight = delta !== null && Math.abs(delta) >= DELTA_THRESHOLD;
+            const sessionCount = row.sessionCount ?? row.submissionCount ?? 0;
 
             return (
               <TableRow
@@ -161,7 +160,7 @@ const sortedRows = useMemo(() => {
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium text-gray-700 dark:text-gray-200">
-                  {formatNumber(row.submissionCount, 0)}
+                  {formatNumber(sessionCount, 0)}
                 </TableCell>
                 <TableCell className="text-right">
                   <span

@@ -133,6 +133,7 @@
             asub.examiner_id AS examiner_id,
             u.user_name AS examiner_name,
             u.email AS examiner_email,
+            COUNT(DISTINCT asub.session_id) AS session_count,
             COUNT(*) AS submission_count,
             SUM(CASE WHEN asub.status = 'SUBMITTED' THEN 1 ELSE 0 END) AS submitted_count,
             SUM(CASE WHEN asub.status = 'SUBMITTED' AND asub.total_score IS NOT NULL THEN asub.total_score ELSE 0 END) AS submitted_score_sum,
@@ -148,9 +149,21 @@
         </if>
         GROUP BY asub.examiner_id, u.user_name, u.email
         <if test="minSessions != null and minSessions &gt; 0">
-            HAVING COUNT(*) &gt;= #{minSessions}
+            HAVING COUNT(DISTINCT asub.session_id) &gt;= #{minSessions}
         </if>
         ORDER BY u.user_name ASC
+    </select>
+
+    <select id="countDistinctSessionsForAssignment" resultType="java.lang.Integer">
+        SELECT COUNT(DISTINCT asub.session_id)
+        FROM assessment_submission AS asub
+        WHERE asub.assignment_id = #{assignmentId}
+        <if test="statuses != null and statuses.size() &gt; 0">
+            AND asub.status IN
+            <foreach collection="statuses" item="status" open="(" separator="," close=")">
+                #{status}
+            </foreach>
+        </if>
     </select>
 
     <!-- Count total assessments for pagination -->

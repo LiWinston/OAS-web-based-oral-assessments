@@ -49,14 +49,15 @@ class AdminReportServiceImplTest {
         when(assignmentMapper.selectById(assignmentId)).thenReturn(assignment);
 
         List<Map<String, Object>> aggregates = new ArrayList<>();
-        aggregates.add(buildRow(11L, "Alice", "alice@example.com", 3L, 3L,
+        aggregates.add(buildRow(11L, "Alice", "alice@example.com", 1L, 3L, 3L,
                 new BigDecimal("210.0"), 3L));
-        aggregates.add(buildRow(12L, "Bob", "bob@example.com", 3L, 3L,
+        aggregates.add(buildRow(12L, "Bob", "bob@example.com", 2L, 3L, 3L,
                 new BigDecimal("240.0"), 3L));
-        aggregates.add(buildRow(13L, "Charlie", "charlie@example.com", 2L, 0L,
+        aggregates.add(buildRow(13L, "Charlie", "charlie@example.com", 1L, 2L, 0L,
                 BigDecimal.ZERO, 0L));
 
         when(adminResultsMapper.listExaminerSummary(eq(assignmentId), anyList(), eq(0))).thenReturn(aggregates);
+        when(adminResultsMapper.countDistinctSessionsForAssignment(eq(assignmentId), anyList())).thenReturn(3);
         when(assessmentSubmissionMapper.findDistinctSubjectTypesByAssignment(assignmentId))
                 .thenReturn(java.util.Arrays.asList("INDIVIDUAL", "GROUP"));
 
@@ -67,20 +68,24 @@ class AdminReportServiceImplTest {
         assertThat(response.getAssignmentId()).isEqualTo(assignmentId);
         assertThat(response.getCohort().getExaminerCount()).isEqualTo(3);
         assertThat(response.getCohort().getSubmissionCount()).isEqualTo(8);
+        assertThat(response.getCohort().getSessionCount()).isEqualTo(3);
         assertThat(response.getCohort().getAverageScore()).isEqualTo(75.0);
         assertThat(response.getHasMixedSubjects()).isTrue();
 
         assertThat(response.getExaminers()).hasSize(3);
         ExaminerMarkingTrendSummaryResponseDTO.ExaminerRow first = response.getExaminers().get(0);
         assertThat(first.getExaminerName()).isEqualTo("Alice");
+        assertThat(first.getSessionCount()).isEqualTo(1);
         assertThat(first.getAverageScore()).isEqualTo(70.0);
         assertThat(first.getDelta()).isEqualTo(-5.0);
 
         ExaminerMarkingTrendSummaryResponseDTO.ExaminerRow second = response.getExaminers().get(1);
+        assertThat(second.getSessionCount()).isEqualTo(2);
         assertThat(second.getAverageScore()).isEqualTo(80.0);
         assertThat(second.getDelta()).isEqualTo(5.0);
 
         ExaminerMarkingTrendSummaryResponseDTO.ExaminerRow third = response.getExaminers().get(2);
+        assertThat(third.getSessionCount()).isEqualTo(1);
         assertThat(third.getAverageScore()).isNull();
         assertThat(third.getDelta()).isNull();
 
@@ -104,6 +109,7 @@ class AdminReportServiceImplTest {
     private Map<String, Object> buildRow(Long examinerId,
                                          String name,
                                          String email,
+                                         Long sessionCount,
                                          Long submissionCount,
                                          Long submittedCount,
                                          BigDecimal scoreSum,
@@ -112,6 +118,7 @@ class AdminReportServiceImplTest {
         map.put("examiner_id", examinerId);
         map.put("examiner_name", name);
         map.put("examiner_email", email);
+        map.put("session_count", sessionCount);
         map.put("submission_count", submissionCount);
         map.put("submitted_count", submittedCount);
         map.put("submitted_score_sum", scoreSum);
@@ -119,4 +126,3 @@ class AdminReportServiceImplTest {
         return map;
     }
 }
-

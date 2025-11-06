@@ -194,6 +194,11 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
             @Param("minSessions") Integer minSessions
     );
 
+    Integer countDistinctSessionsForAssignment(
+            @Param("assignmentId") Long assignmentId,
+            @Param("statuses") List<String> statuses
+    );
+
     /**
      * Get sessions for an assignment with participant count (Step 1)
      */
