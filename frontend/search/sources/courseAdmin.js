@@ -206,13 +206,6 @@ const QUICK_LINKS = [
     keywords: 'reports scheduling staffing trends 覆盖 排班 报表',
   },
   {
-    id: 'quick-support',
-    title: 'Support Centre',
-    subtitle: 'Get help and contact support',
-    href: '/admin/support',
-    keywords: 'support help assistance contact',
-  },
-  {
     id: 'quick-docs',
     title: 'Documentation',
     subtitle: 'Guides, flows, and release notes',

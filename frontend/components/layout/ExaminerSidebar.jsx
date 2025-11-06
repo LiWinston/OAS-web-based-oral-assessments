@@ -38,7 +38,6 @@ const navigationItems = [
         icon: "fas fa-book-open",
         label: "Documentation",
       },
-      { href: "/examiner/support", icon: "fas fa-headset", label: "Support" },
     ],
   },
 ];

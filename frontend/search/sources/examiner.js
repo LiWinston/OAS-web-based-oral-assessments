@@ -28,13 +28,6 @@ const QUICK_LINKS = [
     href: '/examiner/assessment',
     keywords: 'marking assessment rubric grading 评分 打分 批改 评审 评分表',
   },
-  {
-    id: 'examiner-support',
-    title: 'Support Centre',
-    subtitle: 'Guides, FAQs, and contact channels',
-    href: '/examiner/support',
-    keywords: 'support help documentation 帮助 支持 文档',
-  },
 ];
 
 const formatDate = (iso) => {

@@ -37,13 +37,6 @@ const QUICK_LINKS = [
     keywords: 'groups teams collaboration members 小组 团队 分组 组员',
   },
   {
-    id: 'student-support',
-    title: 'Support Hub',
-    subtitle: 'Guides, FAQs, and live help',
-    href: '/student/support',
-    keywords: 'support help faq guidance 帮助 支持 常见问题 指南',
-  },
-  {
     id: 'student-help-centre',
     title: 'Help Centre',
     subtitle: 'Assessment policies and contact links',

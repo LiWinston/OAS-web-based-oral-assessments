@@ -2,115 +2,11 @@
  * Student Groups Service
  * 
  * Service layer for student groups-related API calls following the API contracts.
- * Implements the endpoints specified in Student-Groups-API-Contracts(Final).md
- * with mock data that matches the expected response format.
+ * Implements the endpoints specified in Student-Groups-API-Contracts(Final).md.
  */
 
 import apiClient, { api } from './apiClient';
 import useAuthStore from '../store/authStore';
-
-// Mock data following the API contract data models
-const mockGroupsData = {
-  // Student groups overview - paginated response
-  groupsOverview: {
-    pageNum: 0,
-    pageSize: 20,
-    total: 2,
-    data: [
-      {
-        groupId: 501,
-        groupName: "Team Alpha",
-        assignmentId: 101,
-        assignmentName: "Oral Exam 1",
-        courseCode: "COMP90082",
-        semester: "2025 S1",
-        memberCount: 5,
-        status: "ACTIVE"
-      },
-      {
-        groupId: 502,
-        groupName: "Team Beta",
-        assignmentId: 102,
-        assignmentName: "Project Defense",
-        courseCode: "COMP30022",
-        semester: "2025 S1",
-        memberCount: 4,
-        status: "ACTIVE"
-      }
-    ]
-  },
-
-  // Individual group details with full member information
-  groupDetails: {
-    501: {
-      groupId: 501,
-      groupName: "Team Alpha",
-      assignmentId: 101,
-      assignmentName: "Oral Exam 1",
-      courseCode: "COMP90082",
-      semester: "2025 S1",
-      members: [
-        {
-          studentId: 201,
-          name: "Bob Student",
-          email: "bob@student.unimelb.edu.au"
-        },
-        {
-          studentId: 202,
-          name: "Ava Student",
-          email: "ava@student.unimelb.edu.au"
-        },
-        {
-          studentId: 203,
-          name: "Charlie Brown",
-          email: "charlie@student.unimelb.edu.au"
-        },
-        {
-          studentId: 204,
-          name: "Diana Prince",
-          email: "diana@student.unimelb.edu.au"
-        },
-        {
-          studentId: 205,
-          name: "Eve Adams",
-          email: "eve@student.unimelb.edu.au",
-          isCurrentUser: true // Marks the current student
-        }
-      ]
-    },
-    502: {
-      groupId: 502,
-      groupName: "Team Beta",
-      assignmentId: 102,
-      assignmentName: "Project Defense", 
-      courseCode: "COMP30022",
-      semester: "2025 S1",
-      members: [
-        {
-          studentId: 206,
-          name: "Frank Miller",
-          email: "frank@student.unimelb.edu.au"
-        },
-        {
-          studentId: 207,
-          name: "Grace Hopper",
-          email: "grace@student.unimelb.edu.au"
-        },
-        {
-          studentId: 208,
-          name: "Henry Ford",
-          email: "henry@student.unimelb.edu.au"
-        },
-        {
-          studentId: 205,
-          name: "Eve Adams", 
-          email: "eve@student.unimelb.edu.au",
-          isCurrentUser: true
-        }
-      ]
-    }
-  }
-};
 
 // Note: do not hardcode a fallback student id; always read from auth store
 
@@ -120,7 +16,6 @@ const mockGroupsData = {
  */
 class StudentGroupsService {
   constructor() {
-    this.useMock = process.env.NEXT_PUBLIC_USE_MOCK_GROUPS === 'true';
     // simple in-memory Last-Modified cache keyed by request signature
     this.lastModifiedCache = new Map();
     // cache last successful wrapped responses keyed by request signature
@@ -174,15 +69,6 @@ class StudentGroupsService {
         sort = 'semester_desc'
       } = options;
 
-      if (this.useMock) {
-        // Mock path
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve({ success: true, code: 'OK', data: mockGroupsData.groupsOverview });
-          }, 200);
-        });
-      }
-
       // Real API path
       const key = `GET:/api/students/${studentId}/groups?${status}|${pageNum}|${pageSize}|${sort}`;
       const config = this.buildConfigWithIMS(key, { params: { status, pageNum, pageSize, sort } });
@@ -203,7 +89,16 @@ class StudentGroupsService {
         // Return last successful REAL response if cached; otherwise fallback to previous behavior
         const cached = this.responseBodyCache.get(key);
         if (cached) return cached;
-        return { success: true, code: 'OK', data: mockGroupsData.groupsOverview };
+        return {
+          success: true,
+          code: 'OK',
+          data: {
+            pageNum,
+            pageSize,
+            total: 0,
+            data: [],
+          },
+        };
       }
       this.handleConditionalResponse(key, response);
 
@@ -254,31 +149,6 @@ class StudentGroupsService {
    */
   async getGroupDetails(studentId, groupId) {
     try {
-      if (this.useMock) {
-        // Mock implementation with membership validation
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            const groupDetails = mockGroupsData.groupDetails[groupId];
-            if (!groupDetails) {
-              const error = new Error('Group not found or archived');
-              error.response = { status: 404 };
-              error.code = 'NOT_FOUND';
-              reject(error);
-              return;
-            }
-            const isMember = groupDetails.members.some(m => m.studentId === MOCK_CURRENT_USER_ID);
-            if (!isMember) {
-              const error = new Error('Access forbidden - not a member of this group');
-              error.response = { status: 403 };
-              error.code = 'FORBIDDEN';
-              reject(error);
-              return;
-            }
-            resolve({ success: true, code: 'OK', data: { group: groupDetails } });
-          }, 250);
-        });
-      }
-
       // Real API path
       const key = `GET:/api/students/${studentId}/groups/${groupId}`;
       const config = this.buildConfigWithIMS(key);
@@ -297,7 +167,11 @@ class StudentGroupsService {
       if (response.status === 304) {
         const cached = this.responseBodyCache.get(key);
         if (cached) return cached;
-        return { success: true, code: 'OK', data: { group: mockGroupsData.groupDetails[groupId] } };
+        return {
+          success: true,
+          code: 'OK',
+          data: { group: null },
+        };
       }
       this.handleConditionalResponse(key, response);
       const wrapped = response.data;

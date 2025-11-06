@@ -40,11 +40,9 @@ export default function OnboardingWizard({
   // Configure steps based on role
   const getSteps = () => {
     const steps = ['welcome', 'basicInfo'];
-    
     if (isAdmin) {
       steps.push('department');
     }
-    
     steps.push('password', 'complete');
     return steps;
   };

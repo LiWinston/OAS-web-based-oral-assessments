@@ -2,8 +2,8 @@
  * Course Admin Timeslot Service (legacy export)
  *
  * Kept for backward compatibility. Now re-exports the unified service
- * implementation that calls real endpoints but returns mock-shaped data.
- */
+ * implementation that calls the real backend and returns normalized data.
+*/
 
 export { courseAdminTimeslotService } from './courseAdminTimeslotService.js';
 
