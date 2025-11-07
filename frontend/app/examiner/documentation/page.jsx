@@ -25,12 +25,6 @@ export default function ExaminerDocumentation() {
       label: 'Open Marking Workspace',
       icon: 'fas fa-marker',
       variant: 'ghost'
-    },
-    {
-      href: '/examiner/results',
-      label: 'Review Submitted Assessments',
-      icon: 'fas fa-clipboard-list',
-      variant: 'ghost'
     }
   ]), []);
 
@@ -52,12 +46,6 @@ export default function ExaminerDocumentation() {
       icon: 'fas fa-clipboard-check',
       title: 'Live Marking Interface',
       description: 'Capture rubric scores, comments, and save drafts during assessments.'
-    },
-    {
-      href: '/examiner/results',
-      icon: 'fas fa-chart-bar',
-      title: 'Assessment Archive',
-      description: 'Track submission states, download history, and respond to reopen requests.'
     },
     {
       href: '/examiner/profile',

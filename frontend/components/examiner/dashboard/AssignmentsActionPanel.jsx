@@ -25,7 +25,7 @@ export function AssignmentsActionPanel({
   assignments = [],
   isLoading = false,
   scheduleHref = "/examiner/assessment",
-  resultsHref = "/examiner/results",
+  resultsHref = "/examiner/assessment",
 }) {
   return (
     <Card className="dashboard-card">

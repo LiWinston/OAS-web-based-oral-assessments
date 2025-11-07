@@ -136,11 +136,7 @@ export default function UnifiedProfilePage() {
         router.push('/examiner/schedule');
         break;
       case 'feedback':
-        if (data) {
-          router.push(`/examiner/results/${data}`);
-        } else {
-          router.push('/examiner/results');
-        }
+        router.push('/examiner/assessment');
         break;
       case 'courses':
         router.push('/admin/courses');

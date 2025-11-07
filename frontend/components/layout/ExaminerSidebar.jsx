@@ -27,7 +27,6 @@ const navigationItems = [
         icon: "fas fa-clipboard-check",
         label: "Assessment",
       },
-      { href: "/examiner/results", icon: "fas fa-chart-bar", label: "Results" },
     ],
   },
   {

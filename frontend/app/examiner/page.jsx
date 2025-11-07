@@ -9,10 +9,8 @@ import { AssignmentsActionPanel } from "@/components/examiner/dashboard/Assignme
 import { TodaysSchedule } from "@/components/examiner/dashboard/TodaysSchedule";
 import { PendingFeedback } from "@/components/examiner/dashboard/PendingFeedback";
 import { WeeklyCalendar } from "@/components/examiner/dashboard/WeeklyCalendar";
-import { RecentResults } from "@/components/examiner/dashboard/RecentResults";
 import { Button } from "@/components/ui/button";
 import { examinerTimeslotService } from "@/services/examinerTimeslotService";
-import examinerResultsService from "@/services/examinerResultsService";
 import formatVenue from "@/utils/formatVenue";
 
 function startOfDay(date) {
@@ -156,14 +154,6 @@ function normalizeAssignmentsResponse(response) {
   return [];
 }
 
-function normalizeAssessmentsResponse(response) {
-  if (!response || response.success === false) return [];
-  const payload = response.data;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload)) return payload;
-  return [];
-}
-
 export default function ExaminerDashboard() {
   const { user, examinerId, isValidExaminer } = useExaminerAuth();
   const today = startOfDay(new Date());
@@ -186,13 +176,6 @@ export default function ExaminerDashboard() {
     staleTime: 60 * 1000,
     refetchInterval: 60 * 1000,
     queryFn: () => examinerTimeslotService.getExaminerSchedule(examinerId),
-  });
-
-  const resultsQuery = useQuery({
-    queryKey: ["examiner-dashboard", "results", examinerId],
-    enabled: isValidExaminer,
-    staleTime: 5 * 60 * 1000,
-    queryFn: () => examinerResultsService.listResults(examinerId, { pageSize: 100 }),
   });
 
   const assignmentsList = useMemo(
@@ -241,86 +224,16 @@ export default function ExaminerDashboard() {
     });
   }, [scheduleQuery.data]);
 
-  const assessmentItems = useMemo(
-    () =>
-      normalizeAssessmentsResponse(resultsQuery.data).map((item) => {
-        const assessmentStatus = (item.assessmentStatus || item.status || "").toUpperCase();
-        const releaseStatus = (item.releaseStatus || "").toUpperCase();
-        const sessionId = item.session?.id ?? item.sessionId;
-        const assignmentId = item.assignment?.id ?? item.assignmentId;
-        const submittedAt = item.submittedAt ? new Date(item.submittedAt) : null;
-        const updatedAt = item.updatedAt ? new Date(item.updatedAt) : submittedAt;
-
-        let entityLabel = "";
-        if (item.entity?.kind === "GROUP") {
-          entityLabel =
-            item.entity?.group?.groupName ||
-            item.entity?.group?.groupId ||
-            "Group";
-        } else if (item.entity?.kind === "INDIVIDUAL") {
-          entityLabel =
-            item.entity?.student?.name ||
-            item.entity?.student?.studentId ||
-            "Student";
-        }
-
-        const statusLabel =
-          releaseStatus === "RELEASED"
-            ? "Released"
-            : assessmentStatus === "SUBMITTED"
-            ? "Submitted"
-            : assessmentStatus === "DRAFT"
-            ? "Draft"
-            : assessmentStatus === "REOPENED"
-            ? "Reopened"
-            : "Pending";
-
-        return {
-          id: item.assessmentId || item.submissionId,
-          sessionId,
-          assignmentId,
-          assignmentName: item.assignment?.name || item.assignmentName,
-          courseCode: item.assignment?.courseCode || item.courseCode,
-          assessmentStatus,
-          releaseStatus,
-          submittedAt,
-          updatedAt,
-          entityLabel,
-          statusLabel,
-          totalScore: item.totalScore ?? item.examinerScorePct1dp ?? null,
-        };
-      }),
-    [resultsQuery.data]
-  );
-
-  const assessmentsBySessionId = useMemo(() => {
-    const map = new Map();
-    assessmentItems.forEach((item) => {
-      if (!item.sessionId) return;
-      const existing = map.get(item.sessionId);
-      const candidateDate = item.updatedAt || item.submittedAt || new Date(0);
-      const existingDate = existing?.updatedAt || existing?.submittedAt || new Date(0);
-      if (!existing || candidateDate > existingDate) {
-        map.set(item.sessionId, item);
-      }
-    });
-    return map;
-  }, [assessmentItems]);
-
   const scheduleSessions = useMemo(
     () =>
       rawScheduleSessions.map((session) => {
-        const assessment = assessmentsBySessionId.get(session.sessionId);
-        const status = (assessment?.assessmentStatus || "").toUpperCase();
-        const releaseStatus = (assessment?.releaseStatus || "").toUpperCase();
-        let markingStatus = status || "UNMARKED";
-        if (releaseStatus === "RELEASED") markingStatus = "SUBMITTED";
+        const normalizedStatus = (session.markingStatus || session.status || "").toUpperCase();
         return {
           ...session,
-          markingStatus,
+          markingStatus: normalizedStatus || "UNMARKED",
         };
       }),
-    [rawScheduleSessions, assessmentsBySessionId]
+    [rawScheduleSessions]
   );
 
   const todaySessions = useMemo(
@@ -343,7 +256,6 @@ export default function ExaminerDashboard() {
   const queueItems = useMemo(() => {
     const now = new Date();
       return upcomingSessions.map((session) => {
-        const assessment = assessmentsBySessionId.get(session.sessionId);
         const markingStatus = session.markingStatus;
         const isSubmitted = markingStatus === "SUBMITTED";
         const isDraft = markingStatus === "DRAFT" || markingStatus === "REOPENED";
@@ -406,33 +318,21 @@ export default function ExaminerDashboard() {
           timezone: session.timezone,
         };
       });
-  }, [upcomingSessions, assessmentsBySessionId, today]);
+  }, [upcomingSessions, today]);
 
   const stats = useMemo(() => {
     const sessionsToday = todaySessions.length;
     const pendingMarking = queueItems.filter((item) => item.urgency !== "COMPLETED").length;
     const pendingDueToday = queueItems.filter((item) => item.urgency === "OVERDUE").length;
 
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(today.getDate() - 7);
-
-    const submittedThisWeek = assessmentItems.filter((item) => {
-      if (!item.submittedAt) return false;
-      return item.submittedAt >= sevenDaysAgo && item.submittedAt <= new Date();
-    });
-
-    const studentsAssessedWeek = new Set(
-      submittedThisWeek.map((item) => `${item.assignmentId}-${item.sessionId}-${item.entityLabel}`)
-    ).size;
-
     return {
       sessionsToday,
       pendingMarking,
       pendingDueToday,
-      submittedThisWeek: submittedThisWeek.length,
-      studentsAssessedWeek,
+      submittedThisWeek: 0,
+      studentsAssessedWeek: 0,
     };
-  }, [todaySessions, queueItems, assessmentItems, today]);
+  }, [todaySessions, queueItems]);
 
   const weeklyCalendar = useMemo(() => {
     const days = [];
@@ -658,36 +558,6 @@ export default function ExaminerDashboard() {
       );
   }, [assignmentsList, scheduleSessions, today, queueAssignmentsMap]);
 
-  const recentResults = useMemo(
-    () =>
-      assessmentItems
-        .filter((item) => item.assessmentStatus === "SUBMITTED" || item.releaseStatus === "RELEASED")
-        .sort((a, b) => (b.submittedAt || new Date(0)) - (a.submittedAt || new Date(0)))
-        .map((item) => ({
-          id: item.id,
-          title: item.assignmentName || "Assessment",
-          courseCode: item.courseCode || "",
-          entity: item.entityLabel,
-          status: item.releaseStatus === "RELEASED" ? "RELEASED" : "SUBMITTED",
-          statusLabel:
-            item.releaseStatus === "RELEASED"
-              ? "Released"
-              : item.assessmentStatus === "SUBMITTED"
-              ? "Submitted"
-              : item.assessmentStatus,
-          submittedAt: item.submittedAt
-            ? item.submittedAt.toLocaleString("en-AU", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              })
-            : "",
-          scoreLabel: item.totalScore != null ? `${Math.round(item.totalScore)} pts` : null,
-        })),
-    [assessmentItems]
-  );
-
   if (!isValidExaminer) {
     return (
       <div className="space-y-6">
@@ -706,7 +576,7 @@ export default function ExaminerDashboard() {
     );
   }
 
-  const hasError = assignmentsQuery.isError || scheduleQuery.isError || resultsQuery.isError;
+  const hasError = assignmentsQuery.isError || scheduleQuery.isError;
 
   return (
     <div className="space-y-6">
@@ -726,10 +596,10 @@ export default function ExaminerDashboard() {
               Manage schedule
             </Button>
           </Link>
-          <Link href="/examiner/results">
+          <Link href="/examiner/assessment">
             <Button variant="outline">
               <i className="fas fa-list-check mr-2" />
-              Review submissions
+              Open marking workspace
             </Button>
           </Link>
         </div>
@@ -761,7 +631,7 @@ export default function ExaminerDashboard() {
 
           <PendingFeedback
             items={queueItems}
-            isLoading={scheduleQuery.isLoading || resultsQuery.isLoading}
+            isLoading={scheduleQuery.isLoading}
           />
         </div>
 
@@ -785,11 +655,6 @@ export default function ExaminerDashboard() {
                   : `/examiner/assessment?sessionId=${session.sessionId}`,
             }))}
             isLoading={scheduleQuery.isLoading}
-          />
-
-          <RecentResults
-            items={recentResults}
-            isLoading={resultsQuery.isLoading}
           />
 
           <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-5 shadow-sm">

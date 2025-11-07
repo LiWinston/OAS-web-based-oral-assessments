@@ -57,7 +57,7 @@ function renderSkeletonItems(count = 3) {
 export function PendingFeedback({
   items = [],
   isLoading = false,
-  resultsHref = "/examiner/results",
+  workspaceHref = "/examiner/assessment",
 }) {
   const [expanded, setExpanded] = useState(false);
   const overdueCount = items.filter((item) => item.urgency === "OVERDUE").length;
@@ -195,7 +195,7 @@ export function PendingFeedback({
                         </TooltipContent>
                       </Tooltip>
                     ) : (
-                      <Link href={item.actionHref || resultsHref} className="inline-flex">
+                      <Link href={item.actionHref || workspaceHref} className="inline-flex">
                         <Button size="sm" className={urgency.buttonClass}>
                           <i className={`fas ${item.actionIcon || "fa-arrow-right"} mr-2`} />
                           {item.actionLabel || "Open marking"}
@@ -228,8 +228,8 @@ export function PendingFeedback({
               <i className="fas fa-check-circle text-4xl mb-2 text-green-500" />
               <p>All marking up to date.</p>
             </div>
-            <Link href={resultsHref}>
-              <Button variant="outline">View recent submissions</Button>
+            <Link href={workspaceHref}>
+              <Button variant="outline">Open marking workspace</Button>
             </Link>
           </div>
         )}
