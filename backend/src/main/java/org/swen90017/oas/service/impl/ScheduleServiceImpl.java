@@ -16,12 +16,10 @@ import org.swen90017.oas.entity.ExaminerAssignmentLimit;
 import org.swen90017.oas.entity.SlotSession;
 import org.swen90017.oas.exception.BusinessException;
 import org.swen90017.oas.mapper.AssignmentMapper;
-import org.swen90017.oas.mapper.AssignmentSessionConfigMapper;
 import org.swen90017.oas.mapper.AssignmentParticipantMapper;
 import org.swen90017.oas.mapper.ExaminerAssignmentLimitMapper;
 import org.swen90017.oas.mapper.SlotSessionMapper;
 import org.swen90017.oas.mapper.SessionExaminerMapper;
-import org.swen90017.oas.service.EmailService;
 import org.swen90017.oas.service.ScheduleService;
 
 import java.time.LocalDateTime;
@@ -38,10 +36,8 @@ import java.util.List;
 public class ScheduleServiceImpl implements ScheduleService {
 
     private final AssignmentMapper assignmentMapper;
-    private final AssignmentSessionConfigMapper assignmentSessionConfigMapper;
     private final AssignmentParticipantMapper assignmentParticipantMapper;
     private final ExaminerAssignmentLimitMapper examinerAssignmentLimitMapper;
-    private final EmailService emailService;
     private final SlotSessionMapper slotSessionMapper;
     private final SessionExaminerMapper sessionExaminerMapper;
 
@@ -127,6 +123,27 @@ public class ScheduleServiceImpl implements ScheduleService {
         response.setReleasedAt(releasedAt);
         response.setNotificationsSent(notifications);
         response.setMessage("Schedule released successfully to " + audience);
+
+        // Enqueue notifications (do not impact main flow)
+        try {
+            if (Boolean.TRUE.equals(request.getNotifyStudents()) && "students".equals(audience)) {
+                // lazy load via application context to avoid cyclic deps not necessary here
+                org.swen90017.oas.service.NotificationQueueService queueService =
+                        org.swen90017.oas.utils.SpringUtils.getBean(org.swen90017.oas.service.NotificationQueueService.class);
+                if (queueService != null) {
+                    queueService.enqueueScheduleReleaseToStudents(assignmentId, request.getReleaseMessage());
+                }
+            }
+            if (Boolean.TRUE.equals(request.getNotifyExaminers()) && "examiners".equals(audience)) {
+                org.swen90017.oas.service.NotificationQueueService queueService =
+                        org.swen90017.oas.utils.SpringUtils.getBean(org.swen90017.oas.service.NotificationQueueService.class);
+                if (queueService != null) {
+                    queueService.enqueueScheduleReleaseToExaminers(assignmentId, request.getReleaseMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to enqueue schedule notifications for assignment {}: {}", assignmentId, e.getMessage(), e);
+        }
         
         return response;
     }
@@ -209,28 +226,5 @@ public class ScheduleServiceImpl implements ScheduleService {
         return summary;
     }
 
-    /**
-     * Send notifications (mock implementation)
-     */
-    private ReleaseScheduleResponseDTO.NotificationsSentDTO sendNotifications(Long assignmentId, ReleaseScheduleRequestDTO request) {
-        ReleaseScheduleResponseDTO.NotificationsSentDTO notifications = 
-            new ReleaseScheduleResponseDTO.NotificationsSentDTO();
-        
-        // Mock notification counts
-        // In real implementation, would query for students and examiners and send emails
-        notifications.setStudents(request.getNotifyStudents() ? 45 : 0);
-        notifications.setExaminers(request.getNotifyExaminers() ? 6 : 0);
-        
-        if (request.getNotifyStudents()) {
-            log.info("Would send schedule release notification to students for assignment {}", assignmentId);
-            // emailService.sendScheduleNotificationToStudents(assignmentId, request.getReleaseMessage());
-        }
-        
-        if (request.getNotifyExaminers()) {
-            log.info("Would send schedule release notification to examiners for assignment {}", assignmentId);
-            // emailService.sendScheduleNotificationToExaminers(assignmentId, request.getReleaseMessage());
-        }
-        
-        return notifications;
-    }
+    // previous mock notification method removed; now using queue-based dispatcher
 }

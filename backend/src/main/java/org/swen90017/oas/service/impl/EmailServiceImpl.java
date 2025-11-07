@@ -421,6 +421,110 @@ public class EmailServiceImpl implements EmailService {
             sendHtmlBatch(batch);
         }
     }
+
+    @Override
+    public void sendScheduleReleaseEmailToStudent(SysUser student, String courseName, String assignmentName, String message) {
+        if (student == null || student.getEmail() == null || student.getEmail().trim().isEmpty()) return;
+        try {
+            String to = student.getEmail();
+            String subject = "Schedule Released: " + (assignmentName != null ? assignmentName : "Assessment");
+            String loginLink = "https://frontend-oas1.anzupop.com/login";
+
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+
+            String plain = "Hi " + (student.getUserName() != null ? student.getUserName() : "there") + ",\n\n"
+                    + "The assessment schedule is now available.\n"
+                    + (courseName != null ? ("Course: " + courseName + "\n") : "")
+                    + (assignmentName != null ? ("Assignment: " + assignmentName + "\n\n") : "\n")
+                    + (message != null ? (message + "\n\n") : "")
+                    + "Please log in to view details and book your time slot: " + loginLink + "\n\n"
+                    + "Best regards,\nOAS Team";
+
+            String html = buildScheduleReleaseHtml(student.getUserName(), courseName, assignmentName, message, loginLink, true);
+            helper.setText(plain, html);
+
+            mailSender.send(mime);
+        } catch (Exception e) {
+            log.error("Failed to send schedule release email to student {}: {}", student.getUserId(), e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendScheduleReleaseEmailToExaminer(SysUser examiner, String courseName, String assignmentName, String message) {
+        if (examiner == null || examiner.getEmail() == null || examiner.getEmail().trim().isEmpty()) return;
+        try {
+            String to = examiner.getEmail();
+            String subject = "Schedule Released: " + (assignmentName != null ? assignmentName : "Assessment");
+            String loginLink = "https://frontend-oas1.anzupop.com/login";
+
+            MimeMessage mime = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+            helper.setTo(to);
+            helper.setSubject(subject);
+
+            String plain = "Hi " + (examiner.getUserName() != null ? examiner.getUserName() : "there") + ",\n\n"
+                    + "The assessment schedule is now available for examiners.\n"
+                    + (courseName != null ? ("Course: " + courseName + "\n") : "")
+                    + (assignmentName != null ? ("Assignment: " + assignmentName + "\n\n") : "\n")
+                    + (message != null ? (message + "\n\n") : "")
+                    + "Please log in to view your sessions and assignments: " + loginLink + "\n\n"
+                    + "Best regards,\nOAS Team";
+
+            String html = buildScheduleReleaseHtml(examiner.getUserName(), courseName, assignmentName, message, loginLink, false);
+            helper.setText(plain, html);
+
+            mailSender.send(mime);
+        } catch (Exception e) {
+            log.error("Failed to send schedule release email to examiner {}: {}", examiner.getUserId(), e.getMessage());
+        }
+    }
+
+    private String buildScheduleReleaseHtml(String name, String courseName, String assignmentName, String message, String loginLink, boolean isStudent) {
+        // Reuse visual style similar to existing templates for consistency
+        String title = isStudent ? "Schedule Released" : "Examiner Schedule Released";
+        String cta = isStudent ? "Go to Booking" : "View Schedule";
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>")
+          .append(title)
+          .append("</title></head><body style=\"margin:0;padding:0;background-color:#f9fafb;font-family:Arial,sans-serif;\">")
+          .append("<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#f9fafb;padding:20px 0;\"><tr><td align=\"center\">")
+          .append("<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color:#ffffff;border-radius:12px;box-shadow:0 4px 6px rgba(0,0,0,0.1);\">")
+          .append("<tr><td style=\"padding:32px 32px 0 32px;text-align:center;\">")
+          .append("<h1 style=\"margin:0 0 8px 0;color:#1f2937;font-size:28px;font-weight:700;\">")
+          .append(title)
+          .append("</h1>")
+          .append("<p style=\"margin:0;color:#6b7280;font-size:16px;\">The assessment schedule is now available</p>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:8px 32px 0 32px;\">")
+          .append("<p style=\"margin:6px 0 10px 0;color:#374151;font-size:15px;line-height:1.6;\">Hi ")
+          .append(escapeHtml(name != null ? name : "there"))
+          .append(",</p>")
+          .append("<div style=\"background:#f3f4f6;padding:16px;border-radius:8px;margin:16px 0;\">")
+          .append("<p style=\"margin:0 0 8px 0;color:#374151;font-size:15px;\"><strong>Course:</strong> ")
+          .append(escapeHtml(courseName != null ? courseName : "N/A"))
+          .append("</p>")
+          .append("<p style=\"margin:0;color:#374151;font-size:15px;\"><strong>Assignment:</strong> ")
+          .append(escapeHtml(assignmentName != null ? assignmentName : "N/A"))
+          .append("</p>")
+          .append("</div>")
+          .append(message != null && !message.trim().isEmpty() ? ("<p style=\"margin:8px 0 0 0;color:#374151;font-size:15px;line-height:1.6;\">" + escapeHtml(message) + "</p>") : "")
+          .append("<div style=\"text-align:center;margin:24px 0;\">")
+          .append("<a href=\"").append(loginLink).append("\" style=\"display:inline-block;background:#3b82f6;color:#ffffff;text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600;\">")
+          .append(cta)
+          .append("</a>")
+          .append("</div>")
+          .append("</td></tr>")
+          .append("<tr><td style=\"padding:16px 32px 28px 32px;border-top:1px solid #f3f4f6;\">")
+          .append("<p style=\"margin:0;color:#9ca3af;font-size:12px;\">This notification was sent by the OAS system. If you have any questions, please contact your course administrator.</p>")
+          .append("</td></tr>")
+          .append("</table>")
+          .append("</td></tr></table>")
+          .append("</body></html>");
+        return sb.toString();
+    }
     
     private String buildCourseJoinHtml(String userName, String courseName, String assignmentName, String loginLink) {
         StringBuilder sb = new StringBuilder();

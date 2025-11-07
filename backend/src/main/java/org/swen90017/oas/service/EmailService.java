@@ -50,4 +50,14 @@ public interface EmailService {
      */
     void sendExaminerCourseJoinNotification(List<SysUser> registeredExaminers, String courseName, String assignmentName);
 
+    /**
+     * Send schedule release email to a student
+     */
+    void sendScheduleReleaseEmailToStudent(SysUser student, String courseName, String assignmentName, String message);
+
+    /**
+     * Send schedule release email to an examiner
+     */
+    void sendScheduleReleaseEmailToExaminer(SysUser examiner, String courseName, String assignmentName, String message);
+
 }

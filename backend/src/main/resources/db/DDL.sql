@@ -332,6 +332,28 @@ create index idx_sys_oper_log_s
 create index idx_sys_oper_log_tid
     on sys_oper_log (trace_id);
 
+-- email notification outbox queue
+create table email_notification_queue
+(
+    id            bigint auto_increment primary key,
+    type          varchar(64)                           not null comment 'Notification type, e.g., SCHEDULE_RELEASE_STUDENT/EXAMINER',
+    to_user_id    bigint                                null comment 'Recipient user id (optional)',
+    to_email      varchar(255)                          null comment 'Recipient email address',
+    payload_json  json                                  not null comment 'Parameters required to build the email (assignmentId, courseName, assignmentName, message, etc.)',
+    status        varchar(16) default 'PENDING'         not null comment 'PENDING|PROCESSING|SENT|FAILED',
+    attempts      int          default 0                not null comment 'Send attempts',
+    last_error    text                                   null comment 'Last error message',
+    scheduled_at  datetime                              null comment 'When to deliver; null means immediately',
+    sent_at       datetime                              null comment 'When sent successfully',
+    dedup_key     varchar(128)                          null comment 'Optional de-duplication key',
+    created_at    datetime     default CURRENT_TIMESTAMP not null,
+    updated_at    datetime     default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP,
+    constraint uk_email_notification_dedup unique (dedup_key)
+);
+
+create index idx_email_notification_status_scheduled
+    on email_notification_queue (status, scheduled_at);
+
 create table sys_refresh_token
 (
     id          bigint auto_increment
