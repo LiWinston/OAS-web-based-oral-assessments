@@ -49,6 +49,7 @@
             SUM(CASE WHEN asub.status = 'DRAFT' THEN 1 ELSE 0 END) as draft_examiner_count,
             SUM(CASE WHEN asub.status = 'REOPENED' THEN 1 ELSE 0 END) as reopened_examiner_count,
             MAX(asub.submitted_at) as last_submitted_at,
+            MAX(CASE WHEN asub.release_status = 'RELEASED' THEN asub.updated_at END) as last_released_at,
             MAX(asub.updated_at) as last_updated_at,
             
             -- Final score override info
@@ -126,6 +127,55 @@
         <if test="offset != null">
             OFFSET #{offset}
         </if>
+    </select>
+
+    <select id="listMarkConsolidationSubmissionEvents" resultType="java.util.Map">
+        SELECT 
+            DATE(asub.submitted_at) AS event_date,
+            COUNT(*) AS event_count
+        FROM assessment_submission asub
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.submitted_at IS NOT NULL
+        <if test="sessionId != null">
+            AND asub.session_id = #{sessionId}
+        </if>
+        AND asub.submitted_at &gt;= #{rangeStart}
+        AND asub.submitted_at &lt; #{rangeEnd}
+        GROUP BY DATE(asub.submitted_at)
+        ORDER BY event_date ASC
+    </select>
+
+    <select id="listMarkConsolidationOverrideEvents" resultType="java.util.Map">
+        SELECT 
+            DATE(asub.override_at) AS event_date,
+            COUNT(*) AS event_count
+        FROM assessment_submission asub
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.override_at IS NOT NULL
+        <if test="sessionId != null">
+            AND asub.session_id = #{sessionId}
+        </if>
+        AND asub.override_at &gt;= #{rangeStart}
+        AND asub.override_at &lt; #{rangeEnd}
+        GROUP BY DATE(asub.override_at)
+        ORDER BY event_date ASC
+    </select>
+
+    <select id="listMarkConsolidationReopenedEvents" resultType="java.util.Map">
+        SELECT 
+            DATE(asub.updated_at) AS event_date,
+            COUNT(*) AS event_count
+        FROM assessment_submission asub
+        WHERE asub.assignment_id = #{assignmentId}
+        AND asub.status = 'REOPENED'
+        AND asub.updated_at IS NOT NULL
+        <if test="sessionId != null">
+            AND asub.session_id = #{sessionId}
+        </if>
+        AND asub.updated_at &gt;= #{rangeStart}
+        AND asub.updated_at &lt; #{rangeEnd}
+        GROUP BY DATE(asub.updated_at)
+        ORDER BY event_date ASC
     </select>
 
     <select id="listExaminerSummary" resultType="java.util.Map">

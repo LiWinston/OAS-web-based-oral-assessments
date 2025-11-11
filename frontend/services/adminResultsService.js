@@ -114,6 +114,34 @@ export const adminResultsService = {
     );
     return resp.data;
   },
+
+  async getMarkConsolidationOverview(subjectId, assignmentId, params = {}) {
+    const resp = await apiClient.get(
+      `${base(subjectId, assignmentId)}/mark-consolidation/overview`,
+      { params }
+    );
+    return resp.data;
+  },
+
+  async getMarkConsolidationTrends(subjectId, assignmentId, params = {}) {
+    const trendParams = { ...params };
+    if (trendParams.interval) {
+      trendParams.interval = String(trendParams.interval).toUpperCase();
+    }
+    const resp = await apiClient.get(
+      `${base(subjectId, assignmentId)}/mark-consolidation/trends`,
+      { params: trendParams }
+    );
+    return resp.data;
+  },
+
+  async getMarkConsolidationAlerts(subjectId, assignmentId, params = {}) {
+    const resp = await apiClient.get(
+      `${base(subjectId, assignmentId)}/mark-consolidation/alerts`,
+      { params }
+    );
+    return resp.data;
+  },
 };
 
 export default adminResultsService;

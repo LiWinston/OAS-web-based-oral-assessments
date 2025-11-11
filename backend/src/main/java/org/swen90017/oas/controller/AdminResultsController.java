@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 import org.swen90017.oas.common.PageResult;
 import org.swen90017.oas.common.Result;
@@ -14,10 +15,16 @@ import org.swen90017.oas.dto.request.ReviewExaminerRequestDTO;
 import org.swen90017.oas.dto.request.UpdateFinalScoreRequestDTO;
 import org.swen90017.oas.dto.response.*;
 import org.swen90017.oas.entity.LoginUser;
+import org.swen90017.oas.service.AdminMarkConsolidationService;
 import org.swen90017.oas.service.AdminResultsService;
 import org.swen90017.oas.utils.SecurityUtils;
 
 import javax.validation.Valid;
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin/subjects/{subjectId}/assignments/{assignmentId}")
@@ -26,6 +33,70 @@ import javax.validation.Valid;
 public class AdminResultsController {
 
     private final AdminResultsService adminResultsService;
+    private final AdminMarkConsolidationService adminMarkConsolidationService;
+
+    @GetMapping("/mark-consolidation/overview")
+    @Operation(summary = "Get mark consolidation overview",
+            description = "Aggregate snapshot for the admin mark consolidation dashboard." )
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved overview"),
+            @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+            @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    public Result<MarkConsolidationOverviewResponseDTO> getMarkConsolidationOverview(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @RequestParam(required = false) @Parameter(description = "Filter metrics to a specific session") Long sessionId,
+            @RequestParam(defaultValue = "true") @Parameter(description = "Whether to include progress breakdown") boolean includeProgressBreakdown) {
+
+        MarkConsolidationOverviewResponseDTO data = adminMarkConsolidationService.getOverview(
+                subjectId, assignmentId, sessionId, includeProgressBreakdown);
+        return Result.success(data);
+    }
+
+    @GetMapping("/mark-consolidation/trends")
+    @Operation(summary = "Get mark consolidation trends",
+            description = "Time-series data for examiner submissions, overrides, and reopen events.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved trends"),
+            @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+            @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    public Result<MarkConsolidationTrendsResponseDTO> getMarkConsolidationTrends(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @Parameter(description = "Inclusive range start (ISO date)") LocalDate rangeStart,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            @Parameter(description = "Inclusive range end (ISO date)") LocalDate rangeEnd,
+            @RequestParam(defaultValue = "day") @Parameter(description = "Bucket interval (day|week)") String interval,
+            @RequestParam(required = false) @Parameter(description = "Filter by session ID") Long sessionId) {
+
+        MarkConsolidationTrendsResponseDTO data = adminMarkConsolidationService.getTrends(
+                subjectId, assignmentId, sessionId, rangeStart, rangeEnd, interval);
+        return Result.success(data);
+    }
+
+    @GetMapping("/mark-consolidation/alerts")
+    @Operation(summary = "Get mark consolidation alerts",
+            description = "Curated list of participants requiring attention for mark consolidation.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved alerts"),
+            @ApiResponse(responseCode = "403", description = "Access denied - not a course admin"),
+            @ApiResponse(responseCode = "404", description = "Assignment not found")
+    })
+    public Result<MarkConsolidationAlertsResponseDTO> getMarkConsolidationAlerts(
+            @PathVariable @Parameter(description = "Subject ID") Long subjectId,
+            @PathVariable @Parameter(description = "Assignment ID") Long assignmentId,
+            @RequestParam(required = false) @Parameter(description = "Filter alerts to a specific session") Long sessionId,
+            @RequestParam(required = false, defaultValue = "10") @Parameter(description = "Maximum number of alerts to return") Integer limit,
+            @RequestParam(required = false) @Parameter(description = "Comma separated alert types to include") String types) {
+
+        Set<String> typeFilters = parseAlertTypes(types);
+        MarkConsolidationAlertsResponseDTO data = adminMarkConsolidationService.getAlerts(
+                subjectId, assignmentId, sessionId, typeFilters, limit == null ? 10 : limit);
+        return Result.success(data);
+    }
 
     @GetMapping("/assessments")
     @Operation(summary = "List assessments for an assignment", 
@@ -326,6 +397,16 @@ public class AdminResultsController {
             @PathVariable @Parameter(description = "Student ID") Long studentId) {
         ExaminerScoringDTO result = adminResultsService.getIndividualExaminerScoring(subjectId, assignmentId, studentId);
         return Result.success(result);
+    }
+
+    private Set<String> parseAlertTypes(String types) {
+        if (types == null || types.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+        return Arrays.stream(types.split(","))
+                .map(String::trim)
+                .filter(token -> !token.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     private Boolean resolveReleaseFilter(Boolean isReleased, String releaseStatus) {

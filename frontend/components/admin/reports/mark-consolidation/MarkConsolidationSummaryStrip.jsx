@@ -1,9 +1,18 @@
 "use client";
 
+import clsx from "clsx";
+
 const formatNumber = (value) => {
   const numeric = Number(value ?? 0);
   if (!Number.isFinite(numeric)) return "0";
   return new Intl.NumberFormat("en-AU").format(numeric);
+};
+
+const formatPercent = (value) => {
+  if (value === null || value === undefined) return "—";
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "—";
+  return `${Math.round(numeric * 100)}%`;
 };
 
 const formatScore = (value) => {
@@ -13,77 +22,103 @@ const formatScore = (value) => {
   return `${numeric.toFixed(1)}%`;
 };
 
-function SummaryCard({ icon, label, value, sublabel, tone }) {
+const cardTone = {
+  emerald: "text-emerald-600",
+  amber: "text-amber-600",
+  sky: "text-sky-600",
+  indigo: "text-indigo-600",
+  purple: "text-purple-600",
+  rose: "text-rose-600",
+};
+
+function SummaryCard({ icon, title, value, description, tone = "emerald", isLoading }) {
   return (
-    <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-      <div className="flex items-center justify-between">
+    <div className="rounded-3xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-gray-700 dark:bg-gray-900/40">
+      <div className="flex items-center justify-between gap-3">
         <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-200">
           <i className={`fas ${icon}`} />
         </span>
-        {sublabel && <span className="text-xs text-gray-400 dark:text-gray-500">{sublabel}</span>}
+        <span className="text-[11px] font-semibold uppercase tracking-[0.35em] text-gray-400 dark:text-gray-500">
+          Snapshot
+        </span>
       </div>
-      <div className={`mt-4 text-3xl font-semibold ${tone}`}>{value}</div>
-      <div className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400">{label}</div>
+      <div
+        className={clsx(
+          "mt-5 text-3xl font-semibold",
+          cardTone[tone] || cardTone.emerald,
+          isLoading && "animate-pulse text-gray-300 dark:text-gray-600"
+        )}
+      >
+        {isLoading ? "—" : value}
+      </div>
+      <div className="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">{title}</div>
+      {description && <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{description}</p>}
     </div>
   );
 }
 
-export default function MarkConsolidationSummaryStrip({ summary }) {
-  const ready = summary?.progress?.ready ?? 0;
-  const attention = summary?.progress?.attention ?? 0;
-  const incomplete = summary?.progress?.incomplete ?? 0;
-  const released = summary?.release?.released ?? 0;
-  const notReleased = summary?.release?.notReleased ?? 0;
-  const total = summary?.total ?? ready + attention + incomplete;
-  const manualOverrides = summary?.manualOverrides ?? 0;
-  const examinerTotals = summary?.examinerTotals ?? {};
-  const examinerSubmitted = examinerTotals.submitted ?? 0;
-  const examinersTotal = examinerTotals.total ?? 0;
-  const averageScore = summary?.averageFinalScore ?? null;
+export default function MarkConsolidationSummaryStrip({ overview, isLoading }) {
+  const totals = overview?.totals ?? {};
+  const progress = overview?.progress ?? {};
+  const release = overview?.release ?? {};
+  const examinerSubmissions = overview?.examinerSubmissions ?? {};
+  const manualOverrides = overview?.manualOverrides ?? {};
+
+  const ready = progress.ready ?? 0;
+  const attention = progress.needsAttention ?? progress.attention ?? 0;
+  const awaiting = progress.awaiting ?? progress.incomplete ?? 0;
+  const participantTotal = totals.participants ?? ready + attention + awaiting;
+  const submittedRatio = examinerSubmissions.submittedRatio;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+    <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-6">
       <SummaryCard
         icon="fa-clipboard-check"
-        label="Ready for release"
+        title="Ready for release"
         value={formatNumber(ready)}
-        sublabel={`of ${formatNumber(total)} participants`}
-        tone="text-emerald-600"
+        description={`of ${formatNumber(participantTotal)} participants`}
+        tone="emerald"
+        isLoading={isLoading}
       />
       <SummaryCard
-        icon="fa-bell-exclamation"
-        label="Needs attention"
+        icon="fa-triangle-exclamation"
+        title="Needs attention"
         value={formatNumber(attention)}
-        sublabel={attention > 0 ? "Follow up reopened examiners" : "All clear"}
-        tone="text-amber-600"
+        description={attention > 0 ? "Follow up reopened submissions" : "All clear"}
+        tone="amber"
+        isLoading={isLoading}
       />
       <SummaryCard
         icon="fa-hourglass-half"
-        label="Awaiting submissions"
-        value={formatNumber(incomplete)}
-        sublabel={incomplete > 0 ? "Draft or missing examiner inputs" : "None pending"}
-        tone="text-sky-600"
+        title="Awaiting examiners"
+        value={formatNumber(awaiting)}
+        description={awaiting > 0 ? "Draft or missing examiner inputs" : "No outstanding submissions"}
+        tone="sky"
+        isLoading={isLoading}
       />
       <SummaryCard
         icon="fa-paper-plane"
-        label="Released"
-        value={`${formatNumber(released)}`}
-        sublabel={`${formatNumber(notReleased)} not yet released`}
-        tone="text-indigo-600"
+        title="Marks released"
+        value={formatNumber(release.released)}
+        description={`${formatNumber(release.notReleased)} pending release`}
+        tone="indigo"
+        isLoading={isLoading}
       />
       <SummaryCard
-        icon="fa-graduation-cap"
-        label="Average final score"
-        value={formatScore(averageScore)}
-        sublabel={`${formatNumber(examinerSubmitted)} of ${formatNumber(examinersTotal)} examiner submissions`}
-        tone="text-purple-600"
+        icon="fa-user-check"
+        title="Examiner submissions"
+        value={`${formatNumber(examinerSubmissions.submitted)} / ${formatNumber(examinerSubmissions.total)}`}
+        description={`Completion rate ${submittedRatio !== null ? formatPercent(submittedRatio) : "—"}`}
+        tone="purple"
+        isLoading={isLoading}
       />
       <SummaryCard
         icon="fa-pen"
-        label="Manual overrides"
-        value={formatNumber(manualOverrides)}
-        sublabel="Applied by admins"
-        tone="text-rose-600"
+        title="Manual overrides"
+        value={formatNumber(manualOverrides.count)}
+        description={manualOverrides.lastUpdatedAt ? `Last change ${new Date(manualOverrides.lastUpdatedAt).toLocaleString("en-AU", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}` : "No overrides applied"}
+        tone="rose"
+        isLoading={isLoading}
       />
     </div>
   );

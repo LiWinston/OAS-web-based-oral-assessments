@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.swen90017.oas.entity.AssessmentSubmission;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -255,5 +256,35 @@ public interface AdminResultsMapper extends BaseMapper<AssessmentSubmission> {
     Map<String, Object> getIndividualDetailWithExaminers(
             @Param("assignmentId") Long assignmentId,
             @Param("studentId") Long studentId
+    );
+
+    /**
+     * List submission events grouped by day for examiner submissions within a range
+     */
+    List<Map<String, Object>> listMarkConsolidationSubmissionEvents(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd
+    );
+
+    /**
+     * List manual override events grouped by day within a range
+     */
+    List<Map<String, Object>> listMarkConsolidationOverrideEvents(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd
+    );
+
+    /**
+     * List reopened events grouped by day within a range
+     */
+    List<Map<String, Object>> listMarkConsolidationReopenedEvents(
+            @Param("assignmentId") Long assignmentId,
+            @Param("sessionId") Long sessionId,
+            @Param("rangeStart") LocalDateTime rangeStart,
+            @Param("rangeEnd") LocalDateTime rangeEnd
     );
 }
