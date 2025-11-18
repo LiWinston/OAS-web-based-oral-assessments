@@ -20,6 +20,7 @@ import org.swen90017.oas.service.GradesExportService;
 
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -194,30 +195,29 @@ public class GradesExportServiceImpl implements GradesExportService {
     private List<TeacherScoringDetailExportDTO> exportIndividualTeacherScoringDetails(Long assignmentId) {
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         
-        // Query all INDIVIDUAL assessment submissions
         QueryWrapper<AssessmentSubmission> wrapper = new QueryWrapper<>();
         wrapper.eq("assignment_id", assignmentId);
         wrapper.eq("subject_type", "INDIVIDUAL");
         wrapper.eq("status", "SUBMITTED");
         List<AssessmentSubmission> submissions = assessmentSubmissionMapper.selectList(wrapper);
 
-        // Get rubric information
         List<String> rubricColumns = extractRubricColumns(assignment, "INDIVIDUAL");
+
+        Map<Long, List<AssessmentSubmission>> submissionsByStudent = submissions.stream()
+                .collect(Collectors.groupingBy(AssessmentSubmission::getSubjectId));
 
         List<TeacherScoringDetailExportDTO> result = new ArrayList<>();
 
-        for (AssessmentSubmission submission : submissions) {
-            Long studentId = submission.getSubjectId();
-            Long examinerId = submission.getExaminerId();
+        for (Map.Entry<Long, List<AssessmentSubmission>> entry : submissionsByStudent.entrySet()) {
+            Long studentId = entry.getKey();
+            List<AssessmentSubmission> studentSubmissions = entry.getValue();
 
-            // Get student information
             SysUser student = sysUserMapper.selectById(studentId);
-            SysStudent studentInfo = sysStudentMapper.selectById(studentId);
-            SysUser examiner = sysUserMapper.selectById(examinerId);
-
-            if (student == null || examiner == null) {
+            if (student == null) {
                 continue;
             }
+
+            SysStudent studentInfo = sysStudentMapper.selectById(studentId);
 
             TeacherScoringDetailExportDTO dto = new TeacherScoringDetailExportDTO();
             dto.setName(student.getUserName());
@@ -225,48 +225,24 @@ public class GradesExportServiceImpl implements GradesExportService {
             dto.setSisId(studentInfo != null ? studentInfo.getSisUserId() : "");
             dto.setLoginId(student.getEmail() != null ? student.getEmail().split("@")[0] : "");
             dto.setSection("");
-            dto.setGroupName("");  // No group for individual
+            dto.setGroupName("");
             dto.setCanvasGroupId("");
-            dto.setExaminerName(examiner.getUserName());
-            dto.setExaminerUsername(examiner.getEmail() != null ? examiner.getEmail().split("@")[0] : "");
 
-            // Get session information
-            if (submission.getSessionId() != null) {
-                SlotSession session = slotSessionMapper.selectById(submission.getSessionId());
-                if (session != null) {
-                    dto.setExamDate(session.getStartAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-                    dto.setExamTimeSlot(session.getStartAt().format(DateTimeFormatter.ofPattern("HH:mm")) + 
-                            "-" + session.getEndAt().format(DateTimeFormatter.ofPattern("HH:mm")));
-                    
-                    if (session.getVenueId() != null) {
-                        Venue venue = venueMapper.selectById(session.getVenueId());
-                        dto.setExamVenue(venue != null ? venue.getRoomName() : "");
-                    } else {
-                        dto.setExamVenue("");
-                    }
-                } else {
-                    dto.setExamDate("");
-                    dto.setExamTimeSlot("");
-                    dto.setExamVenue("");
-                }
-            } else {
-                dto.setExamDate("");
-                dto.setExamTimeSlot("");
-                dto.setExamVenue("");
-            }
+            populateSessionDetails(dto, studentSubmissions);
 
-            // Extract scores for this submission
-            Map<String, String> rubricScores = extractSubmissionScores(submission, rubricColumns, "INDIVIDUAL");
-            dto.setRubricScores(rubricScores);
+            Map<Long, TeacherScoringDetailExportDTO.ExaminerScore> examinerScoreMap = new LinkedHashMap<>();
+            mergeExaminerScoresIntoMap(examinerScoreMap, studentSubmissions, rubricColumns, rubricColumns, "INDIVIDUAL");
+            List<TeacherScoringDetailExportDTO.ExaminerScore> examinerScores =
+                    sortExaminerScores(examinerScoreMap.values());
+
+            dto.setExaminerScores(examinerScores);
+            dto.setRubricAverageScores(calculateAverageRubricScores(studentSubmissions, rubricColumns, "INDIVIDUAL"));
 
             result.add(dto);
         }
 
-        // Sort by student name then examiner name
-        result.sort(Comparator.comparing(TeacherScoringDetailExportDTO::getName, 
-                        Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(TeacherScoringDetailExportDTO::getExaminerName, 
-                        Comparator.nullsLast(Comparator.naturalOrder())));
+        result.sort(Comparator.comparing(TeacherScoringDetailExportDTO::getName,
+                Comparator.nullsLast(Comparator.naturalOrder())));
 
         return result;
     }
@@ -274,66 +250,87 @@ public class GradesExportServiceImpl implements GradesExportService {
     private List<TeacherScoringDetailExportDTO> exportGroupTeacherScoringDetails(Long assignmentId) {
         Assignment assignment = assignmentMapper.selectById(assignmentId);
         
-        // Query all GROUP/MIX assessment submissions
-        QueryWrapper<AssessmentSubmission> wrapper = new QueryWrapper<>();
-        wrapper.eq("assignment_id", assignmentId);
-        wrapper.in("subject_type", Arrays.asList("GROUP", "MIX"));
-        wrapper.eq("status", "SUBMITTED");
-        List<AssessmentSubmission> submissions = assessmentSubmissionMapper.selectList(wrapper);
+        QueryWrapper<AssessmentSubmission> groupWrapper = new QueryWrapper<>();
+        groupWrapper.eq("assignment_id", assignmentId);
+        groupWrapper.in("subject_type", Arrays.asList("GROUP", "MIX"));
+        groupWrapper.eq("status", "SUBMITTED");
+        List<AssessmentSubmission> groupSubmissions = assessmentSubmissionMapper.selectList(groupWrapper);
 
-        // Get rubric information
-        List<String> rubricColumns = extractRubricColumns(assignment, "GROUP");
+        QueryWrapper<AssessmentSubmission> individualWrapper = new QueryWrapper<>();
+        individualWrapper.eq("assignment_id", assignmentId);
+        individualWrapper.eq("subject_type", "INDIVIDUAL");
+        individualWrapper.eq("status", "SUBMITTED");
+        List<AssessmentSubmission> individualSubmissions = assessmentSubmissionMapper.selectList(individualWrapper);
+
+        List<String> groupRubricColumns = extractRubricColumns(assignment, "GROUP");
+        List<String> individualRubricColumns = extractRubricColumns(assignment, "INDIVIDUAL");
+        List<String> allRubricColumns = new ArrayList<>(groupRubricColumns);
+        allRubricColumns.addAll(individualRubricColumns);
+
+        Map<Long, List<AssessmentSubmission>> submissionsByGroup = groupSubmissions.stream()
+                .collect(Collectors.groupingBy(AssessmentSubmission::getSubjectId));
+
+        Map<Long, List<AssessmentSubmission>> individualSubmissionsByStudent = individualSubmissions.stream()
+                .collect(Collectors.groupingBy(AssessmentSubmission::getSubjectId));
 
         List<TeacherScoringDetailExportDTO> result = new ArrayList<>();
 
-        for (AssessmentSubmission submission : submissions) {
-            Long groupId = submission.getSubjectId();
-            Long examinerId = submission.getExaminerId();
+        for (Map.Entry<Long, List<AssessmentSubmission>> entry : submissionsByGroup.entrySet()) {
+            Long groupId = entry.getKey();
+            List<AssessmentSubmission> groupSubmissionsForGroup = entry.getValue();
 
-            // Get group information
             SysGroup group = groupMapper.selectById(groupId);
-            SysUser examiner = sysUserMapper.selectById(examinerId);
-
-            if (group == null || examiner == null) {
+            if (group == null) {
                 continue;
             }
 
-            // Get all students in the group
             QueryWrapper<SysStudentGroup> sgWrapper = new QueryWrapper<>();
             sgWrapper.eq("group_id", groupId);
             List<SysStudentGroup> studentGroups = sysStudentGroupMapper.selectList(sgWrapper);
 
-            // Get session information
-            String examDate = "";
-            String examTimeSlot = "";
-            String examVenue = "";
-            
-            if (submission.getSessionId() != null) {
-                SlotSession session = slotSessionMapper.selectById(submission.getSessionId());
-                if (session != null) {
-                    examDate = session.getStartAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                    examTimeSlot = session.getStartAt().format(DateTimeFormatter.ofPattern("HH:mm")) + 
-                            "-" + session.getEndAt().format(DateTimeFormatter.ofPattern("HH:mm"));
-                    
-                    if (session.getVenueId() != null) {
-                        Venue venue = venueMapper.selectById(session.getVenueId());
-                        examVenue = venue != null ? venue.getRoomName() : "";
+            if (studentGroups.isEmpty()) {
+                continue;
+            }
+
+            TeacherScoringDetailExportDTO sessionHolder = new TeacherScoringDetailExportDTO();
+            populateSessionDetails(sessionHolder, groupSubmissionsForGroup);
+            String examDate = sessionHolder.getExamDate();
+            String examTimeSlot = sessionHolder.getExamTimeSlot();
+            String examVenue = sessionHolder.getExamVenue();
+
+            Map<Long, TeacherScoringDetailExportDTO.ExaminerScore> examinerScoreMap = new LinkedHashMap<>();
+            mergeExaminerScoresIntoMap(examinerScoreMap, groupSubmissionsForGroup, groupRubricColumns,
+                    allRubricColumns, "GROUP");
+
+            Set<Long> knownExaminerIds = new HashSet<>(examinerScoreMap.keySet());
+            for (SysStudentGroup studentGroup : studentGroups) {
+                List<AssessmentSubmission> studentIndividualSubs =
+                        individualSubmissionsByStudent.getOrDefault(studentGroup.getUserId(), Collections.emptyList());
+                for (AssessmentSubmission submission : studentIndividualSubs) {
+                    Long examinerId = submission.getExaminerId();
+                    if (examinerId != null && !knownExaminerIds.contains(examinerId)) {
+                        examinerScoreMap.put(examinerId, createExaminerScore(examinerId, allRubricColumns));
+                        knownExaminerIds.add(examinerId);
                     }
                 }
             }
 
-            // Extract scores for this submission
-            Map<String, String> rubricScores = extractSubmissionScores(submission, rubricColumns, "GROUP");
+            List<TeacherScoringDetailExportDTO.ExaminerScore> sortedBaseScores =
+                    sortExaminerScores(examinerScoreMap.values());
 
-            // Create one row for each student in the group
+            Map<String, String> groupAverageScores =
+                    calculateAverageRubricScores(groupSubmissionsForGroup, groupRubricColumns, "GROUP");
+
             for (SysStudentGroup studentGroup : studentGroups) {
                 Long studentId = studentGroup.getUserId();
                 SysUser student = sysUserMapper.selectById(studentId);
-                SysStudent studentInfo = sysStudentMapper.selectById(studentId);
-
                 if (student == null) {
                     continue;
                 }
+
+                SysStudent studentInfo = sysStudentMapper.selectById(studentId);
+                List<AssessmentSubmission> studentIndividualSubs =
+                        individualSubmissionsByStudent.getOrDefault(studentId, Collections.emptyList());
 
                 TeacherScoringDetailExportDTO dto = new TeacherScoringDetailExportDTO();
                 dto.setName(student.getUserName());
@@ -343,26 +340,192 @@ public class GradesExportServiceImpl implements GradesExportService {
                 dto.setSection("");
                 dto.setGroupName(group.getGroupName());
                 dto.setCanvasGroupId(group.getCanvasGroupId());
-                dto.setExaminerName(examiner.getUserName());
-                dto.setExaminerUsername(examiner.getEmail() != null ? examiner.getEmail().split("@")[0] : "");
                 dto.setExamDate(examDate);
                 dto.setExamTimeSlot(examTimeSlot);
                 dto.setExamVenue(examVenue);
-                dto.setRubricScores(rubricScores);
+
+                List<TeacherScoringDetailExportDTO.ExaminerScore> studentExaminerScores =
+                        cloneExaminerScores(sortedBaseScores);
+                Map<Long, TeacherScoringDetailExportDTO.ExaminerScore> examinerLookup = studentExaminerScores.stream()
+                        .filter(score -> score.getExaminerId() != null)
+                        .collect(Collectors.toMap(TeacherScoringDetailExportDTO.ExaminerScore::getExaminerId,
+                                Function.identity(), (a, b) -> a, LinkedHashMap::new));
+
+                for (AssessmentSubmission submission : studentIndividualSubs) {
+                    Long examinerId = submission.getExaminerId();
+                    if (examinerId == null) {
+                        continue;
+                    }
+                    TeacherScoringDetailExportDTO.ExaminerScore target = examinerLookup.get(examinerId);
+                    if (target == null) {
+                        target = createExaminerScore(examinerId, allRubricColumns);
+                        examinerLookup.put(examinerId, target);
+                        studentExaminerScores.add(target);
+                    }
+
+                    Map<String, String> individualScores =
+                            extractSubmissionScores(submission, individualRubricColumns, "INDIVIDUAL");
+                    for (String column : individualRubricColumns) {
+                        String value = individualScores.get(column);
+                        if (value != null && !value.isEmpty()) {
+                            target.getRubricScores().put(column, value);
+                        }
+                    }
+                }
+
+                List<TeacherScoringDetailExportDTO.ExaminerScore> orderedScores =
+                        studentExaminerScores.stream()
+                                .sorted(Comparator.comparing(TeacherScoringDetailExportDTO.ExaminerScore::getExaminerName,
+                                        Comparator.nullsLast(Comparator.naturalOrder())))
+                                .collect(Collectors.toList());
+
+                Map<String, String> combinedAverage = new LinkedHashMap<>(groupAverageScores);
+                Map<String, String> individualAverage = calculateAverageRubricScores(
+                        studentIndividualSubs, individualRubricColumns, "INDIVIDUAL");
+                combinedAverage.putAll(individualAverage);
+
+                dto.setExaminerScores(orderedScores);
+                dto.setRubricAverageScores(combinedAverage);
 
                 result.add(dto);
             }
         }
 
-        // Sort by group name then student name then examiner name
-        result.sort(Comparator.comparing(TeacherScoringDetailExportDTO::getGroupName, 
+        result.sort(Comparator.comparing(TeacherScoringDetailExportDTO::getGroupName,
                         Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(TeacherScoringDetailExportDTO::getName, 
-                        Comparator.nullsLast(Comparator.naturalOrder()))
-                .thenComparing(TeacherScoringDetailExportDTO::getExaminerName, 
+                .thenComparing(TeacherScoringDetailExportDTO::getName,
                         Comparator.nullsLast(Comparator.naturalOrder())));
 
         return result;
+    }
+
+    private void populateSessionDetails(TeacherScoringDetailExportDTO dto, List<AssessmentSubmission> submissions) {
+        dto.setExamDate("");
+        dto.setExamTimeSlot("");
+        dto.setExamVenue("");
+
+        for (AssessmentSubmission submission : submissions) {
+            if (submission.getSessionId() == null) {
+                continue;
+            }
+
+            SlotSession session = slotSessionMapper.selectById(submission.getSessionId());
+            if (session == null) {
+                continue;
+            }
+
+            dto.setExamDate(session.getStartAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            dto.setExamTimeSlot(session.getStartAt().format(DateTimeFormatter.ofPattern("HH:mm"))
+                    + "-" + session.getEndAt().format(DateTimeFormatter.ofPattern("HH:mm")));
+
+            if (session.getVenueId() != null) {
+                Venue venue = venueMapper.selectById(session.getVenueId());
+                dto.setExamVenue(venue != null ? venue.getRoomName() : "");
+            } else {
+                dto.setExamVenue("");
+            }
+            return;
+        }
+    }
+
+    private TeacherScoringDetailExportDTO.ExaminerScore createExaminerScore(
+            Long examinerId,
+            List<String> allRubricColumns) {
+
+        SysUser examiner = sysUserMapper.selectById(examinerId);
+        TeacherScoringDetailExportDTO.ExaminerScore score = new TeacherScoringDetailExportDTO.ExaminerScore();
+        score.setExaminerId(examinerId);
+        if (examiner != null) {
+            score.setExaminerName(examiner.getUserName());
+            score.setExaminerUsername(examiner.getEmail() != null ? examiner.getEmail().split("@")[0] : "");
+        } else {
+            score.setExaminerName("Unknown");
+            score.setExaminerUsername("");
+        }
+
+        LinkedHashMap<String, String> rubricScores = new LinkedHashMap<>();
+        for (String column : allRubricColumns) {
+            rubricScores.put(column, "");
+        }
+        score.setRubricScores(rubricScores);
+        return score;
+    }
+
+    private void mergeExaminerScoresIntoMap(
+            Map<Long, TeacherScoringDetailExportDTO.ExaminerScore> target,
+            List<AssessmentSubmission> submissions,
+            List<String> columnsToPopulate,
+            List<String> allRubricColumns,
+            String subjectType) {
+
+        for (AssessmentSubmission submission : submissions) {
+            Long examinerId = submission.getExaminerId();
+            if (examinerId == null) {
+                continue;
+            }
+
+            TeacherScoringDetailExportDTO.ExaminerScore score =
+                    target.computeIfAbsent(examinerId, id -> createExaminerScore(id, allRubricColumns));
+
+            Map<String, String> submissionScores =
+                    extractSubmissionScores(submission, columnsToPopulate, subjectType);
+
+            for (String column : columnsToPopulate) {
+                String value = submissionScores.get(column);
+                if (value != null && !value.isEmpty()) {
+                    score.getRubricScores().put(column, value);
+                }
+            }
+        }
+    }
+
+    private List<TeacherScoringDetailExportDTO.ExaminerScore> sortExaminerScores(
+            Collection<TeacherScoringDetailExportDTO.ExaminerScore> scores) {
+        return scores.stream()
+                .sorted(Comparator.comparing(TeacherScoringDetailExportDTO.ExaminerScore::getExaminerName,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+    }
+
+    private boolean matchesSubjectType(SaveAssessmentDraftRequestDTO.ScoreItem score, String subjectType) {
+        if (subjectType == null || subjectType.trim().isEmpty()) {
+            return true;
+        }
+        String scoreType = score.getType();
+        if (scoreType == null || scoreType.trim().isEmpty()) {
+            // Old records might not set type, treat as match
+            return true;
+        }
+        return subjectType.equalsIgnoreCase(scoreType);
+    }
+
+    private String normalizeRubricColumn(String column) {
+        if (column == null) {
+            return "";
+        }
+        int parenIndex = column.indexOf(" (");
+        if (parenIndex > 0) {
+            return column.substring(0, parenIndex).trim();
+        }
+        return column.trim();
+    }
+
+    private List<TeacherScoringDetailExportDTO.ExaminerScore> cloneExaminerScores(
+            List<TeacherScoringDetailExportDTO.ExaminerScore> source) {
+
+        List<TeacherScoringDetailExportDTO.ExaminerScore> copies = new ArrayList<>();
+        for (TeacherScoringDetailExportDTO.ExaminerScore score : source) {
+            TeacherScoringDetailExportDTO.ExaminerScore copy = new TeacherScoringDetailExportDTO.ExaminerScore();
+            copy.setExaminerId(score.getExaminerId());
+            copy.setExaminerName(score.getExaminerName());
+            copy.setExaminerUsername(score.getExaminerUsername());
+            Map<String, String> rubricScores = score.getRubricScores() != null
+                    ? new LinkedHashMap<>(score.getRubricScores())
+                    : new LinkedHashMap<>();
+            copy.setRubricScores(rubricScores);
+            copies.add(copy);
+        }
+        return copies;
     }
 
     /**
@@ -430,6 +593,10 @@ public class GradesExportServiceImpl implements GradesExportService {
                         objectMapper.readValue(scoresJson, new TypeReference<List<SaveAssessmentDraftRequestDTO.ScoreItem>>(){});
 
                 for (SaveAssessmentDraftRequestDTO.ScoreItem score : scores) {
+                    if (!matchesSubjectType(score, subjectType)) {
+                        continue;
+                    }
+
                     String rubricDesc = score.getDescription();
                     if (rubricDesc != null && score.getInputPoints() != null) {
                         scoresByRubric.computeIfAbsent(rubricDesc, k -> new ArrayList<>()).add(score.getInputPoints());
@@ -442,14 +609,13 @@ public class GradesExportServiceImpl implements GradesExportService {
 
         // Calculate averages and populate result
         for (String column : rubricColumns) {
-            // Extract rubric description from column name (remove sample ID part)
-            String rubricDesc = column;
-            int parenIndex = column.indexOf(" (");
-            if (parenIndex > 0) {
-                rubricDesc = column.substring(0, parenIndex);
+            List<Double> scores = scoresByRubric.get(column);
+            if (scores == null) {
+                String normalized = normalizeRubricColumn(column);
+                if (!normalized.equals(column)) {
+                    scores = scoresByRubric.get(normalized);
+                }
             }
-
-            List<Double> scores = scoresByRubric.get(rubricDesc);
             if (scores != null && !scores.isEmpty()) {
                 double average = scores.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
                 result.put(column, String.format("%.2f", average));
@@ -485,6 +651,10 @@ public class GradesExportServiceImpl implements GradesExportService {
 
             Map<String, Double> scoreMap = new HashMap<>();
             for (SaveAssessmentDraftRequestDTO.ScoreItem score : scores) {
+                if (!matchesSubjectType(score, subjectType)) {
+                    continue;
+                }
+
                 if (score.getDescription() != null && score.getInputPoints() != null) {
                     scoreMap.put(score.getDescription(), score.getInputPoints());
                 }
@@ -492,14 +662,14 @@ public class GradesExportServiceImpl implements GradesExportService {
 
             // Populate result
             for (String column : rubricColumns) {
-                // Extract rubric description from column name (remove sample ID part)
-                String rubricDesc = column;
-                int parenIndex = column.indexOf(" (");
-                if (parenIndex > 0) {
-                    rubricDesc = column.substring(0, parenIndex);
+                Double score = scoreMap.get(column);
+                if (score == null) {
+                    String normalized = normalizeRubricColumn(column);
+                    if (!normalized.equals(column)) {
+                        score = scoreMap.get(normalized);
+                    }
                 }
 
-                Double score = scoreMap.get(rubricDesc);
                 if (score != null) {
                     result.put(column, String.format("%.2f", score));
                 } else {

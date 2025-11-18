@@ -2,7 +2,9 @@ package org.swen90017.oas.dto.response;
 
 import lombok.Data;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -19,15 +21,26 @@ public class TeacherScoringDetailExportDTO {
     private String section;
     private String groupName;
     private String canvasGroupId;
-    private String examinerName;
-    private String examinerUsername;
     private String examDate;
     private String examTimeSlot;
     private String examVenue;
     
-    // Dynamic rubric scores - will be added programmatically
-    // Map key: column name (e.g., "Sample1(Sample ID1)")
-    // Map value: score value
-    private Map<String, String> rubricScores = new LinkedHashMap<>();
+    /**
+     * Dynamic list of examiner scores on the same row
+     */
+    private List<ExaminerScore> examinerScores = new ArrayList<>();
+
+    /**
+     * Average rubric score across all examiners for this row
+     */
+    private Map<String, String> rubricAverageScores = new LinkedHashMap<>();
+
+    @Data
+    public static class ExaminerScore {
+        private Long examinerId;
+        private String examinerName;
+        private String examinerUsername;
+        private Map<String, String> rubricScores = new LinkedHashMap<>();
+    }
 }
 

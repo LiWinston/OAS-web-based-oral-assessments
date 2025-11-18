@@ -11,6 +11,7 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Teacher Scoring Detail Export CSV Handler
@@ -34,7 +35,6 @@ public class TeacherScoringDetailExportHandler implements CsvHandler<Void, Teach
 
             CsvWriter csvWriter = new CsvWriter(writer);
 
-            // Build header
             List<String> headers = new ArrayList<>();
             headers.add("name");
             headers.add("canvas_user_id");
@@ -43,15 +43,33 @@ public class TeacherScoringDetailExportHandler implements CsvHandler<Void, Teach
             headers.add("Section");
             headers.add("group_name");
             headers.add("canvas_group_id");
-            headers.add("examiner_name");
-            headers.add("examiner_username");
             headers.add("exam_date");
             headers.add("exam_time_slot");
             headers.add("exam_venue");
 
-            // Add dynamic rubric columns from first record if exists
-            if (!records.isEmpty() && records.get(0).getRubricScores() != null) {
-                headers.addAll(records.get(0).getRubricScores().keySet());
+            int maxExaminerCount = records.stream()
+                    .mapToInt(r -> r.getExaminerScores() != null ? r.getExaminerScores().size() : 0)
+                    .max()
+                    .orElse(0);
+
+            List<String> rubricColumns = new ArrayList<>();
+            for (TeacherScoringDetailExportDTO record : records) {
+                if (record.getRubricAverageScores() != null && !record.getRubricAverageScores().isEmpty()) {
+                    rubricColumns.addAll(record.getRubricAverageScores().keySet());
+                    break;
+                }
+            }
+
+            for (int i = 1; i <= maxExaminerCount; i++) {
+                headers.add("examiner" + i + "_examiner_name");
+                headers.add("examiner" + i + "_examiner_username");
+                for (String rubric : rubricColumns) {
+                    headers.add("examiner" + i + "_" + rubric);
+                }
+            }
+
+            for (String rubric : rubricColumns) {
+                headers.add(rubric + "_avg");
             }
 
             csvWriter.writeHeaderLine(headers.toArray(new String[0]));
@@ -66,17 +84,35 @@ public class TeacherScoringDetailExportHandler implements CsvHandler<Void, Teach
                 row.add(nvl(item.getSection()));
                 row.add(nvl(item.getGroupName()));
                 row.add(nvl(item.getCanvasGroupId()));
-                row.add(nvl(item.getExaminerName()));
-                row.add(nvl(item.getExaminerUsername()));
                 row.add(nvl(item.getExamDate()));
                 row.add(nvl(item.getExamTimeSlot()));
                 row.add(nvl(item.getExamVenue()));
 
-                // Add rubric scores in same order as headers
-                if (item.getRubricScores() != null) {
-                    for (String key : item.getRubricScores().keySet()) {
-                        row.add(nvl(item.getRubricScores().get(key)));
+                List<TeacherScoringDetailExportDTO.ExaminerScore> examinerScores =
+                        item.getExaminerScores() != null ? item.getExaminerScores() : new ArrayList<>();
+
+                for (int i = 0; i < maxExaminerCount; i++) {
+                    if (i < examinerScores.size()) {
+                        TeacherScoringDetailExportDTO.ExaminerScore examinerScore = examinerScores.get(i);
+                        row.add(nvl(examinerScore.getExaminerName()));
+                        row.add(nvl(examinerScore.getExaminerUsername()));
+
+                        Map<String, String> rubricScores = examinerScore.getRubricScores();
+                        for (String rubric : rubricColumns) {
+                            row.add(rubricScores != null ? nvl(rubricScores.get(rubric)) : "");
+                        }
+                    } else {
+                        row.add("");
+                        row.add("");
+                        for (int j = 0; j < rubricColumns.size(); j++) {
+                            row.add("");
+                        }
                     }
+                }
+
+                Map<String, String> averageScores = item.getRubricAverageScores();
+                for (String rubric : rubricColumns) {
+                    row.add(averageScores != null ? nvl(averageScores.get(rubric)) : "");
                 }
 
                 csvWriter.writeLine(row.toArray(new String[0]));
