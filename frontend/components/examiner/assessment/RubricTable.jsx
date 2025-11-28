@@ -71,12 +71,11 @@ export default function RubricTable({
   const handleRatingSelect = async (criterionId, levelId, level) => {
     if (disabled) return;
     const { min, max } = normalizeRange(level);
-    const midPoint = Math.floor((min + max) / 2);
     
     // Unified logic: both points and descriptive use the same approach
     onRatingChange(criterionId, {
       levelId,
-      points: midPoint,
+      points: max,
       minPoints: min,
       maxPoints: max
     });
