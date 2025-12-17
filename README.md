@@ -1,89 +1,251 @@
-# OAS - Web Based Oral Assessments System
+# OAS（Oral Assessment System）— Web 口语评估平台
 
-## Overview
+面向高校口语考试/口试场景的一体化平台：**管理员配置与排期 → 学生预约 → 考官评分与反馈 → 成绩汇总与发布 → Canvas CSV 导入导出**。
 
-OAS (Oral Assessment System) is a web-based platform designed for educational institutions to conduct online oral examinations efficiently. The system supports real-time audio recording, assessment, and feedback, providing a comprehensive oral evaluation experience for both teachers and students.
+```mermaid
+flowchart TD
+    %% 样式定义
+    classDef actor fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef portal fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
+    classDef module fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef db fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
 
-Oral assessments are a crucial part of student evaluation, offering opportunities to assess not just academic knowledge, but also communication and reasoning skills. However, the current practices for managing these assessments are often manual, fragmented, and inefficient. This project proposes the development of a unified, web-based platform aimed at streamlining the oral assessment lifecycle: from scheduling and preparation, through to the assessment itself, and the final mark collation and feedback delivery.
+    subgraph Users [用户角色]
+        direction LR
+        Student(学生):::actor
+        Examiner(考官):::actor
+        CourseAdmin(课程管理员):::actor
+        SuperAdmin(超级管理员):::actor
+    end
 
-The platform is designed to serve students, examiners, and administrators, providing distinct, role-specific interfaces and tools to facilitate each stage of the assessment process. Through features like booking systems, feedback capture tools, and automated mark aggregation, the platform aims to significantly reduce administrative burden, enhance transparency, and ensure consistency in how oral assessments are managed and evaluated.
+    subgraph Portals [业务门户 Frontend]
+        direction LR
+        SP[学生端<br/>预约/查分]:::portal
+        EP[考官端<br/>评分/日程]:::portal
+        AP[管理端<br/>排期/配置/汇总]:::portal
+        SAP[超管端<br/>系统治理]:::portal
+    end
 
-## Problem Statement
+    Users --> Portals
 
-1. **Inefficient Scheduling Systems**  
-   Current scheduling practices for oral assessments rely on manual coordination between students and staff, leading to scheduling conflicts, missed sessions, and administrative confusion. There is no centralised platform that supports both individual and group bookings in a controlled, conflict-free manner.
+    subgraph CoreBiz [核心业务能力 Backend Domain]
+        direction TB
+        
+        subgraph AuthMod [身份与安全]
+            Auth[认证授权<br/>JWT/RBAC]:::module
+            Audit[审计日志]:::module
+        end
 
-2. **Lack of Structured Feedback Mechanisms**  
-   Feedback is often delivered inconsistently, varies across examiners, and is difficult to manage or retrieve after assessments. There is no standard interface or rubric management system to ensure feedback is constructive, uniform, and well-documented.
+        subgraph CourseMod [教务配置]
+            Course[课程/作业管理]:::module
+            Rubric[量规 Rubric 引擎]:::module
+            Roster[名单管理<br/>CSV导入/Canvas集成]:::module
+        end
 
-3. **Manual Mark Consolidation and High Risk of Error**  
-   Marks for both group and individual assessments are typically consolidated manually, resulting in high chances of miscalculation and data entry errors. This also imposes unnecessary workload on academic and administrative staff, slowing down the result release process.
+        subgraph ScheduleMod [排期与预约]
+            Slots[时段池管理]:::module
+            Alloc[考官配岗<br/>自动/手动]:::module
+            Booking[学生预约系统<br/>并发控制/冲突检测]:::module
+        end
 
-4. **Limited Integration with Learning Management Systems**  
-   Data entry duplication occurs because student details and assessment results have to be manually transferred between assessment records and systems like Canvas. This redundant process creates room for data inconsistency and inefficiencies in grade processing.
+        subgraph AssessMod [评估执行]
+            Marking[在线评分<br/>Draft/Submit]:::module
+            MixMode[MIX模式计算<br/>小组/个人分联动]:::module
+            Comments[评论库管理]:::module
+        end
 
-## Context and Motivation
+        subgraph ResultMod [成绩中心]
+            Calc[分数汇总与计算]:::module
+            Release[发布控制<br/>邮件通知]:::module
+            Export[成绩导出<br/>Canvas格式]:::module
+        end
+    end
 
-The University of Melbourne and other higher education institutions are increasingly incorporating oral assessments into their evaluation strategies. While pedagogically valuable, these assessments place a significant logistical burden on both teaching and administrative staff. Additionally, students often find the current systems lacking in clarity, transparency, and flexibility.
+    Portals --> AuthMod
+    Portals --> CourseMod
+    Portals --> ScheduleMod
+    Portals --> AssessMod
+    Portals --> ResultMod
 
-This platform is developed to address these challenges. By automating core processes—scheduling, structured feedback, and mark consolidation—and integrating with existing learning platforms such as Canvas, it enables a seamless and efficient assessment experience for all parties involved.
+    %% 模块间依赖关系 (简化)
+    CourseMod --> ScheduleMod
+    ScheduleMod --> AssessMod
+    AssessMod --> ResultMod
+    Rubric -.-> Marking
+    Roster -.-> Booking
 
-The system aligns with modern educational values such as fair and transparent evaluation, scalability, and data integrity. It also accommodates diverse assessment types (individual and group), different visibility requirements (e.g., independent marking), and university-level privacy and compliance standards.
+    subgraph DataLayer [数据持久化]
+        direction LR
+        MySQL[(MySQL 8<br/>业务数据)]:::db
+        Redis[(Redis<br/>Token/缓存)]:::db
+    end
 
-## Goals and Vision
+    CoreBiz --> DataLayer
+```
 
-The platform aims to:
+## 这是什么？
 
-- **Streamline Scheduling:** Provide a controlled, conflict-free booking system with venue allocation and optional reminders.
-- **Support Structured Feedback:** Enable customizable rubrics and feedback templates, tailored per subject or assessment.
-- **Automate Mark Aggregation:** Automatically consolidate marks and feedback for both individual and group components.
-- **Enable Seamless Integration:** Import and export Canvas-compatible CSV files to eliminate duplication and reduce administrative overhead.
-- **Enhance User Experience:** Offer role-based interfaces with intuitive navigation for students, examiners, and administrators.
+OAS 是一个以 **角色为中心（RBAC）** 的口语评估系统，覆盖口试全生命周期。
+- **课程管理员（Course Admin）**：课程/作业配置、场次生成与配岗、CSV 导入导出、成绩汇总与发布
+- **学生（Student）**：查看可用场次、预约/改约、查看已发布成绩与反馈
+- **考官（Examiner）**：查看分配场次、评分（草稿/提交）、使用评论模板/量规
+- **超级管理员（Super Admin）**：系统级课程与管理员权限管理（视实现范围）
 
-By implementing this solution, the project will improve the overall efficiency, transparency, and reliability of oral assessment administration across the institution.
+需求与边界以 [Docs/Requirement/Project Scope.md](Docs/Requirement/Project%20Scope.md) 与 [Docs/Requirement/user_stories.md](Docs/Requirement/user_stories.md) 为准。
 
-## Client Information
+## 快速开始（本地开发）
 
-**University of Melbourne**
+> 说明：仓库是 monorepo，包含 [frontend/](frontend/) 与 [backend/](backend/)。
 
-- Project: ADVANCED MASTERS SOFTWARE ENGINEERING PROJECT SUBJECT SWEN90017
-- Semester: 2025 Semester 1
-- Subject Coordinator: Mansooreh Zahedi
-- Client: Hasti Samadi, CIS Melbourne
-- Supervisor: Geela Chee
+### 1) 启动 MySQL 8 并初始化数据
 
-## Tech Stack
+仓库已提供建表与测试数据脚本：
+- `backend/src/main/resources/db/DDL.sql`
+- `backend/src/main/resources/db/test_data.sql`
 
-- Frontend: TBD
-- Backend: TBD
-- Database: TBD
-- Other Middleware: TBD
-- Hosting: TBD
-- Deployment: TBD
+使用 Docker（示例）：
 
-## Team Members
+```bash
+docker run -d --name mysql8 \
+  -e MYSQL_ROOT_PASSWORD=swen90017_ps \
+  -e MYSQL_DATABASE=swen90017_db \
+  -p 3306:3306 \
+  mysql:8
+```
+
+导入脚本（示例）：
+
+```bash
+# 进入容器
+docker exec -it mysql8 bash
+
+# 在容器内执行：
+mysql -uroot -pswen90017_ps swen90017_db < /path/to/DDL.sql
+mysql -uroot -pswen90017_ps swen90017_db < /path/to/test_data.sql
+```
+
+> 你也可以用本机 MySQL 客户端导入上述 SQL 文件（推荐）。
+
+### 2) 启动后端（Spring Boot）
+
+后端默认端口：`8081`（见 `backend/src/main/resources/application.yml`）。
+
+必要环境变量（最小集合）：
+- `JWT_SECRET`
+- `DB_USERNAME`、`DB_PASSWORD`
+
+建议通过环境变量覆盖数据源（避免改代码）：
+
+```powershell
+cd backend
+
+$env:SPRING_DATASOURCE_URL="jdbc:mysql://localhost:3306/swen90017_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC"
+$env:DB_USERNAME="root"
+$env:DB_PASSWORD="swen90017_ps"
+$env:JWT_SECRET="dev-only-change-me"
+
+.\mvnw.cmd spring-boot:run
+```
+
+后端 API：
+- 基础地址：`http://localhost:8081`
+- Swagger / OpenAPI：`/swagger-ui/index.html`（也可能兼容 `/swagger-ui.html`）
+- OpenAPI JSON：`/v3/api-docs`
+
+### 3) 启动前端（Next.js）
+
+```powershell
+cd frontend
+npm install
+
+# 指向后端（推荐）
+$env:NEXT_PUBLIC_API_BASE_URL="http://localhost:8081"
+
+npm run dev
+```
+
+前端地址：`http://localhost:3000`
+
+### 4) 测试账号（来自后端测试数据）
+
+这些账号来自 `backend/src/main/resources/db/test_data.sql`（密码在前端 README 有列示）。
+- Course Admin: `alice@student.unimelb.edu.au`
+- Student: `bob@student.unimelb.edu.au`
+- Examiner: `eve@student.unimelb.edu.au`
+
+更完整的账号表与前端运行说明见 [frontend/README.md](frontend/README.md)。
+
+## API 入口与路径约定（以代码为准）
+
+后端存在两类路径：
+- **认证/注册类**：`/login`、`/logout`、`/register`、`/token/refresh`、`/auth/password-reset/**`
+- **业务 API**：多数以 `/api/...` 开头（例如 `/api/courses`、`/api/assignments`、`/api/csv`）
+
+如果你在联调时出现 404，优先去 Swagger 查实际路径。
+
+## 配置与环境变量（常用）
+
+后端（`backend/src/main/resources/application.yml`）：
+- `DB_USERNAME` / `DB_PASSWORD`
+- `JWT_SECRET`
+- `MAIL_USERNAME` / `MAIL_PASSWORD`（密码重置邮件）
+- `EMAIL_DOMAIN_VALIDATION_ENABLED`（邮箱后缀校验开关）
+- `CSV_STORAGE_PATH`、`CSV_IMPORT_USE_EMAIL_COLUMN`
+- `CORS_ALLOWED_ORIGINS` / `CORS_ALLOW_CREDENTIALS` 等
+- `REDIS_URL`（默认指向 Render 的托管 Redis，可覆盖为本地/自建）
+
+前端：
+- `NEXT_PUBLIC_API_BASE_URL`（Axios baseURL；缺省为 `/api`）
+
+> 注意：`frontend/docker-compose.yml` 当前把 `NEXT_PUBLIC_API_BASE_URL` 设成 `http://localhost:3000/api`，更偏向“前端自带 mock/legacy API routes”的模式；若你要连真实后端，请改为 `http://<backend-host>:8081`。
+
+## 文档导航（把这里当作“项目门户”）
+
+### 1) 一口气理解系统（推荐从这里开始）
+- 知识库总览（架构/权限/RBAC）：[Docs/RAG-KB/01-系统总览与权限模型.md](Docs/RAG-KB/01-%E7%B3%BB%E7%BB%9F%E6%80%BB%E8%A7%88%E4%B8%8E%E6%9D%83%E9%99%90%E6%A8%A1%E5%9E%8B.md)
+- 学生预约与场次：[Docs/RAG-KB/02-学生预约与场次管理.md](Docs/RAG-KB/02-%E5%AD%A6%E7%94%9F%E9%A2%84%E7%BA%A6%E4%B8%8E%E5%9C%BA%E6%AC%A1%E7%AE%A1%E7%90%86.md)
+- 评分/MIX/汇总：[Docs/RAG-KB/03-评分与MIX模式与汇总.md](Docs/RAG-KB/03-%E8%AF%84%E5%88%86%E4%B8%8EMIX%E6%A8%A1%E5%BC%8F%E4%B8%8E%E6%B1%87%E6%80%BB.md)
+- CSV 集成：[Docs/RAG-KB/04-CSV导入导出集成.md](Docs/RAG-KB/04-CSV%E5%AF%BC%E5%85%A5%E5%AF%BC%E5%87%BA%E9%9B%86%E6%88%90.md)
+
+### 2) 需求与范围
+- 范围声明：[Docs/Requirement/Project Scope.md](Docs/Requirement/Project%20Scope.md)
+- User Stories（按 Epic）：[Docs/Requirement/user_stories.md](Docs/Requirement/user_stories.md)
+
+### 3) API 合同与设计文档
+- API 合同集合： [Docs/API/](Docs/API/)
+- 设计/用户流： [Docs/Design/](Docs/Design/)
+
+### 4) 后端专属文档
+- 后端 API 文档（概要）：[backend/Docs/Backend_API_Documentation.md](backend/Docs/Backend_API_Documentation.md)
+- 部署：
+  - [backend/Docs/Deployment_Doc.md](backend/Docs/Deployment_Doc.md)
+  - [backend/Docs/Deployment-Guide.md](backend/Docs/Deployment-Guide.md)
+
+### 5) 架构图与数据库图
+- 架构说明：[Docs/Architecture/README.md](Docs/Architecture/README.md)
+
+## 仓库结构
+
+```
+OAS-web-based-oral-assessments/
+  frontend/    # Next.js 15 + React 19 + Tailwind
+  backend/     # Spring Boot 2.7 + Java 8 + MyBatis-Plus
+  Docs/        # 需求 / 设计 / API / 架构 / 会议纪要 / 测试
+  logs/
+```
+
+## 技术栈（以代码为准）
+
+- 前端：Next.js 15、React 19、Tailwind CSS、Zustand、TanStack Query、Axios
+- 后端：Spring Boot 2.7.5、Spring Security、JWT（Access/Refresh）、MyBatis-Plus、Springdoc OpenAPI
+- 数据：MySQL 8
+- 基础设施：Redis（可选）、SMTP/SendGrid（邮件）、Microsoft Graph（Calendar，按实现启用）
+
+---
+
+## 团队成员
 
 ### Product Team
-
-<table>
-
-  <tr>
-    <td width="150" align="center">
-      <a href="https://github.com/yungenc">
-        <img src="https://github.com/user-attachments/assets/e01d7aea-fa37-4ea0-a41c-1cd6d2cca78f" width="100px;" alt="Product Owner"/>
-      </a>
-    </td>
-    <td>
-      <h3>Product Owner</h3>
-      <p><b>Ian Chi</b> (Student ID: 1579898)</p>
-      <p>Stakeholder Communication, Feature Prioritization, User Story Mapping</p>
-      <p><a href="https://github.com/yungenc">@yungenc</a></p>
-    </td>
-  </tr>
-
-</table>
-
-### Documentation Team
 
 <table>
 
@@ -174,7 +336,7 @@ By implementing this solution, the project will improve the overall efficiency, 
       <h3>Backend Developer</h3>
       <p><b>Yun Chen</b> (Student ID: 1412174)</p>
       <p>Familiar with enterprise-level development in Spring Boot, understanding part of backend infrastructure design, and knowledgeable about Docker and Kubernetes. Looking to enhance backend infrastructure development skills, particularly in security and authentication.</p>
-      <p><a href="https://github.com/Crystallen1">@Yun Chen</a></p>
+      <p><a href="https://github.com/Crystallen1">@Crystallen1</a></p>
     </td>
   </tr>
   <tr>
@@ -234,342 +396,8 @@ By implementing this solution, the project will improve the overall efficiency, 
       <p><a href="https://github.com/YulkonFU">@YulkonFU</a></p>
     </td>
   </tr>
-     <tr>
-    <td width="150" align="center">
-      <a href="https://github.com/TianyunLei">
-        <img src="https://github.com/user-attachments/assets/70e3b61e-521e-47e3-965c-4748011b7a11" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Frontend Developer (for Semester 2, previously backend in Semester 1)</h3>
-      <p><b>Tianyun Lei</b> (Student ID: 1454701)</p>
-      <p>Tianyun Lei is familiar with web backend development using Java and Golang, and is experienced with various microservice frameworks like SpringBoot. He aims to enhance his backend development skills further in this project.</p>
-      <p><a href="https://github.com/TianyunLei">@TianyunLei</a></p>
-    </td>
-    <tr>
-    <td width="150" align="center">
-      <a href="https://github.com/xiongnemo">
-        <img src="https://github.com/user-attachments/assets/cf73c42e-f994-4def-a3f4-87677a552f02" width="100px;" alt="DevOps"/>
-      </a>
-    </td>
-    <td>
-      <h3>DevOps & Backend Lead (from 2nd May) & Frontend Developer (for Semester 2)</h3>
-      <p><b>Yunpeng Xiong</b> (Student ID: 1513076)</p>
-      <p>Component Development, State Management</p>
-      <p><a href="https://github.com/xiongnemo">@xiongnemo</a></p>
-    </td>
-  </tr>
-  </tr>
 </table>
 
-### Testing Team (From Semester 2)
+## 贡献指南
 
-<table>
-  <tr>
-    <td width="150" align="center">
-      <a href="https://github.com/BENYUANWANG">
-        <img src="https://github.com/user-attachments/assets/57b4df4b-e2fb-4381-ae6d-864911ab2ad2" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Testing lead</h3>
-      <p><b>Benyuan Wang</b> (Student ID: 1492846)</p>
-      <p>Experienced in python and flask backend development, understanding of database design, and some knowledge of software testing. Want to strengthen and improve backend development capabilities and technology stacks.</p>
-      <p><a href="https://github.com/BENYUANWANG">@Benyuan Wang</a></p>
-    </td>
-  </tr>
-<tr>
-    <td width="150" align="center">
-      <a href="https://github.com/weiranxu-unimelb">
-        <img src="https://personal.r2.bitsleep.cn/xwr.jpg" width="100px;" alt="Backend Developer"/>
-      </a>
-    </td>
-    <td>
-      <h3>Testing Engineer</h3>
-      <p><b>Weiran Xu</b> (Student ID: 1454343)</p>
-      <p>Experienced in backend development using Java and Spring Boot. Familiar with databases and proficient in deploying backend projects to private cloud environments such as AWS EC2. Expecting to gain skills in database optimization and to deeply explore the Spring Boot ecosystem.</p>
-      <p><a href="https://github.com/weiranxu-unimelb">@Weiran Xu</a></p>
-    </td>
-  </tr>
-</table>
-
-## Project Structure
-
-We will use monorepo structure for this project. The project will be divided into multiple packages, each responsible for a specific functionality. The main packages include:
-
-- **frontend**: Contains the source code for the frontend application.
-- **backend**: Contains the source code for the backend application.
-
-```
-OAS/
-├── frontend/           # Frontend source code
-├── backend/            # Backend source code
-├── Docs/               # Project documentation
-│   ├── Architecture/   # Architecture diagrams and documentation
-│   ├── Design Concept/ # Design concepts and documentation
-│   ├── Meetings/       # Meeting notes and minutes
-│   |   ├── Week 1/
-│   |   ├── Week 2/
-│   |   └── ...
-│   ├── Sprints/        # Sprint Artifacts & Documentations, Agile Ceremonies
-│   |   ├── Sprint 1/
-│   |   │   ├── Agile Ceremonies/
-│   |   │   └── Discussing Collaboration Documents/
-│   |   ├── Sprint 2/
-│   |   └── ...
-│   ├── Requirement/    # Requirements for the project
-│   └── Weekly Reports/ # Weekly reports and progress updates
-├── .gitignore          # Git ignore rules
-└── README.md           # Project overview and documentation
-```
-
-## Project Timeline and Documentation Requirements
-
-### Week 1: Choosing Project
-
-- Initial project selection
-- Preliminary scope identification
-
-### Week 2: Team Formation
-
-- Assign team members to roles
-- Establish communication channels
-- Set up collaboration tools
-
-### Week 3: First Client Meeting and Project Analysis
-
-- Meet with client to understand requirements
-- Analyze project description
-- Deliverables:
-  - Decide team roles
-  - Prepare Letter Agreement
-  - GitHub Setup
-
-### Sprint 1 (Week 4)
-
-- **Project Scope Documentation** (Assigned to: Yukun, Tianyun, Xiang Wang, Yanqing Shi)
-  - Project Background
-  - Requirement Elicitation
-  - Stakeholder Analysis (Lead: Yukun)
-- **Feature Definition Documentation** (Assigned to: Ian, Haocheng Li, Benyuan Wang, Yun Chen, Yongchun Li, Dongqiao, Weiran Xu, Yunpeng Xiong)
-  - Product Backlog (High-level) (Lead: Ian)
-  - User Stories (Leads: Dongqiao, Benyuan Wang, Haocheng Li, Yun Chen)
-  - Personas (Lead: Yunpeng Xiong)
-  - Acceptance Criteria (Leads: Weiran Xu, Yongchun Li)
-
-### Sprint 2 (Weeks 5-8)
-
-- **Design Concept Documentation**
-  - High-level design concept diagram (block diagram or UML component diagram)
-  - Technology stack documentation
-  - Component reuse plan
-  - Learning resources references
-  - Design decision notebook
-- **Prototype Development** (Assigned to Frontend Developers)
-  - Lo-Fi Prototype
-  - Hi-Fi Prototype
-  - Usability Tests
-  - Acceptance Test
-- **Architecture Design** (Assigned to Backend Developers)
-  - Class Diagram
-  - Use Case Diagram
-  - Sequence Diagram
-  - Component Diagram
-  - Deployment Diagram
-  - Database Diagram
-
-### Future Sprints
-
-- To Be Defined
-
-## Development Setup
-
-1. Clone the repository
-
-```bash
-git clone https://github.com/SWEN90017-2025-SM1/OAS-web-based-oral-assessments
-cd OAS-web-based-oral-assessments
-```
-
-2. Install dependencies
-
-```bash
-# Install frontend dependencies
-cd frontend
-npm install
-
-# (Optional) Preload backend dependencies for faster builds
-cd ../backend
-./mvnw dependency:go-offline
-```
-
-3. Configure environment variables
-
-   - **Frontend (`frontend/.env.local`)**
-     - `NEXT_PUBLIC_API_BASE_URL` – Spring Boot base URL (defaults to `http://localhost:8081`)
-     - `NEXT_PUBLIC_USE_MOCK_API` / `NEXT_PUBLIC_USE_STUDENT_RESULTS_MOCK` – toggle mock layers during UI development
-     - `NEXT_PUBLIC_BYPASS_AUTH` – bypass auth middleware for prototyping (must remain `false` in shared environments)
-     - `NEXT_PUBLIC_ENABLE_GLOBAL_SEARCH` – enable or disable the command palette
-   - **Backend (values consumed in `backend/src/main/resources/application.yml`)**
-     - `DB_USERNAME` / `DB_PASSWORD` – MySQL credentials (local or remote)
-     - `MAIL_USERNAME` / `MAIL_PASSWORD` – SMTP account for password reset emails
-     - `JWT_SECRET` – signing key for access and refresh tokens
-     - `EMAIL_DOMAIN_VALIDATION_ENABLED`, `CSV_STORAGE_PATH`, `CSV_IMPORT_USE_EMAIL_COLUMN` – feature switches for admin tooling
-     - `CORS_ALLOWED_ORIGINS`, `CORS_ALLOWED_METHODS`, `CORS_ALLOWED_HEADERS` – override defaults when deploying to new domains
-     - `REDIS_URL` – managed Redis instance (Render by default) for token caches
-
-4. Provision backing services
-
-   - **MySQL 8.0** – run locally (Docker/Homebrew) or connect to the shared university instance  
-     - Use `backend/scripts/start-db-tunnel.sh` to open an SSH tunnel when campus-only database access is required (`localhost:3307 → oas12025.eng.unimelb.edu.au:3306`)
-     - Update the JDBC URL in a profile override if you host MySQL locally
-   - **Redis** – optional for local work; the application falls back to the managed Redis URL when unset
-   - **SMTP** – configure credentials when exercising password reset flows; Gmail SMTP with app passwords is supported out of the box
-
-5. Start the backend service (port `8081`)
-
-```bash
-cd backend
-./mvnw spring-boot:run
-# or mvn spring-boot:run if Maven is installed globally
-```
-
-6. Start the frontend application (port `3000`)
-
-```bash
-cd frontend
-npm run dev         # development with hot reload
-npm run build       # production build
-npm run start       # serve production build
-npm run lint        # ESLint checks (Next.js config)
-```
-
-7. Verify the stack
-
-   - Frontend: http://localhost:3000 (role-based dashboards)
-   - Backend: http://localhost:8081 (Swagger UI at `/swagger-ui/index.html`)
-   - Seeded accounts (mirrors `frontend/README.md`):
-
-     | Role         | Email                        | Password | Username |
-     | ------------ | ---------------------------- | -------- | -------- |
-     | Course Admin | alice@student.unimelb.edu.au | password1| alice    |
-     | Student      | bob@student.unimelb.edu.au   | password2| bob      |
-     | Examiner     | eve@student.unimelb.edu.au   | password5| eve      |
-     | Super Admin  | yunchen6@unimelb.edu.au      | 123456   | Yun Chen |
-
-## System Architecture
-
-### Frontend (Next.js 15)
-
-- React 19 with App Router, Tailwind CSS, and Shadcn UI component primitives
-- State management split between Zustand (UI/auth) and TanStack Query (server cache)
-- Feature-specific routes for Course Admin, Student, Examiner, and Super Admin portals under `frontend/app/`
-- Global search palette, onboarding wizards, and shared layout providers housed in `frontend/components`
-- Axios service layer in `frontend/services/` centralises API calls, with mock adapters kept for offline UI development
-
-### Backend (Spring Boot 2.7)
-
-- Spring Boot with MyBatis-Plus, Spring Security, and JWT authentication (`org.swen90017.oas.security`)
-- REST controllers under `org.swen90017.oas.controller` cover scheduling, assessment, onboarding, and results
-- Redis-backed token/session caches plus SMTP integration for password reset flows and SendGrid/Microsoft Graph integrations for calendar/email automation
-- Service and mapper layers encapsulate business logic and database access, with DTOs for request/response segregation
-
-### Data & Infrastructure
-
-- MySQL 8.0 schema (15+ tables) managed by MyBatis mappers; reference `Docs/Architecture/Database Diagram.svg`
-- Redis (Render-hosted by default) handles token blacklisting and transient verifications
-- Structured logging to console and `./logs/oas-application.log` with trace IDs for cross-service debugging
-- Environment-driven toggles for CORS, CSV import/export, and email domain validation to support multiple deployments
-
-## Feature Highlights
-
-- **Role-based portals** for students, examiners, course administrators, and super administrators with tailored dashboards
-- **Scheduling suite** covering booking, self-assignment, staffing trends, and session exports (`frontend/components/admin/reports`, `frontend/components/examiner/schedule`)
-- **Assessment workflow** including rubric-driven marking, autosave drafts, moderation, and release pipelines aligned with Admin Results documentation
-- **Unified onboarding & authentication** leveraging JWT access/refresh tokens, secure logout, and guided activation flows
-- **Documentation-first delivery** with matching API contracts (`Docs/API`) and UX specs (`Docs/Design`) for every major feature
-
-## Directory Overview
-
-```
-OAS-web-based-oral-assessments/
-├── frontend/   # Next.js 15 application (App Router, Tailwind, Zustand, React Query)
-├── backend/    # Spring Boot service (MyBatis-Plus, JWT auth, Redis, SMTP integrations)
-├── Docs/       # Product, design, API, testing, and process documentation
-├── app/        # Legacy prototype (retained for historical reference)
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
-└── README.md
-```
-
-Consult `frontend/README.md` for granular UI folder guidance and the backend source packages for Java-specific architecture notes.
-
-## Documentation Map (`Docs/`)
-
-- **API Contracts** (`Docs/API/…`) – endpoint definitions for scheduling, results, onboarding, and feedback flows
-- **Design Specs** (`Docs/Design/…`) – user journeys, UI systems, and component guidelines
-- **Architecture** (`Docs/Architecture/…`) – system diagrams, deployment views, and database schema
-- **Sprints & Meetings** (`Docs/Sprints/`, `Docs/Meetings/`) – agile ceremonies, retrospectives, and stakeholder minutes
-- **Reports & Weekly Updates** (`Docs/Reports/`, `Docs/Weekly Reports/`) – progress tracking and Endeavour artefacts
-- **Testing** (`Docs/Test/…`) – API testing documentation and integration issue logs
-
-When adding new capabilities, pair implementation work with matching design and API updates inside `Docs/`.
-
-## Environment Variables Reference
-
-| Scope     | Key                                | Description                                                               |
-|-----------|------------------------------------|---------------------------------------------------------------------------|
-| Frontend  | `NEXT_PUBLIC_API_BASE_URL`         | Base URL for Spring Boot API calls                                        |
-| Frontend  | `NEXT_PUBLIC_USE_MOCK_API`         | Toggle mock service layer (true) vs real backend (false)                  |
-| Frontend  | `NEXT_PUBLIC_BYPASS_AUTH`          | Skip auth middleware during local prototyping                             |
-| Frontend  | `NEXT_PUBLIC_ENABLE_GLOBAL_SEARCH` | Enable or disable the global command palette                              |
-| Backend   | `DB_USERNAME` / `DB_PASSWORD`      | Credentials for the MySQL instance                                        |
-| Backend   | `JWT_SECRET`                       | Symmetric signing key for access and refresh tokens                       |
-| Backend   | `MAIL_USERNAME` / `MAIL_PASSWORD`  | SMTP credentials for transactional email (password reset, notifications)  |
-| Backend   | `EMAIL_DOMAIN_VALIDATION_ENABLED`  | Enforces institutional email suffix validation when set to `true`        |
-| Backend   | `CSV_STORAGE_PATH`                 | Directory path for CSV uploads/exports                                    |
-| Backend   | `REDIS_URL`                        | Connection string for Redis cache (token/session storage)                 |
-| Backend   | `CORS_ALLOWED_ORIGINS`             | Comma-separated list of allowed frontend origins                          |
-
-Keep sensitive values out of version control by using `.env.local`, shell profiles, or deployment secret stores.
-
-## Testing & Quality Assurance
-
-- **Frontend**
-  - `npm run lint` – Next.js/ESLint rules aligned with the shared config
-  - Component- and feature-level manual QA scenarios are documented alongside design specs in `Docs/Design/…` and validation checklists in `Docs/Test/…`
-- **Backend**
-  - `./mvnw test` – run unit and integration tests (requires configured datasource if tests touch the database)
-  - Verify API behaviour through Swagger (`/swagger-ui/index.html`) or the scripted Postman flows referenced in `Docs/Test/API Test Documentation.md`
-- **End-to-End**
-  - Follow the role-based test plans captured in `Docs/Test` and sprint QA reports under `Docs/Sprints/…/Agile Ceremonies/`
-
-## Deployment & Operations
-
-- **Backend**
-  - Build artifact: `backend/target/OAS-0.0.1-SNAPSHOT.jar` (generated via `./mvnw package`)
-  - Containerisation: `backend/Dockerfile` (OpenJDK 8 base, exposes port 8081)
-  - Environment: deployed to university-managed infrastructure (`oas12025.eng.unimelb.edu.au`) with remote MySQL and Redis instances; use `backend/scripts/start-db-tunnel.sh` for secure campus access
-- **Frontend**
-  - Local container option via `frontend/docker-compose.yml` (builds Next.js production image; defaults to mock API unless `.env` overrides are supplied)
-  - Production builds generated with `npm run build` and served using `npm run start` or the container image
-- **Monitoring & Logs**
-  - Backend logs stream to console and `backend/logs/oas-application.log` with trace IDs for request correlation
-  - Frontend uses browser devtools and the `api-status` indicator component (toggle via feature flags) during manual QA
-
-
-<!-- ## Project Timeline
-
-- Project Start: March 2025
-- Initial Requirements Review: TBD
-- First Prototype: TBD
-- Beta Testing: TBD
-- Final Delivery: TBD -->
-
-## Contribution Guidelines
-
-0. Make sure you use UniMelb SSO login and have access to the repository. (Either for the key you are using or git manager)
-1. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-3. Push to the branch (`git push origin feature/AmazingFeature`)
-4. Create a Pull Request
+见 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。
